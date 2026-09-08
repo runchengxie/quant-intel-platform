@@ -13,12 +13,12 @@ FORBIDDEN_MARKERS = (
     "token_label",
     "-----BEGIN PRIVATE KEY-----",
     "-----BEGIN RSA PRIVATE KEY-----",
-    "ghp_",
-    "xoxb-",
 )
 FORBIDDEN_PATTERNS = (
     re.compile(r"AKIA[0-9A-Z]{16}"),
     re.compile(r"AIza[0-9A-Za-z_-]{20,}"),
+    re.compile(r"ghp_[A-Za-z0-9]{20,}"),
+    re.compile(r"xoxb-[0-9A-Za-z-]{20,}"),
 )
 SKIP_PREFIXES = (
     "scripts/",

@@ -1,0 +1,83 @@
+site_name: Market Intel
+site_description: Public framework for market intelligence, reporting, dashboards, and contracts
+site_url: https://runchengxie.github.io/quant-intel-platform/
+repo_url: https://github.com/runchengxie/quant-intel-platform
+repo_name: runchengxie/quant-intel-platform
+edit_uri: edit/main/docs/
+
+theme:
+  name: material
+  language: zh
+  features:
+    - navigation.tabs
+    - navigation.sections
+    - navigation.top
+    - toc.follow
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      toggle:
+        icon: material/brightness-7
+        name: 切换到深色模式
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      toggle:
+        icon: material/brightness-4
+        name: 切换到浅色模式
+
+plugins:
+  - search
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - pymdownx.details
+  - pymdownx.highlight
+  - pymdownx.inlinehilite
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - toc:
+      permalink: true
+
+nav:
+  - 首页: index.md
+  - 了解平台:
+      - 系统架构: architecture.md
+      - 数据所有权: data-ownership.md
+      - 跨仓边界契约: boundary-contract.md
+      - 数据契约: contracts.md
+      - 术语表: glossary.md
+  - 使用与配置:
+      - 快速开始与配置: configuration.md
+      - CLI 参考: cli-reference.md
+      - 数据抓取架构: data-fetch-architecture.md
+      - 评分方法: scoring.md
+      - TA 方法: ta-methodology.md
+      - 频率限制: rate-limits.md
+  - 运维与开发:
+      - 运维说明: operations.md
+      - 测试: testing.md
+      - 工作流: workflows.md
+      - 报告结构: report-structure.md
+      - 网页看板: web-dashboard.md
+      - 日程: daily-schedule.md
+      - 报告投递: report-distribution.md
+      - 维护脚本: maintenance-scripts.md
+      - 路线图: roadmap.md
+      - 新机器设置: new-machine-setup.md
+      - 代码质量审计: code-quality-audit-findings.md
+  - 分析与研究:
+      - A 股因子信号: a-share-factor-signals.md
+      - 热点复合指标: hotspot-composite.md
+      - 重构计划: refactor-plan-etl-report.md
+      - 平台发布: platform-publication.md
+      - Hermes 工作流: hermes-agent-workflow.md
+      - Cashflow shadow: cashflow-feishu-shadow.md
+  - Public release:
+      - Public boundary: public-release/public-boundary.md
+      - Release checklist: public-release/public-release-checklist.md
+      - Data provenance: public-release/data-provenance.md

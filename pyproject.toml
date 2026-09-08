@@ -28,6 +28,7 @@ tools = [
 
 [dependency-groups]
 dev = [
+  "mkdocs-material>=9.5,<10",
   "pytest>=8.1",
   "pytest-cov>=7.0,<8",
   "ruff>=0.3",
