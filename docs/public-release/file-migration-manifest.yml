@@ -1,5 +1,9 @@
 version: 1
 files:
+  - path: LICENSE
+    classification: public
+    action: retain
+    reason: public MIT license for the framework
   - path: src/
     classification: public
     action: retain
