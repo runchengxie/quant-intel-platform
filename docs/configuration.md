@@ -1,8 +1,8 @@
-# Configuration
+# 配置说明
 
-Configuration is divided into public-safe defaults and deployment-provided values.
+配置分为两部分：仓库内的公开默认值，以及部署环境提供的运行参数。
 
-## Public-safe environment variables
+## 公开安全的环境变量
 
 ```bash
 MARKET_INTEL_CLIENT_CHAT_ID=example_client_target
@@ -11,14 +11,16 @@ MARKET_INTEL_PUBLIC_CHAT_ID=example_public_target
 DATA_PLATFORM_ROOT=/path/to/local/data
 ```
 
-The audience values above are examples only. Empty destinations are valid for offline rendering and CI; no message is sent when no target is configured.
+上面的受众 ID 只是示例。目标为空时，系统仍可执行离线渲染和 CI 测试，也不会发送消息。
 
-## Credentials
+## 凭据
 
-Credentials must be supplied through environment variables, a local ignored file, or the credential mechanism required by the relevant provider. Do not commit real values, local `.env` files, or provider response snapshots.
+凭据应通过环境变量、本地且已被 Git 忽略的配置文件，或对应服务商要求的凭据机制提供。
 
-## Cross-repository configuration
+请勿提交真实凭据、本地 `.env` 文件或服务商返回的真实数据快照。
 
-Research and data owners are configured through explicit paths and public CLI contracts. The public framework does not import adjacent repository source or infer paths from a developer's home directory.
+## 跨仓配置
 
-Production-specific configuration is maintained in `market-intel-deploy`.
+研究仓和数据仓通过明确的路径与公开 CLI 配置。平台不会导入相邻仓库的源码，也不会根据开发者的 home 目录猜测路径。
+
+生产环境专用配置统一维护在 `quant-intel-deploy`。

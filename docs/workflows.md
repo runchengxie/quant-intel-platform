@@ -1,23 +1,9 @@
-# Workflows
+# 工作流
 
-The public repository supports manual CLI execution and secret-free quality checks. Production scheduling is intentionally outside this repository.
+## Public 工作流
 
-## Public workflow stages
+Public CI 运行边界检查、Ruff、类型检查、离线契约测试、文档构建和 Python 包构建。它不读取生产凭据，不抓取真实数据，也不发送消息。
 
-```text
-owner CLI / versioned artifact
-        ↓
-validation and freshness checks
-        ↓
-report assembly and rendering
-        ↓
-optional injected delivery adapter
-        ↓
-receipt and audit output
-```
+## Private 工作流
 
-GitHub Actions runs offline tests, lint, type checks, contract checks, rendering regressions, and package builds. It does not fetch real data, send messages, or commit generated snapshots.
-
-## Private workflow stages
-
-The private deployment repository supplies production schedules, data roots, credentials, owner CLI locations, recovery bridges, and delivery routing. It consumes a pinned public release.
+生产调度、真实数据刷新、投递、回执保存和部署验证由 `quant-intel-deploy` 负责。

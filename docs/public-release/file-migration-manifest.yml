@@ -8,6 +8,10 @@ files:
     classification: public
     action: retain
     reason: public MIT license for the framework
+  - path: mkdocs.yml
+    classification: public
+    action: retain
+    reason: public documentation site configuration without production settings
   - path: src/
     classification: public
     action: retain

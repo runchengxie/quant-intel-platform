@@ -14,7 +14,7 @@
 
 ## 数据边界
 
-| 数据域 | Owner | `market-intel` 用法 | Live fetch |
+| 数据域 | 负责仓库 | `market-intel` 的用法 | 是否允许实时抓取 |
 |---|---|---|---|
 | A 股全量日频、资金流、概念、两融、指数、历史回测输入 | `market-data-platform` | 通过 `DATA_PLATFORM_ROOT/assets/tushare/a_share/` 只读 | 不允许在报告阶段补抓全量 |
 | ETF rotation / hot-sector 原始输入 | `market-data-platform` | 子项目只读 `DATA_PLATFORM_ROOT` | 不允许写回数据湖 |

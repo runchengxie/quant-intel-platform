@@ -1,8 +1,81 @@
+<div class="mi-hero" markdown>
+
+<div class="mi-eyebrow">PUBLIC MARKET INTELLIGENCE FRAMEWORK</div>
+
 # Market Intel
 
-Market Intel 是一个面向市场情报、报告、网页看板和数据契约的公开框架。
+把市场事实、研究产物和可审计契约，组合成可复现的情报产品。
 
-它负责把市场上下文、版本化 artifact 和确定性渲染组合成可复现的报告产品。生产环境中的凭据、定时调度、真实状态、投递配置和部署细节属于私有 deployment context，不包含在本 public repository 中。
+<div class="mi-hero__actions" markdown>
+
+[开始使用](configuration.md){ .md-button .md-button--primary }
+[查看系统架构](architecture.md){ .md-button }
+
+</div>
+</div>
+
+<div class="mi-stats" markdown>
+
+<div class="mi-stat" markdown>
+<span class="mi-stat__value">01</span>
+<span class="mi-stat__label">Public framework</span>
+</div>
+<div class="mi-stat" markdown>
+<span class="mi-stat__value">03</span>
+<span class="mi-stat__label">CLI entrypoints</span>
+</div>
+<div class="mi-stat" markdown>
+<span class="mi-stat__value">∞</span>
+<span class="mi-stat__label">Versioned contracts</span>
+</div>
+
+</div>
+
+## 平台能力
+
+<div class="mi-grid" markdown>
+
+<div class="mi-card mi-card--cyan" markdown>
+
+### `GLOBAL / INTEL`
+
+全球市场、主题评分、新闻上下文与日报渲染。
+
+[了解日报 →](architecture.md#全球市场日报daily-messenger)
+
+</div>
+
+<div class="mi-card mi-card--amber" markdown>
+
+### `A-SHARE / ANALYTICS`
+
+A 股市场事实、市场温度、报告组装与确定性图表。
+
+[了解分析 →](a-share-factor-signals.md)
+
+</div>
+
+<div class="mi-card mi-card--blue" markdown>
+
+### `CONTRACTS / ARTIFACTS`
+
+跨仓公开 CLI、版本化 artifact 与边界契约。
+
+[阅读契约 →](contracts.md)
+
+</div>
+
+<div class="mi-card mi-card--gold" markdown>
+
+### `PUBLIC / QUALITY`
+
+Public-safe CI、离线测试、边界检查和可复现构建。
+
+[查看边界 →](public-release/public-boundary.md)
+
+</div>
+
+</div>
 
 ## 快速开始
 

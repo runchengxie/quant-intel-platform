@@ -31,10 +31,10 @@
 仅当显式设置 `MDP_FALLBACK_ROOT` 时才追加该路径，正式接口为 `DATA_PLATFORM_ROOT`。
 这意味着未配置的新部署会明确报错，不再隐式依赖固定目录结构。
 
-### scripts / systemd / windows（本批次已完成收口）
+### 脚本、systemd 和 Windows（本批次已完成收口）
 
-- `scripts/*.sh`（morning/evening/publish/refresh_tushare_daily/weekly_recap/morning_product_supervisor/refresh_tushare_report_datasets）— `MDP_DIR` 默认去掉并 require，冗余字面 `.env.local` 改为引用 `$MDP_DIR`
-- `scripts/refresh_daily_watch20.sh`：只通过 `STRATEGY_PIPELINE_ROOT` 和 `MDP_DIR` 调用公开 producer CLI；news heat 缺失时继续运行，不在本仓重建。
+- `scripts/*.sh`（morning、evening、publish、refresh_tushare_daily、weekly_recap、morning_product_supervisor、refresh_tushare_report_datasets）：移除 `MDP_DIR` 默认值，改为强制要求，并统一引用 `$MDP_DIR` 下的 `.env.local`。
+- `scripts/refresh_daily_watch20.sh`：只通过 `STRATEGY_PIPELINE_ROOT` 和 `MDP_DIR` 调用公开 producer CLI。缺少 news heat 时继续运行，不在本仓重建。
 - `scripts/daily_watch20_delivery.sh`：只校验 research-workspace 产出的 DailyWatch20 artifact，再调用本仓渲染/投递入口。
 - `scripts/hotsector_research_handoff.sh`、`scripts/send_hotsector_client_preview.py`：仅保留指向 DailyWatch20 的兼容壳，不再启动历史 hotsector owner。
 - `scripts/windows/common.ps1`：`MDP_DIR` 默认去掉，未设则派生或报错
@@ -43,13 +43,13 @@
   部署环境文件。systemd 通过 `EnvironmentFile=` 加载，Hermes 三个入口在边界检查前
   source，同一部署配置覆盖两类调度器
 - 依赖跨仓路径的 systemd service（包括 DailyWatch20 producer、morning supervisor 与
-  TuShare 刷新）— 统一加载上述部署环境文件。service 模板不再
+  TuShare 刷新）：统一加载上述部署环境文件。service 模板不再
   自行持有路径默认值
 
-### src Python（已完成收口）
+### Python 源码（已完成收口）
 
 - `src/a_share_daily/deploy_check.py`、`tushare_credentials.py` 只接受显式 `MDP_DIR`
-- DailyWatch20 分钟完整性由 `src/a_share_daily/daily_watch20_raw_completeness.py` 负责；
+- DailyWatch20 分钟完整性由 `src/a_share_daily/daily_watch20_raw_completeness.py` 负责。
   因子、Hermite、walk-forward、OOS 和消融实现均由 research-workspace owner 负责。
 - `scripts/setup_cron.sh` 要求显式 `RESEARCH_WORKSPACE_ROOT`，不再提供
   `$HOME/code/...` 默认值。

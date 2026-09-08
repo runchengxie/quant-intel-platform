@@ -121,7 +121,7 @@
 方案：
 - 逐步改为捕获具体异常并加日志，降低掩盖真实错误的风险。
 
-### 5.3 飞书发送逻辑“重复”评估：确认为有意 specialization，不合并
+### 5.3 飞书发送逻辑重复评估：保留独立实现
 初看 `senders.py`、`daily_watch20_lark_delivery.py`、`style_replica_bridge/__init__.py` 三处都调用 `lark-cli`，像是应抽公共 `lark_client` 的重复代码。实测后判定为**有意为之的 specialization，不应强制合并**：
 
 - `senders.py` 内实际有四种不同子进程调用：hermes 发送（120s）、lark 发送（60s，带 cwd）、lark whoami（30s）、lark config bind（60s，带 env），各自超时与错误处理合理。
@@ -130,11 +130,11 @@
 
 三者幂等策略、回执、准入守卫、超时、target 类型均不同，强行抽公共入口会制造 overloaded 函数、威胁既有测试断言与守卫语义，并让下游包新增对 `ops_common` 的依赖、加剧跨包耦合（与第七节解耦方向相悖）。真正共用的仅是 `subprocess.run(capture_output, text, timeout, check=False)` 这一行样板，收益极低。
 
-对 S603（subprocess）豁免的处理：不盲目收敛到单一封装点。当前逐文件豁免对应各自独立的命令构造，保留在具体调用处更贴合"参数来自内部构造、无外部输入"的事实，改为单一封装反而需为 whoami/bind 的 env/cwd 差异追加参数，徒增复杂度。
+S603（subprocess）规则按文件保留豁免。各处命令都在本地构造，没有外部输入，继续放在具体调用点更容易理解。统一封装还需要额外处理 whoami 和 bind 的环境变量与工作目录差异，收益有限。
 
 ### 5.4 宽泛 `except Exception` 评估：多为降级容错设计，不盲收窄
 全仓 `review.py`（约 11 处）、`pipeline.py`（约 8 处）的 `except Exception` 并非掩盖错误的坏味道，而是系统的降级策略基石：
-- `review.py` 的 `except Exception` 包裹 `D.read_xxx(trade_date)` 等数据读取，捕获后该板块留空（"本交易日 XXX 暂缺"），使报告在部分数据缺失时仍能产出完整版面。
+- `review.py` 的 `except Exception` 包裹 `D.read_xxx(trade_date)` 等数据读取。捕获异常后，该板块留空并显示本交易日暂缺，使报告在部分数据缺失时仍能生成完整页面。
 - `pipeline.py` 的 `try_chart` 包裹任意图表生成 `fn`，单图失败不影响其他图。
 
 若强行收窄为具体异常类型（如 `FileNotFoundError / ValueError / KeyError`），反而会因列举不全让某次真实异常击穿降级、导致整份报告失败，降低健壮性。这些保留 `except Exception` 是有意设计。

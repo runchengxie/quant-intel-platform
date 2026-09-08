@@ -1,19 +1,15 @@
-# Public Boundary
+# Public 仓库边界
 
-`quant-intel-platform` is the reusable public framework for consuming
-versioned research/data artifacts, validating them, rendering reports and
-dashboards, and exposing generic delivery interfaces.
+`quant-intel-platform` 是可复用的公开框架，负责消费版本化的研究和数据产物，校验产物，生成报告和看板，并提供通用投递接口。
 
-The public repository does not own production deployment policy. Real
-credentials, destination mappings, host scheduler installation, private owner
-repository roots, production state, logs, receipts, and customer artifacts
-belong to `quant-intel-deploy` or to the deployment environment.
+以下内容属于 `quant-intel-deploy` 或具体部署环境，不放入 public 仓库：
 
-Public code communicates across repository boundaries through installed public
-CLI commands, versioned file contracts, and explicitly supplied environment
-variables. It must run its quality gates with no private checkout, secret,
-private network, production path, or real customer data.
+- 真实凭据和投递目标
+- 主机定时任务和安装配置
+- 私有研究仓路径
+- 生产状态、日志和回执
+- 客户数据和真实运行产物
 
-The public CI workflows are quality gates only. They do not fetch production
-data, send messages, write snapshots, enable schedulers, or mutate deployment
-state.
+跨仓协作只使用已安装的公开 CLI、版本化文件契约和明确提供的环境变量。public 仓库的质量检查不依赖私有 checkout、密钥、私有网络、生产路径或真实客户数据。
+
+Public CI 只负责质量检查。它不会抓取生产数据、发送消息、写入快照、启用定时器或修改部署状态。

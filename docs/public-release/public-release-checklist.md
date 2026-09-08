@@ -1,52 +1,52 @@
-# Public Release Checklist
+# Public 发布检查清单
 
-Use this checklist before creating or updating the public GitHub repository. The existing private repository must remain the source of production history until every item is complete.
+创建或更新 public GitHub 仓库前，请完成以下检查。生产历史应继续保留在私有仓库，直到全部检查完成。
 
-## Cutover evidence
+## 发布记录
 
-Record these values in the private deploy repository before publication:
+发布前，在私有 deploy 仓库记录以下值：
 
-- `source_revision`: final reviewed revision in the private source checkout;
-- `public_revision`: commit at the root of the clean public export;
-- `public_release_tag`: first immutable public release tag;
-- `deploy_platform_pin`: active deploy dependency resolved to a 40-character commit;
-- `rollback_platform_pin`: previous known-good deploy dependency resolved to a 40-character commit.
+- `source_revision`：私有源码中最后审核通过的 commit
+- `public_revision`：clean export 的根 commit
+- `public_release_tag`：不可变的 public release tag
+- `deploy_platform_pin`：deploy 使用的 40 位 commit
+- `rollback_platform_pin`：已验证可回滚的 40 位 commit
 
-## Boundary
+## 仓库边界
 
-- [ ] Every tracked file is classified in `file-migration-manifest.yml`.
-- [ ] Public source uses semantic audiences only.
-- [ ] Production schedules, recovery bridges, and host-specific deployment files are private.
-- [ ] Public code does not import, checkout, or depend on private deployment code.
-- [ ] Public code does not use implicit production filesystem defaults.
+- [ ] `file-migration-manifest.yml` 已覆盖所有 tracked file
+- [ ] public 源码只使用语义化受众名称
+- [ ] 生产调度、恢复桥和主机配置文件已放入私有仓库
+- [ ] public 源码不导入、checkout 或依赖私有部署代码
+- [ ] public 源码不使用隐含的生产文件路径
 
-## Data and privacy
+## 数据与隐私
 
-- [ ] No real customer, partner, group, user, or internal document identifier remains in the public tree.
-- [ ] No real webhook, chat ID, token, credential, private endpoint, or proxy label remains in the public tree.
-- [ ] Real production `state/`, `out/`, receipts, logs, and provider snapshots are absent.
-- [ ] Public fixtures are synthetic or have confirmed redistribution rights.
-- [ ] Full Git history has been scanned for secrets and private markers.
+- [ ] public tree 中没有真实客户、合作方、群组、用户或内部文档标识
+- [ ] public tree 中没有真实 webhook、chat ID、token、凭据、私有端点或代理标签
+- [ ] `state/`、`out/`、回执、日志和服务商快照均未发布
+- [ ] public fixture 是合成数据，或已确认拥有再分发权限
+- [ ] Git history 已完成密钥和私有标记扫描
 
-## Dependency and package safety
+## 依赖与构建
 
-- [ ] Every runtime dependency required by public CI is public and resolvable without private access.
-- [ ] `research-contracts` is available through a public package, release, or repository.
-- [ ] The public package builds from a clean export.
-- [ ] The private deployment pins an immutable public release.
+- [ ] public CI 所需的运行时依赖无需私有权限即可解析
+- [ ] `research-contracts` 可通过公开包、release 或仓库获取
+- [ ] public package 可从 clean export 构建
+- [ ] 私有 deploy 已锁定不可变的 public release
 
-## CI and verification
+## CI 与验证
 
-- [ ] Public CI runs without repository secrets.
-- [ ] Public CI does not call real market-data APIs, Feishu, private networks, or production paths.
-- [ ] Boundary checker passes.
-- [ ] Lint, format, type check, tests, CLI checks, and package build pass in the clean export.
-- [ ] Private deployment configuration and dry-run integration checks pass against the pinned public release.
+- [ ] public CI 不依赖仓库 secrets
+- [ ] public CI 不访问真实行情接口、飞书、私有网络或生产路径
+- [ ] boundary checker 通过
+- [ ] lint、format、类型检查、测试、CLI 检查和 package build 通过
+- [ ] 私有 deploy 已针对 public release 完成 dry-run 验证
 
-## Publication
+## 发布后
 
-- [ ] License and dependency notices are reviewed.
-- [ ] Branch protection and GitHub Actions permissions are reviewed.
-- [ ] Public README and contribution guidance are complete.
-- [ ] A rollback release is pinned in the private deployment repository.
-- [ ] Public repository is created from a clean sanitized history, not by changing the visibility of the existing private repository.
+- [ ] license 和依赖声明已检查
+- [ ] branch protection 和 GitHub Actions 权限已检查
+- [ ] README 和贡献指南完整
+- [ ] 私有 deploy 已记录 rollback release
+- [ ] public 仓库由 clean history 创建，没有直接修改私有仓库的可见性

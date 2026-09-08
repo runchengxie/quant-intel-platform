@@ -1,18 +1,9 @@
-# Delivery Agent Workflow
+# 投递 Agent 工作流
 
-This document describes the public delivery abstraction. A deployment may use a command-line delivery agent, a webhook adapter, or another transport that implements the same contract.
+## 契约
 
-## Contract
+投递 Agent 只负责调用公开入口、传递参数和保存回执。报告内容由平台生成，生产调度与真实投递配置由 `quant-intel-deploy` 管理。
 
-The delivery layer receives:
+## 生产配置
 
-- rendered text or image artifacts;
-- a semantic audience;
-- an idempotency scope;
-- an optional dry-run flag.
-
-It returns a delivery result and records the artifact hash, target fingerprint, and outcome in the receipt. Target fingerprints must be redacted and must not reveal credentials.
-
-## Production configuration
-
-The public repository does not choose real destinations. `market-intel-deploy` supplies transport binaries, environment variables, audience mappings, and operational schedules.
+生产环境中的 bot、目标群、定时计划和日志路径不写入 public 仓库。部署时通过环境变量和 deploy 仓库中的模板提供。

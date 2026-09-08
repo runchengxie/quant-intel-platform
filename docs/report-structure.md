@@ -1,19 +1,9 @@
-# Report Structure
+# 报告结构
 
-Reports are assembled from validated facts, versioned owner artifacts, and deterministic rendering helpers.
+## 公开契约
 
-## Public contract
+报告由市场事实、研究产物、解释层和来源信息组成。各部分通过版本化字段交接，具体字段见[产物契约](contracts.md)。
 
-Every report pipeline should make the following boundaries visible:
+## 离线行为
 
-1. input facts and their source status;
-2. validation and freshness results;
-3. interpretation or scoring output;
-4. rendered text, images, or dashboard payloads;
-5. delivery receipt and idempotency scope.
-
-The public repository documents layout and schema, not the identity of any recipient or the production message matrix.
-
-## Offline behavior
-
-When optional data or destinations are absent, reports should render a clearly marked degraded result or a dry-run artifact. Required owner artifacts fail closed when their contract or freshness checks do not pass.
+没有凭据或投递目标时，平台仍可执行离线渲染和契约测试。缺失的可选数据会记录状态，不应伪装成真实数据。

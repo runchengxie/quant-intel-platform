@@ -1,5 +1,5 @@
-# Public Fixture Data Provenance
+# Public 测试数据来源
 
-The files under `tests/fixtures/public/` are synthetic examples created for offline tests and documentation. They are not copies of market-provider responses and do not represent production observations.
+`tests/fixtures/public/` 下的文件是为离线测试和文档示例制作的合成数据。它们不是市场服务商返回的原始数据，也不代表任何真实市场观察值。
 
-The repository intentionally does not distribute real provider snapshots. Production data, receipts, logs, and state belong to the deployment environment or the private deployment repository, subject to the applicable provider terms.
+仓库不发布真实服务商快照。生产数据、回执、日志和运行状态由部署环境或私有部署仓库保存，并遵守对应服务商的使用条款。

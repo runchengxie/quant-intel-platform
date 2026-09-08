@@ -1,25 +1,9 @@
-# Report Distribution Contract
+# 报告投递约定
 
-The public framework exposes semantic audiences and transport interfaces. It does not contain real recipients, customer names, group identifiers, webhooks, or production routing policy.
+## 公开受众模型
 
-## Public audience model
+报告可以按 `client`、`internal` 和 `public` 等受众分类。受众目标由部署环境提供，代码仓库只保存分类规则和离线示例。
 
-The framework recognizes these generic audience roles:
+## 投递保证
 
-- `client`: an externally-facing report audience;
-- `internal`: an engineering or research audience;
-- `public`: an intentionally public output audience.
-
-Production deployments map these roles to actual destinations in a private deployment configuration. A local or CI run with no destination configured must render and validate reports without sending messages.
-
-## Delivery guarantees
-
-Delivery adapters should preserve:
-
-- audience isolation;
-- deterministic idempotency keys;
-- artifact and receipt linkage;
-- fail-closed behavior when a required destination is absent;
-- dry-run support for tests and deployment validation.
-
-Actual recipient matrices, message schedules, escalation targets, and compatibility aliases belong in `market-intel-deploy`.
+每次投递都应带有幂等键和 delivery receipt。重复运行时复用已确认的回执，避免重复发送。目标缺失或产物校验失败时，系统应停止发送。

@@ -1,7 +1,7 @@
 # A 股外部因子信号试验（历史记录）
 
 > 本页仅保留迁移历史。因子面板、分钟特征、Hermite 和 walk-forward 已迁入
-> research-workspace；market-intel 不再提供本页所述 producer 或报告观察入口。
+> 相关能力已经迁移到 research-workspace。market-intel 不再提供本页所述的产出入口或报告观察入口。
 
 本页记录 `market-intel` 接入 A 股外部因子面板的当前状态。这里只用于工程试验和研究验证，不构成投资建议。
 
@@ -115,7 +115,7 @@ uv run python -m a_share_analysis.factor_tools.minute_factor_expand \
 artifacts/a_share_minute_factor_top200_202510_202604/factor_results/mf_volatility_32_full/
 ```
 
-## Smoke 读数
+## 快速验证结果
 
 截至 2026-07-06，本机 smoke panel 覆盖：
 
@@ -176,7 +176,7 @@ uv run python -m a_share_analysis.factor_tools.incremental_experiment \
   --external-factor-group mf_volatility_32_full
 ```
 
-## Top200 扩展读数
+## Top200 扩展结果
 
 截至 2026-07-06，本机已有一份 top200 分钟数据和扩展因子：
 
@@ -211,7 +211,7 @@ peak_count_2std
 它比 full32 更稀疏、更可解释，Top20 收益和回撤更好，但换手仍明显高于 baseline。
 下一步应优先做 walk-forward 和换手惩罚/持仓平滑，暂缓引入 Hermite。
 
-## Walk-Forward / 持仓平滑
+## Walk-forward 与持仓平滑
 
 `volume_activity5` 已有一个滚动训练、交易成本和持仓策略 sweep 工具：
 

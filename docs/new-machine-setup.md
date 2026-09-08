@@ -1,28 +1,15 @@
-# New Machine Setup
+# 新机器设置
 
-This public repository documents local development only. Production machines must be bootstrapped from the private deployment repository and its reviewed environment configuration.
+## 本地开发
 
-## Local development
+安装 Python、uv 和 Git 后，在仓库根目录运行：
 
 ```bash
 uv sync --locked --group dev
 uv run pytest
-uv run ruff check .
-uv run ruff format --check .
-uv run ty check
+uv run mkdocs serve
 ```
 
-External data access is opt-in. Set `DATA_PLATFORM_ROOT` to a local data root when running commands that consume published data artifacts. The framework never invents a machine-specific data path.
+## 生产边界
 
-## Production boundary
-
-The private deployment project supplies:
-
-- stable checkout paths;
-- owner CLI locations;
-- schedules and service definitions;
-- credentials and destination mappings;
-- production data roots;
-- recovery and escalation procedures.
-
-Do not copy production environment files, state, receipts, or credentials into this repository.
+生产凭据、定时任务、研究仓路径和投递配置由 `quant-intel-deploy` 管理。本仓只保存公开代码、示例配置、离线 fixture 和文档。

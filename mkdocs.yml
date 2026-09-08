@@ -8,20 +8,33 @@ edit_uri: edit/main/docs/
 theme:
   name: material
   language: zh
+  font: false
+  icon:
+    logo: material/chart-line
   features:
     - navigation.tabs
+    - navigation.tabs.sticky
     - navigation.sections
+    - navigation.expand
+    - navigation.instant
+    - navigation.tracking
+    - navigation.path
     - navigation.top
     - toc.follow
     - content.code.copy
+    - content.action.edit
   palette:
     - media: "(prefers-color-scheme: light)"
       scheme: default
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-7
         name: 切换到深色模式
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
+      primary: custom
+      accent: custom
       toggle:
         icon: material/brightness-4
         name: 切换到浅色模式
@@ -42,6 +55,15 @@ markdown_extensions:
       custom_checkbox: true
   - toc:
       permalink: true
+
+extra_css:
+  - stylesheets/extra.css
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/runchengxie/quant-intel-platform
+      name: GitHub
 
 nav:
   - 首页: index.md
@@ -76,8 +98,8 @@ nav:
       - 重构计划: refactor-plan-etl-report.md
       - 平台发布: platform-publication.md
       - Hermes 工作流: hermes-agent-workflow.md
-      - Cashflow shadow: cashflow-feishu-shadow.md
-  - Public release:
-      - Public boundary: public-release/public-boundary.md
-      - Release checklist: public-release/public-release-checklist.md
-      - Data provenance: public-release/data-provenance.md
+      - 现金流影子投递: cashflow-feishu-shadow.md
+  - 发布说明:
+      - Public 仓库边界: public-release/public-boundary.md
+      - 发布检查清单: public-release/public-release-checklist.md
+      - 数据来源说明: public-release/data-provenance.md

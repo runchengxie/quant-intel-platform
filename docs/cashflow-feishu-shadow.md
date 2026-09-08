@@ -1,16 +1,16 @@
-# ç°éæµç­ç¥é£ä¹¦ Shadow æ¨é
+# 现金流策略飞书影子投递
 
-ç°éæµæ¨éåªæ¥å `strategy_app.cashflow.selection.v1` äº§ç©ï¼å¹¶å¼ºå¶è¦æ±ï¼
+现金流投递只接收 `strategy_app.cashflow.selection.v1` 产物，并检查以下条件：
 
-- `status=passed`ï¼
-- `research_only=true`ï¼
-- `eligible_for_live=false`ï¼
-- source dateãsignal date ä¸å½ä»¤åæ°ä¸è´ï¼
-- å¿é¡»æä¾ `strategy_pipeline.cashflow.publication.v1` ä¸ `selection_sha256` ä¸ç®æ æä»¶ä¸è´ç publication receiptï¼
-- ç®æ æééè´ãæ éå¤è¡ç¥¨ä¸æ»åä¸º 100%ï¼
-- æ¾å¼ä¼ å¥è³å°ä¸ä¸ª Feishu æµè¯ç¾¤ `--chat-id`ã
+- `status=passed`
+- `research_only=true`
+- `eligible_for_live=false`
+- source date、signal date 与命令参数一致
+- 提供 `strategy_pipeline.cashflow.publication.v1`，且 `selection_sha256` 与目标文件一致
+- 目标权重非负、股票不重复，总和为 100%
+- 明确传入至少一个飞书测试群 `--chat-id`
 
-è¿è¡ç¤ºä¾ï¼
+## 运行示例
 
 ```bash
 uv run a-share-daily cashflow-delivery \
@@ -22,16 +22,13 @@ uv run a-share-daily cashflow-delivery \
   --receipt /path/to/cashflow-delivery-receipt.json
 ```
 
-åéä½¿ç¨ç°æ `lark-cli` bot ééãå¹ç­é®ç»å®ç­ç¥ãpolicyãsignal dateãç®æ ç¾¤å artifact content hashï¼éå¤è¿è¡ä¼ä»å¹éç delivery receipt å¤ç¨æåç»æï¼ä¸éå¤åéã
+发送使用现有的 `lark-cli` bot 通道。幂等键由策略、signal date、目标群和产物 content hash 组成。重复运行时，系统会复用匹配的 delivery receipt，不会重复发送。
 
-å½å adapter ä¸è¯»åé»è®¤å®¢æ·ç¾¤ï¼ä¹ä¸æ¯ææ­£å¼çäº§ç¾¤éç½®ã`--dry-run` åªçæç¶æä¸º `dry_run` çåæ§ï¼ä¸ä»£è¡¨æ¶æ¯å·²éè¾¾ã
+当前 adapter 不读取默认客户群，也不支持正式生产群配置。`--dry-run` 只生成状态为 `dry_run` 的回执，不代表消息已经送达。
 
-## Scheduled shadow bridge
+## 定时影子桥接
 
-`scripts/run_cashflow_shadow.sh` is the deployment bridge; it does not contain
-strategy logic. It requires an external
-`~/.config/market-intel/cashflow-shadow.env` with explicit paths and test chat
-IDs, for example:
+`quant-intel-deploy` 中的 `scripts/run_cashflow_shadow.sh` 是部署桥接脚本，不包含策略逻辑。运行前需要在外部配置文件中提供明确路径和测试群 ID，例如：
 
 ```bash
 QUANT_RESEARCH_ROOT=/home/richard/code/quant/quant-research
@@ -49,12 +46,6 @@ CASHFLOW_CHAT_IDS=oc_test_group
 CASHFLOW_SEND=0
 ```
 
-The optional `cashflow-feishu-shadow.timer` runs at 06:15 on weekdays. It is
-installed only when `CASHFLOW_SHADOW_ENABLE=1` is explicitly supplied to
-`setup_cron.sh --layer2`; the default deployment does not enable it. Real send
-also requires `CASHFLOW_SEND_CONFIRMATION=I_UNDERSTAND_TEST_GROUP_ONLY`.
+可选的 `cashflow-feishu-shadow.timer` 在工作日 06:15 运行。只有明确设置 `CASHFLOW_SHADOW_ENABLE=1` 并执行 `setup_cron.sh --layer2` 时才会安装，默认不会启用。
 
-When `CASHFLOW_DATA_ROOT` is set, the bridge refreshes the PIT audit receipt
-from the newest complete sealed vintage before invoking the orchestrator. A
-blocked audit is retained and passed downstream; it never becomes a usable
-feature input.
+如果设置了 `CASHFLOW_DATA_ROOT`，桥接脚本会先根据最新完整数据生成 PIT 审计回执，再调用编排器。审计未通过时，结果会保留并传给下游，但不会被当作可用特征。

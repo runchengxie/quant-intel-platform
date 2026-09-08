@@ -43,7 +43,7 @@ uv run python project_tools/cleanup_merged_branches.py \
   --yes
 ```
 
-钩子要求工作树 clean，且被推送 commit 等于当前 `HEAD`。紧急绕过可显式设置 `SKIP_LOCAL_CHECKS=1`，但不能绕过分支目标规则；绕过后应立即补跑完整门禁。
+钩子要求工作树 clean，且被推送 commit 等于当前 `HEAD`。紧急绕过可显式设置 `SKIP_LOCAL_CHECKS=1`，但仍会检查分支目标。绕过后应立即补跑完整门禁。
 
 GitHub 端运行轻量的 Ruff、ty、离线契约测试和构建检查。完整 pytest、真实数据访问和部署验证仍由本地门禁或手动流程负责。纯数据 workflow 不受该策略影响。
 
@@ -51,12 +51,12 @@ GitHub 端运行轻量的 Ruff、ty、离线契约测试和构建检查。完整
 
 本仓测试应重点覆盖：
 
-- ETL、主题评分、市场资讯与降级行为；
-- artifact 日期/schema/hash 的 fail-closed 校验；
-- DailyWatch20、D11-H5、style-factor 等 research-workspace artifact 的消费；
-- 报告渲染、图表、Dashboard 与受众隔离；
-- 飞书幂等、delivery receipt 和失败恢复；
-- scheduler/recovery 不安装或修复研究侧 timer；
+- ETL、主题评分、市场资讯与降级行为
+- artifact 日期、schema、hash 的安全失败校验
+- DailyWatch20、D11-H5、style-factor 等 research-workspace artifact 的消费
+- 报告渲染、图表、Dashboard 与受众隔离
+- 飞书幂等、delivery receipt 和失败恢复
+- scheduler/recovery 不安装或修复研究侧 timer
 - `refresh_daily_watch20.sh` 只通过 `strategy-pipeline` 公开 CLI 恢复正式 artifact。
 
 分钟因子研究、Hermite、walk-forward、OOS、ablation、AI ranking/shadow 等算法测试归 research-workspace owner，不在 market-intel 保留镜像测试。
@@ -79,7 +79,7 @@ systemctl --user list-timers --all
 journalctl --user -u hermes-gateway-preflight.service --since today
 ```
 
-生产 scheduler、host 安装和历史 research-only unit 清理属于私有 deploy 仓库；本仓测试只验证公开 CLI、契约和离线 fixtures。
+生产 scheduler、主机安装和历史 research-only unit 清理属于私有 deploy 仓库。本仓测试只验证公开 CLI、契约和离线 fixtures。
 
 ## Windows 调度冒烟
 
@@ -114,11 +114,11 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\windows\test_sch
 
 ## 质量要求
 
-- Ruff lint 与 format 通过；
-- `ty check` 覆盖根项目 `src/`；
-- `pytest` 与 contract tests 通过；
-- CLI help 与 `docs/cli-reference.md` 同步；
-- shell/PowerShell/JS 脚本在可用工具下通过静态检查；
+- Ruff lint 与 format 通过
+- `ty check` 覆盖根项目 `src/`
+- `pytest` 与 contract tests 通过
+- CLI help 与 `docs/cli-reference.md` 同步
+- shell、PowerShell、JS 脚本在可用工具下通过静态检查
 - 跨仓功能如果依赖 owner 改动，provider PR 和 research-workspace gitlink 必须先有可审计 commit。
 
 通过 GitHub connector 创建的 PR 无法替代本机 `uv`/systemd/live-provider 验证。因此这类大规模边界迁移在真实本地门禁和部署 smoke 完成前应保持 Draft。
