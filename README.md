@@ -1,5 +1,7 @@
 # Market Intel
 
+[打开网页版说明书](https://runchengxie.github.io/quant-intel-platform/)
+
 面向用户的自动化市场情报与投递系统。它抓取全球市场和新闻，消费 `research-workspace` 发布的 A 股策略与研究产物，把市场事实和版本化产物渲染成日报、晚报、周报、网页看板与飞书消息，并处理投递窗口、幂等、新鲜度和故障恢复。
 
 策略计算、因子研究、回测、消融和模型生产由 `research-workspace` 负责。跨仓协作只使用公开 CLI 和版本化文件契约。`market-intel` 可以调用研究仓的公开生产入口进行当日恢复，但不维护研究逻辑。
@@ -107,6 +109,7 @@ uv run python scripts/send_daily_watch20.py --help
 
 ## 文档导航
 
+- [网页版说明书](https://runchengxie.github.io/quant-intel-platform/)：在线阅读完整文档
 - [系统架构](docs/architecture.md)：报告、数据源与运行链路
 - [跨仓边界契约](docs/boundary-contract.md)：market-intel / research-workspace 职责与调用规则
 - [日内调度](docs/daily-schedule.md)：报告与数据任务时间表
