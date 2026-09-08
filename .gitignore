@@ -1,0 +1,92 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[codz]
+*$py.class
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+!scripts/lib/
+!scripts/lib/tushare_credentials.sh
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# uv related
+/.uv-cache/
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py.cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# PEP 582; used by e.g. github.com/David-OConnor/pyflow and github.com/pdm-project/pdm
+__pypackages__/
+
+# Environments
+.env
+.env.local
+.envrc
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+api_keys.json
+
+# mkdocs documentation
+/site
+
+# Cython debug symbols
+cython_debug/
+
+# Visual Studio Code
+.vscode/
+
+# Ruff stuff:
+.ruff_cache/
+
+# PyPI configuration file
+.pypirc
+
+# Project specific artefacts
+.worktrees/
+/out/
+/state/
+# 投递状态误写防护：状态目录默认是根 state/，不要指向 src/ 源码树
+src/state/
+/.tmp/
+/data/tushare/
+/artifacts/
+/src/a_share_analysis/artifacts/
+
+# Debugging
+full_project_source.txt

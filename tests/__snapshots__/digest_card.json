@@ -1,0 +1,42 @@
+{
+  "config": {
+    "wide_screen_mode": true
+  },
+  "header": {
+    "template": "blue",
+    "title": {
+      "tag": "plain_text",
+      "content": "内参 · 盘前"
+    }
+  },
+  "elements": [
+    {
+      "tag": "div",
+      "text": {
+        "tag": "lark_md",
+        "content": "AI 总分 82 (Δ +2.5)｜基本面 78｜估值 65｜距关注增强 -7\n信号：关注增强 AI（总分高于关注增强阈值）"
+      }
+    },
+    {
+      "tag": "div",
+      "text": {
+        "tag": "lark_md",
+        "content": "**AI 市场资讯（GLM）**\n今日暂无五市市场资讯"
+      }
+    },
+    {
+      "tag": "action",
+      "actions": [
+        {
+          "tag": "button",
+          "text": {
+            "tag": "plain_text",
+            "content": "查看完整报告"
+          },
+          "url": "https://acme.github.io/daily-messenger/2024-04-01.html",
+          "type": "default"
+        }
+      ]
+    }
+  ]
+}

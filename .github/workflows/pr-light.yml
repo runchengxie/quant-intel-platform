@@ -1,0 +1,63 @@
+name: Lightweight public pull request quality
+
+on:
+  pull_request:
+    paths:
+      - "src/**"
+      - "tests/**"
+      - "project_tools/**"
+      - "scripts/public_release/**"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: market-intel-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@v6
+        with:
+          enable-cache: true
+          python-version: "3.11"
+
+      - name: Install public dependencies
+        run: uv sync --locked --group dev
+
+      - name: Boundary check
+        run: uv run python scripts/public_release/check_boundary.py
+
+      - name: Format changed Python files
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_sha="${{ github.event.pull_request.base.sha || github.event.before || 'HEAD^' }}"
+          mapfile -t files < <(git diff --name-only "$base_sha" "$GITHUB_SHA" -- '*.py')
+          if ((${#files[@]} == 0)); then
+            echo "No changed Python files."
+          else
+            uv run ruff format --check "${files[@]}"
+          fi
+
+      - name: Offline contract tests
+        run: >-
+          uv run pytest -q
+          tests/public_release
+          tests/test_contracts.py
+          tests/test_boundary_contract.py
+          tests/test_news_contract.py
+          tests/test_digest_snapshot.py
+          tests/test_report_delivery_smoke.py
+          tests/test_style_replica_delivery_guard.py

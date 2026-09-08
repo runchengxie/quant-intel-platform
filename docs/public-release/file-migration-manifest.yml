@@ -1,0 +1,327 @@
+version: 1
+files:
+  - path: src/
+    classification: public
+    action: retain
+    reason: framework runtime, contracts, rendering, validation, and generic delivery code
+  - path: tests/
+    classification: public
+    action: retain
+    reason: tests become offline and use synthetic fixtures
+  - path: config/
+    classification: public
+    action: sanitize
+    reason: retain generic analytical configuration without production destinations
+  - path: project_tools/
+    classification: public
+    action: retain
+    reason: local quality and repository maintenance tools
+  - path: .githooks/
+    classification: public
+    action: retain
+    reason: public repository quality hooks
+  - path: .github/workflows/
+    classification: split
+    action: sanitize
+    reason: retain only secret-free quality workflows; move production workflows to private deployment
+  - path: docs/
+    classification: split
+    action: sanitize
+    reason: keep public contracts and architecture; move customer and production runbooks
+  - path: scripts/
+    classification: split
+    action: move
+    reason: retain only local/public quality helpers; move production bridges, schedulers, and recovery entry points
+  - path: scripts/systemd/
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/systemd/
+    reason: host scheduler units can enable production jobs and reference private deployment roots
+  - path: scripts/windows/
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/windows/
+    reason: host task installation and production scheduling belong to private deployment
+  - path: scripts/setup_cron.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/setup_cron.sh
+    reason: installs production schedulers and writes private host configuration
+  - path: scripts/morning_pipeline.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/morning_pipeline.sh
+    reason: production report orchestration and delivery bridge
+  - path: scripts/evening_pipeline.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/evening_pipeline.sh
+    reason: production report orchestration and delivery bridge
+  - path: scripts/weekly_recap.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/weekly_recap.sh
+    reason: production report orchestration and delivery bridge
+  - path: scripts/recover_business_stage.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/recover_business_stage.sh
+    reason: production recovery entry point
+  - path: scripts/refresh_daily_watch20.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/refresh_daily_watch20.sh
+    reason: production owner-artifact refresh bridge
+  - path: scripts/lib/
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/lib/
+    reason: deployment path and credential helpers belong to private deployment
+  - path: scripts/check_daily_watch20_producer_freshness.py
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/check_daily_watch20_producer_freshness.py
+    reason: production watchdog entry point
+  - path: scripts/check_daily_watch20_producer_freshness.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/check_daily_watch20_producer_freshness.sh
+    reason: production watchdog entry point
+  - path: scripts/check_index_daily_freshness.py
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/check_index_daily_freshness.py
+    reason: production data freshness watchdog
+  - path: scripts/check_index_daily_freshness.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/check_index_daily_freshness.sh
+    reason: production data freshness watchdog
+  - path: scripts/daily_watch20_delivery.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/daily_watch20_delivery.sh
+    reason: production artifact delivery bridge
+  - path: scripts/ensure_hermes_gateway.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/ensure_hermes_gateway.sh
+    reason: production Hermes gateway preflight
+  - path: scripts/evening_review_pipeline.py
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/evening_review_pipeline.py
+    reason: deployment compatibility entry point
+  - path: scripts/hotsector_research_handoff.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/hotsector_research_handoff.sh
+    reason: private research handoff compatibility bridge
+  - path: scripts/local_fetch_cross_market.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/local_fetch_cross_market.sh
+    reason: host-specific data refresh bridge
+  - path: scripts/morning_product_supervisor.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/morning_product_supervisor.sh
+    reason: production supervisor entry point
+  - path: scripts/publish_a_share_current.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/publish_a_share_current.sh
+    reason: production artifact publication bridge
+  - path: scripts/reconcile_scheduled_runs.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/reconcile_scheduled_runs.sh
+    reason: production scheduler reconciliation
+  - path: scripts/refresh_a_share_index_daily.py
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/refresh_a_share_index_daily.py
+    reason: production data refresh entry point
+  - path: scripts/refresh_tushare_daily.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/refresh_tushare_daily.sh
+    reason: production data refresh entry point
+  - path: scripts/refresh_tushare_report_datasets.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/refresh_tushare_report_datasets.sh
+    reason: production data refresh entry point
+  - path: scripts/refresh_weekly_style_factors.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/refresh_weekly_style_factors.sh
+    reason: production research artifact refresh entry point
+  - path: scripts/run_cashflow_shadow.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/run_cashflow_shadow.sh
+    reason: production shadow orchestration entry point
+  - path: scripts/run_quant_runtime_shadow.sh
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/run_quant_runtime_shadow.sh
+    reason: production shadow orchestration entry point
+  - path: scripts/send_daily_watch20.py
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/send_daily_watch20.py
+    reason: production delivery entry point
+  - path: scripts/send_hotsector_client_preview.py
+    classification: private
+    action: move
+    destination: quant-intel-deploy/scripts/send_hotsector_client_preview.py
+    reason: production client preview compatibility bridge
+  - path: docs/superpowers/
+    classification: private
+    action: remove
+    reason: process artifacts may contain private repository topology and local paths
+  - path: docs/public-release/private-migration-notes.md
+    classification: private
+    action: remove
+    reason: private migration notes are not public documentation
+  - path: tests/test_daily_watch20_producer_script.py
+    classification: private
+    action: remove
+    reason: tests for private production bridge
+  - path: tests/test_daily_watch20_timer.py
+    classification: private
+    action: remove
+    reason: tests for private scheduler
+  - path: tests/test_hermes_gateway_preflight.py
+    classification: private
+    action: remove
+    reason: tests for private gateway and scheduler setup
+  - path: tests/test_morning_product_supervisor.py
+    classification: private
+    action: remove
+    reason: tests for private production supervisor
+  - path: tests/test_quant_runtime_systemd.py
+    classification: private
+    action: remove
+    reason: tests for private systemd units
+  - path: tests/test_report_recovery_scripts.py
+    classification: private
+    action: remove
+    reason: tests for private recovery bridges
+  - path: tests/test_scheduled_recovery.py
+    classification: private
+    action: remove
+    reason: tests for private scheduled recovery
+  - path: tests/test_tushare_credentials_script.py
+    classification: private
+    action: remove
+    reason: tests for private credential helpers
+  - path: tests/test_weekly_recap_script.py
+    classification: private
+    action: remove
+    reason: tests for private report scheduler bridge
+  - path: tests/test_daily_watch20_producer_watchdog.py
+    classification: private
+    action: remove
+    reason: tests for private production watchdog
+  - path: tests/test_cashflow_shadow_script.py
+    classification: private
+    action: remove
+    reason: tests for private shadow orchestration
+  - path: tests/test_quant_runtime_shadow_script.py
+    classification: private
+    action: remove
+    reason: tests for private runtime shadow orchestration
+  - path: tests/test_send_daily_watch20.py
+    classification: private
+    action: remove
+    reason: tests for private production delivery entry point
+  - path: tests/test_a_share_trading_calendar.py
+    classification: private
+    action: remove
+    reason: mixed test suite contains private scheduler integration
+  - path: tests/test_check_index_daily_freshness_script.py
+    classification: private
+    action: remove
+    reason: tests for private production freshness script
+  - path: tests/test_daily_watch20_refresh_protection.py
+    classification: private
+    action: remove
+    reason: tests for private production refresh bridge
+  - path: tests/test_evening_review_pipeline_script.py
+    classification: private
+    action: remove
+    reason: tests for private deployment compatibility script
+  - path: tests/test_market_temperature_delivery.py
+    classification: private
+    action: remove
+    reason: mixed test suite contains private Windows delivery integration
+  - path: tests/test_minute_quota_service_templates.py
+    classification: private
+    action: remove
+    reason: tests for private scheduler service templates
+  - path: tests/test_refresh_a_share_index_daily_script.py
+    classification: private
+    action: remove
+    reason: tests for private production data refresh script
+  - path: tests/test_report_dataset_refresh_script.py
+    classification: private
+    action: remove
+    reason: tests for private production dataset refresh script
+  - path: tests/test_maintainability_metrics.py
+    classification: private
+    action: remove
+    reason: maintainability baseline includes private deployment asset inventory
+  - path: tests/public_release/test_clean_export_scripts.py
+    classification: private
+    action: remove
+    reason: release tooling tests require a Git source checkout
+  - path: tests/public_release/test_history_audit_script.py
+    classification: private
+    action: remove
+    reason: release history audit tests require a Git source checkout
+  - path: data-snapshots/
+    classification: remove
+    action: replace
+    reason: replace real provider snapshots with synthetic public fixtures
+  - path: .env.example
+    classification: split
+    action: sanitize
+    reason: keep generic placeholders and remove customer-specific variable names
+  - path: .envrc.example
+    classification: public
+    action: sanitize
+    reason: document explicit public-safe environment setup only
+  - path: .gitattributes
+    classification: public
+    action: retain
+    reason: repository text and diff behavior
+  - path: .gitignore
+    classification: public
+    action: update
+    reason: prevent state, output, secrets, and production data from entering the tree
+  - path: AGENTS.md
+    classification: public
+    action: sanitize
+    reason: preserve contributor and ownership boundaries without private topology
+  - path: README.md
+    classification: split
+    action: sanitize
+    reason: describe public framework and link to private deployment boundary
+  - path: api_keys.json.example
+    classification: public
+    action: retain
+    reason: placeholder-only credential schema
+  - path: pyproject.toml
+    classification: public
+    action: update
+    reason: public package metadata and dependency resolution
+  - path: uv.lock
+    classification: public
+    action: update
+    reason: reproducible public dependency resolution
+  - path: pytest.ini
+    classification: public
+    action: retain
+    reason: public test configuration

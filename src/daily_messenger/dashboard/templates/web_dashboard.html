@@ -1,0 +1,851 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>市场全景终端</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f8fb;
+      --panel: #ffffff;
+      --panel-2: #f1f5f9;
+      --line: #d9e2ec;
+      --text: #111827;
+      --muted: #64748b;
+      --green: #12845b;
+      --red: #c24148;
+      --amber: #b7791f;
+      --blue: #2563eb;
+      --cyan: #0f766e;
+      --violet: #7c3aed;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      font-size: 14px;
+      letter-spacing: 0;
+    }
+    a { color: inherit; }
+    .layout {
+      display: grid;
+      grid-template-columns: 220px minmax(0, 1fr);
+      min-height: 100vh;
+    }
+    aside {
+      border-right: 1px solid var(--line);
+      background: rgba(255, 255, 255, .92);
+      padding: 24px 18px;
+      position: sticky;
+      top: 0;
+      height: 100vh;
+    }
+    .brand {
+      display: grid;
+      gap: 4px;
+      margin-bottom: 28px;
+    }
+    .brand strong { font-size: 15px; }
+    .brand span { color: var(--muted); font-size: 12px; line-height: 1.4; }
+    nav { display: grid; gap: 8px; }
+    nav a {
+      text-decoration: none;
+      color: var(--muted);
+      padding: 8px 10px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+    }
+    nav a:hover { color: var(--text); border-color: var(--line); background: var(--panel-2); }
+    main {
+      padding: 28px;
+      max-width: 1480px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 20px;
+      margin-bottom: 22px;
+    }
+    .eyebrow {
+      margin-bottom: 6px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0;
+      text-transform: uppercase;
+    }
+    h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+      line-height: 1.1;
+      font-weight: 720;
+    }
+    h2 {
+      margin: 0 0 14px;
+      font-size: 16px;
+      line-height: 1.25;
+      font-weight: 680;
+    }
+    h3 {
+      margin: 0 0 8px;
+      font-size: 13px;
+      color: var(--muted);
+      font-weight: 640;
+      text-transform: uppercase;
+    }
+    .subtle { color: var(--muted); line-height: 1.5; }
+    .timestamp {
+      color: var(--muted);
+      text-align: right;
+      white-space: nowrap;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    section {
+      margin-top: 22px;
+    }
+    .section-head {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 12px;
+    }
+    .section-head h2 { margin: 0; }
+    .section-head .subtle { max-width: 760px; }
+    .grid {
+      display: grid;
+      gap: 14px;
+    }
+    .metrics {
+      grid-template-columns: repeat(4, minmax(160px, 1fr));
+    }
+    .two {
+      grid-template-columns: minmax(0, 1.2fr) minmax(320px, .8fr);
+    }
+    .three {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .six {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+    }
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      min-width: 0;
+      box-shadow: 0 10px 30px rgba(15, 23, 42, .05);
+    }
+    .metric {
+      min-height: 112px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .metric .label {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.3;
+    }
+    .metric .value {
+      font-size: 24px;
+      line-height: 1.1;
+      font-weight: 720;
+      overflow-wrap: anywhere;
+    }
+    .metric .note {
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.35;
+    }
+    .module {
+      min-height: 118px;
+    }
+    .module .label {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+    .module p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+    .metric .status {
+      margin-right: 6px;
+      vertical-align: middle;
+    }
+    .status {
+      display: inline-flex;
+      align-items: center;
+      min-height: 22px;
+      padding: 2px 8px;
+      border-radius: 999px;
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      text-transform: capitalize;
+      white-space: nowrap;
+    }
+    .status.available { color: var(--green); border-color: rgba(76, 195, 138, .38); }
+    .status.proxy { color: var(--amber); border-color: rgba(245, 184, 75, .38); }
+    .status.simulated { color: var(--blue); border-color: rgba(37, 99, 235, .38); }
+    .status.missing { color: var(--red); border-color: rgba(255, 107, 107, .38); }
+    .refs {
+      display: inline-flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-left: 6px;
+      vertical-align: middle;
+    }
+    .refs a {
+      color: var(--blue);
+      font-size: 11px;
+      text-decoration: none;
+      border-bottom: 1px solid rgba(37, 99, 235, .35);
+    }
+    .refs a:hover { border-bottom-color: currentColor; }
+    .table-wrap {
+      overflow-x: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+    table {
+      width: 100%;
+      min-width: 580px;
+      border-collapse: collapse;
+    }
+    th, td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+      line-height: 1.35;
+    }
+    th {
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 650;
+      background: var(--panel-2);
+    }
+    tr:last-child td { border-bottom: 0; }
+    .num { text-align: right; font-variant-numeric: tabular-nums; }
+    .pos { color: var(--green); }
+    .neg { color: var(--red); }
+    .neutral { color: var(--muted); }
+    .spark {
+      width: 100%;
+      height: 260px;
+      display: block;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: #ffffff;
+    }
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 14px;
+      margin-top: 10px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+    .legend span::before {
+      content: "";
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      margin-right: 6px;
+      border-radius: 2px;
+      background: currentColor;
+    }
+    .split-list {
+      display: grid;
+      gap: 10px;
+    }
+    .row-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+    .row-item:last-child { border-bottom: 0; }
+    .row-main { min-width: 0; }
+    .row-main strong { display: block; overflow-wrap: anywhere; }
+    .row-main span { color: var(--muted); font-size: 12px; line-height: 1.4; }
+    .empty {
+      color: var(--muted);
+      padding: 18px;
+      border: 1px dashed var(--line);
+      border-radius: 8px;
+      line-height: 1.5;
+    }
+    .notice {
+      margin-top: 12px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    footer {
+      margin-top: 22px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+    footer ul {
+      margin: 8px 0 0;
+      padding-left: 18px;
+    }
+    @media (max-width: 1040px) {
+      .layout { grid-template-columns: 1fr; }
+      aside {
+        position: static;
+        height: auto;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+      }
+      nav { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+      .metrics, .two, .three, .six { grid-template-columns: 1fr; }
+      header { flex-direction: column; }
+      .timestamp { text-align: left; white-space: normal; }
+    }
+    @media (max-width: 640px) {
+      main { padding: 18px; }
+      aside { padding: 18px; }
+      nav { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      h1 { font-size: 23px; }
+      .metric .value { font-size: 21px; }
+      .panel { padding: 14px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="layout">
+    <aside>
+      <div class="brand">
+        <strong>Market Terminal</strong>
+        <span>市场情报看板数据源复现版本。</span>
+      </div>
+      <nav aria-label="看板分区">
+        <a href="#market-sentiment">市场情绪</a>
+        <a href="#valuation">核心估值</a>
+        <a href="#drawdown-levels">回撤点位</a>
+        <a href="#regime-backtest">状态回测</a>
+        <a href="#strategy-lab">策略实验室</a>
+        <a href="#event-feed">事件流</a>
+        <a href="#local-data">自有数据</a>
+        <a href="#coverage">覆盖情况</a>
+        <a href="#source-notes">来源说明</a>
+        <a href="#supply-plan">补齐路线</a>
+      </nav>
+    </aside>
+    <main>
+      <header>
+        <div>
+          <div class="eyebrow">Market Overview Terminal</div>
+          <h1>市场全景终端</h1>
+          <div class="subtle" id="headline"></div>
+        </div>
+        <div class="timestamp" id="timestamp"></div>
+      </header>
+
+      <section>
+        <div class="grid six" id="moduleStrip"></div>
+      </section>
+
+      <section id="market-sentiment">
+        <div class="section-head">
+          <div>
+            <h2>1. 市场情绪</h2>
+            <div class="subtle">风险偏好、VIX、波动率结构和市场参与度；没有原始目标数据时显示代理或缺口。</div>
+          </div>
+        </div>
+        <div class="grid metrics" id="metrics"></div>
+      </section>
+
+      <section class="grid two" id="valuation">
+        <div>
+          <div class="section-head">
+            <div>
+              <h2>2. 核心估值</h2>
+              <div class="subtle">NTM PE 和估值分位只有在本地状态面板提供时展示；否则保留缺口状态。</div>
+            </div>
+          </div>
+          <div class="grid three" id="valuationCards"></div>
+        </div>
+        <div class="panel" id="drawdown-levels">
+          <h2>3. 回撤点位</h2>
+          <div class="table-wrap" id="drawdownRows"></div>
+          <div class="notice">价格档位只在本地存在历史高点时计算；隐含 PE 和估值分位不会被伪造。</div>
+        </div>
+      </section>
+
+      <section class="grid two" id="regime-backtest">
+        <div class="panel">
+          <h2>4. 状态回测</h2>
+          <canvas class="spark" id="stateChart" width="920" height="300"></canvas>
+          <div class="legend" id="stateChartLegend">
+          </div>
+        </div>
+        <div class="panel">
+          <h2>相似状态后续收益</h2>
+          <div id="neighborSummary"></div>
+        </div>
+      </section>
+
+      <section class="panel">
+        <h2>相似历史状态</h2>
+        <div class="table-wrap" id="neighbors"></div>
+      </section>
+
+      <section class="grid two" id="strategy-lab">
+        <div class="panel">
+          <h2>5. 策略实验室</h2>
+          <div id="strategyStatus"></div>
+        </div>
+        <div class="panel">
+          <h2>操作建议</h2>
+          <div id="actions"></div>
+        </div>
+      </section>
+
+      <section class="panel" id="event-feed">
+        <h2>6. 事件流</h2>
+        <div class="table-wrap" id="events"></div>
+      </section>
+
+      <section class="grid two" id="local-data">
+        <div class="panel">
+          <h2>主题评分</h2>
+          <div id="themes"></div>
+        </div>
+        <div class="panel">
+          <h2>数据源健康状态</h2>
+          <div class="split-list" id="etl"></div>
+        </div>
+      </section>
+
+      <section class="grid two">
+        <div class="panel">
+          <h2>跨市场领先信号</h2>
+          <div class="table-wrap" id="leadLag"></div>
+        </div>
+        <div class="panel">
+          <h2>宏观与风险指标</h2>
+          <div class="table-wrap" id="macros"></div>
+        </div>
+      </section>
+
+      <section class="grid two" id="a-share">
+        <div class="panel">
+          <h2>A 股快照</h2>
+          <div id="aShare"></div>
+        </div>
+        <div class="panel">
+          <h2>美股核心资产与商品</h2>
+          <div class="table-wrap" id="marketTables"></div>
+        </div>
+      </section>
+
+      <section class="grid two" id="coverage">
+        <div class="panel">
+          <h2>数据覆盖和缺口</h2>
+          <div class="table-wrap" id="coverageTable"></div>
+        </div>
+        <div class="panel">
+          <h2>输入文件</h2>
+          <div id="sources"></div>
+        </div>
+      </section>
+
+      <section class="grid two" id="source-notes">
+        <div class="panel">
+          <h2>来源和引用</h2>
+          <div class="table-wrap" id="dataSources"></div>
+          <div class="notice">指标卡、事件和数据源状态中的引用用于说明口径来源；页面不会把代理指标标成授权原始数据。</div>
+        </div>
+        <div class="panel">
+          <h2>引用索引</h2>
+          <div class="table-wrap" id="referenceIndex"></div>
+        </div>
+      </section>
+
+      <section class="grid two" id="replication-report">
+        <div class="panel">
+          <h2>网页端复现报告</h2>
+          <div id="replicationOverview"></div>
+          <div class="table-wrap" id="replicationData"></div>
+        </div>
+        <div class="panel">
+          <h2>复现缺口和成本口径</h2>
+          <div class="table-wrap" id="replicationMissing"></div>
+          <ul id="costNotes"></ul>
+        </div>
+      </section>
+
+      <section class="grid two" id="supply-plan">
+        <div class="panel">
+          <h2>缺口和降级</h2>
+          <div class="table-wrap" id="gapTable"></div>
+        </div>
+        <div class="panel">
+          <h2>数据源补齐路线</h2>
+          <div class="table-wrap" id="recommendationTable"></div>
+        </div>
+      </section>
+
+      <footer class="panel" id="footnotes">
+        <h2>页面说明</h2>
+        <ul id="footerNotes"></ul>
+      </footer>
+    </main>
+  </div>
+  <script id="payload" type="application/json">{{ payload | tojson | safe }}</script>
+  <script>
+    const payload = JSON.parse(document.getElementById('payload').textContent);
+    const fmt = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2 });
+    const pct = new Intl.NumberFormat('zh-CN', { style: 'percent', maximumFractionDigits: 1 });
+    const pctRaw = new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 2, signDisplay: 'always' });
+    const statusLabels = { available: '可用', proxy: '代理', simulated: '模拟', missing: '缺失' };
+    const sourceAnalysis = payload.sourceAnalysis || {};
+    const referenceById = Object.fromEntries((sourceAnalysis.references || []).map(ref => [ref.id, ref]));
+
+    function text(value, fallback = '暂不可用') {
+      return value === null || value === undefined || value === '' ? fallback : String(value);
+    }
+    function number(value, suffix = '') {
+      return typeof value === 'number' ? `${fmt.format(value)}${suffix}` : '暂不可用';
+    }
+    function pctValue(value) {
+      return typeof value === 'number' ? pct.format(value) : '暂不可用';
+    }
+    function pctChange(value) {
+      if (typeof value !== 'number') return '<span class="neutral">暂不可用</span>';
+      const klass = value > 0 ? 'pos' : value < 0 ? 'neg' : 'neutral';
+      return `<span class="${klass}">${pctRaw.format(value)}%</span>`;
+    }
+    function statusPill(status) {
+      return `<span class="status ${status}">${statusLabels[status] || status}</span>`;
+    }
+    function refLinks(refIds) {
+      const links = (refIds || [])
+        .map(id => referenceById[id])
+        .filter(Boolean)
+        .map(ref => `<a href="${ref.url}" target="_blank" rel="noopener" title="${ref.title}">[${ref.index}]</a>`);
+      return links.length ? `<span class="refs">${links.join('')}</span>` : '';
+    }
+    function sourceChainLinks(row) {
+      const links = (row.sourceChain || [])
+        .filter(item => item.source || item.url)
+        .map(item => {
+          const label = item.source || item.url;
+          return item.url
+            ? `<a href="${item.url}" target="_blank" rel="noopener" title="${item.title || label}">${label}</a>`
+            : text(label);
+        });
+      if (links.length) return links.join(' · ');
+      return row.url
+        ? `<a href="${row.url}" target="_blank" rel="noopener">${text(row.source || row.url)}</a>`
+        : text(row.source);
+    }
+    function empty(message) {
+      return `<div class="empty">${message}</div>`;
+    }
+    function table(headers, rows) {
+      if (!rows.length) return empty('本区块暂无数据。');
+      const head = headers.map(h => `<th class="${h.num ? 'num' : ''}">${h.label}</th>`).join('');
+      const body = rows.map(row => `<tr>${headers.map(h => `<td class="${h.num ? 'num' : ''}">${h.render ? h.render(row) : text(row[h.key])}</td>`).join('')}</tr>`).join('');
+      return `<table><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table>`;
+    }
+    function planCell(row, key, costKey) {
+      const plan = text(row[key]);
+      const cost = text(row[costKey], '');
+      return cost ? `${plan}<br><span class="neutral">成本：${cost}</span>` : plan;
+    }
+    function metricValue(item) {
+      if (typeof item.value === 'number') return `${fmt.format(item.value)}${item.unit || ''}`;
+      return '暂不可用';
+    }
+    function metricCard(item) {
+      return `
+        <div class="panel metric">
+          <div class="label">${item.label}</div>
+          <div class="value">${metricValue(item)}</div>
+          <div class="note">${statusPill(item.status)}${item.detail || ''}${refLinks(item.refIds)}</div>
+          ${item.source ? `<div class="note">来源：${item.source}${refLinks(item.refIds)}</div>` : ''}
+        </div>
+      `;
+    }
+
+    const terminal = payload.terminal || {};
+    document.getElementById('headline').textContent = `市场情报看板 / 最新状态：${payload.latest.date}`;
+    document.getElementById('timestamp').textContent = `生成时间：${payload.generatedAt}`;
+
+    document.getElementById('moduleStrip').innerHTML = (terminal.modules || []).map(module => `
+      <div class="panel module">
+        <div class="label"><span>${module.label}</span>${statusPill(module.status)}</div>
+        <p>${module.detail}</p>
+      </div>
+    `).join('');
+
+    document.getElementById('metrics').innerHTML = (terminal.sentimentCards || [])
+      .map(metricCard)
+      .join('');
+
+    document.getElementById('valuationCards').innerHTML = (terminal.valuationCards || [])
+      .map(metricCard)
+      .join('');
+
+    document.getElementById('drawdownRows').innerHTML = table([
+      { label: '标的', key: 'ticker', render: r => `${r.ticker}<br><span class="neutral">${r.label}</span>` },
+      { label: '当前价', key: 'close', num: true, render: r => number(r.close) },
+      { label: '涨跌幅', key: 'pctChg', num: true, render: r => pctChange(r.pctChg) },
+      { label: '历史高点', key: 'high', num: true, render: r => number(r.high) },
+      { label: '当前回撤', key: 'currentDrawdown', num: true, render: r => number(r.currentDrawdown, '%') },
+      { label: 'NTM PE', key: 'ntmPe', num: true, render: r => number(r.ntmPe) },
+      {
+        label: '价格档位',
+        key: 'levels',
+        render: r => r.levels.length
+          ? r.levels.map(level => `${number(level.drawdownPct, '%')} ${number(level.price)}`).join(' · ')
+          : '缺少历史高点',
+      },
+      { label: '状态', key: 'status', render: r => statusPill(r.status) },
+    ], terminal.drawdownRows || []);
+
+    const strategyModule = (terminal.modules || []).find(module => module.key === 'strategy-lab') || {};
+    document.getElementById('strategyStatus').innerHTML = `
+      <div class="row-item">
+        <div class="row-main"><strong>${strategyModule.label || '策略实验室'}</strong><span>${strategyModule.detail || ''}</span></div>
+        ${statusPill(strategyModule.status || 'missing')}
+      </div>
+      <div class="notice">当前页面先保留入口和缺口说明；没有回测契约前不展示模拟结果。</div>
+    `;
+
+    document.getElementById('events').innerHTML = table([
+      { label: '日期', key: 'date' },
+      { label: '标题', key: 'title', render: r => r.url ? `<a href="${r.url}" target="_blank" rel="noopener">${r.title}</a>` : text(r.title) },
+      { label: '来源链', key: 'sourceChain', render: r => sourceChainLinks(r) },
+    ], terminal.eventItems || []);
+
+    const themeRows = payload.marketIntel.themes.map(theme => ({
+      label: theme.label,
+      total: theme.total,
+      delta: theme.delta,
+      factors: theme.breakdown.map(item => `${item.name} ${number(item.value)}`).join(' · '),
+    }));
+    document.getElementById('themes').innerHTML = table([
+      { label: '主题', key: 'label' },
+      { label: '得分', key: 'total', num: true, render: r => number(r.total) },
+      { label: '变化', key: 'delta', num: true, render: r => number(r.delta) },
+      { label: '因子', key: 'factors' },
+    ], themeRows);
+
+    const actionRows = payload.marketIntel.actions;
+    document.getElementById('actions').innerHTML = actionRows.length
+      ? table([
+          { label: '动作', key: 'action' },
+          { label: '名称', key: 'name' },
+          { label: '原因', key: 'reason' },
+        ], actionRows)
+      : empty('暂无触发阈值的操作建议。');
+    document.getElementById('etl').innerHTML = payload.marketIntel.etlSources.map(source => `
+      <div class="row-item">
+        <div class="row-main"><strong>${source.name}</strong><span>${source.message || ''}</span></div>
+        ${statusPill(source.ok ? 'available' : 'missing')}
+      </div>
+    `).join('') || empty('未找到数据源健康状态文件。');
+
+    document.getElementById('leadLag').innerHTML = table([
+      { label: '概念', key: 'concept' },
+      { label: '涨跌幅', key: 'avgPctChg', num: true, render: r => pctChange(r.avgPctChg) },
+      { label: '信号', key: 'signal' },
+      { label: '驱动资产', key: 'drivers', render: r => r.drivers.join(' · ') },
+    ], payload.crossMarket.leadLag);
+
+    document.getElementById('macros').innerHTML = table([
+      { label: '代码', key: 'symbol' },
+      { label: '名称', key: 'label' },
+      { label: '收盘', key: 'close', num: true, render: r => number(r.close) },
+      { label: '涨跌幅', key: 'pctChg', num: true, render: r => pctChange(r.pctChg) },
+    ], payload.crossMarket.macros);
+
+    const aShare = payload.aShare;
+    document.getElementById('aShare').innerHTML = aShare.tradeDate ? `
+      <div class="grid three">
+        <div class="metric"><div class="label">交易日</div><div class="value">${aShare.tradeDate}</div><div class="note">${aShare.generatedAt || ''}</div></div>
+        <div class="metric"><div class="label">市场宽度</div><div class="value">${number(aShare.breadth.upPct, '%')}</div><div class="note">上涨 ${number(aShare.breadth.upCount)} / 下跌 ${number(aShare.breadth.downCount)}</div></div>
+        <div class="metric"><div class="label">资金流向</div><div class="value">${number(aShare.moneyflow.netAmount)}</div><div class="note">主力净额合计</div></div>
+      </div>
+      <div style="height: 12px"></div>
+      ${table([
+        { label: '指数', key: 'name' },
+        { label: '收盘', key: 'close', num: true, render: r => number(r.close) },
+        { label: '涨跌幅', key: 'pctChg', num: true, render: r => pctChange(r.pctChg) },
+      ], aShare.indices)}
+    ` : empty('未找到 TuShare 最新快照。');
+
+    const marketRows = [...payload.crossMarket.usStocks.slice(0, 8), ...payload.crossMarket.commodities.slice(0, 5)];
+    document.getElementById('marketTables').innerHTML = table([
+      { label: '代码', key: 'symbol' },
+      { label: '名称', key: 'label' },
+      { label: '收盘', key: 'close', num: true, render: r => number(r.close) },
+      { label: '涨跌幅', key: 'pctChg', num: true, render: r => pctChange(r.pctChg) },
+    ], marketRows);
+
+    document.getElementById('neighborSummary').innerHTML = payload.neighborSummary.length
+      ? table([
+          { label: '周期', key: 'horizon' },
+          { label: '样本数', key: 'count', num: true },
+          { label: '平均', key: 'average', num: true, render: r => pctValue(r.average) },
+          { label: '中位数', key: 'median', num: true, render: r => pctValue(r.median) },
+          { label: '上涨占比', key: 'positiveRate', num: true, render: r => pctValue(r.positiveRate) },
+        ], payload.neighborSummary)
+      : empty('接入包含后续收益字段的本地状态面板后，可生成相似样本统计。');
+
+    document.getElementById('neighbors').innerHTML = table([
+      { label: '日期', key: 'date' },
+      { label: '距离', key: 'distance', num: true, render: r => number(r.distance) },
+      { label: '风险偏好', key: 'riskAppetite', num: true, render: r => number(r.riskAppetite) },
+      { label: '参与度', key: 'participation', num: true, render: r => number(r.participation) },
+      { label: '估值利率差', key: 'valuationRateGap', num: true, render: r => number(r.valuationRateGap) },
+      { label: 'VIX', key: 'vix', num: true, render: r => number(r.vix) },
+      { label: '3M', key: 'forwardReturn3M', num: true, render: r => pctValue(r.forwardReturn3M) },
+      { label: '1Y', key: 'forwardReturn1Y', num: true, render: r => pctValue(r.forwardReturn1Y) },
+      { label: '5Y', key: 'forwardReturn5Y', num: true, render: r => pctValue(r.forwardReturn5Y) },
+      { label: '10Y', key: 'forwardReturn10Y', num: true, render: r => pctValue(r.forwardReturn10Y) },
+    ], payload.neighbors);
+
+    document.getElementById('coverageTable').innerHTML = table([
+      { label: '数据集', key: 'label' },
+      { label: '状态', key: 'status', render: r => statusPill(r.status) },
+      { label: '说明', key: 'detail' },
+    ], payload.coverage);
+
+    document.getElementById('sources').innerHTML = payload.sourceManifest.map(source => `
+      <div class="row-item">
+        <div class="row-main"><strong>${source.path || '可选状态面板'}</strong><span>${source.error || ''}</span></div>
+        ${statusPill(source.exists ? 'available' : 'missing')}
+      </div>
+    `).join('');
+
+    document.getElementById('dataSources').innerHTML = table([
+      { label: '来源', key: 'name' },
+      { label: '状态', key: 'status', render: r => statusPill(r.status) },
+      { label: '说明', key: 'message', render: r => `${text(r.message)}${refLinks(r.refIds)}` },
+    ], sourceAnalysis.currentSources || []);
+
+    document.getElementById('referenceIndex').innerHTML = table([
+      { label: '#', key: 'index', num: true },
+      { label: '来源', key: 'label', render: r => `<a href="${r.url}" target="_blank" rel="noopener">${r.label}</a>` },
+      { label: '类型', key: 'kind' },
+      { label: '说明', key: 'title' },
+    ], sourceAnalysis.references || []);
+
+    const report = sourceAnalysis.replicationReport || {};
+    document.getElementById('replicationOverview').innerHTML = `
+      <div class="notice">${text(report.scope, '暂无复现报告说明。')}</div>
+    `;
+    document.getElementById('replicationData').innerHTML = table([
+      { label: '模块', key: 'module' },
+      { label: '目标站数据', key: 'target' },
+      { label: '当前本项目数据', key: 'current' },
+      { label: '状态', key: 'status' },
+    ], report.dataRows || []);
+    document.getElementById('replicationMissing').innerHTML = table([
+      { label: '缺口', key: 'gap' },
+      { label: '影响', key: 'impact' },
+      { label: '推荐补齐', key: 'bestNext' },
+    ], report.missingRows || []);
+    document.getElementById('costNotes').innerHTML = (report.costNotes || [])
+      .map(note => `<li>${note}</li>`)
+      .join('');
+
+    document.getElementById('gapTable').innerHTML = table([
+      { label: '项目', key: 'label' },
+      { label: '状态', key: 'status', render: r => statusPill(r.status) },
+      { label: '说明', key: 'detail', render: r => `${text(r.detail)}${refLinks(r.refIds)}` },
+    ], sourceAnalysis.gaps || []);
+
+    document.getElementById('recommendationTable').innerHTML = table([
+      { label: '缺口', key: 'gap', render: r => `${r.gap}${refLinks(r.refIds)}` },
+      { label: '免费/开源', key: 'free', render: r => planCell(r, 'free', 'freeCost') },
+      { label: '性价比', key: 'value', render: r => planCell(r, 'value', 'valueCost') },
+      { label: '高质量', key: 'quality', render: r => planCell(r, 'quality', 'qualityCost') },
+      { label: '推荐落地', key: 'next' },
+    ], sourceAnalysis.recommendations || []);
+
+    document.getElementById('footerNotes').innerHTML = (sourceAnalysis.footerNotes || payload.notes || [])
+      .map(note => `<li>${note}</li>`)
+      .join('');
+
+    function drawChart() {
+      const canvas = document.getElementById('stateChart');
+      const ctx = canvas.getContext('2d');
+      const rows = payload.chartRows;
+      const series = payload.chartSeries || [];
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      if (!rows.length || !series.length) {
+        ctx.fillStyle = '#64748b';
+        ctx.font = '14px sans-serif';
+        ctx.fillText('暂无状态面板历史。', 24, 42);
+        return;
+      }
+      const pad = 32;
+      const count = series.length;
+      ctx.strokeStyle = '#d9e2ec';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < count; i++) {
+        const y = pad + i * ((canvas.height - pad * 2) / (count - 1 || 1));
+        ctx.beginPath();
+        ctx.moveTo(pad, y);
+        ctx.lineTo(canvas.width - pad, y);
+        ctx.stroke();
+      }
+      for (const {field, color} of series) {
+        const values = rows.map(row => row[field]).filter(value => typeof value === 'number');
+        if (values.length < 2) continue;
+        const min = Math.min(...values);
+        const max = Math.max(...values);
+        const spread = max - min || 1;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        let started = false;
+        rows.forEach((row, index) => {
+          const value = row[field];
+          if (typeof value !== 'number') return;
+          const x = pad + (index / Math.max(rows.length - 1, 1)) * (canvas.width - pad * 2);
+          const y = canvas.height - pad - ((value - min) / spread) * (canvas.height - pad * 2);
+          if (!started) {
+            ctx.moveTo(x, y);
+            started = true;
+          } else {
+            ctx.lineTo(x, y);
+          }
+        });
+        ctx.stroke();
+      }
+      // Render legend
+      const legendEl = document.getElementById('stateChartLegend');
+      legendEl.innerHTML = series.map(({label, color}) =>
+        `<span style="color: ${color}">${label}</span>`
+      ).join('');
+    }
+    drawChart();
+  </script>
+</body>
+</html>

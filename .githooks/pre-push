@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+# market-intel-managed-pre-push:v1
+set -euo pipefail
+
+repository=$(git rev-parse --show-toplevel)
+superproject=$(git rev-parse --show-superproject-working-tree)
+if [ -z "$superproject" ]; then
+    superproject=$repository
+fi
+guard="$superproject/project_tools/pre_push_guard.py"
+source_hook="$superproject/.githooks/pre-push"
+
+if [ ! -f "$guard" ]; then
+    echo "[pre-push] FAIL: cannot find market-intel pre-push guard from $repository" >&2
+    exit 2
+fi
+if ! cmp -s "$0" "$source_hook"; then
+    echo "[pre-push] FAIL: installed hook is stale; run uv run python scripts/dev/install_git_hooks.py" >&2
+    exit 2
+fi
+if ! command -v uv >/dev/null 2>&1; then
+    echo "[pre-push] FAIL: uv is not available on PATH" >&2
+    exit 2
+fi
+
+cd "$superproject"
+exec uv run python "$guard" \
+    --repository "$repository" \
+    --remote-name "${1:-}" \
+    --remote-location "${2:-}"
