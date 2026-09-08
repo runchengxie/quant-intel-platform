@@ -594,6 +594,63 @@ def _run_producer(
     return Path(selection_path).expanduser().resolve()
 
 
+def _deliver_target_rows(
+    *,
+    targets: Mapping[str, Sequence[str]],
+    previous_messages: Mapping[tuple[str, str], Mapping[str, Any]],
+    previous_rows: Mapping[tuple[str, str], dict[str, Any]],
+    hashes: Mapping[str, str],
+    cli: str,
+    markdown: str,
+    image_path: Path,
+    signal_date: str,
+    receipt: dict[str, Any],
+    receipt_path: Path,
+) -> list[dict[str, Any]]:
+    current_keys = {
+        (audience, _target_fingerprint(chat_id))
+        for audience, chat_ids in targets.items()
+        for chat_id in chat_ids
+    }
+    target_rows = [row for key, row in previous_rows.items() if key not in current_keys]
+    for audience, chat_ids in targets.items():
+        for chat_id in chat_ids:
+            fingerprint = _target_fingerprint(chat_id)
+            previous = previous_messages.get((audience, fingerprint), {})
+            messages = {
+                "markdown": _send_or_reuse(
+                    previous_message=previous.get("markdown"),
+                    expected_hash=hashes["markdown"],
+                    lark_cli=cli,
+                    chat_id=chat_id,
+                    medium="markdown",
+                    markdown=markdown,
+                    image_path=image_path,
+                    signal_date=signal_date,
+                ),
+                "image": _send_or_reuse(
+                    previous_message=previous.get("image"),
+                    expected_hash=hashes["image"],
+                    lark_cli=cli,
+                    chat_id=chat_id,
+                    medium="image",
+                    markdown=markdown,
+                    image_path=image_path,
+                    signal_date=signal_date,
+                ),
+            }
+            target_rows.append(
+                {
+                    "audience": audience,
+                    "target_fingerprint": fingerprint,
+                    "messages": messages,
+                }
+            )
+            receipt["targets"] = target_rows
+            _atomic_write_json(receipt_path, receipt)
+    return target_rows
+
+
 def deliver(
     *,
     artifact: Mapping[str, Any],
@@ -641,52 +698,19 @@ def deliver(
     cli = _lark_cli(lark_cli)
     if not targets or any(not chat_ids for chat_ids in targets.values()):
         raise D11H5DeliveryError("D11-H5 delivery target is not configured for every audience")
-    current_keys = {
-        (audience, _target_fingerprint(chat_id))
-        for audience, chat_ids in targets.items()
-        for chat_id in chat_ids
-    }
-    # A targeted retry must not erase successful rows for audiences omitted from
-    # this invocation. Keep rows for the same artifact and replace only the
-    # targets being retried below.
-    target_rows: list[dict[str, Any]] = [
-        row for key, row in previous_rows.items() if key not in current_keys
-    ]
-    for audience, chat_ids in targets.items():
-        for chat_id in chat_ids:
-            fingerprint = _target_fingerprint(chat_id)
-            previous = previous_messages.get((audience, fingerprint), {})
-            messages = {
-                "markdown": _send_or_reuse(
-                    previous_message=previous.get("markdown"),
-                    expected_hash=hashes["markdown"],
-                    lark_cli=cli,
-                    chat_id=chat_id,
-                    medium="markdown",
-                    markdown=markdown,
-                    image_path=image_path,
-                    signal_date=str(artifact["signal_date"]),
-                ),
-                "image": _send_or_reuse(
-                    previous_message=previous.get("image"),
-                    expected_hash=hashes["image"],
-                    lark_cli=cli,
-                    chat_id=chat_id,
-                    medium="image",
-                    markdown=markdown,
-                    image_path=image_path,
-                    signal_date=str(artifact["signal_date"]),
-                ),
-            }
-            target_rows.append(
-                {
-                    "audience": audience,
-                    "target_fingerprint": fingerprint,
-                    "messages": messages,
-                }
-            )
-            receipt["targets"] = target_rows
-            _atomic_write_json(receipt_path, receipt)
+    # A targeted retry must keep successful rows for omitted audiences.
+    target_rows = _deliver_target_rows(
+        targets=targets,
+        previous_messages=previous_messages,
+        previous_rows=previous_rows,
+        hashes=hashes,
+        cli=cli,
+        markdown=markdown,
+        image_path=image_path,
+        signal_date=str(artifact["signal_date"]),
+        receipt=receipt,
+        receipt_path=receipt_path,
+    )
     receipt["success"] = all(
         _successful_message(row["messages"]["markdown"], hashes["markdown"])
         and _successful_message(row["messages"]["image"], hashes["image"])
