@@ -1,6 +1,6 @@
 # A 股外部因子信号试验（历史记录）
 
-> 本页仅保留迁移历史。因子面板、分钟特征、Hermite 和 walk-forward 已迁入
+> 本页仅保留迁移历史。因子面板、分钟特征、Hermite 和滚动训练已迁入
 > 相关能力已经迁移到 research-workspace。market-intel 不再提供本页所述的产出入口或报告观察入口。
 
 本页记录 `market-intel` 接入 A 股外部因子面板的当前状态。这里只用于工程试验和研究验证，不构成投资建议。
@@ -13,7 +13,7 @@
 <external_factor_root>/<group>/<factor_name>.parquet
 ```
 
-当前 `market-intel` 有一个精简分钟因子 smoke 工具：
+当前 `market-intel` 有一个精简分钟因子冒烟工具：
 
 ```bash
 uv run python -m a_share_analysis.factor_tools.minute_factor_smoke \
@@ -22,7 +22,7 @@ uv run python -m a_share_analysis.factor_tools.minute_factor_smoke \
   --batch-size 20
 ```
 
-它也可以按成交额流动性自动选股池，并支持日期区间、断点续跑、重试和 dry-run：
+它也可以按成交额流动性自动选择股票池，并支持日期区间、断点续跑、重试和预演：
 
 ```bash
 uv run python -m a_share_analysis.factor_tools.minute_factor_smoke \
@@ -35,7 +35,7 @@ uv run python -m a_share_analysis.factor_tools.minute_factor_smoke \
   --resume
 ```
 
-正式拉取前可以先看请求规模，不会触网调用 TuShare：
+正式拉取前可以先查看请求规模，不会触网调用 TuShare：
 
 ```bash
 uv run python -m a_share_analysis.factor_tools.minute_factor_smoke \
@@ -52,11 +52,11 @@ uv run python -m a_share_analysis.factor_tools.minute_factor_smoke \
 以便 Top200 和其他分钟消费者共用同一额度账本。安全约束如下：
 
 - TuShare SDK 的 `retry_count` 固定为 `1`，`--retries` 只控制外层重试，因此每个物理请求都能单独记账。
-- SDK 在不确定请求是否到达服务端时返回的通用 `OSError("ERROR.")` 只使用有上限的外层重试，每次物理尝试分别记为 request slot，重试耗尽后保守 checkpoint，下一调度日从已校验批次续跑。
+- SDK 在不确定请求是否到达服务端时返回的通用 `OSError("ERROR.")` 只使用有上限的外层重试，每次实际尝试分别记为一个请求额度，重试耗尽后保守记录检查点，下一调度日从已校验批次续跑。
 - 每次请求前预留 `batch symbols × 241` 行，响应后提交实际行数，异常或中断保留为 `uncertain`。
 - `--resume` 不以文件存在为成功条件。已有 parquet 必须匹配精确股票集合、精确交易日，且每股完整覆盖 `09:30–11:30` 和 `13:01–15:00` 共 241 个时间点。
-- 新 raw parquet 先校验，再通过同目录临时文件原子替换，清单只记录完整完成的交易日和脱敏的凭证来源/endpoint。
-- Top200 和 DailyWatch20 分钟下载固定使用本次解析出的单一凭证，模糊失败不会自动换令牌或重放。其他非分钟 TuShare 任务继续使用既有的 proxy-first/兜底 helper。
+- 新原始 parquet 文件先校验，再通过同目录临时文件原子替换，清单只记录完整完成的交易日和脱敏的凭证来源及接口地址。
+- Top200 和 DailyWatch20 分钟下载固定使用本次解析出的单一凭证，模糊失败不会自动换令牌或重放。其他非分钟 TuShare 任务继续使用既有的代理优先和兜底工具。
 
 共享额度账本由以下环境变量控制，未设置时为 `off`，生产建议先用 `observe` 校准，再切到
 `enforce`：

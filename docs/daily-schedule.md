@@ -115,7 +115,7 @@ uv run python scripts/send_daily_watch20.py \
   --dry-run
 ```
 
-不要再运行历史 `run_daily_watch20_ablation.sh`、`refresh_a_share_factor_observation.sh` 或旧 AI picker/hotsector producer；这些入口已退休。
+不要再运行历史 `run_daily_watch20_ablation.sh`、`refresh_a_share_factor_observation.sh` 或旧的 AI 选股和热点生产入口。这些入口已退休。
 
 ## 部署
 

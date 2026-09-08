@@ -16,7 +16,7 @@ uv run python project_tools/update_cli_help.py --check
 
 `check_all.py` 只检查 `market-intel` 根仓及其脚本。历史三个 submodule 已退休，research-workspace 和各 owner 仓运行各自门禁。本仓不得再次通过相邻目录扫描替 owner 跑测试。
 
-## 本地 pre-push
+## 本地提交前检查
 
 ```bash
 uv run python scripts/dev/install_git_hooks.py
@@ -45,21 +45,21 @@ uv run python project_tools/cleanup_merged_branches.py \
 
 钩子要求工作树 clean，且被推送 commit 等于当前 `HEAD`。紧急绕过可显式设置 `SKIP_LOCAL_CHECKS=1`，但仍会检查分支目标。绕过后应立即补跑完整门禁。
 
-GitHub 端运行轻量的 Ruff、ty、离线契约测试和构建检查。完整 pytest、真实数据访问和部署验证仍由本地门禁或手动流程负责。纯数据 workflow 不受该策略影响。
+GitHub 端运行轻量的 Ruff、ty、离线契约测试和构建检查。完整 pytest、真实数据访问和部署验证仍由本地门禁或手动流程负责。纯数据工作流不受该策略影响。
 
-## Owner 边界测试
+## 负责方边界测试
 
 本仓测试应重点覆盖：
 
 - ETL、主题评分、市场资讯与降级行为
-- artifact 日期、schema、hash 的安全失败校验
-- DailyWatch20、D11-H5、style-factor 等 research-workspace artifact 的消费
-- 报告渲染、图表、Dashboard 与受众隔离
-- 飞书幂等、delivery receipt 和失败恢复
-- scheduler/recovery 不安装或修复研究侧 timer
+- 产物日期、结构、哈希的安全失败校验
+- DailyWatch20、D11-H5、style-factor 等 research-workspace 产物的消费
+- 报告渲染、图表、看板与受众隔离
+- 飞书幂等、投递回执和失败恢复
+- 调度与恢复逻辑不会安装或修复研究侧定时器
 - `refresh_daily_watch20.sh` 只通过 `strategy-pipeline` 公开 CLI 恢复正式 artifact。
 
-分钟因子研究、Hermite、walk-forward、OOS、ablation、AI ranking/shadow 等算法测试归 research-workspace owner，不在 market-intel 保留镜像测试。
+分钟因子研究、Hermite、滚动训练、OOS、消融、AI 排名和影子运行等算法测试归 research-workspace 负责，market-intel 不保留重复测试。
 
 ## Linux/Hermes 运维测试
 
@@ -79,7 +79,7 @@ systemctl --user list-timers --all
 journalctl --user -u hermes-gateway-preflight.service --since today
 ```
 
-生产 scheduler、主机安装和历史 research-only unit 清理属于私有 deploy 仓库。本仓测试只验证公开 CLI、契约和离线 fixtures。
+生产调度器、主机安装和历史研究专用单元清理属于私有 deploy 仓库。本仓测试只验证公开 CLI、契约和离线测试样例。
 
 ## Windows 调度冒烟
 

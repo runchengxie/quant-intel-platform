@@ -1,6 +1,6 @@
 # Market Intel
 
-面向用户的自动化市场情报与投递系统。它抓取全球市场和新闻，消费 `research-workspace` 发布的 A 股策略与研究产物，把市场事实和版本化 artifact 渲染成日报、晚报、周报、网页看板与飞书消息，并处理投递窗口、幂等、新鲜度和故障恢复。
+面向用户的自动化市场情报与投递系统。它抓取全球市场和新闻，消费 `research-workspace` 发布的 A 股策略与研究产物，把市场事实和版本化产物渲染成日报、晚报、周报、网页看板与飞书消息，并处理投递窗口、幂等、新鲜度和故障恢复。
 
 策略计算、因子研究、回测、消融和模型生产由 `research-workspace` 负责。跨仓协作只使用公开 CLI 和版本化文件契约。`market-intel` 可以调用研究仓的公开生产入口进行当日恢复，但不维护研究逻辑。
 
@@ -44,7 +44,7 @@ uv run marketops --help
 uv run a-share-daily --help
 ```
 
-涉及 A 股正式策略 artifact、数据湖或恢复入口时，部署方需要显式提供 research-workspace 路径：
+涉及 A 股正式策略产物、数据湖或恢复入口时，部署方需要显式提供 research-workspace 路径：
 
 ```bash
 export RESEARCH_WORKSPACE_ROOT=/path/to/research-workspace
@@ -132,7 +132,7 @@ uv run python project_tools/update_cli_help.py --check
 ```
 
 Public CI 在不读取密钥和生产数据的前提下运行仓库质量检查。
-Production scheduling and deployment remain in `quant-intel-deploy`. 本地 pre-push hook 只管理 `market-intel` 根仓：
+生产调度和部署继续由 `quant-intel-deploy` 管理。本地提交前检查只管理 `market-intel` 根仓：
 
 ```bash
 uv run python scripts/dev/install_git_hooks.py
@@ -145,6 +145,6 @@ uv run python scripts/dev/install_git_hooks.py --check
 ## 新手须知
 
 - 报告产物写入 `out/`，运行状态与投递回执写入 `state/`。
-- 缺少可选资讯源时按配置降级。正式策略 artifact 的日期或契约不满足时，系统会停止后续处理。
+- 缺少可选资讯源时按配置降级。正式策略产物的日期或契约不满足时，系统会停止后续处理。
 - `market-intel` 不复制研究模型。缺少研究产物时，应修复 research-workspace 中的生产入口，或通过该入口恢复。
 - 报告和技术分析仅用于研究与信息整理，不构成投资建议。

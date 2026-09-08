@@ -62,6 +62,14 @@ extra:
 
 nav:
   - 首页: index.md
+  - 入门:
+      - 五分钟开始: getting-started.md
+      - 核心概念: concepts.md
+  - 常见任务:
+      - 运行市场日报: how-to/run-daily-report.md
+      - 生成网页看板: how-to/build-dashboard.md
+      - 增加数据源: how-to/add-data-source.md
+      - 常见问题: faq.md
   - 了解平台:
       - 系统架构: architecture.md
       - 数据所有权: data-ownership.md

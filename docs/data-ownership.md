@@ -88,7 +88,7 @@ scripts/morning_pipeline.sh
 流程：
 
 1. `daily_watch20_delivery.sh` 校验并发送 research-workspace 的 DailyWatch20，失败时不阻塞后续报告。
-2. `a_share_daily.d11_h5_shadow_delivery` 只消费 research-workspace 的研究 artifact；旧 AI精选入口仅保留显式人工兼容调用，不进入默认调度。
+2. `a_share_daily.d11_h5_shadow_delivery` 只消费 research-workspace 的研究产物。旧 AI 精选入口仅保留显式人工兼容调用，不进入默认调度。
 3. 默认写空新闻 JSON，只有 `MORNING_ENABLE_AI_NEWS=1` 时才调用 `fetch_ai_market_news.py`。
 4. `a-share-daily morning` 生成机械清单。
 5. `a-share-daily morning-report` 根据清单、快照和新闻 `items[]` 渲染 Markdown。

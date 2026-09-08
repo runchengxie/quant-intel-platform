@@ -10,7 +10,7 @@
 
 <p class="mi-home__links" markdown>
 
-[快速开始](configuration.md){ .md-button .md-button--primary }
+[五分钟开始](getting-started.md){ .md-button .md-button--primary }
 [系统架构](architecture.md){ .md-button }
 
 </p>
@@ -20,10 +20,10 @@
 
 如果你第一次接触这个项目，建议按下面的顺序阅读：
 
-1. [系统架构](architecture.md)：了解平台由哪些部分组成
-2. [跨仓边界契约](boundary-contract.md)：了解平台与研究仓如何协作
-3. [配置说明](configuration.md)：在本地运行公开代码
-4. [CLI 参考](cli-reference.md)：查看常用命令
+1. [五分钟开始](getting-started.md)：先把代码跑起来
+2. [核心概念](concepts.md)：了解数据、研究产物和报告平台的关系
+3. [常见任务](how-to/run-daily-report.md)：按任务查找操作步骤
+4. [系统架构](architecture.md)：进一步了解平台由哪些部分组成
 
 ## 平台包含什么
 

@@ -121,7 +121,7 @@ ETL 写出的事件流原始产物。无授权新闻只保存可审计元数据�
 
 飞书互动卡片 JSON。必需结构：`header`（含 `title`）、`elements[]`（含 `div` 文本块和 `action` 按钮）。降级时 title 追加数据延迟标注。
 
-## DailyWatch20 formal artifact
+## DailyWatch20 正式产物
 
 research-workspace 发布、由 `scripts/daily_watch20_delivery.sh` 消费的 DailyWatch20 正式 artifact。
 该产物遵循 research-workspace 的公开 schema，用于表达已准入的关注清单，不表达执行目标。
@@ -499,7 +499,7 @@ DATA_PLATFORM_ROOT=~/data/market-data-platform \
     --source-date 20260710
 ```
 
-## DailyWatch20 正式选股 artifact
+## DailyWatch20 正式选股产物
 
 `market-intel` 只消费该 artifact 并负责展示，不复制模型打分或选股逻辑。默认目录为
 `~/data/market-data-platform/strategy_outputs/watchlist20/latest/`，可用
@@ -554,11 +554,11 @@ v2 在上述回执上新增 `publication_tier=production`、`eligible_for_live=f
 随后核对 receipt 与 CSV 的所有 policy carrier。只重算 hash 无法让语义无效的策略
 进入晨报。
 
-新的正式客户发布候选池固定为 `ths_hot_strict_v3`；`ths_hot_strict_v2` 仅用于历史产物
+新的正式客户发布候选池固定为 `ths_hot_strict_v3`。`ths_hot_strict_v2` 仅用于历史产物
 兼容读取。v3 策略身份必须编码
 `max_missing_ranks=2`，回执同时携带原始 `missing_ranks` 与
 `rank_coverage_status=complete|degraded`。排名 1 必须存在，其余名次最多允许两个源端
-缺口；v2 仍按排名 1–20 完整的原语义校验。快照不得有排名并列或重复证券，去重、范围过滤和非正涨幅的行数必须守恒，组件
+缺口。v2 仍按排名 1–20 的完整原语义校验。快照不得有排名并列或重复证券，去重、范围过滤和非正涨幅的行数必须守恒，组件
 时间范围不得超过 180 秒，最大原始排名为 100，正涨池及模型可选交集均至少 20 只。
 消费者会核对受保护 THS-hot 分区及其哈希，所选股票必须保留源快照的原始排名，例如
 缺少 19 时，原第 20 名仍记录为 20，不重排，也不从全市场补位。任一证据不一致均
@@ -572,7 +572,7 @@ A 袖 4 只、B 袖 16 只、袖内排名为连续的 `1..N`、分数字段均�
 一致性检查。任一检查失败时，正式 DailyWatch20 严格 fail closed，不发送任何替代股票
 名单。旧 hotsector 池仅可作为本地研究产物，不得进入客户或内部正式投递。
 
-## DailyWatch20 topic summary artifact
+## DailyWatch20 主题摘要产物
 
 `research-workspace/strategy-pipeline` 从最终发布的 `watchlist_20.json` 生成同一 run 目录下的
 `topic_summary.json`，`market-intel` 只消费该文件生成晨报热点主题分布图，不再读取旧的
@@ -581,7 +581,7 @@ A 袖 4 只、B 袖 16 只、袖内排名为连续的 `1..N`、分数字段均�
 `selected_watchlist_theme_count_and_weight`，`quality.status` 必须为 `passed`。
 
 这里的 `weight` 是入选清单 `tracking_weight` 的聚合，不代表全市场题材热度。该 artifact 与
-`watchlist_20.json`、`selection_receipt.json` 同目录发布并登记哈希；晨报默认将其视为可选
+`watchlist_20.json`、`selection_receipt.json` 在同一目录发布并登记哈希。晨报默认将其视为可选
 降级项，只有设置 `WATCHDOG_REQUIRE_TOPIC_SUMMARY=1`（或传入
 `--require-topic-summary`）时 watchdog 才会因缺失、日期不匹配、契约失败或回执哈希不一致报警。
 
