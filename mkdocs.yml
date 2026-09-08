@@ -12,13 +12,8 @@ theme:
   icon:
     logo: material/chart-line
   features:
-    - navigation.tabs
-    - navigation.tabs.sticky
-    - navigation.sections
-    - navigation.expand
     - navigation.instant
     - navigation.tracking
-    - navigation.path
     - navigation.top
     - toc.follow
     - content.code.copy

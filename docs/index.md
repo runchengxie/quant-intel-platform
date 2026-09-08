@@ -1,81 +1,38 @@
-<div class="mi-hero" markdown>
+<div class="mi-home" markdown>
 
-<div class="mi-eyebrow">PUBLIC MARKET INTELLIGENCE FRAMEWORK</div>
+<p class="mi-eyebrow">MARKET INTELLIGENCE · RESEARCH · SYSTEMS</p>
 
 # Market Intel
 
-把市场事实、研究产物和可审计契约，组合成可复现的情报产品。
+一个面向市场情报、报告、网页看板和数据契约的公开框架。
 
-<div class="mi-hero__actions" markdown>
+平台把市场事实、研究产物和确定性规则组合起来，生成可复现、可检查的报告产品。生产凭据、定时任务和真实运行数据由私有部署仓库管理。
 
-[开始使用](configuration.md){ .md-button .md-button--primary }
-[查看系统架构](architecture.md){ .md-button }
+<p class="mi-home__links" markdown>
 
-</div>
-</div>
+[快速开始](configuration.md){ .md-button .md-button--primary }
+[系统架构](architecture.md){ .md-button }
 
-<div class="mi-stats" markdown>
-
-<div class="mi-stat" markdown>
-<span class="mi-stat__value">01</span>
-<span class="mi-stat__label">Public framework</span>
-</div>
-<div class="mi-stat" markdown>
-<span class="mi-stat__value">03</span>
-<span class="mi-stat__label">CLI entrypoints</span>
-</div>
-<div class="mi-stat" markdown>
-<span class="mi-stat__value">∞</span>
-<span class="mi-stat__label">Versioned contracts</span>
+</p>
 </div>
 
-</div>
+## 从这里开始
 
-## 平台能力
+如果你第一次接触这个项目，建议按下面的顺序阅读：
 
-<div class="mi-grid" markdown>
+1. [系统架构](architecture.md)：了解平台由哪些部分组成
+2. [跨仓边界契约](boundary-contract.md)：了解平台与研究仓如何协作
+3. [配置说明](configuration.md)：在本地运行公开代码
+4. [CLI 参考](cli-reference.md)：查看常用命令
 
-<div class="mi-card mi-card--cyan" markdown>
+## 平台包含什么
 
-### `GLOBAL / INTEL`
-
-全球市场、主题评分、新闻上下文与日报渲染。
-
-[了解日报 →](architecture.md#全球市场日报daily-messenger)
-
-</div>
-
-<div class="mi-card mi-card--amber" markdown>
-
-### `A-SHARE / ANALYTICS`
-
-A 股市场事实、市场温度、报告组装与确定性图表。
-
-[了解分析 →](a-share-factor-signals.md)
-
-</div>
-
-<div class="mi-card mi-card--blue" markdown>
-
-### `CONTRACTS / ARTIFACTS`
-
-跨仓公开 CLI、版本化 artifact 与边界契约。
-
-[阅读契约 →](contracts.md)
-
-</div>
-
-<div class="mi-card mi-card--gold" markdown>
-
-### `PUBLIC / QUALITY`
-
-Public-safe CI、离线测试、边界检查和可复现构建。
-
-[查看边界 →](public-release/public-boundary.md)
-
-</div>
-
-</div>
+| 模块 | 作用 |
+| --- | --- |
+| 全球市场日报 | 抓取市场与新闻，生成日报和网页看板 |
+| A 股分析 | 组装市场事实，生成晨报、晚报和图表 |
+| 研究产物消费 | 校验 research-workspace 发布的版本化产物 |
+| 数据契约 | 约束跨模块、跨仓库的数据格式和回执 |
 
 ## 快速开始
 
@@ -87,19 +44,9 @@ uv run marketops --help
 uv run a-share-daily --help
 ```
 
-从[系统架构](architecture.md)开始了解模块边界，再阅读[跨仓边界契约](boundary-contract.md)和[配置说明](configuration.md)。
-
-## 文档导航
-
-- [系统架构](architecture.md)：流水线、数据源和仓库结构
-- [数据契约](contracts.md)：公开 artifact 和接口约定
-- [CLI 参考](cli-reference.md)：命令行入口与参数
-- [测试](testing.md)：离线测试与质量门
-- [Public boundary](public-release/public-boundary.md)：public 与 private deployment 的责任边界
-
 ## 贡献
 
-提交前请运行：
+提交修改前，请运行：
 
 ```bash
 uv sync --locked --group dev
