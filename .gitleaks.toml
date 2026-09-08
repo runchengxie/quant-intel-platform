@@ -1,0 +1,5 @@
+[allowlist]
+description = "Static dashboard field names are not credentials"
+paths = [
+    '''src/daily_messenger/dashboard/templates/web_dashboard\.html$''',
+]

@@ -1,0 +1,8 @@
+{
+  "schema_version": "daily_watch20.selection-receipt.v1",
+  "run_id": "daily-watch20-fixture-20990102",
+  "as_of": "2099-01-02",
+  "source": "synthetic",
+  "selected_count": 3,
+  "status": "pass"
+}

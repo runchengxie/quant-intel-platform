@@ -1,0 +1,45 @@
+{
+    "alpha_vantage": "ALPHA_KEY",
+    "twelve_data": "TD_KEY",
+    "financial_modeling_prep": "FMP_KEY",
+    "trading_economics": "user:password",
+    "finnhub": "FINNHUB_TOKEN",
+    "fred": "YOUR_FRED_API_KEY",
+    "sosovalue": "YOUR_SOSOVALUE_API_KEY",
+    "coinglass": "YOUR_COINGLASS_API_KEY",
+    "oanda": "YOUR_OANDA_PRACTICE_TOKEN",
+    "alpaca_key_id": "YOUR_KEY_ID",
+    "alpaca_secret": "YOUR_SECRET",
+    "ai_stock_picker": {
+        "deepseek": {
+            "api_key": "YOUR_DEEPSEEK_API_KEY"
+        }
+    },
+    "ai_news": {
+        "provider": "glm",
+        "model": "glm-4.6",
+        "fallback_providers": [
+            "aliyun"
+        ],
+        "enable_network": true,
+        "thinking": "enabled",
+        "glm_direct_connection": true,
+        "aliyun_model": "qwen-plus",
+        "aliyun_search_strategy": "turbo",
+        "aliyun_direct_connection": true,
+        "keys": [
+            {
+                "label": "glm_primary",
+                "value": "GLM_PRIMARY_KEY",
+                "provider": "glm"
+            },
+            {
+                "label": "glm_backup",
+                "value": "GLM_BACKUP_KEY",
+                "provider": "glm"
+            }
+        ],
+        "extra_prompt": "可选：补充提醒，如优先关注中概股或政策面。"
+    },
+    "alibaba_bailian": "ALIBABA_BAILIAN_API_KEY"
+}

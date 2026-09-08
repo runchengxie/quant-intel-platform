@@ -1,0 +1,33 @@
+{
+  "date": "20990102",
+  "us_stocks": {
+    "SPY": {"close": 500.0, "pct_chg": 0.5},
+    "QQQ": {"close": 450.0, "pct_chg": -0.2}
+  },
+  "commodities": {
+    "GLD": {"close": 200.0, "pct_chg": 0.1}
+  },
+  "macros": {
+    "^VIX": {
+      "label": "Synthetic volatility index",
+      "close": 18.0,
+      "pct_chg": -1.0,
+      "source": "synthetic"
+    }
+  },
+  "aaii_sentiment": {
+    "week": "2099-01-01",
+    "bullish_pct": 40.0,
+    "neutral_pct": 30.0,
+    "bearish_pct": 30.0,
+    "bull_bear_spread": 10.0
+  },
+  "concept_mapping": [
+    {
+      "concept": "Synthetic semiconductors",
+      "avg_pct_chg": 0.5,
+      "signal": "neutral",
+      "drivers": ["SPY +0.5%"]
+    }
+  ]
+}

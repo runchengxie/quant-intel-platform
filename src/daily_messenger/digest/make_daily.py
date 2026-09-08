@@ -1,0 +1,672 @@
+#!/usr/bin/env python3
+"""Render HTML report, plain-text digest, and Feishu card payload."""
+
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import os
+from collections.abc import Mapping
+from dataclasses import dataclass, field
+from datetime import UTC, date, datetime
+from pathlib import Path
+from typing import Any, cast
+
+from jinja2 import (
+    ChoiceLoader,
+    Environment,
+    FileSystemLoader,
+    PackageLoader,
+    select_autoescape,
+)
+
+from daily_messenger.common import run_meta
+from daily_messenger.common.logging import log, setup_logger
+from daily_messenger.common.market_news import (
+    AI_NEWS_MARKET_SPECS,
+    extract_news_section,
+)
+
+PACKAGE_ROOT = Path(__file__).resolve().parent
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+OUT_DIR = PROJECT_ROOT / "out"
+TEMPLATE_DIR = PACKAGE_ROOT / "templates"
+METRIC_LABELS = {
+    "fundamental": "基本面",
+    "valuation": "估值",
+    "sentiment": "情绪",
+    "liquidity": "资金",
+    "event": "事件",
+}
+SENTIMENT_LABELS = {
+    "put_call": "Cboe 认沽/认购",
+    "aaii": "AAII 多空差",
+}
+MARKET_LABELS = {spec.market: spec.label for spec in AI_NEWS_MARKET_SPECS}
+MARKET_ORDER = [spec.market for spec in AI_NEWS_MARKET_SPECS]
+NEWS_FALLBACK = "今日暂无五市市场资讯"
+
+
+@dataclass
+class ThemePayload:
+    name: str
+    label: str
+    total: float
+    breakdown: dict[str, float]
+    breakdown_detail: dict[str, dict[str, object]] = field(default_factory=dict)
+    meta: dict[str, object] = field(default_factory=dict)
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> ThemePayload:
+        try:
+            name = str(data["name"])
+        except KeyError as exc:  # noqa: B904
+            raise ValueError("主题缺少 name 字段") from exc
+        label = str(data.get("label", name))
+        total = float(data.get("total", 0.0))
+        breakdown_raw = data.get("breakdown", {})
+        breakdown: dict[str, float] = {}
+        if isinstance(breakdown_raw, Mapping):
+            for key, value in breakdown_raw.items():
+                try:
+                    breakdown[str(key)] = float(value)
+                except (TypeError, ValueError):
+                    continue
+        detail_raw = data.get("breakdown_detail", {})
+        if isinstance(detail_raw, Mapping):
+            detail = {str(k): dict(v) for k, v in detail_raw.items() if isinstance(v, Mapping)}
+        else:
+            detail = {}
+        meta_raw = data.get("meta")
+        meta = dict(meta_raw) if isinstance(meta_raw, Mapping) else {}
+        return cls(
+            name=name,
+            label=label,
+            total=total,
+            breakdown=breakdown,
+            breakdown_detail=detail,
+            meta=meta,
+        )
+
+    def to_mapping(self) -> dict[str, object]:
+        return {
+            "name": self.name,
+            "label": self.label,
+            "total": self.total,
+            "breakdown": self.breakdown,
+            "breakdown_detail": self.breakdown_detail,
+            "meta": self.meta,
+        }
+
+
+@dataclass
+class ActionPayload:
+    action: str
+    name: str
+    reason: str
+
+    @classmethod
+    def from_mapping(cls, data: Mapping[str, Any]) -> ActionPayload:
+        try:
+            action = str(data["action"])
+            name = str(data["name"])
+        except KeyError as exc:  # noqa: B904
+            raise ValueError("操作项缺少 action/name 字段") from exc
+        reason = str(data.get("reason", ""))
+        return cls(action=action, name=name, reason=reason)
+
+    def to_mapping(self) -> dict[str, str]:
+        return {"action": self.action, "name": self.name, "reason": self.reason}
+
+
+def _load_json(path: Path, *, required: bool = True) -> dict[str, object]:
+    """Load a JSON document from *path*.
+
+    Args:
+        path: Location of the JSON payload.
+        required: When ``False`` the function returns an empty mapping if the
+            file is absent instead of raising ``FileNotFoundError``. This keeps
+            optional inputs from aborting the digest run during local
+            development and tests where only a subset of artefacts are
+            generated.
+
+    Raises:
+        FileNotFoundError: If the file is missing and ``required`` is ``True``.
+    """
+
+    if not path.exists():
+        if required:
+            raise FileNotFoundError(f"缺少输入文件: {path}")
+        return {}
+    with path.open("r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def _coerce_themes(raw: object) -> list[dict[str, object]]:
+    themes: list[dict[str, object]] = []
+    if isinstance(raw, list):
+        for item in raw:
+            if not isinstance(item, Mapping):
+                continue
+            try:
+                themes.append(ThemePayload.from_mapping(cast(Mapping[str, Any], item)).to_mapping())
+            except ValueError:
+                continue
+    return themes
+
+
+def _coerce_actions(raw: object) -> list[dict[str, str]]:
+    actions: list[dict[str, str]] = []
+    if isinstance(raw, list):
+        for item in raw:
+            if not isinstance(item, Mapping):
+                continue
+            try:
+                actions.append(
+                    ActionPayload.from_mapping(cast(Mapping[str, Any], item)).to_mapping()
+                )
+            except ValueError:
+                continue
+    return actions
+
+
+def _build_env() -> Environment:
+    loaders = []
+    if TEMPLATE_DIR.exists():
+        loaders.append(FileSystemLoader(str(TEMPLATE_DIR)))
+    loaders.append(PackageLoader("daily_messenger.digest", "templates"))
+    loader = loaders[0] if len(loaders) == 1 else ChoiceLoader(loaders)
+    return Environment(loader=loader, autoescape=select_autoescape(["html", "xml"]))
+
+
+def _render_report(env: Environment, payload: dict[str, object]) -> str:
+    template = env.get_template("report.html.j2")
+    return template.render(**payload)
+
+
+def _as_mapping(value: object) -> Mapping[str, Any]:
+    return cast(Mapping[str, Any], value) if isinstance(value, Mapping) else {}
+
+
+def _safe_float(value: Any) -> float | None:
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _filter_future_events(events: object, today: date) -> list[dict[str, object]]:
+    if not isinstance(events, list):
+        return []
+    future: list[tuple[date, dict[str, object]]] = []
+    for entry in events:
+        if not isinstance(entry, dict):
+            continue
+        raw_date = entry.get("date")
+        if not raw_date:
+            continue
+        try:
+            event_date = datetime.strptime(str(raw_date), "%Y-%m-%d").date()
+        except ValueError:
+            continue
+        if event_date >= today:
+            item = dict(entry)
+            future.append((event_date, item))
+    future.sort(key=lambda pair: pair[0])
+    return [item for _, item in future[:20]]
+
+
+def _build_summary_lines(
+    themes: list[dict[str, object]], actions: list[dict[str, str]], degraded: bool
+) -> list[str]:
+    lines = []
+    if degraded:
+        lines.append("⚠️ 数据延迟，以下为中性参考。")
+    for theme in themes:
+        label = theme.get("label", theme.get("name", "主题"))
+        breakdown = _as_mapping(theme.get("breakdown", {}))
+        detail = _as_mapping(theme.get("breakdown_detail", {}))
+        meta = _as_mapping(theme.get("meta", {}))
+        total = theme.get("total")
+        line = f"{label} 总分 {total:.0f}" if isinstance(total, (int, float)) else f"{label} 总分 —"
+        delta = meta.get("delta")
+        if isinstance(delta, (int, float)):
+            line += f" (Δ {delta:+.1f})"
+        fundamental = breakdown.get("fundamental")
+        if isinstance(fundamental, (int, float)):
+            line += f"｜基本面 {fundamental:.0f}"
+        valuation_detail = _as_mapping(detail.get("valuation", {}))
+        valuation_value = breakdown.get("valuation")
+        if valuation_detail.get("fallback"):
+            line += "｜估值 ∅"
+        elif isinstance(valuation_value, (int, float)):
+            line += f"｜估值 {valuation_value:.0f}"
+        distance_to_add = meta.get("distance_to_add")
+        if isinstance(distance_to_add, (int, float)):
+            line += f"｜距关注增强 {distance_to_add:+.0f}"
+        lines.append(line)
+    if actions:
+        for action in actions:
+            lines.append(f"信号：{action['action']} {action['name']}（{action['reason']}）")
+    return lines[:12]
+
+
+def _build_market_news_sections(
+    ai_updates: list[Mapping[str, Any]],
+) -> list[dict[str, Any]]:
+    sections: list[dict[str, Any]] = []
+    for market in MARKET_ORDER:
+        update = next((item for item in ai_updates if item.get("market") == market), None)
+        if not update:
+            continue
+        label = MARKET_LABELS.get(market, str(market).upper())
+        date_candidate = update.get("prompt_date") or update.get("date")
+        summary_raw = update.get("summary")
+        summary_text = str(summary_raw) if isinstance(summary_raw, str) else ""
+        if not summary_text:
+            raw_text = update.get("raw_text")
+            if isinstance(raw_text, str) and raw_text.strip():
+                summary_text = extract_news_section(raw_text)
+        if not summary_text:
+            continue
+        lines = [line.rstrip() for line in summary_text.splitlines() if line.strip()]
+        if not lines:
+            continue
+        sections.append(
+            {
+                "market": market,
+                "label": label,
+                "date": date_candidate,
+                "lines": lines,
+                "text": "\n".join(lines),
+                "source": update.get("source"),
+                "provider": update.get("provider"),
+                "model": update.get("model"),
+            }
+        )
+    return sections
+
+
+def _build_market_news_text(
+    ai_updates: list[Mapping[str, Any]],
+    sections: list[dict[str, Any]] | None = None,
+) -> str:
+    if sections is None:
+        sections = _build_market_news_sections(ai_updates)
+    if not sections:
+        return NEWS_FALLBACK + "\n"
+    chunks: list[str] = []
+    for section in sections:
+        heading = (
+            f"{section['label']} · {section['date']}" if section.get("date") else section["label"]
+        )
+        chunks.append(heading)
+        chunks.extend(section["lines"])
+        chunks.append("")
+    text = "\n".join(chunks).strip()
+    if not text:
+        return NEWS_FALLBACK + "\n"
+    return text + "\n"
+
+
+def _build_card_payload(
+    title: str,
+    lines: list[str],
+    report_url: str,
+    *,
+    news_preview: list[str] | None = None,
+    stock_preview: list[str] | None = None,
+    news_full_md: str | None = None,
+) -> dict[str, object]:
+    content = "\n".join(lines)
+    elements: list[dict[str, object]] = [
+        {
+            "tag": "div",
+            "text": {"tag": "lark_md", "content": content},
+        }
+    ]
+
+    preview_chunks: list[str] = []
+    if news_preview:
+        preview_chunks.append("**新闻** " + " ｜ ".join(news_preview))
+    if stock_preview:
+        preview_chunks.append("**成分股** " + " ｜ ".join(stock_preview))
+    if preview_chunks:
+        elements.append(
+            {
+                "tag": "div",
+                "text": {"tag": "lark_md", "content": "\n".join(preview_chunks)},
+            }
+        )
+
+    if news_full_md:
+        clip_length = 1000
+        body = news_full_md[:clip_length].rstrip()
+        if len(news_full_md) > clip_length:
+            body += "\n…"
+        elements.append(
+            {
+                "tag": "div",
+                "text": {
+                    "tag": "lark_md",
+                    "content": f"**AI 市场资讯（GLM）**\n{body}",
+                },
+            }
+        )
+
+    elements.append(
+        {
+            "tag": "action",
+            "actions": [
+                {
+                    "tag": "button",
+                    "text": {"tag": "plain_text", "content": "查看完整报告"},
+                    "url": report_url,
+                    "type": "default",
+                }
+            ],
+        }
+    )
+
+    return {
+        "config": {"wide_screen_mode": True},
+        "header": {
+            "template": "blue",
+            "title": {"tag": "plain_text", "content": title},
+        },
+        "elements": elements,
+    }
+
+
+def _load_optional_digest_input(
+    path: Path,
+    logger: logging.Logger,
+    input_name: str,
+) -> dict[str, object]:
+    if path.exists():
+        return _load_json(path)
+    log(
+        logger,
+        logging.WARNING,
+        "digest_missing_input",
+        input=input_name,
+        path=str(path),
+    )
+    return {}
+
+
+def _resolve_report_date(date_str: object) -> date:
+    try:
+        return datetime.strptime(str(date_str), "%Y-%m-%d").date()
+    except ValueError:
+        return datetime.now(UTC).date()
+
+
+def _extract_etl_sources(scores: Mapping[str, object]) -> list[dict[str, object]]:
+    etl_status = scores.get("etl_status", {})
+    if not isinstance(etl_status, dict):
+        return []
+    raw_sources = etl_status.get("sources", [])
+    if not isinstance(raw_sources, list):
+        return []
+    return [cast(dict[str, object], src) for src in raw_sources if isinstance(src, dict)]
+
+
+def _resolve_theme_details(
+    scores: Mapping[str, object],
+    raw_market_payload: Mapping[str, object],
+) -> dict[str, Any]:
+    theme_details_candidate = scores.get("theme_details")
+    if isinstance(theme_details_candidate, Mapping):
+        return {str(key): value for key, value in theme_details_candidate.items()}
+
+    market_node = raw_market_payload.get("market", {})
+    details_node = market_node.get("themes") if isinstance(market_node, Mapping) else {}
+    return (
+        {str(key): value for key, value in details_node.items()}
+        if isinstance(details_node, Mapping)
+        else {}
+    )
+
+
+def _coerce_ai_updates(candidate: object) -> list[Mapping[str, Any]]:
+    if not isinstance(candidate, list):
+        return []
+    return [cast(Mapping[str, Any], item) for item in candidate if isinstance(item, Mapping)]
+
+
+def _resolve_ai_updates(
+    scores: Mapping[str, object],
+    raw_events_payload: Mapping[str, object],
+) -> list[Mapping[str, Any]]:
+    ai_updates_candidate = scores.get("ai_updates")
+    if isinstance(ai_updates_candidate, list):
+        return _coerce_ai_updates(ai_updates_candidate)
+    return _coerce_ai_updates(raw_events_payload.get("ai_updates", []))
+
+
+def _build_news_preview(ai_updates: list[Mapping[str, Any]]) -> list[str]:
+    news_preview: list[str] = []
+    for entry in ai_updates[:3]:
+        title = str(entry.get("title", "更新"))
+        url = entry.get("url")
+        news_preview.append(f"[{title}]({url})" if isinstance(url, str) and url else title)
+    return news_preview
+
+
+def _select_theme_detail_with_symbols(theme_details: Mapping[str, Any]) -> Mapping[str, Any] | None:
+    for key in ("magnificent7", "ai", "btc"):
+        detail_candidate = theme_details.get(key)
+        if isinstance(detail_candidate, Mapping) and detail_candidate.get("symbols"):
+            return cast(Mapping[str, Any], detail_candidate)
+    for detail_candidate in theme_details.values():
+        if isinstance(detail_candidate, Mapping) and detail_candidate.get("symbols"):
+            return cast(Mapping[str, Any], detail_candidate)
+    return None
+
+
+def _build_stock_preview(theme_details: Mapping[str, Any]) -> list[str]:
+    selected_detail = _select_theme_detail_with_symbols(theme_details)
+    if selected_detail is None:
+        return []
+
+    symbols_list = selected_detail.get("symbols", [])
+    if not isinstance(symbols_list, list):
+        return []
+
+    sortable: list[tuple[float, Mapping[str, Any]]] = []
+    for item in symbols_list:
+        if isinstance(item, Mapping):
+            change_float = _safe_float(item.get("change_pct")) or 0.0
+            sortable.append((abs(change_float), cast(Mapping[str, Any], item)))
+
+    stock_preview: list[str] = []
+    for _, item in sorted(sortable, key=lambda pair: pair[0], reverse=True)[:3]:
+        symbol = item.get("symbol")
+        if symbol:
+            stock_preview.append(_format_stock_preview_item(str(symbol), item))
+    return stock_preview
+
+
+def _format_stock_preview_item(symbol: str, item: Mapping[str, Any]) -> str:
+    change_float = _safe_float(item.get("change_pct"))
+    if change_float is not None:
+        return f"{symbol} {change_float:+.2f}%"
+
+    price_float = _safe_float(item.get("price"))
+    if price_float is not None:
+        return f"{symbol} {price_float:.2f}"
+    return symbol
+
+
+def _report_url(date_str: str) -> str:
+    repo = os.getenv("GITHUB_REPOSITORY", "org/repo")
+    owner, repo_name = repo.split("/") if "/" in repo else ("org", repo)
+    return f"https://{owner}.github.io/{repo_name}/{date_str}.html"
+
+
+def _build_news_full_md(news_sections: list[dict[str, Any]], news_text: str) -> str:
+    news_lines: list[str] = []
+    for section in news_sections:
+        heading = (
+            f"{section['label']} · {section['date']}" if section.get("date") else section["label"]
+        )
+        news_lines.append(str(heading))
+        news_lines.extend(str(line) for line in section["lines"])
+    if not news_lines and news_text:
+        news_lines = [line for line in news_text.splitlines() if line.strip()]
+    return "\n".join(news_lines[:20]) if news_lines else ""
+
+
+def _write_digest_report_outputs(
+    date_str: str,
+    html: str,
+    news_text: str,
+    themes: list[dict[str, object]],
+    actions: list[dict[str, str]],
+    degraded: bool,
+) -> list[str]:
+    OUT_DIR.mkdir(parents=True, exist_ok=True)
+    (OUT_DIR / f"{date_str}.html").write_text(html, encoding="utf-8")
+    (OUT_DIR / "index.html").write_text(html, encoding="utf-8")
+
+    summary_lines = _build_summary_lines(themes, actions, degraded)
+    summary_text = "\n".join(summary_lines)
+    if summary_text:
+        summary_text += "\n"
+    (OUT_DIR / "digest_summary.txt").write_text(summary_text, encoding="utf-8")
+    (OUT_DIR / "digest_news.txt").write_text(news_text, encoding="utf-8")
+    return summary_lines
+
+
+def _write_digest_card(
+    date_str: str,
+    degraded: bool,
+    summary_lines: list[str],
+    news_preview: list[str],
+    stock_preview: list[str],
+    news_sections: list[dict[str, Any]],
+    news_text: str,
+) -> None:
+    news_full_md = _build_news_full_md(news_sections, news_text)
+    card_payload = _build_card_payload(
+        f"内参 · 盘前{'（数据延迟）' if degraded else ''}",
+        summary_lines or ["今日暂无摘要"],
+        _report_url(date_str),
+        news_preview=news_preview,
+        stock_preview=stock_preview,
+        news_full_md=news_full_md if news_full_md else None,
+    )
+    (OUT_DIR / "digest_card.json").write_text(
+        json.dumps(card_payload, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+
+
+def run(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Render daily digest")
+    parser.add_argument("--degraded", action="store_true", help="强制输出降级版本")
+    args = parser.parse_args(argv)
+
+    bootstrap_logger = setup_logger("digest")
+    started_at = datetime.now(UTC)
+    scores = _load_json(OUT_DIR / "scores.json")
+    actions_payload = _load_json(OUT_DIR / "actions.json")
+    raw_market_payload = _load_optional_digest_input(
+        OUT_DIR / "raw_market.json", bootstrap_logger, "raw_market"
+    )
+    raw_events_payload = _load_optional_digest_input(
+        OUT_DIR / "raw_events.json", bootstrap_logger, "raw_events"
+    )
+
+    degraded = bool(scores.get("degraded")) or args.degraded
+    date_str = scores.get("date", datetime.now(UTC).strftime("%Y-%m-%d"))
+    report_date = _resolve_report_date(date_str)
+    logger = setup_logger("digest", date=date_str)
+    log(logger, logging.INFO, "digest_start", degraded=degraded)
+    run_meta.record_step(OUT_DIR, "digest", "started", date=date_str, degraded=degraded)
+
+    themes = _coerce_themes(scores.get("themes"))
+    actions = _coerce_actions(actions_payload.get("items"))
+    events_future = _filter_future_events(scores.get("events", []), report_date)
+    sentiment_candidate = scores.get("sentiment")
+    sentiment_detail = sentiment_candidate if isinstance(sentiment_candidate, dict) else None
+    thresholds_candidate = scores.get("thresholds", {})
+    thresholds = thresholds_candidate if isinstance(thresholds_candidate, dict) else {}
+
+    raw_links = {"market": "raw_market.json", "events": "raw_events.json"}
+    theme_details = _resolve_theme_details(scores, raw_market_payload)
+    ai_updates = _resolve_ai_updates(scores, raw_events_payload)
+    news_sections = _build_market_news_sections(ai_updates)
+    news_text = _build_market_news_text(ai_updates, news_sections)
+
+    payload = {
+        "title": f"盘前播报{'（数据延迟）' if degraded else ''}",
+        "date": date_str,
+        "themes": themes,
+        "actions": actions,
+        "events": events_future,
+        "etl_sources": _extract_etl_sources(scores),
+        "sentiment": sentiment_detail,
+        "thresholds": thresholds,
+        "metric_labels": METRIC_LABELS,
+        "sentiment_labels": SENTIMENT_LABELS,
+        "degraded": degraded,
+        "generated_at": datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC"),
+        "theme_details": theme_details,
+        "ai_updates": ai_updates,
+        "news_sections": news_sections,
+        "news_text": news_text,
+        "raw_links": raw_links,
+    }
+
+    html = _render_report(_build_env(), payload)
+    summary_lines = _write_digest_report_outputs(
+        str(date_str),
+        html,
+        news_text,
+        themes,
+        actions,
+        degraded,
+    )
+    _write_digest_card(
+        str(date_str),
+        degraded,
+        summary_lines,
+        _build_news_preview(ai_updates),
+        _build_stock_preview(theme_details),
+        news_sections,
+        news_text,
+    )
+
+    duration = (datetime.now(UTC) - started_at).total_seconds()
+    log(
+        logger,
+        logging.INFO,
+        "digest_complete",
+        degraded=degraded,
+        summary_lines=len(summary_lines),
+        duration_seconds=round(duration, 2),
+        summary_path=str(OUT_DIR / "digest_summary.txt"),
+        card_path=str(OUT_DIR / "digest_card.json"),
+    )
+    if degraded:
+        log(
+            logger,
+            logging.WARNING,
+            "digest_degraded_output",
+            reason="degraded flag or downstream status",
+        )
+    run_meta.record_step(
+        OUT_DIR,
+        "digest",
+        "completed",
+        degraded=degraded,
+        duration_seconds=round(duration, 2),
+        summary_lines=len(summary_lines),
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(run())

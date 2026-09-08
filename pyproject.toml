@@ -1,0 +1,145 @@
+[project]
+name = "market-intel"
+version = "0.1.0"
+description = "Automated market intelligence, reporting, dashboards, and Feishu delivery"
+readme = "README.md"
+requires-python = ">=3.11,<3.14"
+license = "MIT"
+authors = [
+  {name = "Market Intel Maintainers"}
+]
+dependencies = [
+  "requests>=2.31,<3",
+  "PyYAML>=6,<7",
+  "Jinja2>=3.1,<3.2",
+  "numpy>=1.26,<3",
+  "pandas>=2.2,<3",
+  "pyarrow>=18",
+  "tushare>=1.4.0",
+  "tzdata>=2023.3",
+  "yfinance>=0.2.59",
+  "matplotlib>=3.8,<4",
+]
+
+[project.optional-dependencies]
+tools = [
+  "websockets>=12,<14",
+]
+
+[dependency-groups]
+dev = [
+  "pytest>=8.1",
+  "pytest-cov>=7.0,<8",
+  "ruff>=0.3",
+  "tomli>=2,<3",
+  "ty>=0.0.55",
+]
+
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["daily_messenger*", "tushare_jobs*", "ops_common*", "a_share_daily*", "a_share_analysis*", "market_intel_config*", "research_contracts*"]
+
+[tool.setuptools.package-dir]
+"" = "src"
+
+[tool.setuptools.package-data]
+"daily_messenger.digest" = ["templates/*.j2"]
+"daily_messenger.dashboard" = ["templates/*.html"]
+
+[project.scripts]
+dm = "daily_messenger.cli:main"
+marketops = "tushare_jobs.cli:main"
+a-share-daily = "a_share_daily.cli:main"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RET", "RUF059", "C90", "PLR", "TRY", "EM", "S", "DTZ", "N"]
+ignore = [
+  "E501",
+  "PLR2004",
+  "EM101",
+  "EM102",
+  "TRY003",
+  "TRY004",
+  "S101",
+  "TRY300",
+  "N818",
+  "DTZ001",
+  "DTZ005",
+  "DTZ006",
+  "DTZ007",
+  "DTZ011",
+  "PLR0913",
+  "PLR0911",
+  "PLR0917",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"scripts/**" = ["PLR", "TRY", "EM", "S", "DTZ", "N", "RET", "SIM", "B"]
+"scripts/check_daily_watch20_producer_freshness.py" = ["C90"]
+"project_tools/**" = ["PLR", "TRY", "EM", "S", "DTZ", "N", "C90", "RET", "SIM", "B"]
+"tests/**" = ["S101", "PLR2004", "TRY002", "TRY003", "S106", "N802", "N812", "S603", "S607", "S105", "S108"]
+"src/a_share_daily/news_heat.py" = ["S101"]
+"src/daily_messenger/cli.py" = ["N812", "S603"]
+"src/a_share_daily/cli.py" = ["N812", "S603"]
+"src/daily_messenger/dashboard/state_panel.py" = ["S112"]
+"src/style_replica_bridge/delivery.py" = ["S603"]
+"src/a_share_daily/review/**" = ["S110", "S112", "N812"]
+"src/a_share_daily/pipeline.py" = ["N812", "S603"]
+"src/daily_messenger/tools/post_feishu.py" = ["N814"]
+"src/tushare_jobs/lightweight_snapshot.py" = ["S110", "S105"]
+"src/a_share_daily/report_dataset_refresh.py" = ["TRY301"]
+"src/daily_messenger/etl/fetchers/edgar.py" = ["TRY301"]
+"src/a_share_daily/morning_report.py" = ["S101"]
+"src/a_share_daily/daily_watch20_candidate_source.py" = ["S101"]
+"src/a_share_daily/d11_h5_shadow_delivery.py" = ["S603"]
+"src/a_share_daily/daily_watch20_lark_delivery.py" = ["S603"]
+"src/a_share_daily/delivery/senders.py" = ["S603"]
+"src/a_share_daily/morning_product_supervisor.py" = ["S603"]
+"src/a_share_analysis/value_regime_weekly.py" = ["S603"]
+"src/tushare_jobs/client.py" = ["S105", "S106"]
+"src/daily_messenger/etl/http.py" = ["S311"]
+"src/daily_messenger/etl/fetchers/ai_news_common.py" = ["S311"]
+"src/daily_messenger/etl/fetchers/ai_news_parse.py" = ["S311"]
+"src/daily_messenger/etl/fetchers/aaii_sentiment.py" = ["S314"]
+"src/daily_messenger/etl/fetchers/ai_news_feeds.py" = ["S314"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 15
+
+[tool.ruff.format]
+line-ending = "lf"
+quote-style = "double"
+
+[tool.ty.src]
+exclude = [
+  "tests/",
+  "project_tools/check_all.py",
+  "project_tools/pre_push_guard.py",
+  "project_tools/update_cli_help.py",
+]
+
+[tool.ty.analysis]
+allowed-unresolved-imports = ["market_data_platform.**"]
+
+[tool.coverage.run]
+branch = true
+source = [
+    "daily_messenger",
+    "a_share_daily",
+    "a_share_analysis",
+    "tushare_jobs",
+    "ops_common",
+]
+
+[tool.coverage.report]
+fail_under = 1
+show_missing = true
+skip_covered = false

@@ -1,0 +1,26 @@
+{
+  "trade_date": "20990102",
+  "generated_at": "2099-01-02T09:30:00+08:00",
+  "source": "synthetic",
+  "breadth": {
+    "up_count": 3,
+    "down_count": 2,
+    "up_pct": 60.0,
+    "down_pct": 40.0
+  },
+  "indices": {
+    "SYNTHETIC.INDEX": {
+      "name": "Synthetic index",
+      "close": 100.0,
+      "pct_chg": 0.2
+    }
+  },
+  "moneyflow": {
+    "total_net_mf_amount": 0.0,
+    "top_entries": []
+  },
+  "limit_list": {
+    "up": [],
+    "down": []
+  }
+}
