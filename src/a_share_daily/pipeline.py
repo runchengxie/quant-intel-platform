@@ -459,7 +459,9 @@ def _run_moneyflow_chart(state: _ChartState, premium_enabled: bool) -> None:
 
 def _latest_partition_dates(dataset: str, as_of_date: str | None = None) -> list[str]:
     latest_dirs = list((D.DATA_ROOT / dataset).glob("*_latest"))
-    data_dir = D.DATA_ROOT / dataset / latest_dirs[0] / "data"
+    if not latest_dirs:
+        return []
+    data_dir = latest_dirs[0] / "data"
     dates = sorted(path.name.split("=")[1] for path in data_dir.glob("trade_date=*"))
     if as_of_date:
         dates = [value for value in dates if value <= as_of_date]
