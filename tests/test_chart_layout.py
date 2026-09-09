@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import pandas as pd
 
+from a_share_daily import pipeline
 from a_share_daily.charts.dashboard import (
     MARGIN_PANEL_LEFT,
     generate_dashboard,
@@ -65,3 +66,12 @@ def test_dashboard_renders_when_optional_margin_data_is_empty(tmp_path) -> None:
 
     assert result == str(output)
     assert output.is_file()
+
+
+def test_latest_partition_dates_returns_empty_for_missing_optional_dataset(
+    monkeypatch, tmp_path
+) -> None:
+    data_root = tmp_path / "assets" / "tushare" / "a_share"
+    monkeypatch.setattr(pipeline.D, "DATA_ROOT", data_root)
+
+    assert pipeline._latest_partition_dates("margin", as_of_date="20260908") == []
