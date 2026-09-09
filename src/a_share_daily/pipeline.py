@@ -29,7 +29,7 @@ from .charts import (
 from .charts.theme import save_unavailable_chart
 from .cross_market import generate_summary as _gen_cross_summary
 from .daily_watch20_validation._common import resolve_watchlist20_root
-from .freshness import build_freshness_report
+from .freshness import build_freshness_report, load_freshness_snapshot
 from .topic_summary import TopicSummaryError, load_topic_summary
 from .topic_summary_fallback import build_composite_topic_summary
 from .weekly_context import write_weekly_context
@@ -160,6 +160,9 @@ def _empty_hotsector_reason(data_sources: dict[str, Any] | None = None) -> str:
 
 def step_data_freshness(trade_date: str | None = None) -> dict[str, Any]:
     """Audit data freshness for all core datasets."""
+    frozen_snapshot = os.environ.get("A_SHARE_FRESHNESS_SNAPSHOT", "").strip()
+    if frozen_snapshot:
+        return load_freshness_snapshot(frozen_snapshot, target_date=trade_date)
     premium_enabled = premium_tushare_enabled()
     datasets = list(CORE_DATASETS)
     if premium_enabled:

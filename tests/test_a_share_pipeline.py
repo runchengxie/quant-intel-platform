@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 from typing import cast
 
@@ -8,12 +9,40 @@ import pytest
 
 from a_share_daily import pipeline
 from a_share_daily.charts.topic import format_topic_label
+from a_share_daily.freshness import build_freshness_report
 
 
 def test_topic_chart_formats_common_english_hotspot_labels() -> None:
     assert format_topic_label("Hotspot") == "热点"
     assert format_topic_label("AI Infrastructure") == "人工智能 基础设施"
     assert format_topic_label("Hot Sectors / Semiconductors") == "热点板块/半导体"
+
+
+def test_step_data_freshness_uses_explicit_frozen_snapshot(tmp_path: Path, monkeypatch) -> None:
+    snapshot = build_freshness_report(
+        latest_by_dataset={"daily": "20260907"},
+        target_date="20260907",
+        premium_enabled=True,
+    )
+    snapshot.update(
+        {
+            "schema_version": "a_share.freshness.snapshot.v1",
+            "snapshot_id": "mdp-20260907-test",
+        }
+    )
+    path = tmp_path / "freshness.json"
+    path.write_text(json.dumps(snapshot), encoding="utf-8")
+    monkeypatch.setenv("A_SHARE_FRESHNESS_SNAPSHOT", str(path))
+    monkeypatch.setattr(
+        pipeline.D,
+        "_latest_date",
+        lambda _dataset: (_ for _ in ()).throw(AssertionError("live freshness lookup used")),
+    )
+
+    result = pipeline.step_data_freshness("20260907")
+
+    assert result["snapshot_id"] == "mdp-20260907-test"
+    assert result["snapshot_source"] == "frozen_snapshot"
 
 
 def test_step_charts_reports_all_failures_when_daily_missing(

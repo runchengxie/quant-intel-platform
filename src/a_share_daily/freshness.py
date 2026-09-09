@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
 import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
+from pathlib import Path
 from typing import Any, Literal
 
 FreshnessStatus = Literal[
@@ -25,6 +27,7 @@ DEFAULT_REFRESH_ATTEMPTS = (
     "windows_task_refresh",
     "report_pipeline_refresh",
 )
+FRESHNESS_SNAPSHOT_SCHEMA = "a_share.freshness.snapshot.v1"
 ATTEMPT_LABELS = {
     "github_snapshot": "GitHub Actions 快照",
     "local_scheduled_refresh": "本机定时补抓",
@@ -236,6 +239,34 @@ def _skipped_dataset_row(
         "attempts": [],
         "refresh": {"reason": reason},
     }
+
+
+def load_freshness_snapshot(path: str | Path, *, target_date: str | None) -> dict[str, Any]:
+    """Load a validated, date-pinned freshness receipt for replay runs."""
+    snapshot_path = Path(path).expanduser().resolve()
+    try:
+        payload = json.loads(snapshot_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        raise ValueError(f"unable to read freshness snapshot: {snapshot_path}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError("freshness snapshot must be a JSON object")
+    if payload.get("schema_version") != FRESHNESS_SNAPSHOT_SCHEMA:
+        raise ValueError(
+            f"unsupported freshness snapshot schema: {payload.get('schema_version')!r}"
+        )
+    snapshot_date = payload.get("target_date")
+    if target_date and snapshot_date != target_date:
+        raise ValueError(
+            f"freshness snapshot target_date {snapshot_date!r} does not match {target_date!r}"
+        )
+    if not isinstance(payload.get("datasets"), dict):
+        raise ValueError("freshness snapshot datasets must be an object")
+    if not isinstance(payload.get("contracts"), list):
+        raise ValueError("freshness snapshot contracts must be a list")
+    loaded = dict(payload)
+    loaded["snapshot_source"] = "frozen_snapshot"
+    loaded["snapshot_path"] = str(snapshot_path)
+    return loaded
 
 
 def build_freshness_report(
