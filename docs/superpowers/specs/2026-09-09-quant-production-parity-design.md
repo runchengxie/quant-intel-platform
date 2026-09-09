@@ -131,6 +131,13 @@ validated artifact，不信日志中“send succeeded”的文本。
 若 old/new snapshot ID 不相同，比较器退出非零，该日期不得计入五日门槛。live
 外部数据在两个进程之间漂移时，必须回到冻结输入重跑，不能把数值 tolerance 当作替代。
 
+历史 replay 的 freshness 证据可使用 `A_SHARE_FRESHNESS_SNAPSHOT`，输入一个
+`a_share.freshness.snapshot.v1` JSON receipt。receipt 必须包含与目标日期一致的
+`target_date`、完整 `datasets` 和 `contracts`，并具有稳定的 `snapshot_id`。
+加载器对 schema、目标日期和结构执行 fail-closed 校验；未设置该变量时仍走生产的
+canonical freshness 检查。该 receipt 只冻结 freshness 证据，实际数据文件仍必须由同一
+`data_snapshot_id` 的数据目录/receipt 提供，不能用 freshness receipt 掩盖数据内容差异。
+
 ### 6.3 差异分类
 
 每项差异必须属于以下之一：

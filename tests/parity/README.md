@@ -21,3 +21,20 @@ The two data snapshot IDs must match for a run to be eligible for the
 five-day parity count; mismatches are recorded and return a nonzero status.
 Use `--old-commit` and `--new-commit` when the artifact roots are not Git
 checkouts and their implementation revisions cannot be discovered locally.
+
+## Frozen A-share freshness input
+
+Historical replay must not let the new pipeline read the current `latest`
+dataset state as a substitute for the historical run. Create a replay-only
+freshness receipt from the old manifest (the receipt must contain the original
+`freshness` object plus `schema_version: a_share.freshness.snapshot.v1` and a
+stable `snapshot_id`) and set:
+
+```bash
+export A_SHARE_FRESHNESS_SNAPSHOT=/path/to/freshness-YYYYMMDD.json
+```
+
+The loader requires the receipt `target_date` to match the pipeline date and
+fails closed for an unknown schema or malformed contracts. The variable is
+unset in production; normal production runs continue to inspect the canonical
+data root.
