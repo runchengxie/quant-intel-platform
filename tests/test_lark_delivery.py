@@ -154,6 +154,18 @@ def test_send_lark_markdown_returns_false_if_any_target_fails(
     assert senders._send_lark_markdown("x", lark_cli="/bin/echo") is False
 
 
+def test_send_lark_markdown_collects_confirmed_message_ids(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("A_SHARE_FEISHU_CHAT_ID", "oc_one")
+    fake, _ = _fake_run(0, stdout='{"ok":true,"data":{"message_id":"om_123"}}')
+    monkeypatch.setattr(senders.subprocess, "run", fake)
+    message_ids: list[str] = []
+
+    assert (
+        senders._send_lark_markdown("日报", lark_cli="/bin/echo", message_ids=message_ids) is True
+    )
+    assert message_ids == ["om_123"]
+
+
 def test_ensure_lark_ready_missing_cli(monkeypatch: pytest.MonkeyPatch) -> None:
     # No resolvable lark-cli: no explicit path and LARK_CLI points nowhere.
     monkeypatch.delenv("LARK_CLI", raising=False)

@@ -132,6 +132,7 @@ def _deliver_via_lark(
     image_paths: Sequence[Path],
     routes: dict[str, Any],
     mode: str,
+    message_ids: dict[str, list[str]] | None = None,
 ) -> tuple[bool, bool]:
     lark_preflight = senders._ensure_lark_ready(
         lark_cli=context.lark_cli, has_targets=bool(context.lark_targets)
@@ -146,13 +147,22 @@ def _deliver_via_lark(
             user_id=context.user_id,
             lark_cli=context.lark_cli,
             idempotency_scope=(kind, trade_date, path.name),
+            message_ids=(
+                message_ids.setdefault("lark_text", []) if message_ids is not None else None
+            ),
         )
         for path, _subject, _title in text_files
     ]
     lark_text_ok = all(lark_text_results) if lark_text_results else True
     lark_image_results = [
         senders._send_lark_image(
-            image, chat_id=context.chat_id, user_id=context.user_id, lark_cli=context.lark_cli
+            image,
+            chat_id=context.chat_id,
+            user_id=context.user_id,
+            lark_cli=context.lark_cli,
+            message_ids=(
+                message_ids.setdefault("lark_images", []) if message_ids is not None else None
+            ),
         )
         for image in image_paths
     ]
@@ -259,6 +269,7 @@ def _deliver_markdown_files_and_images(
     signal_date: str | None = None,
 ) -> bool:
     mode = context.mode
+    message_ids: dict[str, list[str]] = {}
     effective_signal_date = signal_date or trade_date
     idempotency_key = state.delivery_idempotency_key(
         kind=kind,
@@ -295,6 +306,7 @@ def _deliver_markdown_files_and_images(
             image_paths=image_paths,
             routes=routes,
             mode=mode,
+            message_ids=message_ids,
         )
         if mode == "lark" and (not (lark_text_ok and lark_images_ok)):
             return False
@@ -332,6 +344,7 @@ def _deliver_markdown_files_and_images(
         artifacts=artifacts,
         lark_targets=context.lark_targets,
         hermes_targets=context.hermes_targets,
+        message_ids=message_ids,
     )
     return success
 
@@ -405,6 +418,7 @@ def _deliver_morning_routes(
     should_lark = senders._route_enabled("morning", "lark", mode)
     should_webhook = senders._route_enabled("morning", "webhook", mode)
     routes = senders._empty_routes()
+    message_ids: dict[str, list[str]] = {}
     if mode == "none":
         senders._write_disabled_delivery(
             kind="morning", trade_date=trade_date, context=context, artifacts=artifacts
@@ -422,6 +436,7 @@ def _deliver_morning_routes(
                 chat_id=context.chat_id,
                 user_id=context.user_id,
                 lark_cli=context.lark_cli,
+                message_ids=message_ids.setdefault("lark_text", []),
                 idempotency_scope=("morning", trade_date, "morning_report"),
             )
             lark_image_results = [
@@ -430,6 +445,7 @@ def _deliver_morning_routes(
                     chat_id=context.chat_id,
                     user_id=context.user_id,
                     lark_cli=context.lark_cli,
+                    message_ids=message_ids.setdefault("lark_images", []),
                 )
                 for image in chart_paths
             ]
@@ -453,6 +469,7 @@ def _deliver_morning_routes(
                 artifacts=artifacts,
                 lark_targets=context.lark_targets,
                 hermes_targets=context.hermes_targets,
+                message_ids=message_ids,
             )
             return 1
     hermes_ok = False
@@ -490,6 +507,7 @@ def _deliver_morning_routes(
                 artifacts=artifacts,
                 lark_targets=context.lark_targets,
                 hermes_targets=context.hermes_targets,
+                message_ids=message_ids,
             )
             return 1
     webhook_ok = False
@@ -512,6 +530,7 @@ def _deliver_morning_routes(
         artifacts=artifacts,
         lark_targets=context.lark_targets,
         hermes_targets=context.hermes_targets,
+        message_ids=message_ids,
     )
     return 0 if success else 1
 
