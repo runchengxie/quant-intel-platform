@@ -64,3 +64,28 @@ def test_parity_cli_returns_nonzero_for_changed_mandatory_field(tmp_path: Path) 
     assert status == 1
     manifest = json.loads((output_root / "parity_20260908_20260909.json").read_text())
     assert "trade_date" in manifest["differences"]["selection_receipt.json"][0]
+
+
+def test_parity_cli_normalizes_paths_under_paths_mapping(tmp_path: Path) -> None:
+    old_root = tmp_path / "old"
+    new_root = tmp_path / "new"
+    output_root = tmp_path / "runs"
+    _write(old_root / "morning_manifest.json", {"charts": {"paths": {"dashboard": "/old/a.png"}}})
+    _write(new_root / "morning_manifest.json", {"charts": {"paths": {"dashboard": "/new/a.png"}}})
+
+    status = main(
+        [
+            "--source-date",
+            "20260908",
+            "--signal-date",
+            "20260909",
+            "--old-root",
+            str(old_root),
+            "--new-root",
+            str(new_root),
+            "--output-root",
+            str(output_root),
+        ]
+    )
+
+    assert status == 0

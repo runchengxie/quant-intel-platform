@@ -12,6 +12,7 @@ from typing import Any
 from .compare import compare_artifacts
 
 DEFAULT_IGNORED_FIELDS = {"generated_at", "message_id", "message_ids", "run_id"}
+DEFAULT_PATH_FIELDS = {"paths"}
 
 
 def _git_commit(path: Path) -> str | None:
@@ -44,6 +45,7 @@ def build_parity_manifest(
     old_root: Path,
     new_root: Path,
     ignored_fields: set[str] | None = None,
+    path_fields: set[str] | None = None,
 ) -> dict[str, Any]:
     """Compare JSON artifacts already produced under two isolated roots."""
     old_files = _json_files(old_root)
@@ -62,7 +64,12 @@ def build_parity_manifest(
         elif new_path is None:
             missing_new.append(relative_path)
         else:
-            found = compare_artifacts(old_path, new_path, ignored_fields=fields)
+            found = compare_artifacts(
+                old_path,
+                new_path,
+                ignored_fields=fields,
+                path_fields=DEFAULT_PATH_FIELDS | (path_fields or set()),
+            )
             if found:
                 differences[relative_path] = found
 
@@ -93,6 +100,7 @@ def run(args: argparse.Namespace) -> int:
         old_root=old_root,
         new_root=new_root,
         ignored_fields=set(args.ignore_field),
+        path_fields=set(args.path_field),
     )
     args.output_root.mkdir(parents=True, exist_ok=True)
     output_path = args.output_root / f"parity_{args.source_date}_{args.signal_date}.json"
@@ -111,6 +119,12 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--new-root", required=True, type=Path)
     parser.add_argument("--output-root", required=True, type=Path)
     parser.add_argument("--ignore-field", action="append", default=[])
+    parser.add_argument(
+        "--path-field",
+        action="append",
+        default=[],
+        help="mapping field under which absolute artifact paths are compared by basename",
+    )
     return parser
 
 

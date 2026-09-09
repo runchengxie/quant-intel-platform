@@ -16,6 +16,7 @@ def compare_artifacts(
     *,
     ignored_fields: set[str],
     set_like_fields: set[str] | None = None,
+    path_fields: set[str] | None = None,
 ) -> list[str]:
     """Return stable, path-based differences between two JSON artifacts.
 
@@ -34,6 +35,7 @@ def compare_artifacts(
         differences=differences,
         ignored_fields=ignored_fields,
         set_like_fields=set_like_fields or set(),
+        path_fields=path_fields or set(),
     )
     return differences
 
@@ -46,6 +48,7 @@ def _compare_values(
     differences: list[str],
     ignored_fields: set[str],
     set_like_fields: set[str],
+    path_fields: set[str],
 ) -> None:
     if path and path[-1] in ignored_fields:
         return
@@ -61,6 +64,7 @@ def _compare_values(
                 differences=differences,
                 ignored_fields=ignored_fields,
                 set_like_fields=set_like_fields,
+                path_fields=path_fields,
             )
         return
 
@@ -71,6 +75,15 @@ def _compare_values(
     if path and path[-1] in set_like_fields and _is_sequence(expected) and _is_sequence(actual):
         expected = sorted(expected, key=_stable_sort_key)
         actual = sorted(actual, key=_stable_sort_key)
+
+    if (
+        path
+        and any(part in path_fields for part in path[:-1])
+        and isinstance(expected, str)
+        and isinstance(actual, str)
+    ):
+        expected = Path(expected).name
+        actual = Path(actual).name
 
     if expected != actual:
         _append_difference(path, expected, actual, differences)
