@@ -63,6 +63,11 @@ def _env_truthy(name: str, *, default: bool = False) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def _d11_h5_enabled() -> bool:
+    """Return whether the research-only D11-H5 shadow is explicitly enabled."""
+    return _env_truthy("MORNING_SUPERVISOR_D11_H5_ENABLED", default=False)
+
+
 def _default_project_root() -> Path:
     return Path(
         os.environ.get("MARKET_INTEL_ROOT", str(Path(__file__).resolve().parents[2]))
@@ -654,7 +659,10 @@ def supervise(config: SupervisorConfig) -> tuple[int, dict[str, Any]]:
             recovery=lambda: _daily_delivery_recovery(config, source_date),
             config=config,
         )
-    if config.phase == "postflight":
+    # D11-H5 is research-only and depends on a separate strategy owner runtime.
+    # Keep it available for an explicit shadow run, but do not let that optional
+    # product make the production watchdog unhealthy by default.
+    if config.phase == "postflight" and _d11_h5_enabled():
         products["d11_h5_shadow"]["delivery"] = _run_stage(
             probe=lambda: _d11_h5_delivery_probe(config, source_date),
             recovery=lambda: _d11_h5_delivery_recovery(config, source_date),
