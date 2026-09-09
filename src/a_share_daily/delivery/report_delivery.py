@@ -256,8 +256,25 @@ def _deliver_markdown_files_and_images(
     artifacts: Sequence[dict[str, Any]],
     webhook_enabled_env: str,
     allow_webhook: bool = True,
+    signal_date: str | None = None,
 ) -> bool:
     mode = context.mode
+    effective_signal_date = signal_date or trade_date
+    idempotency_key = state.delivery_idempotency_key(
+        kind=kind,
+        trade_date=trade_date,
+        signal_date=effective_signal_date,
+        mode=mode,
+        routes={},
+        artifacts=artifacts,
+        lark_targets=context.lark_targets,
+        hermes_targets=context.hermes_targets,
+    )
+    if state.has_successful_delivery(
+        state._delivery_state_dir() / f"{kind}_latest.json", idempotency_key
+    ):
+        print(f"[report_delivery] {kind} already delivered; skipping duplicate", file=sys.stderr)
+        return True
     base = kind.split("_", 1)[0]
     should_lark = senders._route_enabled(base, "lark", mode)
     should_hermes = senders._route_enabled(base, "hermes", mode)
@@ -308,6 +325,7 @@ def _deliver_markdown_files_and_images(
     state._write_delivery_status(
         kind=kind,
         trade_date=trade_date,
+        signal_date=effective_signal_date,
         mode=mode,
         success=success,
         routes=routes,
@@ -320,7 +338,7 @@ def _deliver_markdown_files_and_images(
 
 def _prepare_morning_context(
     args: argparse.Namespace,
-) -> tuple[senders._DeliveryContext, str, list[Path], list[dict[str, Any]], str]:
+) -> tuple[senders._DeliveryContext, str, str, list[Path], list[dict[str, Any]], str]:
     report_path = Path(args.report).expanduser()
     _read_text(report_path)
     explicit_target = any(
@@ -351,9 +369,10 @@ def _prepare_morning_context(
         chart_keys=io_util.MORNING_CHART_KEYS,
     )
     trade_date = str(manifest_payload.get("date") or datetime.now().strftime("%Y%m%d"))
+    signal_date = str(manifest_payload.get("signal_date") or trade_date)
     artifacts = [state._artifact_entry(report_path, role="morning_report")]
     artifacts.extend(state._artifact_entry(path, role="chart") for path in chart_paths)
-    return (context, trade_date, chart_paths, artifacts, mode)
+    return (context, trade_date, signal_date, chart_paths, artifacts, mode)
 
 
 def _deliver_morning_routes(
@@ -361,11 +380,27 @@ def _deliver_morning_routes(
     args: argparse.Namespace,
     context: senders._DeliveryContext,
     trade_date: str,
+    signal_date: str,
     text: str,
     chart_paths: list[Path],
     artifacts: list[dict[str, Any]],
     mode: str,
 ) -> int:
+    idempotency_key = state.delivery_idempotency_key(
+        kind="morning",
+        trade_date=trade_date,
+        signal_date=signal_date,
+        mode=mode,
+        routes={},
+        artifacts=artifacts,
+        lark_targets=context.lark_targets,
+        hermes_targets=context.hermes_targets,
+    )
+    if state.has_successful_delivery(
+        state._delivery_state_dir() / "morning_latest.json", idempotency_key
+    ):
+        print("[report_delivery] morning already delivered; skipping duplicate", file=sys.stderr)
+        return 0
     should_hermes = senders._route_enabled("morning", "hermes", mode)
     should_lark = senders._route_enabled("morning", "lark", mode)
     should_webhook = senders._route_enabled("morning", "webhook", mode)
@@ -411,6 +446,7 @@ def _deliver_morning_routes(
             state._write_delivery_status(
                 kind="morning",
                 trade_date=trade_date,
+                signal_date=signal_date,
                 mode=mode,
                 success=False,
                 routes=routes,
@@ -447,6 +483,7 @@ def _deliver_morning_routes(
             state._write_delivery_status(
                 kind="morning",
                 trade_date=trade_date,
+                signal_date=signal_date,
                 mode=mode,
                 success=False,
                 routes=routes,
@@ -468,6 +505,7 @@ def _deliver_morning_routes(
     state._write_delivery_status(
         kind="morning",
         trade_date=trade_date,
+        signal_date=signal_date,
         mode=mode,
         success=success,
         routes=routes,
@@ -481,7 +519,7 @@ def _deliver_morning_routes(
 def deliver_morning(args: argparse.Namespace) -> int:
     report_path = Path(args.report).expanduser()
     text = _read_text(report_path)
-    context, trade_date, chart_paths, artifacts, mode = _prepare_morning_context(args)
+    context, trade_date, signal_date, chart_paths, artifacts, mode = _prepare_morning_context(args)
     _require_chart_bundle(
         chart_paths,
         expected=len(io_util.MORNING_CHARTS),
@@ -501,6 +539,7 @@ def deliver_morning(args: argparse.Namespace) -> int:
         args=args,
         context=context,
         trade_date=trade_date,
+        signal_date=signal_date,
         text=text,
         chart_paths=chart_paths,
         artifacts=artifacts,
@@ -605,6 +644,7 @@ def deliver_evening(args: argparse.Namespace) -> int:
     review_path = Path(args.review).expanduser()
     manifest_path = Path(args.manifest).expanduser() if getattr(args, "manifest", None) else None
     manifest_payload = _load_json(manifest_path)
+    signal_date = str(manifest_payload.get("signal_date") or args.date)
     chart_paths = _chart_paths(
         out_dir,
         getattr(args, "chart", None),
@@ -654,6 +694,7 @@ def deliver_evening(args: argparse.Namespace) -> int:
                     + [state._artifact_entry(path, role="chart") for path in chart_paths],
                     webhook_enabled_env="EVENING_SEND_WEBHOOK",
                     allow_webhook=False,
+                    signal_date=signal_date,
                 )
             )
         if internal_chat_id:
@@ -677,6 +718,7 @@ def deliver_evening(args: argparse.Namespace) -> int:
                     artifacts=artifacts,
                     webhook_enabled_env="EVENING_SEND_WEBHOOK",
                     allow_webhook=False,
+                    signal_date=signal_date,
                 )
             )
         context = senders._delivery_context(args)
@@ -684,6 +726,7 @@ def deliver_evening(args: argparse.Namespace) -> int:
         state._write_delivery_status(
             kind="evening",
             trade_date=args.date,
+            signal_date=signal_date,
             mode=context.mode,
             success=success,
             routes={
@@ -709,6 +752,7 @@ def deliver_evening(args: argparse.Namespace) -> int:
         image_paths=chart_paths,
         artifacts=artifacts,
         webhook_enabled_env="EVENING_SEND_WEBHOOK",
+        signal_date=signal_date,
     )
     return 0 if success else 1
 
