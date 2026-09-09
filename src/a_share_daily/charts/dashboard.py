@@ -178,6 +178,27 @@ def _draw_sentiment_panel(
 
 
 def _draw_margin_panel(ax, margin_df: pd.DataFrame) -> None:
+    if margin_df.empty:
+        ax.axis("off")
+        ax.set_title(
+            "融资余额趋势",
+            loc="left",
+            fontproperties=cjk_heavy,
+            fontsize=11.5,
+            color=FG,
+            pad=8,
+        )
+        ax.text(
+            0.08,
+            0.5,
+            "融资余额数据不可用",
+            transform=ax.transAxes,
+            fontproperties=cjk,
+            fontsize=10,
+            color=MUTED,
+            va="center",
+        )
+        return
     mx = np.arange(len(margin_df))
     mlabels = [d[4:6] + "/" + d[6:8] for d in margin_df["date"]]
     ax.fill_between(mx, margin_df["rzye"], alpha=0.3, color=PURPLE)

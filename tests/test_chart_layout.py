@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from a_share_daily.charts.dashboard import MARGIN_PANEL_LEFT, margin_label_offset
+import pandas as pd
+
+from a_share_daily.charts.dashboard import (
+    MARGIN_PANEL_LEFT,
+    generate_dashboard,
+    margin_label_offset,
+)
 from a_share_daily.charts.weekly_chart import (
     WEEKLY_LEGEND_ANCHOR,
     WEEKLY_LEGEND_LOC,
@@ -39,3 +45,23 @@ def test_dashboard_margin_panel_stays_clear_of_sentiment_panel() -> None:
         -12,
         "top",
     )
+
+
+def test_dashboard_renders_when_optional_margin_data_is_empty(tmp_path) -> None:
+    output = tmp_path / "dashboard.png"
+    daily = pd.DataFrame({"pct_chg": [1.0, 0.0, -1.0]})
+    turnover = pd.DataFrame({"date": ["20260904"], "amount": [100.0]})
+    margin = pd.DataFrame(columns=["date", "rzye"])
+
+    result = generate_dashboard(
+        daily,
+        limit_up_count=1,
+        max_board=1,
+        margin_df=margin,
+        turnover_df=turnover,
+        trade_date="20260904",
+        out_path=str(output),
+    )
+
+    assert result == str(output)
+    assert output.is_file()
