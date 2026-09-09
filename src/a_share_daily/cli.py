@@ -4,7 +4,8 @@ Usage:
     uv run a-share-daily morning [--date YYYYMMDD]
     uv run a-share-daily morning-report [--manifest PATH] [--news PATH] [--out PATH]
     uv run a-share-daily daily-watch20 [--source-date YYYYMMDD] [--dry-run]
-    uv run a-share-daily weekly-basket --as-of-date YYYYMMDD --dailywatch PATH --cashflow PATH --cashflow-receipt PATH --output-root PATH [--send]
+    uv run a-share-daily weekly-basket --as-of-date YYYYMMDD --dailywatch PATH
+        --cashflow PATH --cashflow-receipt PATH --output-root PATH [--send]
     uv run a-share-daily cashflow-delivery --selection PATH --source-date YYYYMMDD --signal-date YYYYMMDD --chat-id CHAT
     uv run a-share-daily cashflow-status-notify --status-json PATH --receipt PATH --chat-id CHAT [--send]
     uv run a-share-daily cashflow-portfolio-render --selection PATH --chart-out PATH
@@ -416,21 +417,64 @@ def _cmd_cashflow_portfolio_render(args: argparse.Namespace) -> int:
     return 0
 
 
-def _cmd_weekly_basket(args: argparse.Namespace) -> int:
+def _load_weekly_basket_inputs(args: argparse.Namespace):
     from .weekly_client_basket import (
         BasketConfig,
-        WeeklyBasketError,
-        _atomic_write,
-        compose_weekly_basket,
         load_cashflow_selection,
         load_dailywatch_family,
         load_microcap_selection,
         load_previous_basket,
+    )
+
+    source_path = Path(args.d11_h5 or args.dailywatch).expanduser().resolve()
+    source_positions = {
+        "dailywatch_family": load_dailywatch_family(source_path, as_of_date=args.as_of_date),
+        "cashflow": load_cashflow_selection(
+            Path(args.cashflow).expanduser().resolve(),
+            Path(args.cashflow_receipt).expanduser().resolve(),
+            as_of_date=args.as_of_date,
+        ),
+    }
+    source_positions["microcap"] = (
+        load_microcap_selection(
+            Path(args.microcap).expanduser().resolve(),
+            as_of_date=args.as_of_date,
+        )
+        if args.microcap_quota
+        else []
+    )
+    config = BasketConfig(
+        quotas={
+            "dailywatch_family": 10 - 3 - args.microcap_quota,
+            "cashflow": 3,
+            "microcap": args.microcap_quota,
+        }
+    )
+    previous = (
+        load_previous_basket(Path(args.previous).expanduser().resolve()) if args.previous else None
+    )
+    return source_positions, config, previous
+
+
+def _update_weekly_basket_receipt(receipt_path: Path, delivery_path: Path, status: str) -> None:
+    from .weekly_client_basket import _atomic_write
+
+    payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+    payload["send_status"] = status
+    payload["delivery_receipt"] = str(delivery_path)
+    _atomic_write(
+        receipt_path,
+        (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
+    )
+
+
+def _cmd_weekly_basket(args: argparse.Namespace) -> int:
+    from .weekly_client_basket import (
+        WeeklyBasketError,
+        compose_weekly_basket,
         write_basket_artifacts,
     )
-    from .weekly_client_basket_delivery import (
-        send_personal_basket_report,
-    )
+    from .weekly_client_basket_delivery import send_personal_basket_report
     from .weekly_client_basket_render import render_basket_markdown, write_rendered_outputs
 
     if args.send and args.dry_run:
@@ -440,34 +484,7 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
         print("[FAIL] --microcap is required when --microcap-quota is non-zero", file=sys.stderr)
         return 1
     try:
-        source_path = Path(args.d11_h5 or args.dailywatch).expanduser().resolve()
-        source_positions = {
-            "dailywatch_family": load_dailywatch_family(source_path, as_of_date=args.as_of_date),
-            "cashflow": load_cashflow_selection(
-                Path(args.cashflow).expanduser().resolve(),
-                Path(args.cashflow_receipt).expanduser().resolve(),
-                as_of_date=args.as_of_date,
-            ),
-        }
-        if args.microcap_quota:
-            source_positions["microcap"] = load_microcap_selection(
-                Path(args.microcap).expanduser().resolve(),
-                as_of_date=args.as_of_date,
-            )
-        else:
-            source_positions["microcap"] = []
-        config = BasketConfig(
-            quotas={
-                "dailywatch_family": 10 - 3 - args.microcap_quota,
-                "cashflow": 3,
-                "microcap": args.microcap_quota,
-            }
-        )
-        previous = (
-            load_previous_basket(Path(args.previous).expanduser().resolve())
-            if args.previous
-            else None
-        )
+        source_positions, config, previous = _load_weekly_basket_inputs(args)
         artifact = compose_weekly_basket(
             source_positions,
             as_of_date=args.as_of_date,
@@ -487,14 +504,10 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
                 lark_cli=args.lark_cli,
                 receipt_path=output_root / args.as_of_date / "delivery_receipt.json",
             )
-            receipt_payload = json.loads(paths["receipt"].read_text(encoding="utf-8"))
-            receipt_payload["send_status"] = delivery.status
-            receipt_payload["delivery_receipt"] = str(
-                output_root / args.as_of_date / "delivery_receipt.json"
-            )
-            _atomic_write(
+            _update_weekly_basket_receipt(
                 paths["receipt"],
-                (json.dumps(receipt_payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
+                output_root / args.as_of_date / "delivery_receipt.json",
+                delivery.status,
             )
             if delivery.status != "sent":
                 print(
