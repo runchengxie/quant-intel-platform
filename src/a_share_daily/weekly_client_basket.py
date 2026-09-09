@@ -491,6 +491,36 @@ def load_microcap_selection(
     ]
 
 
+def load_previous_basket(path: Path) -> BasketArtifact:
+    """Load a previously written canonical basket for NEW/KEEP/DROP diffing."""
+    payload = _read_json_object(path, label="previous basket")
+    if payload.get("schema_version") != SCHEMA_VERSION:
+        raise WeeklyBasketError("previous basket schema is unsupported")
+    report_date = _date(str(payload.get("report_date") or ""), label="previous report_date")
+    positions = []
+    for row in _rows(payload.get("positions"), label="previous positions"):
+        try:
+            positions.append(BasketPosition(**row))
+        except TypeError as exc:
+            raise WeeklyBasketError("previous basket position is malformed") from exc
+    if len(positions) != 10 or len({position.symbol for position in positions}) != 10:
+        raise WeeklyBasketError("previous basket must contain 10 distinct positions")
+    config_payload = payload.get("config")
+    if not isinstance(config_payload, Mapping):
+        raise WeeklyBasketError("previous basket config is missing")
+    config = BasketConfig(
+        quotas=dict(config_payload.get("quotas", {})),
+        allow_microcap_shadow=bool(config_payload.get("allow_microcap_shadow", True)),
+    )
+    return BasketArtifact(
+        report_date=report_date,
+        positions=tuple(positions),
+        trade_delta=TradeDelta(added=(), kept=tuple(positions), dropped=()),
+        config=config,
+        source_inputs=tuple(payload.get("source_inputs", ())),
+    )
+
+
 __all__ = [
     "BasketArtifact",
     "BasketConfig",
@@ -502,5 +532,6 @@ __all__ = [
     "load_cashflow_selection",
     "load_dailywatch_family",
     "load_microcap_selection",
+    "load_previous_basket",
     "write_basket_artifacts",
 ]
