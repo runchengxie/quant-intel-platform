@@ -24,9 +24,7 @@ CORE_PARTITIONS = (
 )
 REQUIRED_REPORT_DATASETS = frozenset(
     {
-        "ths_hot",
         "dc_concept",
-        "dc_concept_cons",
         "kpl_concept_cons",
         "limit_list_ths",
     }
@@ -363,12 +361,7 @@ def report_audit_path(context: FreshnessContext, kind: str, signal_date: str) ->
         if configured
         else context.project_root / "state/scheduled_recovery"
     )
-    return (
-        state_root
-        / "report_audits"
-        / kind
-        / f"{signal_date}.json"
-    )
+    return state_root / "report_audits" / kind / f"{signal_date}.json"
 
 
 def write_report_audit(
@@ -439,18 +432,8 @@ def _report_probe(
     evidence = [str(delivery_state_dir / f"{kind}_latest.json")]
     if kind == "morning":
         output_root = _strategy_delivery_root(context)
-        daily = (
-            output_root
-            / "daily_watch20"
-            / signal_date
-            / "delivery_receipt.json"
-        )
-        d11 = (
-            output_root
-            / "d11_h5_shadow"
-            / signal_date
-            / "delivery_receipt.json"
-        )
+        daily = output_root / "daily_watch20" / signal_date / "delivery_receipt.json"
+        d11 = output_root / "d11_h5_shadow" / signal_date / "delivery_receipt.json"
         formal_ok = formal_ok and _delivery_receipt_ok(daily, source_date, signal_date)
         formal_ok = formal_ok and _delivery_receipt_ok(d11, source_date, signal_date)
         evidence.extend((str(daily), str(d11)))
