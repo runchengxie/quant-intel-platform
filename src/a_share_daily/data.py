@@ -65,7 +65,10 @@ def _latest_date(dataset: str, as_of_date: str | None = None) -> str | None:
 
 def _read_partitioned(dataset: str, trade_date: str) -> pd.DataFrame:
     """Read a trade_date-partitioned parquet dataset."""
-    latest_dir = list((_data_root() / dataset).glob("*_latest"))[0]
+    latest_dirs = list((_data_root() / dataset).glob("*_latest"))
+    if not latest_dirs:
+        raise FileNotFoundError(f"dataset latest link missing: {dataset}")
+    latest_dir = latest_dirs[0]
     p = latest_dir / "data" / f"trade_date={trade_date}" / "part.parquet"
     return pd.read_parquet(p)
 
