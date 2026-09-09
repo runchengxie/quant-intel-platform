@@ -255,7 +255,7 @@ def test_report_probe_uses_stable_delivery_state_dir(monkeypatch, tmp_path: Path
             {
                 "success": True,
                 "trade_date": "20260810",
-                    "generated_at": "2026-08-10T11:00:00+00:00",
+                "generated_at": "2026-08-10T11:00:00+00:00",
             }
         ),
         encoding="utf-8",
@@ -273,9 +273,7 @@ def test_report_probe_uses_stable_delivery_state_dir(monkeypatch, tmp_path: Path
     assert result.evidence == (str(delivery_dir / "evening_latest.json"),)
 
 
-def test_morning_probe_uses_stable_strategy_delivery_receipts(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_morning_probe_uses_stable_strategy_delivery_receipts(monkeypatch, tmp_path: Path) -> None:
     context = FreshnessContext(tmp_path / "release", tmp_path / "data", OPEN_DATES)
     delivery_dir = tmp_path / "stable-delivery-state"
     output_dir = tmp_path / "stable-output" / "a_share_daily"
