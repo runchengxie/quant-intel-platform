@@ -11,9 +11,7 @@ def _partition(root: Path, dataset: str, date: str) -> None:
     (path / "part.parquet").touch()
 
 
-def test_latest_date_can_be_bounded_by_report_date(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_latest_date_can_be_bounded_by_report_date(monkeypatch, tmp_path: Path) -> None:
     for date in ("20260904", "20260908"):
         _partition(tmp_path, "daily", date)
     monkeypatch.setattr(data, "_data_root", lambda: tmp_path)
