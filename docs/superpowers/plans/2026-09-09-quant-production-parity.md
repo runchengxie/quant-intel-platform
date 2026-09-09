@@ -46,7 +46,7 @@ Each track uses its own worktree and PR. A later track may consume only merged p
 - `compare_artifacts(expected: Path, actual: Path, *, ignored_fields: set[str]) -> list[str]` returns stable difference descriptions.
 - The comparison layer must compare dates, schema versions, row/symbol counts, receipt identity, status, and file inventories; generated timestamps and message IDs are ignored unless explicitly requested.
 
-- [ ] **Step 1: Write failing comparison tests**
+- [x] **Step 1: Write failing comparison tests**
 
 ```python
 def test_compare_ignores_generated_at_and_message_id(tmp_path):
@@ -64,17 +64,17 @@ def test_compare_reports_trade_date_difference(tmp_path):
     assert "trade_date" in compare_artifacts(expected, actual, ignored_fields=set())[0]
 ```
 
-- [ ] **Step 2: Run the focused test and verify it fails**
+- [x] **Step 2: Run the focused test and verify it fails**
 
 Run: `uv run pytest -q tests/parity/test_compare.py`
 
 Expected: FAIL because `compare_artifacts` is not implemented.
 
-- [ ] **Step 3: Implement normalization and comparison**
+- [x] **Step 3: Implement normalization and comparison**
 
 Implement deterministic JSON loading, recursive field comparison, sorted list comparison for declared set-like fields, and readable path-based difference messages. Do not compare wall-clock timestamps unless the caller omits them from `ignored_fields`.
 
-- [ ] **Step 4: Run tests and commit**
+- [x] **Step 4: Run tests and commit**
 
 Run: `uv run pytest -q tests/parity/test_compare.py`
 
