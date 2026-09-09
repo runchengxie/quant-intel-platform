@@ -10,8 +10,14 @@ uv run python -m parity.run_parity \
   --signal-date 20260909 \
   --old-root /path/to/old/artifacts \
   --new-root /path/to/new/artifacts \
-  --output-root docs/superpowers/artifacts/parity-runs
+  --output-root docs/superpowers/artifacts/parity-runs \
+  --old-data-snapshot-id snapshot-20260908 \
+  --new-data-snapshot-id snapshot-20260908
 ```
 
 Runtime timestamps, message IDs, and run IDs are ignored by default. Add
 `--ignore-field FIELD` only for a documented, intentional difference.
+The two data snapshot IDs must match for a run to be eligible for the
+five-day parity count; mismatches are recorded and return a nonzero status.
+Use `--old-commit` and `--new-commit` when the artifact roots are not Git
+checkouts and their implementation revisions cannot be discovered locally.
