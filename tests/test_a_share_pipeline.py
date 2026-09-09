@@ -269,7 +269,7 @@ def test_step_data_freshness_skips_configured_report_datasets(
     monkeypatch.setenv(pipeline.PREMIUM_ENV, "1")
     monkeypatch.setenv(pipeline.DISABLED_REPORT_DATASETS_ENV, "moneyflow_ths,kpl_list")
 
-    def fake_latest_date(dataset: str) -> str:
+    def fake_latest_date(dataset: str, *, as_of_date: str | None = None) -> str:
         if dataset in {"moneyflow_ths", "kpl_list"}:
             return "20260628"
         return "20260630"

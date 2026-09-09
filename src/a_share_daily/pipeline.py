@@ -172,7 +172,7 @@ def step_data_freshness(trade_date: str | None = None) -> dict[str, Any]:
         skip_reasons.update(dict.fromkeys(PREMIUM_DATASETS, "premium_disabled"))
     report: dict[str, str | None] = {}
     for ds in datasets:
-        latest = D._latest_date(ds)
+        latest = D._latest_date(ds, as_of_date=trade_date)
         if ds in ("index_daily", "ths_member") and latest is None:
             # Flat datasets: check file exists
             p = D.DATA_ROOT / ds
@@ -419,7 +419,7 @@ def _run_moneyflow_chart(state: _ChartState, premium_enabled: bool) -> None:
             )
     except FileNotFoundError:
         if _env_flag(MONEYFLOW_LATEST_ENV):
-            latest = D._latest_date("moneyflow_ths")
+            latest = D._latest_date("moneyflow_ths", as_of_date=state.trade_date)
             if latest and latest != state.trade_date:
                 try:
                     moneyflow = D.read_moneyflow_ths(latest)
@@ -454,24 +454,27 @@ def _run_moneyflow_chart(state: _ChartState, premium_enabled: bool) -> None:
         )
 
 
-def _latest_partition_dates(dataset: str) -> list[str]:
+def _latest_partition_dates(dataset: str, as_of_date: str | None = None) -> list[str]:
     latest_dirs = list((D.DATA_ROOT / dataset).glob("*_latest"))
     data_dir = D.DATA_ROOT / dataset / latest_dirs[0] / "data"
-    return sorted([path.name.split("=")[1] for path in data_dir.glob("trade_date=*")])[-5:]
+    dates = sorted(path.name.split("=")[1] for path in data_dir.glob("trade_date=*"))
+    if as_of_date:
+        dates = [value for value in dates if value <= as_of_date]
+    return dates[-5:]
 
 
-def _recent_margin_data() -> list[dict[str, Any]]:
+def _recent_margin_data(as_of_date: str | None = None) -> list[dict[str, Any]]:
     margin_data: list[dict[str, Any]] = []
-    for day in _latest_partition_dates("margin"):
+    for day in _latest_partition_dates("margin", as_of_date=as_of_date):
         margin_df = D.read_margin(day)
         if not margin_df.empty:
             margin_data.append({"date": day, "rzye": margin_df["rzye"].sum() / 1e8})
     return margin_data
 
 
-def _recent_turnover_data() -> list[dict[str, Any]]:
+def _recent_turnover_data(as_of_date: str | None = None) -> list[dict[str, Any]]:
     turnover_data: list[dict[str, Any]] = []
-    for day in _latest_partition_dates("daily"):
+    for day in _latest_partition_dates("daily", as_of_date=as_of_date):
         daily_df = D.read_daily(day)
         turnover_data.append({"date": day, "amount": daily_df["amount"].sum() / 1e5})
     return turnover_data
@@ -492,8 +495,8 @@ def _run_dashboard_chart(state: _ChartState, daily: pd.DataFrame, limit_up: int)
             daily,
             limit_up,
             _max_board_count(state.trade_date),
-            pd.DataFrame(_recent_margin_data()),
-            pd.DataFrame(_recent_turnover_data()),
+            pd.DataFrame(_recent_margin_data(state.trade_date)),
+            pd.DataFrame(_recent_turnover_data(state.trade_date)),
             state.trade_date,
             str(OUTPUT_DIR / "daily_dashboard.png"),
         )
