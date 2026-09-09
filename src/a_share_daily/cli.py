@@ -206,6 +206,10 @@ def _add_weekly_basket_command(sub: argparse._SubParsersAction) -> None:
     )
     basket.add_argument("--microcap", help="Microcap shadow selection JSON artifact")
     basket.add_argument(
+        "--instruments",
+        help="Optional symbol/name snapshot parquet used to fill code-only display names",
+    )
+    basket.add_argument(
         "--microcap-quota",
         type=int,
         choices=(0, 2, 3),
@@ -420,6 +424,7 @@ def _cmd_cashflow_portfolio_render(args: argparse.Namespace) -> int:
 def _load_weekly_basket_inputs(args: argparse.Namespace):
     from .weekly_client_basket import (
         BasketConfig,
+        enrich_source_names,
         load_cashflow_selection,
         load_dailywatch_family,
         load_microcap_selection,
@@ -443,6 +448,21 @@ def _load_weekly_basket_inputs(args: argparse.Namespace):
         if args.microcap_quota
         else []
     )
+    if args.instruments:
+        import pandas as pd
+
+        frame = pd.read_parquet(Path(args.instruments).expanduser().resolve())
+        symbol_column = "symbol" if "symbol" in frame.columns else "ts_code"
+        if symbol_column not in frame.columns or "name" not in frame.columns:
+            raise ValueError("instrument snapshot must contain symbol/ts_code and name columns")
+        names = dict(
+            zip(
+                frame[symbol_column].fillna("").astype(str).str.strip().str.upper(),
+                frame["name"].fillna("").astype(str).str.strip(),
+                strict=False,
+            )
+        )
+        source_positions = enrich_source_names(source_positions, names)
     config = BasketConfig(
         quotas={
             "dailywatch_family": 10 - 3 - args.microcap_quota,

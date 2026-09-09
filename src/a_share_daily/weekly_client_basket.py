@@ -375,6 +375,31 @@ def _row_position(
     )
 
 
+def enrich_source_names(
+    source_positions: Mapping[str, Sequence[SourcePosition]],
+    names_by_symbol: Mapping[str, str],
+) -> dict[str, list[SourcePosition]]:
+    """Fill code-only display names from a pinned instrument snapshot."""
+    normalized = {
+        str(symbol).strip().upper(): str(name).strip()
+        for symbol, name in names_by_symbol.items()
+        if str(name).strip()
+    }
+    enriched: dict[str, list[SourcePosition]] = {}
+    for sleeve, positions in source_positions.items():
+        rows: list[SourcePosition] = []
+        for position in positions:
+            current_name = position.name.strip()
+            name = normalized.get(position.symbol.strip().upper())
+            rows.append(
+                replace(position, name=name)
+                if name and (not current_name or current_name == position.symbol)
+                else position
+            )
+        enriched[sleeve] = rows
+    return enriched
+
+
 def load_dailywatch_family(path: Path, *, as_of_date: str) -> list[SourcePosition]:
     """Load D11-H5 or DailyWatch20 structured positions for the family sleeve."""
     report_date = _date(as_of_date, label="as_of_date")
@@ -557,6 +582,7 @@ __all__ = [
     "TradeDelta",
     "WeeklyBasketError",
     "compose_weekly_basket",
+    "enrich_source_names",
     "load_cashflow_selection",
     "load_dailywatch_family",
     "load_microcap_selection",

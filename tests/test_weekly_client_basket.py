@@ -11,6 +11,7 @@ from a_share_daily.weekly_client_basket import (
     SourcePosition,
     WeeklyBasketError,
     compose_weekly_basket,
+    enrich_source_names,
     load_cashflow_selection,
     load_dailywatch_family,
     load_microcap_selection,
@@ -99,6 +100,16 @@ def test_cashflow_without_new_rebalance_keeps_original_signal_date() -> None:
     assert row.status == "NEW"
     assert row.signal_date == "20260901"
     assert row.valid_until == "20261231"
+
+
+def test_enrich_source_names_fills_missing_cashflow_name() -> None:
+    sources = _normal_sources(microcap=[])
+    sources["cashflow"] = [replace(sources["cashflow"][0], name="CF001")]
+
+    enriched = enrich_source_names(sources, {"CF001": "现金流公司"})
+
+    assert enriched["cashflow"][0].name == "现金流公司"
+    assert enriched["dailywatch_family"][0].name == "Name DW001"
 
 
 def test_duplicate_symbol_is_replaced_by_same_sleeve_candidate() -> None:
