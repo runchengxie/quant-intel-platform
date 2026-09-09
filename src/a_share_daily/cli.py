@@ -420,6 +420,7 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
     from .weekly_client_basket import (
         BasketConfig,
         WeeklyBasketError,
+        _atomic_write,
         compose_weekly_basket,
         load_cashflow_selection,
         load_dailywatch_family,
@@ -491,9 +492,9 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
             receipt_payload["delivery_receipt"] = str(
                 output_root / args.as_of_date / "delivery_receipt.json"
             )
-            paths["receipt"].write_text(
-                json.dumps(receipt_payload, ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
+            _atomic_write(
+                paths["receipt"],
+                (json.dumps(receipt_payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
             )
             if delivery.status != "sent":
                 print(

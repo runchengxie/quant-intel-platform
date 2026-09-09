@@ -299,14 +299,19 @@ def write_basket_artifacts(artifact: BasketArtifact, output_root: Path) -> dict[
 
 
 def _read_json_object(path: Path, *, label: str) -> dict[str, Any]:
+    value = _read_json_value(path, label=label)
+    if not isinstance(value, dict):
+        raise WeeklyBasketError(f"{label} must be a JSON object")
+    return value
+
+
+def _read_json_value(path: Path, *, label: str) -> Any:
     try:
         value = json.loads(path.read_text(encoding="utf-8"))
     except OSError as exc:
         raise WeeklyBasketError(f"cannot read {label}: {path}") from exc
     except json.JSONDecodeError as exc:
         raise WeeklyBasketError(f"{label} is not valid JSON: {path}") from exc
-    if not isinstance(value, dict):
-        raise WeeklyBasketError(f"{label} must be a JSON object")
     return value
 
 
@@ -340,14 +345,26 @@ def _row_position(
         source_product=product,
         signal_date=signal_date,
         valid_until=valid_until,
-        rank=int(row["rank"]) if row.get("rank") is not None else None,
+        rank=(
+            int(row["rank"])
+            if row.get("rank") is not None
+            else int(row["model_rank"])
+            if row.get("model_rank") is not None
+            else int(row["selection_rank"])
+            if row.get("selection_rank") is not None
+            else None
+        ),
         score=(
             float(row["score"])
             if row.get("score") is not None
             else float(row["score_D11_20"])
             if row.get("score_D11_20") is not None
+            else float(row["score_percentile"])
+            if row.get("score_percentile") is not None
             else float(row["selection_score"])
             if row.get("selection_score") is not None
+            else float(row["final_score"])
+            if row.get("final_score") is not None
             else None
         ),
         selection_reason=str(row.get("selection_reason") or default_reason),
@@ -361,24 +378,35 @@ def _row_position(
 def load_dailywatch_family(path: Path, *, as_of_date: str) -> list[SourcePosition]:
     """Load D11-H5 or DailyWatch20 structured positions for the family sleeve."""
     report_date = _date(as_of_date, label="as_of_date")
-    artifact = _read_json_object(path, label="DailyWatch family artifact")
-    if artifact.get("status") not in (None, "passed"):
-        raise WeeklyBasketError("DailyWatch family artifact is not passed")
-    signal = artifact.get("signal")
-    if isinstance(signal, Mapping) and signal.get("positions") is not None:
-        rows = _rows(signal["positions"], label="DailyWatch signal.positions")
-        product = "d11_h5_shadow"
-        signal_date = _date(str(artifact.get("signal_date") or ""), label="signal_date")
+    raw = _read_json_value(path, label="DailyWatch family artifact")
+    if isinstance(raw, list):
+        rows = _rows(raw, label="DailyWatch positions")
+        if not rows:
+            raise WeeklyBasketError("DailyWatch family artifact contains no positions")
+        artifact: dict[str, Any] = {}
+        product = "daily_watch20"
+        signal_date = _date(str(rows[0].get("signal_date") or ""), label="signal_date")
+    elif isinstance(raw, dict):
+        artifact = raw
+        if artifact.get("status") not in (None, "passed"):
+            raise WeeklyBasketError("DailyWatch family artifact is not passed")
+        signal = artifact.get("signal")
+        if isinstance(signal, Mapping) and signal.get("positions") is not None:
+            rows = _rows(signal["positions"], label="DailyWatch signal.positions")
+            product = "d11_h5_shadow"
+            signal_date = _date(str(artifact.get("signal_date") or ""), label="signal_date")
+        else:
+            rows = _rows(
+                artifact.get("positions", artifact.get("candidates")),
+                label="DailyWatch positions",
+            )
+            product = str(artifact.get("product_id") or "daily_watch20")
+            signal_date = _date(
+                str(artifact.get("signal_date") or artifact.get("source_date") or ""),
+                label="signal_date",
+            )
     else:
-        rows = _rows(
-            artifact.get("positions", artifact.get("candidates")),
-            label="DailyWatch positions",
-        )
-        product = str(artifact.get("product_id") or "daily_watch20")
-        signal_date = _date(
-            str(artifact.get("signal_date") or artifact.get("source_date") or ""),
-            label="signal_date",
-        )
+        raise WeeklyBasketError("DailyWatch family artifact must be a JSON object or array")
     if signal_date > report_date:
         raise WeeklyBasketError("DailyWatch family signal_date is after as_of_date")
     digest = _file_hash(path)
@@ -391,8 +419,8 @@ def load_dailywatch_family(path: Path, *, as_of_date: str) -> list[SourcePositio
             valid_until=artifact.get("valid_until"),
             artifact_path=path,
             artifact_sha256=digest,
-            research_only=bool(artifact.get("research_only", True)),
-            eligible_for_live=bool(artifact.get("eligible_for_live", False)),
+            research_only=bool(artifact.get("research_only", product != "daily_watch20")),
+            eligible_for_live=bool(artifact.get("eligible_for_live", product == "daily_watch20")),
             default_reason="DailyWatch family structured selection",
         )
         for row in rows

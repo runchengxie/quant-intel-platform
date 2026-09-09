@@ -148,7 +148,12 @@ def test_d11_h5_adapter_prefers_four_current_positions(tmp_path: Path) -> None:
             "signal_date": "20260912",
             "signal": {
                 "positions": [
-                    {"symbol": f"DW{i:03d}.SZ", "name": f"D{i}", "rank": i, "score_D11_20": 1 / i}
+                    {
+                        "symbol": f"DW{i:03d}.SZ",
+                        "name": f"D{i}",
+                        "model_rank": i,
+                        "score_percentile": 1 / i,
+                    }
                     for i in range(1, 5)
                 ]
             },
@@ -160,6 +165,33 @@ def test_d11_h5_adapter_prefers_four_current_positions(tmp_path: Path) -> None:
     assert len(rows) == 4
     assert all(row.source_product == "d11_h5_shadow" for row in rows)
     assert rows[0].signal_date == "20260912"
+    assert rows[0].rank == 1
+    assert rows[0].score == 1.0
+
+
+def test_dailywatch20_adapter_accepts_formal_json_array(tmp_path: Path) -> None:
+    path = tmp_path / "watchlist_20.json"
+    path.write_text(
+        json.dumps(
+            [
+                {
+                    "symbol": "300279.SZ",
+                    "name": "和晶科技",
+                    "rank": 1,
+                    "final_score": 1.0,
+                    "signal_date": "20260908",
+                    "source_date": "20260907",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    rows = load_dailywatch_family(path, as_of_date="20260914")
+
+    assert len(rows) == 1
+    assert rows[0].symbol == "300279.SZ"
+    assert rows[0].score == 1.0
 
 
 def test_cashflow_adapter_rejects_unverified_publication(tmp_path: Path) -> None:
