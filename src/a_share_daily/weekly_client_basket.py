@@ -512,10 +512,14 @@ def load_microcap_selection(
     """Load a microcap artifact only when it explicitly declares shadow status."""
     report_date = _date(as_of_date, label="as_of_date")
     artifact = _read_json_object(path, label="Microcap selection")
+    if artifact.get("schema_version") != "microcap.selection.v1":
+        raise WeeklyBasketError("Microcap selection schema is unsupported")
     if not shadow or artifact.get("shadow") is not True:
         raise WeeklyBasketError("Microcap selection requires an explicit shadow marker")
     if artifact.get("status") not in (None, "passed"):
         raise WeeklyBasketError("Microcap selection is not passed")
+    if artifact.get("research_only") is not True or artifact.get("eligible_for_live") is not False:
+        raise WeeklyBasketError("Microcap selection must remain research-only")
     signal_date = _date(
         str(artifact.get("signal_date") or artifact.get("source_date") or ""),
         label="Microcap signal_date",
@@ -526,6 +530,8 @@ def load_microcap_selection(
         artifact.get("positions", artifact.get("targets")),
         label="Microcap positions",
     )
+    if len(rows) < 3:
+        raise WeeklyBasketError("Microcap selection must contain at least three candidates")
     digest = _file_hash(path)
     return [
         _row_position(

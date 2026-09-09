@@ -62,6 +62,8 @@ def test_weekly_basket_dry_run_writes_report_and_does_not_send(
             "schema_version": "microcap.selection.v1",
             "status": "passed",
             "shadow": True,
+            "research_only": True,
+            "eligible_for_live": False,
             "source_date": "20260911",
             "signal_date": "20260912",
             "positions": [

@@ -246,3 +246,49 @@ def test_microcap_adapter_requires_explicit_shadow_marker(tmp_path: Path) -> Non
 
     with pytest.raises(WeeklyBasketError, match="shadow"):
         load_microcap_selection(path, as_of_date="20260914")
+
+
+def test_microcap_adapter_requires_research_only_and_three_candidates(tmp_path: Path) -> None:
+    path = _write_json(
+        tmp_path / "microcap.json",
+        {
+            "schema_version": "microcap.selection.v1",
+            "status": "passed",
+            "shadow": True,
+            "research_only": False,
+            "eligible_for_live": True,
+            "signal_date": "20260911",
+            "positions": [
+                {"symbol": "MC001.SZ", "name": "Micro", "rank": 1},
+                {"symbol": "MC002.SZ", "name": "Micro 2", "rank": 2},
+            ],
+        },
+    )
+
+    with pytest.raises(WeeklyBasketError, match="research-only"):
+        load_microcap_selection(path, as_of_date="20260914")
+
+
+def test_microcap_adapter_preserves_shadow_positions(tmp_path: Path) -> None:
+    path = _write_json(
+        tmp_path / "microcap.json",
+        {
+            "schema_version": "microcap.selection.v1",
+            "status": "passed",
+            "shadow": True,
+            "research_only": True,
+            "eligible_for_live": False,
+            "signal_date": "20260911",
+            "positions": [
+                {"symbol": "MC001.SZ", "name": "Micro", "rank": 1, "score": 0.9},
+                {"symbol": "MC002.SZ", "name": "Micro 2", "rank": 2, "score": 0.8},
+                {"symbol": "MC003.SZ", "name": "Micro 3", "rank": 3, "score": 0.7},
+            ],
+        },
+    )
+
+    rows = load_microcap_selection(path, as_of_date="20260914")
+
+    assert [row.symbol for row in rows] == ["MC001.SZ", "MC002.SZ", "MC003.SZ"]
+    assert all(row.research_only for row in rows)
+    assert all(not row.eligible_for_live for row in rows)
