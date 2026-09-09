@@ -357,6 +357,66 @@ def test_deliver_evening_segmented_targets_split_content(
     assert "亚洲盘后复盘" in markdowns[2]
 
 
+def test_deliver_evening_can_skip_internal_route_and_write_success_receipt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    _set_delivery_state(monkeypatch, tmp_path)
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    review = out_dir / "evening_review.md"
+    review.write_text("## 完整盘后数据\n亚洲盘后复盘", encoding="utf-8")
+    review_json = out_dir / "evening_review.json"
+    review_json.write_text('{"overview":{"breadth":{}}}', encoding="utf-8")
+    news = out_dir / "ai_market_news_evening.json"
+    news.write_text('{"markets":{}}', encoding="utf-8")
+    manifest = out_dir / "evening_manifest.json"
+    manifest.write_text('{"date":"20260630","charts":{"paths":{},"skipped":[]}}', encoding="utf-8")
+    for _label, filename in io_util.EVENING_CHARTS:
+        (out_dir / filename).write_bytes(b"png")
+
+    calls: list[list[str]] = []
+
+    def fake_run(
+        cmd: list[str],
+        cwd: str | None = None,
+        capture_output: bool = False,
+        text: bool = False,
+        timeout: int | None = None,
+        check: bool = False,
+    ) -> subprocess.CompletedProcess[str]:
+        calls.append(cmd)
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setenv("A_SHARE_REPORT_DELIVERY", "lark")
+    monkeypatch.setenv("MARKET_INTEL_CLIENT_CHAT_ID", "oc_client")
+    monkeypatch.setenv("MARKET_INTEL_INTERNAL_CHAT_ID", "oc_internal")
+    monkeypatch.setenv("A_SHARE_SKIP_INTERNAL_DELIVERY", "1")
+    monkeypatch.setattr(report_delivery.subprocess, "run", fake_run)
+
+    args = argparse.Namespace(
+        date="20260630",
+        out_dir=str(out_dir),
+        summary_out=str(out_dir / "evening_summary.md"),
+        review=str(review),
+        review_json=str(review_json),
+        news=str(news),
+        manifest=str(manifest),
+        chart=None,
+        chat_id=None,
+        user_id=None,
+        hermes_target=None,
+        hermes_cli=None,
+        lark_cli="/bin/echo",
+    )
+
+    assert report_delivery.deliver_evening(args) == 0
+    assert all("oc_internal" not in call for call in calls)
+    receipt = json.loads((tmp_path / "delivery_state/evening_latest.json").read_text())
+    assert receipt["success"] is True
+    assert receipt["routes"]["internal_skipped"] is True
+    assert receipt["routes"]["internal_enabled"] is False
+
+
 def test_deliver_evening_uses_manifest_chart_paths_instead_of_stale_defaults(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
 ) -> None:

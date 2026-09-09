@@ -24,9 +24,7 @@ CORE_PARTITIONS = (
 )
 REQUIRED_REPORT_DATASETS = frozenset(
     {
-        "ths_hot",
         "dc_concept",
-        "dc_concept_cons",
         "kpl_concept_cons",
         "limit_list_ths",
     }

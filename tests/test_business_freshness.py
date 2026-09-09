@@ -68,6 +68,67 @@ def test_daily_probe_requires_all_core_target_partitions(tmp_path: Path) -> None
     )
 
 
+def test_report_dataset_probe_treats_optional_enhancements_as_non_blocking(
+    tmp_path: Path,
+) -> None:
+    context = FreshnessContext(tmp_path / "release", tmp_path / "data", OPEN_DATES)
+    reports = context.data_root / "reports"
+    reports.mkdir(parents=True)
+    (reports / "a_share_report_dataset_refresh_20260810.json").write_text(
+        json.dumps(
+            {
+                "trade_date": "20260810",
+                "datasets": [
+                    {"dataset": "dc_concept", "status": "ready"},
+                    {"dataset": "kpl_concept_cons", "status": "ready"},
+                    {"dataset": "limit_list_ths", "status": "ready"},
+                    {"dataset": "dc_concept_cons", "status": "degraded"},
+                    {"dataset": "ths_hot", "status": "missing"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = probe_stage(
+        context,
+        stage_key="report_datasets",
+        target_date="20260810",
+        signal_date="20260811",
+    )
+
+    assert result.fresh is True
+
+
+def test_report_dataset_probe_still_blocks_missing_required_dataset(tmp_path: Path) -> None:
+    context = FreshnessContext(tmp_path / "release", tmp_path / "data", OPEN_DATES)
+    reports = context.data_root / "reports"
+    reports.mkdir(parents=True)
+    (reports / "a_share_report_dataset_refresh_20260810.json").write_text(
+        json.dumps(
+            {
+                "trade_date": "20260810",
+                "datasets": [
+                    {"dataset": "dc_concept", "status": "ready"},
+                    {"dataset": "kpl_concept_cons", "status": "missing"},
+                    {"dataset": "limit_list_ths", "status": "ready"},
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+
+    result = probe_stage(
+        context,
+        stage_key="report_datasets",
+        target_date="20260810",
+        signal_date="20260811",
+    )
+
+    assert result.fresh is False
+    assert "kpl_concept_cons:missing" in result.evidence
+
+
 def test_current_contract_probe_requires_daily_clean_sentinel_file(tmp_path: Path) -> None:
     context = FreshnessContext(tmp_path / "project", tmp_path / "data", OPEN_DATES)
     reports = context.data_root / "reports"

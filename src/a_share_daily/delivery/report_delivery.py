@@ -695,6 +695,12 @@ def deliver_evening(args: argparse.Namespace) -> int:
     if targets._segmented_daily_targets_configured() and (not explicit_target):
         client_chat_id = targets._audience_chat_id("client")
         internal_chat_id = targets._audience_chat_id("internal")
+        skip_internal = os.environ.get("A_SHARE_SKIP_INTERNAL_DELIVERY", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
         results: list[bool] = []
         lark_targets: list[str] = []
         hermes_targets: list[str] = []
@@ -716,7 +722,7 @@ def deliver_evening(args: argparse.Namespace) -> int:
                     signal_date=signal_date,
                 )
             )
-        if internal_chat_id:
+        if internal_chat_id and not skip_internal:
             internal_context = senders._delivery_context(args, chat_id_override=internal_chat_id)
             lark_targets.extend(internal_context.lark_targets)
             hermes_targets.extend(internal_context.hermes_targets)
@@ -751,7 +757,8 @@ def deliver_evening(args: argparse.Namespace) -> int:
             routes={
                 "segmented": True,
                 "client_enabled": bool(client_chat_id),
-                "internal_enabled": bool(internal_chat_id),
+                "internal_enabled": bool(internal_chat_id and not skip_internal),
+                "internal_skipped": bool(internal_chat_id and skip_internal),
                 "webhook_disabled_for_segmented_delivery": True,
             },
             artifacts=artifacts,
