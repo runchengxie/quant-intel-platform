@@ -7,7 +7,7 @@ from typing import cast
 import pandas as pd
 import pytest
 
-from a_share_daily import pipeline
+from a_share_daily import data, pipeline
 from a_share_daily.charts.topic import format_topic_label
 from a_share_daily.freshness import build_freshness_report
 
@@ -16,6 +16,15 @@ def test_topic_chart_formats_common_english_hotspot_labels() -> None:
     assert format_topic_label("Hotspot") == "热点"
     assert format_topic_label("AI Infrastructure") == "人工智能 基础设施"
     assert format_topic_label("Hot Sectors / Semiconductors") == "热点板块/半导体"
+
+
+def test_partitioned_reader_reports_missing_dataset_as_file_not_found(
+    monkeypatch, tmp_path: Path
+) -> None:
+    monkeypatch.setattr(data, "_data_root", lambda: tmp_path)
+
+    with pytest.raises(FileNotFoundError, match="moneyflow_ths"):
+        data._read_partitioned("moneyflow_ths", "20260907")
 
 
 def test_step_data_freshness_uses_explicit_frozen_snapshot(tmp_path: Path, monkeypatch) -> None:
