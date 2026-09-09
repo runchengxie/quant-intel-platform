@@ -46,6 +46,10 @@ def build_parity_manifest(
     new_root: Path,
     ignored_fields: set[str] | None = None,
     path_fields: set[str] | None = None,
+    old_data_snapshot_id: str | None = None,
+    new_data_snapshot_id: str | None = None,
+    old_commit: str | None = None,
+    new_commit: str | None = None,
 ) -> dict[str, Any]:
     """Compare JSON artifacts already produced under two isolated roots."""
     old_files = _json_files(old_root)
@@ -73,14 +77,30 @@ def build_parity_manifest(
             if found:
                 differences[relative_path] = found
 
-    unexplained = bool(missing_old or missing_new or differences)
+    snapshots_match = None
+    if old_data_snapshot_id is not None or new_data_snapshot_id is not None:
+        snapshots_match = (
+            old_data_snapshot_id is not None
+            and new_data_snapshot_id is not None
+            and old_data_snapshot_id == new_data_snapshot_id
+        )
+    unexplained = bool(missing_old or missing_new or differences or snapshots_match is False)
     return {
         "schema_version": "quant.production.parity.v1",
         "source_date": source_date,
         "signal_date": signal_date,
         "generated_at": datetime.now(UTC).isoformat(),
-        "old": {"root": str(old_root), "commit": _git_commit(old_root)},
-        "new": {"root": str(new_root), "commit": _git_commit(new_root)},
+        "old": {
+            "root": str(old_root),
+            "commit": old_commit or _git_commit(old_root),
+            "data_snapshot_id": old_data_snapshot_id,
+        },
+        "new": {
+            "root": str(new_root),
+            "commit": new_commit or _git_commit(new_root),
+            "data_snapshot_id": new_data_snapshot_id,
+        },
+        "data_snapshot_match": snapshots_match,
         "mandatory_artifacts": mandatory_paths,
         "missing_from_old": missing_old,
         "missing_from_new": missing_new,
@@ -101,6 +121,10 @@ def run(args: argparse.Namespace) -> int:
         new_root=new_root,
         ignored_fields=set(args.ignore_field),
         path_fields=set(args.path_field),
+        old_data_snapshot_id=args.old_data_snapshot_id,
+        new_data_snapshot_id=args.new_data_snapshot_id,
+        old_commit=args.old_commit,
+        new_commit=args.new_commit,
     )
     args.output_root.mkdir(parents=True, exist_ok=True)
     output_path = args.output_root / f"parity_{args.source_date}_{args.signal_date}.json"
@@ -125,6 +149,10 @@ def build_parser() -> argparse.ArgumentParser:
         default=[],
         help="mapping field under which absolute artifact paths are compared by basename",
     )
+    parser.add_argument("--old-data-snapshot-id")
+    parser.add_argument("--new-data-snapshot-id")
+    parser.add_argument("--old-commit")
+    parser.add_argument("--new-commit")
     return parser
 
 
