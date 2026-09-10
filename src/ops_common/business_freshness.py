@@ -344,12 +344,11 @@ def _formal_delivery_ok(
 ) -> bool:
     path = _delivery_state_dir(context) / f"{kind}_latest.json"
     payload = _read_json(path)
-    generated = str(payload.get("generated_at") or "").replace("-", "")[:8]
     return all(
         (
             payload.get("success") is True,
             payload.get("trade_date") == source_date,
-            generated == signal_date,
+            payload.get("signal_date") == signal_date,
         )
     )
 

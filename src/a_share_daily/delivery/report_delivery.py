@@ -382,7 +382,9 @@ def _prepare_morning_context(
         chart_keys=io_util.MORNING_CHART_KEYS,
     )
     trade_date = str(manifest_payload.get("date") or datetime.now().strftime("%Y%m%d"))
-    signal_date = str(manifest_payload.get("signal_date") or trade_date)
+    signal_date = str(
+        getattr(args, "signal_date", None) or manifest_payload.get("signal_date") or trade_date
+    )
     artifacts = [state._artifact_entry(report_path, role="morning_report")]
     artifacts.extend(state._artifact_entry(path, role="chart") for path in chart_paths)
     return (context, trade_date, signal_date, chart_paths, artifacts, mode)
@@ -795,6 +797,7 @@ def run(argv: list[str] | None = None) -> int:
     morning = sub.add_parser("morning", parents=[common], help="Deliver morning report")
     morning.add_argument("--report", required=True, help="Morning markdown report path")
     morning.add_argument("--manifest", help="Morning manifest JSON path")
+    morning.add_argument("--signal-date", help="Publication signal date YYYYMMDD")
     evening = sub.add_parser("evening", parents=[common], help="Deliver evening report")
     evening.add_argument("--date", required=True, help="Trade date YYYYMMDD")
     evening.add_argument("--out-dir", default="out/a_share_daily", help="A-share report output dir")
