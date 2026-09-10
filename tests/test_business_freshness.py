@@ -255,6 +255,7 @@ def test_report_probe_uses_stable_delivery_state_dir(monkeypatch, tmp_path: Path
             {
                 "success": True,
                 "trade_date": "20260810",
+                "signal_date": "20260810",
                 "generated_at": "2026-08-10T11:00:00+00:00",
             }
         ),
@@ -285,7 +286,8 @@ def test_morning_probe_uses_stable_strategy_delivery_receipts(monkeypatch, tmp_p
             {
                 "success": True,
                 "trade_date": "20260810",
-                "generated_at": "2026-08-11T00:00:00+00:00",
+                "signal_date": "20260811",
+                "generated_at": "2026-08-10T23:00:00+00:00",
             }
         ),
         encoding="utf-8",

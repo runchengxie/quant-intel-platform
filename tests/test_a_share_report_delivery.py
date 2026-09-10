@@ -267,6 +267,7 @@ def test_deliver_morning_segmented_targets_internal_group_only(
     args = argparse.Namespace(
         report=str(report),
         manifest=str(manifest),
+        signal_date="20260701",
         chat_id=None,
         user_id=None,
         hermes_target=None,
@@ -276,6 +277,8 @@ def test_deliver_morning_segmented_targets_internal_group_only(
 
     assert report_delivery.deliver_morning(args) == 0
     assert [call[call.index("--chat-id") + 1] for call in calls] == ["oc_internal"]
+    receipt = json.loads((tmp_path / "delivery_state/morning_latest.json").read_text())
+    assert receipt["signal_date"] == "20260701"
 
 
 def test_deliver_evening_segmented_targets_split_content(
