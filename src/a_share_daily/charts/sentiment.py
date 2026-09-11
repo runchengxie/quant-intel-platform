@@ -33,46 +33,27 @@ def _sentiment_stats(daily: Any) -> tuple[int, int, int, float, int]:
 
 
 def _draw_distribution(fig: Any, up: int, down: int, flat: int) -> None:
-    ax = fig.add_axes((0.04, 0.09, 0.34, 0.68), facecolor="none")
-    sizes = [up, down, flat]
-    wedges, _ = ax.pie(
-        sizes,
-        labels=None,
-        colors=[UP, DOWN, FLAT],
-        startangle=90,
-        counterclock=False,
-        wedgeprops={"width": 0.45, "edgecolor": BG, "linewidth": 2},
-    )
-    ax.text(
-        0,
-        0,
-        f"{up}\n↑",
-        ha="center",
-        va="center",
-        fontsize=14,
-        color=UP,
-        fontproperties=cjk,
-        fontweight="bold",
-    )
-    legend_labels = [
-        f"{label} {size}" for label, size in zip(["上涨", "下跌", "平盘"], sizes, strict=False)
-    ]
-    ax.legend(
-        wedges,
-        legend_labels,
-        loc="lower center",
-        bbox_to_anchor=(0.5, -0.12),
-        ncol=3,
-        frameon=False,
-        prop=cjk,
-        fontsize=9,
-        labelcolor=FG,
-    )
-    ax.set_title("涨跌分布", loc="left", fontproperties=cjk_heavy, fontsize=11.5, color=FG, pad=5)
+    ax = fig.add_axes((0.07, 0.42, 0.86, 0.18), facecolor="none")
+    total = max(up + down + flat, 1)
+    shares = [up / total * 100, down / total * 100, flat / total * 100]
+    left = 0.0
+    for share, color in zip(shares, [UP, DOWN, FLAT], strict=True):
+        ax.barh([0], [share], left=left, color=color, height=0.42, alpha=0.9)
+        left += share
+    ax.set_xlim(0, 100)
+    ax.set_yticks([])
+    ax.set_xticks([0, 50, 100])
+    ax.set_xticklabels(["0%", "50%", "100%"], fontsize=8, color=MUTED)
+    ax.set_title("市场广度", loc="left", fontproperties=cjk_heavy, fontsize=11.5, color=FG, pad=5)
+    for share, label, _color, start in zip(
+        shares, ["涨", "跌", "平"], [UP, DOWN, FLAT], [0, shares[0], shares[0] + shares[1]], strict=True
+    ):
+        if share >= 10:
+            ax.text(start + share / 2, 0, f"{label} {share:.0f}%", ha="center", va="center", color="white", fontsize=9, fontproperties=cjk)
 
 
 def _draw_stat_cards(fig: Any, daily: Any, limit_up_count: int, avg_pct: float, total: int) -> None:
-    ax = fig.add_axes((0.43, 0.09, 0.52, 0.68), facecolor="none")
+    ax = fig.add_axes((0.07, 0.10, 0.86, 0.22), facecolor="none")
     ax.axis("off")
     cards = [
         ("涨停", f"{limit_up_count} 只", f"{limit_up_count / total * 100:.1f}%", UP),
@@ -81,11 +62,11 @@ def _draw_stat_cards(fig: Any, daily: Any, limit_up_count: int, avg_pct: float, 
         ("平均涨跌", f"{avg_pct:.2f}%", "", DOWN if avg_pct < 0 else UP),
     ]
     for index, (label, value, sub, color) in enumerate(cards):
-        y = 0.84 - index * 0.235
+        x = index * 0.25
         rect = Rectangle(
-            (0.05, y - 0.09),
-            0.9,
-            0.19,
+            (x, 0.10),
+            0.22,
+            0.70,
             facecolor=PANEL,
             edgecolor=LINE,
             linewidth=1,
@@ -94,8 +75,8 @@ def _draw_stat_cards(fig: Any, daily: Any, limit_up_count: int, avg_pct: float, 
         )
         ax.add_patch(rect)
         ax.text(
-            0.12,
-            y + 0.035,
+            x + 0.04,
+            0.57,
             label,
             transform=ax.transAxes,
             fontproperties=cjk,
@@ -104,8 +85,8 @@ def _draw_stat_cards(fig: Any, daily: Any, limit_up_count: int, avg_pct: float, 
             va="center",
         )
         ax.text(
-            0.12,
-            y - 0.04,
+            x + 0.04,
+            0.31,
             value,
             transform=ax.transAxes,
             fontproperties=cjk,
@@ -116,8 +97,8 @@ def _draw_stat_cards(fig: Any, daily: Any, limit_up_count: int, avg_pct: float, 
         )
         if sub:
             ax.text(
-                0.65,
-                y - 0.04,
+                x + 0.04,
+                0.14,
                 sub,
                 transform=ax.transAxes,
                 fontproperties=cjk,
@@ -125,7 +106,7 @@ def _draw_stat_cards(fig: Any, daily: Any, limit_up_count: int, avg_pct: float, 
                 color=MUTED,
                 va="center",
             )
-    ax.set_title("市场速览", loc="left", fontproperties=cjk_heavy, fontsize=11.5, color=FG, pad=5)
+    ax.text(0.0, 0.98, "市场速览", transform=ax.transAxes, fontproperties=cjk_heavy, fontsize=11.5, color=FG, va="top")
 
 
 def generate_sentiment(

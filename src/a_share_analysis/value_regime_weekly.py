@@ -358,9 +358,11 @@ def generate_report(
     lines.extend(
         [
             "",
-            "### 当前状态",
+            "### 01 当前状态",
             "",
             f"{regime_name}，已持续 {streak} 周。",
+            "",
+            "### 02 证据",
             "",
             f"- 过去 12 周累计：{last['ret_12w'] * 100:+.1f}%（高于约 {percentile_12w:.0f}% 的历史样本）",
             f"- 过去 52 周累计：{last['ret_52w'] * 100:+.1f}%",
@@ -368,7 +370,7 @@ def generate_report(
             f"- 过去 12 周年化波动率：{last['vol_12w'] * 100:.1f}%",
             f"- 过去 12 周上涨周占比：{last['up_ratio_12w'] * 100:.0f}%",
             "",
-            "### 历史参考",
+            "### 03 历史参考",
             "",
             f"历史上，当前状态共出现 {current_pattern['count']} 周，"
             f"分布在 {current_pattern['episode_count']} 段连续时期。后续收益的统计区间有重叠，"
@@ -388,7 +390,7 @@ def generate_report(
             f"（{entry_13w['sample_count']} 个样本）。全样本的后续 13 周正收益比例为 "
             f"{baseline_13w['win_rate']:.0f}%。",
             "",
-            "### 配置参考",
+            "### 04 下周观察",
             "",
         ]
     )

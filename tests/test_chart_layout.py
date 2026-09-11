@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import pandas as pd
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 
 from a_share_daily import pipeline
 from a_share_daily.charts.dashboard import (
@@ -8,9 +10,11 @@ from a_share_daily.charts.dashboard import (
     generate_dashboard,
     margin_label_offset,
 )
+from a_share_daily.charts.sentiment import generate_sentiment
 from a_share_daily.charts.weekly_chart import (
     WEEKLY_LEGEND_ANCHOR,
     WEEKLY_LEGEND_LOC,
+    generate_weekly_chart,
     turnover_label_offset,
 )
 from a_share_daily.d11_h5_shadow_render import _compact_change_text
@@ -75,3 +79,87 @@ def test_latest_partition_dates_returns_empty_for_missing_optional_dataset(
     monkeypatch.setattr(pipeline.D, "DATA_ROOT", data_root)
 
     assert pipeline._latest_partition_dates("margin", as_of_date="20260908") == []
+
+
+def test_weekly_chart_subtitle_and_breadth_use_report_language(tmp_path, monkeypatch) -> None:
+    rendered_text: list[str] = []
+    original_text = Axes.text
+    original_figure_text = Figure.text
+    original_set_title = Axes.set_title
+
+    def capture_text(self, x, y, text, *args, **kwargs):
+        rendered_text.append(str(text))
+        return original_text(self, x, y, text, *args, **kwargs)
+
+    def capture_figure_text(self, x, y, s, *args, **kwargs):
+        rendered_text.append(str(s))
+        return original_figure_text(self, x, y, s, *args, **kwargs)
+
+    def capture_set_title(self, label, *args, **kwargs):
+        rendered_text.append(str(label))
+        return original_set_title(self, label, *args, **kwargs)
+
+    monkeypatch.setattr(Axes, "text", capture_text)
+    monkeypatch.setattr(Figure, "text", capture_figure_text)
+    monkeypatch.setattr(Axes, "set_title", capture_set_title)
+    frames = {
+        day: pd.DataFrame(
+            {"pct_chg": [1.0, -1.0, 0.5, 0.0], "amount": [2_000_000] * 4}
+        )
+        for day in ["20260907", "20260908", "20260909", "20260910", "20260911"]
+    }
+
+    assert generate_weekly_chart(frames, "20260911", str(tmp_path / "weekly.png"))
+    assert any("上涨日" in text and "/5" in text for text in rendered_text)
+    assert "市场广度" in rendered_text
+    assert "成交活跃度（相对周均）" in rendered_text
+
+
+def test_sentiment_chart_uses_breadth_strip_and_metric_language(tmp_path, monkeypatch) -> None:
+    rendered_text: list[str] = []
+    original_text = Axes.text
+    original_set_title = Axes.set_title
+
+    def capture_text(self, x, y, text, *args, **kwargs):
+        rendered_text.append(str(text))
+        return original_text(self, x, y, text, *args, **kwargs)
+
+    def capture_set_title(self, label, *args, **kwargs):
+        rendered_text.append(str(label))
+        return original_set_title(self, label, *args, **kwargs)
+
+    monkeypatch.setattr(Axes, "text", capture_text)
+    monkeypatch.setattr(Axes, "set_title", capture_set_title)
+    daily = pd.DataFrame({"pct_chg": [1.0, -1.0, 0.0, 0.5]})
+
+    generate_sentiment(daily, 2, "20260911", str(tmp_path / "sentiment.png"))
+
+    assert "市场广度" in rendered_text
+    assert "市场速览" in rendered_text
+    assert any("涨 50%" in text for text in rendered_text)
+
+
+def test_dashboard_uses_breadth_strip_and_thin_margin_line(tmp_path, monkeypatch) -> None:
+    rendered_text: list[str] = []
+    original_text = Axes.text
+    original_set_title = Axes.set_title
+
+    def capture_text(self, x, y, text, *args, **kwargs):
+        rendered_text.append(str(text))
+        return original_text(self, x, y, text, *args, **kwargs)
+
+    def capture_set_title(self, label, *args, **kwargs):
+        rendered_text.append(str(label))
+        return original_set_title(self, label, *args, **kwargs)
+
+    monkeypatch.setattr(Axes, "text", capture_text)
+    monkeypatch.setattr(Axes, "set_title", capture_set_title)
+    daily = pd.DataFrame({"pct_chg": [1.0, -1.0, 0.0, 0.5]})
+    turnover = pd.DataFrame({"date": ["20260911"], "amount": [100.0]})
+    margin = pd.DataFrame({"date": ["20260911"], "rzye": [100.0]})
+
+    generate_dashboard(daily, 2, 3, margin, turnover, "20260911", str(tmp_path / "dashboard.png"))
+
+    assert "市场广度" in rendered_text
+    assert "涨 50%" in rendered_text
+    assert "融资余额趋势" in rendered_text

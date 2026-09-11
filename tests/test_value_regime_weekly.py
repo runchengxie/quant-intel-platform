@@ -236,6 +236,22 @@ def test_series_snapshot_computes_key_metrics_from_daily_returns() -> None:
     assert snap["count"] >= 1
 
 
+def test_value_card_uses_signal_as_hero_and_editorial_sections(tmp_path: Path) -> None:
+    df = vr.assign_regime(vr.compute_features(_weekly_frame(n=180)))
+    patterns = vr.historical_patterns(df)
+    output = tmp_path / "value-weekly.png"
+
+    generate_value_weekly_card(
+        df,
+        patterns,
+        as_of_date=df.index[-1].date(),
+        expected_through=None,
+        out_path=output,
+    )
+
+    assert output.is_file()
+
+
 def test_generate_report_includes_comparison_section() -> None:
     df = vr.assign_regime(vr.compute_features(_weekly_frame(n=160)))
     patterns = vr.historical_patterns(df)

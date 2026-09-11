@@ -59,17 +59,24 @@ def generate(us_stocks: dict, trade_date: str, output: str) -> str:
         output: output PNG path
     Returns: output path
     """
-    names, pcts = [], []
-    for sym, label in zip(SYMBOLS, LABELS, strict=False):
+    names, pcts, kinds = [], [], []
+    for index, (sym, label) in enumerate(zip(SYMBOLS, LABELS, strict=False)):
         if sym in us_stocks and "pct_chg" in us_stocks[sym]:
             names.append(label)
             pcts.append(us_stocks[sym]["pct_chg"])
+            kinds.append("market" if index < 3 else "leader")
 
     if not names:
         raise ValueError("no US stock data")
 
-    colors = [UP if p >= 0 else DOWN for p in pcts]
-    y = np.arange(len(names))
+    colors = [
+        MUTED if kind == "market" else UP if p >= 0 else DOWN
+        for p, kind in zip(pcts, kinds, strict=True)
+    ]
+    positions: list[float] = []
+    for index, kind in enumerate(kinds):
+        positions.append(float(index + (0.6 if kind == "leader" and index >= 3 else 0)))
+    y = np.asarray(positions)
 
     fig, ax = plt.subplots(figsize=(8, 5), facecolor=BG)
     bars = ax.barh(y, pcts, height=0.6, color=colors, alpha=0.85)
@@ -79,11 +86,24 @@ def generate(us_stocks: dict, trade_date: str, output: str) -> str:
     ax.axvline(0, color=LINE, linewidth=1)
     ax.set_xlabel("涨跌幅 (%)", fontproperties=cjk, fontsize=10, color=MUTED)
     us_date = f"{trade_date[:4]}-{trade_date[4:6]}-{trade_date[6:]}"
+    benchmark = dict(zip(SYMBOLS[:3], pcts[:3], strict=False))
+    leader_pairs = [
+        (name, pct)
+        for name, pct, kind in zip(names, pcts, kinds, strict=True)
+        if kind == "leader"
+    ]
+    strongest = max(leader_pairs, key=lambda item: item[1], default=None)
+    semiconductor = benchmark.get("SMH")
+    summary_parts = ["美股市场偏弱" if sum(benchmark.values()) < 0 else "美股市场偏强"]
+    if semiconductor is not None:
+        summary_parts.append(f"半导体{'领跌' if semiconductor < 0 else '领涨'}")
+    if strongest is not None:
+        summary_parts.append(f"{strongest[0]}逆势 {strongest[1]:+.1f}%")
     add_report_header(
         fig,
         title="隔夜美股表现",
         kicker=f"{us_date} · A股晨报",
-        subtitle="指数、科技龙头与半导体资产",
+        subtitle=" · ".join(summary_parts),
     )
     ax.set_title(
         "截至美东收盘",
@@ -122,6 +142,28 @@ def generate(us_stocks: dict, trade_date: str, output: str) -> str:
             ha=ha,
             fontsize=9,
             color=MUTED,
+        )
+
+    if any(kind == "market" for kind in kinds):
+        ax.text(
+            ax.get_xlim()[0],
+            1.7,
+            "市场 / 行业",
+            color=MUTED,
+            fontsize=8.5,
+            fontproperties=cjk,
+            va="bottom",
+        )
+    if any(kind == "leader" for kind in kinds):
+        first_leader = next(index for index, kind in enumerate(kinds) if kind == "leader")
+        ax.text(
+            ax.get_xlim()[0],
+            positions[first_leader] - 0.45,
+            "科技龙头",
+            color=MUTED,
+            fontsize=8.5,
+            fontproperties=cjk,
+            va="bottom",
         )
 
     style_plot_axes(ax, grid_axis="x")

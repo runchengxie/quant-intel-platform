@@ -12,6 +12,7 @@ from ..topic_summary import TopicSummaryError, load_topic_summary
 from .theme import (
     ACCENT,
     BG,
+    BLUE_SCALE,
     FG,
     MUTED,
     add_report_header,
@@ -104,6 +105,9 @@ def generate_topic(
     topics_sorted = sorted(topics, key=lambda t: t["weight"], reverse=True)[:10]
     names = [format_topic_label(t.get("topic")) for t in topics_sorted]
     weights = [t["weight"] for t in topics_sorted]
+    displayed_weights = [float(weight) * 100 if float(weight) <= 1 else float(weight) for weight in weights]
+    top_three = sum(displayed_weights[:3])
+    concentration = "主题集中度高" if displayed_weights and displayed_weights[0] >= 50 else "主题分布较分散"
 
     report_date = str(data.get("signal_date") or data.get("source_date") or "")
     fig, ax = plt.subplots(figsize=(10, 5.5), facecolor=BG)
@@ -111,15 +115,23 @@ def generate_topic(
         fig,
         title="DailyWatch20 热点主题分布",
         kicker=f"{report_date} · A股日报" if report_date else "A股日报",
-        subtitle="入选股票主题按跟踪权重聚合",
+        subtitle=(
+            f"{len(names)} 项主题 · 前三主题 {top_three:.0f}% · {concentration}"
+            if names
+            else "入选股票主题按跟踪权重聚合"
+        ),
     )
     y_pos = np.arange(len(names))
-    bars = ax.barh(y_pos, weights, height=0.6, color=ACCENT, alpha=0.82)
+    colors = [
+        MUTED if name == "其他" else ACCENT if index == 0 else BLUE_SCALE[min(index, len(BLUE_SCALE) - 1)]
+        for index, name in enumerate(names)
+    ]
+    bars = ax.barh(y_pos, displayed_weights, height=0.56, color=colors, alpha=0.9)
     ax.set_yticks(y_pos)
     ax.set_yticklabels(names, fontproperties=cjk_heavy, fontsize=12)
-    ax.set_xlabel("主题权重", fontproperties=cjk, fontsize=11, color=MUTED)
+    ax.set_xlabel("主题权重（%）", fontproperties=cjk, fontsize=10, color=MUTED)
     ax.set_title(
-        "热点主题权重 Top 10",
+        f"热点主题权重 Top {len(names)}",
         loc="left",
         fontproperties=cjk_heavy,
         fontsize=11.5,
@@ -128,16 +140,16 @@ def generate_topic(
     )
     ax.invert_yaxis()
 
-    for bar, w in zip(bars, weights, strict=False):
+    for index, bar in enumerate(bars):
         ax.text(
             bar.get_width() + 0.005,
             bar.get_y() + bar.get_height() / 2,
-            f"{w:.3f}",
+            f"{displayed_weights[index]:.0f}%",
             va="center",
             fontsize=10,
             color=MUTED,
         )
-    ax.set_xlim(0, max(weights) * 1.2)
+    ax.set_xlim(0, max(displayed_weights) * 1.2)
     style_plot_axes(ax, grid_axis="x")
 
     fig.subplots_adjust(left=0.18, right=0.95, top=0.78, bottom=0.14)

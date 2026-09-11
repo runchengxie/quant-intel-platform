@@ -16,18 +16,13 @@ from pathlib import Path
 from typing import Any, cast
 
 import matplotlib.pyplot as plt
-from matplotlib.patches import FancyBboxPatch, Rectangle
 
 from .theme import (
-    BARS,
     BG,
     DOWN,
     FG,
     LINE,
     MUTED,
-    PANEL,
-    PANEL_ALT,
-    PURPLE,
     UP,
     YELLOW,
     apply_editorial_background,
@@ -35,22 +30,18 @@ from .theme import (
     cjk_display,
 )
 
-_PANEL = PANEL
-_TRACK = PANEL_ALT
 _MUTED = MUTED
 _MISSING = object()
 
-_DIMENSIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
+_DIMENSIONS: tuple[tuple[str, tuple[str, ...]], ...] = (
     (
         "流动性",
         ("流动性", "量能", "量能得分", "liquidity", "liquidity_score", "volume_score"),
-        BARS[0],
     ),
-    ("广度", ("广度", "广度得分", "breadth", "breadth_score"), UP),
+    ("广度", ("广度", "广度得分", "breadth", "breadth_score")),
     (
         "赚钱效应",
         ("赚钱效应", "赚钱", "赚钱得分", "profit", "profit_effect", "profit_score"),
-        BARS[3],
     ),
     (
         "亏钱风险",
@@ -63,7 +54,6 @@ _DIMENSIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
             "loss_pressure",
             "loss_risk",
         ),
-        BARS[6],
     ),
     (
         "趋势确认",
@@ -74,7 +64,6 @@ _DIMENSIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
             "trend_confirmation",
             "structure_confirmation",
         ),
-        YELLOW,
     ),
     (
         "轮动质量",
@@ -86,7 +75,6 @@ _DIMENSIONS: tuple[tuple[str, tuple[str, ...], str], ...] = (
             "rotation_quality",
             "sector_rotation",
         ),
-        PURPLE,
     ),
 )
 
@@ -178,10 +166,9 @@ def _draw_header(
         va="top",
     )
 
-    _rounded_panel(ax, 0.05, 0.845, 0.90, 0.075)
     ax.text(
-        0.08,
-        0.882,
+        0.05,
+        0.825,
         "当前状态",
         fontsize=10,
         color=_MUTED,
@@ -189,8 +176,8 @@ def _draw_header(
         va="center",
     )
     ax.text(
-        0.22,
-        0.882,
+        0.20,
+        0.825,
         status,
         fontsize=17,
         color=_status_color(heat, fragility),
@@ -199,14 +186,21 @@ def _draw_header(
         va="center",
     )
 
-    _draw_score_card(ax, x=0.05, title="市场热度", score=heat, accent=_score_color(heat))
-    _draw_score_card(
-        ax,
-        x=0.52,
-        title="市场脆弱度",
-        score=fragility,
-        accent=_fragility_color(fragility),
-    )
+    ax.plot([0.50, 0.50], [0.70, 0.80], color=LINE, linewidth=0.8, transform=ax.transAxes)
+    for x, title, score, accent in (
+        (0.05, "市场热度", heat, _score_color(heat)),
+        (0.57, "市场脆弱度", fragility, _fragility_color(fragility)),
+    ):
+        ax.text(x, 0.755, title, fontsize=10, color=_MUTED, fontproperties=cjk, va="center")
+        ax.text(
+            x,
+            0.705,
+            _format_score(score),
+            fontsize=24,
+            color=accent if score is not None else _MUTED,
+            fontproperties=cjk_display,
+            va="center",
+        )
 
 
 def _draw_dimension_section(ax: Any, dimensions: Sequence[float | None]) -> None:
@@ -223,20 +217,21 @@ def _draw_dimension_section(ax: Any, dimensions: Sequence[float | None]) -> None
     ax.text(
         0.95,
         0.655,
-        "统一按 0–100 展示",
+        "点位越右，分数越高",
         fontsize=9,
         color=_MUTED,
         fontproperties=cjk,
         ha="right",
         va="center",
     )
+    for x, label in ((0.23, "0"), (0.54, "50"), (0.85, "100")):
+        ax.text(x, 0.625, label, fontsize=8, color=_MUTED, fontproperties=cjk, ha="center")
 
-    for index, ((label, _, color), score) in enumerate(zip(_DIMENSIONS, dimensions, strict=True)):
-        _draw_dimension_bar(
+    for index, ((label, _), score) in enumerate(zip(_DIMENSIONS, dimensions, strict=True)):
+        _draw_dimension_dot(
             ax,
             label=label,
             score=score,
-            color=color,
             y=0.605 - index * 0.055,
         )
 
@@ -252,13 +247,12 @@ def _draw_tension_section(ax: Any, contradictions: Sequence[str]) -> None:
         fontweight="bold",
         va="center",
     )
-    _rounded_panel(ax, 0.05, 0.095, 0.90, 0.145)
     if contradictions:
         for index, contradiction in enumerate(contradictions):
             ax.text(
                 0.08,
-                0.195 - index * 0.060,
-                f"{index + 1}. {_ellipsize(contradiction, 58)}",
+                0.215 - index * 0.060,
+                f"{index + 1:02d}  {_ellipsize(contradiction, 58)}",
                 fontsize=10.5,
                 color=FG,
                 fontproperties=cjk,
@@ -267,7 +261,7 @@ def _draw_tension_section(ax: Any, contradictions: Sequence[str]) -> None:
     else:
         ax.text(
             0.08,
-            0.167,
+            0.195,
             "暂无可用核心矛盾",
             fontsize=10.5,
             color=_MUTED,
@@ -276,37 +270,11 @@ def _draw_tension_section(ax: Any, contradictions: Sequence[str]) -> None:
         )
 
 
-def _draw_score_card(ax: Any, *, x: float, title: str, score: float | None, accent: str) -> None:
-    _rounded_panel(ax, x, 0.700, 0.43, 0.115)
-    ax.text(
-        x + 0.03,
-        0.785,
-        title,
-        fontsize=10,
-        color=_MUTED,
-        fontproperties=cjk,
-        va="center",
-    )
-    ax.text(
-        x + 0.37,
-        0.785,
-        _format_score(score),
-        fontsize=17,
-        color=accent if score is not None else _MUTED,
-        fontproperties=cjk,
-        fontweight="bold",
-        ha="right",
-        va="center",
-    )
-    _draw_track(ax, x=x + 0.03, y=0.725, width=0.37, score=score, color=accent, height=0.018)
-
-
-def _draw_dimension_bar(
+def _draw_dimension_dot(
     ax: Any,
     *,
     label: str,
     score: float | None,
-    color: str,
     y: float,
 ) -> None:
     ax.text(
@@ -318,76 +286,47 @@ def _draw_dimension_bar(
         fontproperties=cjk,
         va="center",
     )
-    _draw_track(ax, x=0.23, y=y - 0.010, width=0.62, score=score, color=color, height=0.020)
+    ax.plot([0.23, 0.85], [y, y], color=LINE, linewidth=0.8, transform=ax.transAxes)
+    if score is not None:
+        color = _dimension_color(label, score)
+        ax.plot(
+            [0.23 + 0.62 * score / 100],
+            [y],
+            marker="o",
+            markersize=7,
+            color=color,
+            transform=ax.transAxes,
+        )
     ax.text(
         0.94,
         y,
         _format_score(score),
         fontsize=10.5,
-        color=color if score is not None else _MUTED,
+        color=_dimension_color(label, score) if score is not None else _MUTED,
         fontproperties=cjk,
         fontweight="bold" if score is not None else "normal",
         ha="right",
         va="center",
     )
+    if label == "亏钱风险" and score is not None and score >= 55:
+        ax.text(0.76, y, "风险偏高", fontsize=8.5, color=UP, fontproperties=cjk, va="center")
 
 
-def _draw_track(
-    ax: Any,
-    *,
-    x: float,
-    y: float,
-    width: float,
-    score: float | None,
-    color: str,
-    height: float,
-) -> None:
-    ax.add_patch(
-        Rectangle(
-            (x, y),
-            width,
-            height,
-            transform=ax.transAxes,
-            facecolor=_TRACK,
-            edgecolor="none",
-            zorder=1,
-        )
-    )
-    if score is None:
-        return
-    ax.add_patch(
-        Rectangle(
-            (x, y),
-            width * score / 100,
-            height,
-            transform=ax.transAxes,
-            facecolor=color,
-            edgecolor="none",
-            zorder=2,
-        )
-    )
-
-
-def _rounded_panel(ax: Any, x: float, y: float, width: float, height: float) -> None:
-    ax.add_patch(
-        FancyBboxPatch(
-            (x, y),
-            width,
-            height,
-            boxstyle="round,pad=0.008,rounding_size=0.012",
-            transform=ax.transAxes,
-            facecolor=_PANEL,
-            edgecolor=LINE,
-            linewidth=1,
-        )
-    )
+def _dimension_color(label: str, score: float) -> str:
+    if label == "亏钱风险" and score >= 55:
+        return UP
+    if score < 35:
+        return DOWN
+    if score >= 65:
+        return UP
+    return YELLOW
 
 
 def _dimension_values(temperature: Mapping[str, Any]) -> list[float | None]:
     raw = _first(temperature, ("dimensions", "six_dimensions", "六维", "六维评分"))
     dimension_map = _as_dimension_mapping(raw)
     values: list[float | None] = []
-    for _, aliases, _ in _DIMENSIONS:
+    for _, aliases in _DIMENSIONS:
         value = _first(dimension_map, aliases)
         if value is _MISSING:
             value = _first(temperature, aliases)

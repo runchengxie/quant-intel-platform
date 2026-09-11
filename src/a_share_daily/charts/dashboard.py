@@ -13,6 +13,7 @@ import pandas as pd
 from matplotlib.patches import Rectangle
 
 from .theme import (
+    ACCENT,
     BG,
     DOWN,
     FG,
@@ -20,7 +21,6 @@ from .theme import (
     LINE,
     MUTED,
     PANEL,
-    PURPLE,
     UP,
     YELLOW,
     add_card,
@@ -45,63 +45,25 @@ def margin_label_offset(values: list[float], index: int) -> tuple[int, int, str]
 
 
 def _draw_up_down_donut(ax, up: int, down: int, flat: int) -> None:
-    sizes = [up, down, flat]
-    colors = [UP, DOWN, FLAT]
-    wedges, _ = ax.pie(
-        sizes,
-        labels=None,
-        colors=colors,
-        startangle=90,
-        counterclock=False,
-        wedgeprops={"width": 0.45, "edgecolor": BG, "linewidth": 2},
-    )
-    up_pct = up / (up + down + flat) * 100
-    ax.text(
-        0,
-        0.05,
-        f"{up_pct:.0f}%",
-        ha="center",
-        va="center",
-        fontsize=18,
-        color=UP,
-        fontweight="bold",
-    )
-    ax.text(
-        0,
-        -0.22,
-        "上涨占比",
-        ha="center",
-        va="center",
-        fontsize=9,
-        color=MUTED,
-        fontproperties=cjk,
-    )
-    labels = [f"涨 {up}", f"跌 {down}", f"平 {flat}"]
-    ax.legend(
-        wedges,
-        labels,
-        loc="lower center",
-        bbox_to_anchor=(0.5, -0.08),
-        ncol=3,
-        frameon=False,
-        prop=cjk,
-        fontsize=8,
-        labelcolor=FG,
-    )
-    ax.set_title(
-        "涨跌分布",
-        loc="left",
-        fontproperties=cjk_heavy,
-        fontsize=11.5,
-        color=FG,
-        pad=8,
-    )
+    total = max(up + down + flat, 1)
+    shares = [up / total * 100, down / total * 100, flat / total * 100]
+    left = 0.0
+    for share, color, label in zip(shares, [UP, DOWN, FLAT], ["涨", "跌", "平"], strict=True):
+        ax.barh([0], [share], left=left, color=color, height=0.36, alpha=0.9)
+        if share >= 10:
+            ax.text(left + share / 2, 0, f"{label} {share:.0f}%", ha="center", va="center", color="white", fontsize=9, fontproperties=cjk)
+        left += share
+    ax.set_xlim(0, 100)
+    ax.set_yticks([])
+    ax.set_xticks([0, 50, 100])
+    ax.set_xticklabels(["0%", "50%", "100%"], fontsize=8, color=MUTED)
+    ax.set_title("市场广度", loc="left", fontproperties=cjk_heavy, fontsize=11.5, color=FG, pad=8)
 
 
 def _draw_turnover_panel(ax, turnover_df: pd.DataFrame) -> None:
     x = np.arange(len(turnover_df))
     labels_5d = [d[4:6] + "/" + d[6:8] for d in turnover_df["date"]]
-    ax.bar(x, turnover_df["amount"], color=YELLOW, alpha=0.7, width=0.5)
+    ax.bar(x, turnover_df["amount"], color=ACCENT, alpha=0.78, width=0.5)
     mean5 = float(turnover_df["amount"].mean())
     ax.axhline(y=mean5, color=MUTED, linestyle="--", linewidth=1, alpha=0.5)
     ax.set_xticks(x)
@@ -196,8 +158,7 @@ def _draw_margin_panel(ax, margin_df: pd.DataFrame) -> None:
         return
     mx = np.arange(len(margin_df))
     mlabels = [d[4:6] + "/" + d[6:8] for d in margin_df["date"]]
-    ax.fill_between(mx, margin_df["rzye"], alpha=0.3, color=PURPLE)
-    ax.plot(mx, margin_df["rzye"], color=PURPLE, marker="o", linewidth=2, markersize=5)
+    ax.plot(mx, margin_df["rzye"], color=ACCENT, marker="o", linewidth=2, markersize=5)
     values = [float(value) for value in margin_df["rzye"]]
     for i, value in enumerate(values):
         x_offset, y_offset, va = margin_label_offset(values, i)

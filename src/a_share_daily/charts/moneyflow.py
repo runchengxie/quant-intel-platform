@@ -13,6 +13,7 @@ from .theme import (
     FG,
     MUTED,
     UP,
+    add_card,
     add_report_header,
     cjk,
     cjk_heavy,
@@ -51,7 +52,7 @@ def generate_moneyflow(
     ax1.invert_yaxis()
     ax1.set_xlabel("净流入（亿元）", fontproperties=cjk, fontsize=10, color=MUTED)
     ax1.set_title(
-        "主力净流入 Top 8",
+        f"主力净流入 Top {len(df_in)}",
         loc="left",
         fontproperties=cjk_heavy,
         fontsize=11.5,
@@ -70,6 +71,7 @@ def generate_moneyflow(
         )
     ax1.set_xlim(0, in_vals.max() * 1.25)
     style_plot_axes(ax1, grid_axis="x")
+    add_card(ax1)
 
     # Outflow (right)
     ax2 = fig.add_axes((0.55, 0.10, 0.40, 0.68))
@@ -81,7 +83,7 @@ def generate_moneyflow(
     ax2.invert_yaxis()
     ax2.set_xlabel("净流出（亿元）", fontproperties=cjk, fontsize=10, color=MUTED)
     ax2.set_title(
-        "主力净流出 Top 5",
+        f"主力净流出 Top {len(df_out)}",
         loc="left",
         fontproperties=cjk_heavy,
         fontsize=11.5,
@@ -101,6 +103,7 @@ def generate_moneyflow(
         )
     ax2.set_xlim(out_vals.min() * 1.25, 0)
     style_plot_axes(ax2, grid_axis="x")
+    add_card(ax2)
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=150, facecolor=BG, edgecolor="none", bbox_inches="tight")
     plt.close(fig)
