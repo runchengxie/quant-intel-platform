@@ -16,9 +16,12 @@ def _render_header(ax, artifact: BasketArtifact, theme: ReportTheme) -> None:
     ax.axis("off")
     ax.text(0.02, 0.93, "周度组合 10", fontsize=27, fontweight="bold", color=theme.ink)
     ax.text(
-        0.02, 0.82, "WEEKLY CLIENT BASKET  ·  "
+        0.02,
+        0.82,
+        "WEEKLY CLIENT BASKET  ·  "
         f"{artifact.report_date[:4]}-{artifact.report_date[4:6]}-{artifact.report_date[6:]}",
-        fontsize=10, color=theme.muted,
+        fontsize=10,
+        color=theme.muted,
     )
     ax.text(0.02, 0.69, "三策略混合 · 周内默认冻结 · 研究观察用途", fontsize=12, color=theme.ink)
     stats = (
@@ -40,24 +43,40 @@ def _render_card(card, index: int, position, theme: ReportTheme, fancy_box) -> N
     card.axis("off")
     card.add_patch(
         fancy_box(
-            (0, 0), 1, 1, boxstyle="round,pad=0.012,rounding_size=0.015",
-            linewidth=0.7, edgecolor=theme.rule, facecolor=theme.panel,
+            (0, 0),
+            1,
+            1,
+            boxstyle="round,pad=0.012,rounding_size=0.015",
+            linewidth=0.7,
+            edgecolor=theme.rule,
+            facecolor=theme.panel,
             transform=card.transAxes,
         )
     )
     card.text(0.05, 0.78, f"{index + 1:02d}", fontsize=11, color=theme.accent)
     card.text(
-        0.17, 0.78, position.name or "未命名", fontsize=12,
-        fontweight="bold", color=theme.ink,
+        0.17,
+        0.78,
+        position.name or "未命名",
+        fontsize=12,
+        fontweight="bold",
+        color=theme.ink,
     )
     card.text(0.17, 0.55, position.symbol, fontsize=9, color=theme.muted)
     card.text(
-        0.05, 0.18, SLEEVE_LABELS.get(position.source_strategy, position.source_strategy),
-        fontsize=8, color=theme.muted,
+        0.05,
+        0.18,
+        SLEEVE_LABELS.get(position.source_strategy, position.source_strategy),
+        fontsize=8,
+        color=theme.muted,
     )
     card.text(
-        0.90, 0.18, STATUS_LABELS.get(position.status, position.status), fontsize=8,
-        ha="right", color=theme.accent,
+        0.90,
+        0.18,
+        STATUS_LABELS.get(position.status, position.status),
+        fontsize=8,
+        ha="right",
+        color=theme.accent,
     )
 
 
@@ -81,13 +100,20 @@ def _render_curve(curve_ax, performance: Mapping[str, object] | None, theme: Rep
             "历史净值 · provider performance.json", loc="left", color=theme.ink, fontsize=11
         )
         curve_ax.text(
-            1.0, 1.04, f"{values[-1] / values[0] - 1:+.2%}",
-            transform=curve_ax.transAxes, ha="right", color=theme.accent,
+            1.0,
+            1.04,
+            f"{values[-1] / values[0] - 1:+.2%}",
+            transform=curve_ax.transAxes,
+            ha="right",
+            color=theme.accent,
         )
     else:
         curve_ax.text(
-            0.02, 0.5, "历史净值：等待 provider performance.json",
-            color=theme.muted, transform=curve_ax.transAxes,
+            0.02,
+            0.5,
+            "历史净值：等待 provider performance.json",
+            color=theme.muted,
+            transform=curve_ax.transAxes,
         )
     curve_ax.tick_params(colors=theme.muted, labelsize=7)
     for spine in curve_ax.spines.values():
@@ -114,9 +140,7 @@ def render_basket_png(
     plt.rcParams["axes.unicode_minus"] = False
     output = Path(output_path).expanduser().resolve()
     fig = plt.figure(figsize=(12.0, 13.5), dpi=140, facecolor=selected.surface)
-    grid = fig.add_gridspec(
-        8, 2, height_ratios=[1.45, 0.25, 1.0, 1.0, 1.0, 1.0, 1.0, 1.15]
-    )
+    grid = fig.add_gridspec(8, 2, height_ratios=[1.45, 0.25, 1.0, 1.0, 1.0, 1.0, 1.0, 1.15])
     _render_header(fig.add_subplot(grid[0:2, :]), artifact, selected)
 
     for index, position in enumerate(artifact.positions):

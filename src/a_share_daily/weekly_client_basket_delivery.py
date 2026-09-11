@@ -57,9 +57,7 @@ def _write_receipt(path: Path, receipt: DeliveryReceipt) -> None:
     )
 
 
-def _send_image(
-    *, lark_cli: str, chat_id: str, image_path: Path, idempotency: str
-) -> str:
+def _send_image(*, lark_cli: str, chat_id: str, image_path: Path, idempotency: str) -> str:
     image = image_path.expanduser().resolve()
     result = subprocess.run(  # noqa: S603
         [
@@ -147,9 +145,12 @@ def send_personal_basket_report(
         )
         if receipt.status == "sent" and image_path is not None:
             try:
-                receipt = replace(receipt, image_status=_send_image(
-                    lark_cli=lark_cli, chat_id=target, image_path=image_path, idempotency=key
-                ))
+                receipt = replace(
+                    receipt,
+                    image_status=_send_image(
+                        lark_cli=lark_cli, chat_id=target, image_path=image_path, idempotency=key
+                    ),
+                )
             except (OSError, subprocess.SubprocessError):
                 receipt = replace(receipt, image_status="failed")
     except (OSError, subprocess.SubprocessError) as exc:

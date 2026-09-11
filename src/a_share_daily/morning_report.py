@@ -241,9 +241,7 @@ def _render_mapping_section(cross: Mapping[str, Any]) -> list[str]:
 def _render_a_share_section(manifest: Mapping[str, Any], cross: Mapping[str, Any]) -> list[str]:
     lines = ["## 5. A股盘前热点预判"]
     topic_summary = (
-        manifest.get("topic_summary")
-        if isinstance(manifest.get("topic_summary"), Mapping)
-        else {}
+        manifest.get("topic_summary") if isinstance(manifest.get("topic_summary"), Mapping) else {}
     )
     if topic_summary:
         topic_count = topic_summary.get("topic_count")
@@ -256,9 +254,13 @@ def _render_a_share_section(manifest: Mapping[str, Any], cross: Mapping[str, Any
             reason = str(topic_summary.get("reason") or "topic_summary.json 不可用")
             lines.append(f"- [WARN] DailyWatch20 热点主题不可用（{reason}）。")
     if not topic_summary:
-        hotsector = manifest.get("hotsector") if isinstance(manifest.get("hotsector"), Mapping) else {}
+        hotsector = (
+            manifest.get("hotsector") if isinstance(manifest.get("hotsector"), Mapping) else {}
+        )
         candidates = hotsector.get("candidates") if isinstance(hotsector, Mapping) else None
-        hotsector_skipped = bool(hotsector.get("skipped")) if isinstance(hotsector, Mapping) else False
+        hotsector_skipped = (
+            bool(hotsector.get("skipped")) if isinstance(hotsector, Mapping) else False
+        )
         if isinstance(candidates, int) and candidates > 0:
             lines.append(
                 f"- [fetch] 热点候选池 {candidates} 只，来源 research-workspace owner artifact。"
