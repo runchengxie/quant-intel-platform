@@ -4,6 +4,8 @@ Usage:
     uv run a-share-daily morning [--date YYYYMMDD]
     uv run a-share-daily morning-report [--manifest PATH] [--news PATH] [--out PATH]
     uv run a-share-daily daily-watch20 [--source-date YYYYMMDD] [--dry-run]
+    uv run a-share-daily weekly-basket --as-of-date YYYYMMDD --dailywatch PATH
+        --cashflow PATH --cashflow-receipt PATH --output-root PATH [--send]
     uv run a-share-daily cashflow-delivery --selection PATH --source-date YYYYMMDD --signal-date YYYYMMDD --chat-id CHAT
     uv run a-share-daily cashflow-status-notify --status-json PATH --receipt PATH --chat-id CHAT [--send]
     uv run a-share-daily cashflow-portfolio-render --selection PATH --chart-out PATH
@@ -190,6 +192,43 @@ def _add_cashflow_commands(sub: argparse._SubParsersAction) -> None:
     )
 
 
+def _add_weekly_basket_command(sub: argparse._SubParsersAction) -> None:
+    basket = sub.add_parser(
+        "weekly-basket",
+        help="Compose a validated weekly ten-stock basket and optional personal Feishu report",
+    )
+    basket.add_argument("--as-of-date", required=True, help="Basket date YYYYMMDD")
+    basket.add_argument("--dailywatch", required=True, help="DailyWatch20 or D11-H5 JSON artifact")
+    basket.add_argument("--d11-h5", help="Optional D11-H5 artifact overriding --dailywatch")
+    basket.add_argument("--cashflow", required=True, help="Cashflow selection JSON artifact")
+    basket.add_argument(
+        "--cashflow-receipt", required=True, help="Cashflow publication receipt JSON"
+    )
+    basket.add_argument("--microcap", help="Microcap shadow selection JSON artifact")
+    basket.add_argument(
+        "--instruments",
+        help="Optional symbol/name snapshot parquet used to fill code-only display names",
+    )
+    basket.add_argument(
+        "--microcap-quota",
+        type=int,
+        choices=(0, 2, 3),
+        default=3,
+        help="Microcap positions in V1; 0 uses a 7/3/0 DailyWatch/Cashflow split",
+    )
+    basket.add_argument("--previous", help="Previous canonical basket.json")
+    basket.add_argument("--output-root", required=True, help="Weekly basket artifact root")
+    basket.add_argument(
+        "--send", action="store_true", help="Send only to the explicit personal app target"
+    )
+    basket.add_argument("--dry-run", action="store_true", help="Build artifacts without sending")
+    basket.add_argument("--personal-chat-id", help="Explicit personal Feishu chat ID")
+    basket.add_argument(
+        "--lark-cli",
+        default=os.environ.get("LARK_CLI", str(Path.home() / ".local" / "bin" / "lark-cli")),
+    )
+
+
 def _add_operational_commands(sub: argparse._SubParsersAction) -> None:
     doctor = sub.add_parser("doctor", help="Check A-share daily deployment")
     doctor.add_argument(
@@ -225,6 +264,7 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_morning_commands(sub)
     _add_watch_command(sub)
     _add_cashflow_commands(sub)
+    _add_weekly_basket_command(sub)
     _add_operational_commands(sub)
     return parser
 
@@ -381,6 +421,147 @@ def _cmd_cashflow_portfolio_render(args: argparse.Namespace) -> int:
     return 0
 
 
+def _load_weekly_basket_inputs(args: argparse.Namespace):
+    from .weekly_client_basket import (
+        BasketConfig,
+        enrich_source_names,
+        load_cashflow_selection,
+        load_dailywatch_family,
+        load_microcap_selection,
+        load_previous_basket,
+    )
+
+    source_path = Path(args.d11_h5 or args.dailywatch).expanduser().resolve()
+    source_positions = {
+        "dailywatch_family": load_dailywatch_family(source_path, as_of_date=args.as_of_date),
+        "cashflow": load_cashflow_selection(
+            Path(args.cashflow).expanduser().resolve(),
+            Path(args.cashflow_receipt).expanduser().resolve(),
+            as_of_date=args.as_of_date,
+        ),
+    }
+    source_positions["microcap"] = (
+        load_microcap_selection(
+            Path(args.microcap).expanduser().resolve(),
+            as_of_date=args.as_of_date,
+        )
+        if args.microcap_quota
+        else []
+    )
+    if args.instruments:
+        import pandas as pd
+
+        frame = pd.read_parquet(Path(args.instruments).expanduser().resolve())
+        symbol_column = "symbol" if "symbol" in frame.columns else "ts_code"
+        if symbol_column not in frame.columns or "name" not in frame.columns:
+            raise ValueError("instrument snapshot must contain symbol/ts_code and name columns")
+        names = dict(
+            zip(
+                frame[symbol_column].fillna("").astype(str).str.strip().str.upper(),
+                frame["name"].fillna("").astype(str).str.strip(),
+                strict=False,
+            )
+        )
+        source_positions = enrich_source_names(source_positions, names)
+    config = BasketConfig(
+        quotas={
+            "dailywatch_family": 10 - 3 - args.microcap_quota,
+            "cashflow": 3,
+            "microcap": args.microcap_quota,
+        }
+    )
+    previous = (
+        load_previous_basket(Path(args.previous).expanduser().resolve()) if args.previous else None
+    )
+    return source_positions, config, previous
+
+
+def _update_weekly_basket_receipt(receipt_path: Path, delivery_path: Path, status: str) -> None:
+    from .weekly_client_basket import _atomic_write
+
+    payload = json.loads(receipt_path.read_text(encoding="utf-8"))
+    payload["send_status"] = status
+    payload["delivery_receipt"] = str(delivery_path)
+    _atomic_write(
+        receipt_path,
+        (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
+    )
+
+
+def _cmd_weekly_basket(args: argparse.Namespace) -> int:
+    from .weekly_client_basket import (
+        WeeklyBasketError,
+        compose_weekly_basket,
+        write_basket_artifacts,
+    )
+    from .weekly_client_basket_delivery import send_personal_basket_report
+    from .weekly_client_basket_render import render_basket_markdown, write_rendered_outputs
+
+    if args.send and args.dry_run:
+        print("[FAIL] --send and --dry-run cannot be used together", file=sys.stderr)
+        return 1
+    if args.microcap_quota and not args.microcap:
+        print("[FAIL] --microcap is required when --microcap-quota is non-zero", file=sys.stderr)
+        return 1
+    try:
+        source_positions, config, previous = _load_weekly_basket_inputs(args)
+        artifact = compose_weekly_basket(
+            source_positions,
+            as_of_date=args.as_of_date,
+            previous_basket=previous,
+            config=config,
+        )
+        output_root = Path(args.output_root).expanduser().resolve()
+        paths = write_basket_artifacts(artifact, output_root)
+        rendered = write_rendered_outputs(artifact, output_root / args.as_of_date)
+        markdown = render_basket_markdown(artifact)
+        delivery = None
+        if args.send:
+            delivery = send_personal_basket_report(
+                markdown,
+                report_date=args.as_of_date,
+                chat_id=args.personal_chat_id or "",
+                lark_cli=args.lark_cli,
+                receipt_path=output_root / args.as_of_date / "delivery_receipt.json",
+            )
+            _update_weekly_basket_receipt(
+                paths["receipt"],
+                output_root / args.as_of_date / "delivery_receipt.json",
+                delivery.status,
+            )
+            if delivery.status != "sent":
+                print(
+                    json.dumps(
+                        {
+                            "paths": {key: str(value) for key, value in paths.items()},
+                            "delivery": delivery.__dict__,
+                        },
+                        ensure_ascii=False,
+                        indent=2,
+                    )
+                )
+                return 1
+        print(
+            json.dumps(
+                {
+                    "report_date": artifact.report_date,
+                    "positions": len(artifact.positions),
+                    "paths": {
+                        **{key: str(value) for key, value in paths.items()},
+                        **{key: str(value) for key, value in rendered.items()},
+                    },
+                    "send_status": delivery.status if delivery else "not_requested",
+                },
+                ensure_ascii=False,
+                indent=2,
+            )
+        )
+        return 0
+    except (OSError, json.JSONDecodeError, WeeklyBasketError, ValueError) as exc:
+        print(f"[FAIL] weekly basket: {exc}", file=sys.stderr)
+        return 1
+
+
 def _cmd_evening_review(args: argparse.Namespace) -> int | None:
     from .review import build_json as review_json
     from .review import build_report
@@ -425,6 +606,9 @@ def _dispatch(args: argparse.Namespace) -> int | None:
 
     if args.command == "cashflow-portfolio-render":
         return _cmd_cashflow_portfolio_render(args)
+
+    if args.command == "weekly-basket":
+        return _cmd_weekly_basket(args)
 
     return _cmd_evening_review(args)
 
