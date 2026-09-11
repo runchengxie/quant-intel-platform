@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Mapping
 from pathlib import Path
+from typing import Any, cast
 
 from .report_theme import ReportTheme, get_report_theme
 from .weekly_client_basket import BasketArtifact
@@ -62,7 +63,14 @@ def _render_card(card, index: int, position, theme: ReportTheme, fancy_box) -> N
 
 def _render_curve(curve_ax, performance: Mapping[str, object] | None, theme: ReportTheme) -> None:
     curve_ax.set_facecolor(theme.panel)
-    series = list((performance or {}).get("series", []))
+    raw_series = (performance or {}).get("series", [])
+    series: list[Mapping[str, Any]] = []
+    if isinstance(raw_series, list):
+        series = [
+            cast(Mapping[str, Any], row)
+            for row in raw_series
+            if isinstance(row, Mapping) and isinstance(row.get("nav"), (int, float))
+        ]
     if series:
         values = [float(row["nav"]) for row in series]
         curve_ax.plot(range(len(values)), values, color=theme.accent, linewidth=2.2)
