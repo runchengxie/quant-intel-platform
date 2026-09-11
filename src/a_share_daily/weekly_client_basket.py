@@ -11,7 +11,7 @@ import re
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass, field, replace
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 SCHEMA_VERSION = "a_share_daily.weekly_client_basket.v1"
 DATE_RE = re.compile(r"^\d{8}$")
@@ -318,7 +318,7 @@ def _read_json_value(path: Path, *, label: str) -> Any:
 def _rows(value: Any, *, label: str) -> list[Mapping[str, Any]]:
     if not isinstance(value, list) or not all(isinstance(row, Mapping) for row in value):
         raise WeeklyBasketError(f"{label} must be a list of objects")
-    return list(value)
+    return cast(list[Mapping[str, Any]], value)
 
 
 def _file_hash(path: Path) -> str:
