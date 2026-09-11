@@ -30,8 +30,8 @@ from .theme import (
     style_plot_axes,
 )
 
-MARGIN_PANEL_LEFT = 0.42
-MARGIN_PANEL_WIDTH = 0.54
+MARGIN_PANEL_LEFT = 0.50
+MARGIN_PANEL_WIDTH = 0.46
 
 
 def margin_label_offset(values: list[float], index: int) -> tuple[int, int, str]:
@@ -135,11 +135,11 @@ def _draw_sentiment_panel(
         ("平均涨跌", f"{avg_pct:.2f}%", UP if avg_pct > 0 else DOWN),
     ]
     for i, (label, value, clr) in enumerate(cards3):
-        y = 0.78 - i * 0.29
+        x = i * 0.335
         rect = Rectangle(
-            (0, y),
-            1,
-            0.24,
+            (x, 0.22),
+            0.30,
+            0.62,
             facecolor=PANEL,
             edgecolor=LINE,
             linewidth=1,
@@ -148,8 +148,8 @@ def _draw_sentiment_panel(
         )
         ax.add_patch(rect)
         ax.text(
-            0.08,
-            y + 0.14,
+            x + 0.06,
+            0.65,
             label,
             transform=ax.transAxes,
             fontproperties=cjk,
@@ -158,24 +158,18 @@ def _draw_sentiment_panel(
             va="center",
         )
         ax.text(
-            0.08,
-            y + 0.04,
+            x + 0.06,
+            0.43,
             value,
             transform=ax.transAxes,
             fontproperties=cjk,
-            fontsize=14,
+            fontsize=12.5,
             color=clr,
             va="center",
             fontweight="bold",
         )
-    ax.set_title(
-        "情绪指标",
-        loc="left",
-        fontproperties=cjk_heavy,
-        fontsize=11.5,
-        color=FG,
-        pad=5,
-    )
+    ax.text(0.0, 0.98, "情绪指标", transform=ax.transAxes, fontproperties=cjk_heavy,
+            fontsize=11.5, color=FG, va="top")
 
 
 def _draw_margin_panel(ax, margin_df: pd.DataFrame) -> None:
@@ -265,7 +259,7 @@ def generate_dashboard(
     add_card(ax2)
 
     # ── Panel 3: 情绪指标 ──
-    ax3 = fig.add_axes((0.04, 0.08, 0.27, 0.32), facecolor="none")
+    ax3 = fig.add_axes((0.04, 0.09, 0.40, 0.24), facecolor="none")
     _draw_sentiment_panel(ax3, up, down, flat, avg_pct, limit_up_count, max_board)
     add_card(ax3)
 

@@ -9,6 +9,7 @@ from typing import Any
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
+from matplotlib.patches import Rectangle
 
 from .theme import (
     BG,
@@ -130,6 +131,36 @@ def _plot_turnover(ax: Any, stats_df: pd.DataFrame, x: np.ndarray, labels: list[
     add_card(ax)
 
 
+def _draw_summary_cards(fig: Any, stats_df: pd.DataFrame, up_days: int) -> None:
+    """Promote the weekly takeaways before the detailed charts."""
+    ax = fig.add_axes((0.09, 0.695, 0.86, 0.075))
+    ax.axis("off")
+    total_days = len(stats_df)
+    cards = (
+        ("交易日", f"{total_days} 天", FG),
+        ("上涨日", f"{up_days} 天", UP),
+        ("上涨日占比", f"{up_days / total_days:.0%}", UP),
+        ("平均成交额", f"{stats_df['amount'].mean():.0f}亿", YELLOW),
+    )
+    for index, (label, value, color) in enumerate(cards):
+        x = index * 0.255
+        ax.add_patch(
+            Rectangle(
+                (x, 0.02),
+                0.235,
+                0.90,
+                transform=ax.transAxes,
+                facecolor=BG,
+                edgecolor="#cdd0cf",
+                linewidth=0.7,
+            )
+        )
+        ax.text(x + 0.04, 0.66, label, transform=ax.transAxes, color=MUTED,
+                fontsize=8.5, fontproperties=cjk, va="center")
+        ax.text(x + 0.04, 0.30, value, transform=ax.transAxes, color=color,
+                fontsize=15, fontproperties=cjk_heavy, va="center")
+
+
 def generate_weekly_chart(
     daily_df_by_date: dict[str, pd.DataFrame],
     trade_date: str,
@@ -156,7 +187,7 @@ def generate_weekly_chart(
         gridspec_kw={
             "left": 0.09,
             "right": 0.95,
-            "top": 0.78,
+            "top": 0.66,
             "bottom": 0.10,
             "hspace": 0.45,
         },
@@ -167,6 +198,7 @@ def generate_weekly_chart(
         kicker=f"{period_start:%m/%d}–{ref_date:%m/%d} · A股周报",
         subtitle=summary,
     )
+    _draw_summary_cards(fig, stats_df, up_days)
     _plot_breadth(ax1, stats_df, x, date_labels)
     _plot_turnover(ax2, stats_df, x, date_labels)
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
