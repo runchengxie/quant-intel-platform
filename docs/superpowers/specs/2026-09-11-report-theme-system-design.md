@@ -1,9 +1,8 @@
 # 报告内容模型与可切换主题系统设计
 
-**状态：待 review**  
-**日期：2026-09-11**  
+**状态：待 review**
+**日期：2026-09-11**
 **范围：`quant-intel-platform`、策略/回测 artifact owner、`quant-intel-deploy`**
-
 ## 1. 背景
 
 当前晨报、晚报、周报在不同模块中分别组装和渲染，内容结构与视觉样式存在耦合。周度十股推送已经验证了暖白 editorial 风格的可读性，但它目前主要是 Markdown 文本，缺少统一的主题接口和可靠的历史净值图输入。
@@ -226,4 +225,3 @@ a-share-daily weekly-basket --theme research_editorial
 - 深色主题仍可显式选择，且不依赖旧模块的隐式全局状态。
 - 所有报告投递继续使用现有受众隔离、幂等和 receipt 机制。
 - 生产路径只引用合并后的固定 release，不引用任务 worktree。
-
