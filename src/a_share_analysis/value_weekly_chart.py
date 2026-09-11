@@ -37,7 +37,7 @@ GOLD_LIGHT = "#fff0c9"
 GREY_BAR = LIGHT.FLAT
 
 
-def _set_text(ax: plt.Axes, x: float, y: float, text: str, **kwargs: Any) -> None:
+def _set_text(ax: Any, x: float, y: float, text: str, **kwargs: Any) -> None:
     kwargs.setdefault("fontproperties", CJK)
     ax.text(x, y, text, **kwargs)
 
