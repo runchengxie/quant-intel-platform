@@ -76,3 +76,22 @@ def test_write_rendered_outputs_creates_markdown_and_csv(tmp_path: Path) -> None
 
     assert paths["markdown"].exists()
     assert paths["csv"].exists()
+    assert paths["png"].exists()
+
+
+def test_markdown_and_png_accept_provider_performance_artifact(tmp_path: Path) -> None:
+    performance = {
+        "schema_version": "weekly_basket.performance.v1",
+        "status": "ok",
+        "series": [
+            {"date": "2024-09-24", "nav": 1.0},
+            {"date": "2026-09-14", "nav": 1.2},
+        ],
+        "methodology": {"method": "fixed_current_names_equal_weight_adjusted_close"},
+    }
+
+    text = render_basket_markdown(_artifact(), performance=performance)
+    paths = write_rendered_outputs(_artifact(), tmp_path, performance=performance)
+
+    assert "累计 +20.00%" in text
+    assert paths["png"].stat().st_size > 1_000

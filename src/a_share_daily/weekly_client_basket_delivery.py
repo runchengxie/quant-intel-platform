@@ -6,7 +6,7 @@ import hashlib
 import json
 import os
 import subprocess
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 from pathlib import Path
 
 from .weekly_client_basket import _atomic_write
@@ -26,6 +26,7 @@ class DeliveryReceipt:
     identity: str = "app"
     returncode: int | None = None
     stderr: str = ""
+    image_status: str = "not_requested"
 
 
 def personal_chat_id(explicit_chat_id: str | None = None) -> str:
@@ -56,6 +57,33 @@ def _write_receipt(path: Path, receipt: DeliveryReceipt) -> None:
     )
 
 
+def _send_image(*, lark_cli: str, chat_id: str, image_path: Path, idempotency: str) -> str:
+    image = image_path.expanduser().resolve()
+    result = subprocess.run(  # noqa: S603
+        [
+            lark_cli,
+            "im",
+            "+messages-send",
+            "--as",
+            "bot",
+            "--chat-id",
+            chat_id,
+            "--image",
+            image.name,
+            "--idempotency-key",
+            f"{idempotency}-image",
+            "--format",
+            "json",
+        ],
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=30,
+        cwd=image.parent,
+    )
+    return "sent" if result.returncode == 0 else "failed"
+
+
 def send_personal_basket_report(
     markdown: str,
     *,
@@ -64,6 +92,7 @@ def send_personal_basket_report(
     lark_cli: str,
     receipt_path: Path,
     dry_run: bool = False,
+    image_path: Path | None = None,
 ) -> DeliveryReceipt:
     """Send once to one explicit personal chat using the app identity."""
     target = personal_chat_id(chat_id)
@@ -76,6 +105,7 @@ def send_personal_basket_report(
             chat_id=target,
             idempotency_key=key,
             markdown_sha256=markdown_hash,
+            image_status="dry_run" if image_path else "not_requested",
         )
         _write_receipt(receipt_path, receipt)
         return receipt
@@ -113,6 +143,16 @@ def send_personal_basket_report(
             returncode=result.returncode,
             stderr=result.stderr[-500:],
         )
+        if receipt.status == "sent" and image_path is not None:
+            try:
+                receipt = replace(
+                    receipt,
+                    image_status=_send_image(
+                        lark_cli=lark_cli, chat_id=target, image_path=image_path, idempotency=key
+                    ),
+                )
+            except (OSError, subprocess.SubprocessError):
+                receipt = replace(receipt, image_status="failed")
     except (OSError, subprocess.SubprocessError) as exc:
         receipt = DeliveryReceipt(
             status="failed",

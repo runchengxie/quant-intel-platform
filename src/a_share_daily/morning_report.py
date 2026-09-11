@@ -14,6 +14,7 @@ from typing import Any
 
 from a_share_daily.freshness import render_freshness_section
 from a_share_daily.global_leadlag import GLOBAL_LEAD_LAG_INSTRUMENTS, INDEX_LABELS
+from a_share_daily.report_theme import get_report_theme
 
 NEWS_MARKET_ORDER = ("cn", "jp", "kr", "us")
 NEWS_MARKET_LABELS = {"cn": "A股", "jp": "日股", "kr": "韩股", "us": "美股"}
@@ -240,9 +241,7 @@ def _render_mapping_section(cross: Mapping[str, Any]) -> list[str]:
 def _render_a_share_section(manifest: Mapping[str, Any], cross: Mapping[str, Any]) -> list[str]:
     lines = ["## 5. A股盘前热点预判"]
     topic_summary = (
-        manifest.get("topic_summary")
-        if isinstance(manifest.get("topic_summary"), Mapping)
-        else {}
+        manifest.get("topic_summary") if isinstance(manifest.get("topic_summary"), Mapping) else {}
     )
     if topic_summary:
         topic_count = topic_summary.get("topic_count")
@@ -255,9 +254,13 @@ def _render_a_share_section(manifest: Mapping[str, Any], cross: Mapping[str, Any
             reason = str(topic_summary.get("reason") or "topic_summary.json 不可用")
             lines.append(f"- [WARN] DailyWatch20 热点主题不可用（{reason}）。")
     if not topic_summary:
-        hotsector = manifest.get("hotsector") if isinstance(manifest.get("hotsector"), Mapping) else {}
+        hotsector = (
+            manifest.get("hotsector") if isinstance(manifest.get("hotsector"), Mapping) else {}
+        )
         candidates = hotsector.get("candidates") if isinstance(hotsector, Mapping) else None
-        hotsector_skipped = bool(hotsector.get("skipped")) if isinstance(hotsector, Mapping) else False
+        hotsector_skipped = (
+            bool(hotsector.get("skipped")) if isinstance(hotsector, Mapping) else False
+        )
         if isinstance(candidates, int) and candidates > 0:
             lines.append(
                 f"- [fetch] 热点候选池 {candidates} 只，来源 research-workspace owner artifact。"
@@ -335,6 +338,7 @@ def render_morning_report(
     news: Mapping[str, Any] | None = None,
     *,
     generated_at: datetime | None = None,
+    theme: str = "research_editorial",
 ) -> str:
     generated = generated_at or datetime.now()
     date_text = str(
@@ -345,6 +349,7 @@ def render_morning_report(
     )
     assert isinstance(cross, Mapping)
     news = news or {}
+    selected_theme = get_report_theme(theme)
     freshness_title = "7. 数据质量"
 
     sections: list[list[str]] = [
@@ -352,6 +357,7 @@ def render_morning_report(
             f"# 亚洲市场盘前 / 美股市场盘后（{date_text}）",
             "",
             f"生成时间: {generated.strftime('%Y-%m-%d %H:%M')}",
+            f"报告主题: {selected_theme.label}",
             "生成方式: market-intel 结构化事实 + 规则模板；未使用自由写作流程。",
         ],
         _render_news_section(news),
