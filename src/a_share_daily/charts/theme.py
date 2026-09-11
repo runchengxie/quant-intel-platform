@@ -10,8 +10,9 @@ By default the module-level color constants (``BG``, ``FG``, ``UP``, ``DOWN``,
 that ``from .theme import BG, FG, ...`` now render light automatically.
 
 Call :func:`set_theme` to flip the whole process to another theme (e.g.
-``set_theme(DARK)``), and :func:`apply_graph_paper` to paint the faint
-graph-paper grid behind a figure (used by the DailyWatch20 light sheet).
+``set_theme(DARK)``), and :func:`apply_graph_paper` when a graph-paper sheet is
+explicitly desired.  Report charts default to the quieter paper/card surface
+used by Weekly Client Basket.
 """
 
 from __future__ import annotations
@@ -29,6 +30,7 @@ import numpy as np
 from matplotlib.colors import to_rgb, to_rgba
 from matplotlib.image import BboxImage
 from matplotlib.lines import Line2D
+from matplotlib.patches import FancyBboxPatch
 
 from a_share_daily.data import cjk_font_path
 
@@ -228,7 +230,7 @@ def apply_editorial_background(
     fig: Any,
     theme: ChartTheme = LIGHT,
     *,
-    graph_paper: bool = True,
+    graph_paper: bool = False,
 ) -> Any:
     """Paint the warm-to-cool editorial canvas without creating another axes.
 
@@ -353,11 +355,13 @@ def style_plot_axes(
     theme: ChartTheme = LIGHT,
     panel_alpha: float = 0.52,
 ) -> None:
-    """Apply the quiet transparent-panel treatment used across report plots."""
-    ax.set_facecolor(to_rgba("#ffffff", panel_alpha))
+    """Apply the quiet paper-card treatment used across report plots."""
+    ax.set_facecolor(to_rgba(theme.PANEL, panel_alpha if panel_alpha < 1 else 1))
     ax.set_axisbelow(True)
     for spine in ax.spines.values():
-        spine.set_visible(False)
+        spine.set_visible(True)
+        spine.set_color(theme.LINE)
+        spine.set_linewidth(0.65)
     ax.tick_params(colors=theme.MUTED, length=0)
     ax.grid(False)
     if grid_axis:
@@ -367,6 +371,31 @@ def style_plot_axes(
             alpha=0.58,
             linewidth=0.65,
         )
+
+
+def add_card(
+    ax: Any,
+    *,
+    theme: ChartTheme = LIGHT,
+    rounding: float = 0.018,
+    linewidth: float = 0.7,
+) -> None:
+    """Add a restrained rounded card behind an axes' content."""
+    ax.set_facecolor("none")
+    ax.add_patch(
+        FancyBboxPatch(
+            (0, 0),
+            1,
+            1,
+            boxstyle=f"round,pad=0.008,rounding_size={rounding}",
+            transform=ax.transAxes,
+            facecolor=theme.PANEL,
+            edgecolor=theme.LINE,
+            linewidth=linewidth,
+            zorder=-2,
+            clip_on=False,
+        )
+    )
 
 
 def save_unavailable_chart(
@@ -462,5 +491,6 @@ __all__ = [
     "apply_graph_paper",
     "add_report_header",
     "style_plot_axes",
+    "add_card",
     "save_unavailable_chart",
 ]

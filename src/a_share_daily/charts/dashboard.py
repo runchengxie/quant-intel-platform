@@ -23,6 +23,7 @@ from .theme import (
     PURPLE,
     UP,
     YELLOW,
+    add_card,
     add_report_header,
     cjk,
     cjk_heavy,
@@ -255,20 +256,24 @@ def generate_dashboard(
     # ── Panel 1: 涨跌分布 donut ──
     ax1 = fig.add_axes((0.04, 0.48, 0.42, 0.30), facecolor="none")
     _draw_up_down_donut(ax1, up, down, flat)
+    add_card(ax1)
 
     # ── Panel 2: 5-day turnover ──
     ax2 = fig.add_axes((0.52, 0.49, 0.44, 0.28))
     _draw_turnover_panel(ax2, turnover_df)
     style_plot_axes(ax2, grid_axis="y")
+    add_card(ax2)
 
     # ── Panel 3: 情绪指标 ──
     ax3 = fig.add_axes((0.04, 0.08, 0.27, 0.32), facecolor="none")
     _draw_sentiment_panel(ax3, up, down, flat, avg_pct, limit_up_count, max_board)
+    add_card(ax3)
 
     # ── Panel 4: 融资余额 ──
     ax4 = fig.add_axes((MARGIN_PANEL_LEFT, 0.10, MARGIN_PANEL_WIDTH, 0.29))
     _draw_margin_panel(ax4, margin_df)
     style_plot_axes(ax4, grid_axis="y")
+    add_card(ax4)
     Path(out_path).parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(out_path, dpi=150, facecolor=BG, edgecolor="none", bbox_inches="tight")
     plt.close(fig)

@@ -18,6 +18,7 @@ from .theme import (
     MUTED,
     UP,
     YELLOW,
+    add_card,
     add_report_header,
     cjk,
     cjk_heavy,
@@ -102,6 +103,7 @@ def _plot_breadth(ax: Any, stats_df: pd.DataFrame, x: np.ndarray, labels: list[s
         borderaxespad=0,
     )
     style_plot_axes(ax, grid_axis="y")
+    add_card(ax)
 
 
 def _plot_turnover(ax: Any, stats_df: pd.DataFrame, x: np.ndarray, labels: list[str]) -> None:
@@ -125,6 +127,7 @@ def _plot_turnover(ax: Any, stats_df: pd.DataFrame, x: np.ndarray, labels: list[
     ax.set_ylabel("成交额（亿）", fontproperties=cjk, fontsize=10, color=MUTED)
     ax.set_title("日总成交额", loc="left", fontproperties=cjk_heavy, fontsize=11.5, pad=8, color=FG)
     style_plot_axes(ax, grid_axis="y")
+    add_card(ax)
 
 
 def generate_weekly_chart(
