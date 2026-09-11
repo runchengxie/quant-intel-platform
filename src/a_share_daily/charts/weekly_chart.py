@@ -15,9 +15,11 @@ from .theme import (
     DOWN,
     FG,
     FLAT,
+    LINE,
     MUTED,
     UP,
     YELLOW,
+    add_card,
     add_report_header,
     cjk,
     cjk_heavy,
@@ -68,49 +70,66 @@ def _daily_stats(daily_df_by_date: dict[str, pd.DataFrame], week_dates: list[str
 
 
 def _plot_breadth(ax: Any, stats_df: pd.DataFrame, x: np.ndarray, labels: list[str]) -> None:
-    ax.bar(x, stats_df["up"], color=UP, alpha=0.85, label="上涨", width=0.6)
-    ax.bar(
-        x,
-        stats_df["down"],
-        bottom=stats_df["up"],
-        color=DOWN,
-        alpha=0.85,
-        label="下跌",
-        width=0.6,
+    totals = stats_df["up"] + stats_df["down"] + stats_df["flat"]
+    up_share = stats_df["up"] / totals * 100
+    down_share = stats_df["down"] / totals * 100
+    flat_share = stats_df["flat"] / totals * 100
+    y = np.arange(len(stats_df))
+    ax.barh(y, up_share, color=UP, alpha=0.9, label="上涨", height=0.52)
+    ax.barh(y, down_share, left=up_share, color=DOWN, alpha=0.9, label="下跌", height=0.52)
+    ax.barh(
+        y, flat_share, left=up_share + down_share, color=FLAT, alpha=0.9, label="平盘", height=0.52
     )
-    ax.bar(
-        x,
-        stats_df["flat"],
-        bottom=stats_df["up"] + stats_df["down"],
-        color=FLAT,
-        alpha=0.85,
-        label="平盘",
-        width=0.6,
-    )
-    ax.set_xticks(x)
-    ax.set_xticklabels(labels, fontsize=10, color=FG)
-    ax.set_ylabel("个股数", fontproperties=cjk, fontsize=10, color=MUTED)
-    ax.set_title("日涨跌分布", loc="left", fontproperties=cjk_heavy, fontsize=11.5, pad=8, color=FG)
+    ax.set_yticks(y)
+    ax.set_yticklabels(labels, fontsize=9.5, color=FG)
+    ax.set_xlim(0, 100)
+    ax.set_xticks([0, 50, 100])
+    ax.set_xticklabels(["0%", "50%", "100%"], fontsize=8, color=MUTED)
+    ax.set_title("市场广度", loc="left", fontproperties=cjk_heavy, fontsize=11.5, pad=8, color=FG)
     ax.legend(
         frameon=False,
         prop=cjk,
-        fontsize=9,
+        fontsize=8.5,
         labelcolor=FG,
         loc=WEEKLY_LEGEND_LOC,
         bbox_to_anchor=WEEKLY_LEGEND_ANCHOR,
         ncol=3,
         borderaxespad=0,
     )
-    style_plot_axes(ax, grid_axis="y")
+    for index, (up_value, down_value) in enumerate(zip(up_share, down_share, strict=True)):
+        ax.text(
+            up_value / 2,
+            index,
+            f"{up_value:.0f}%",
+            ha="center",
+            va="center",
+            fontsize=8,
+            color="white",
+        )
+        if down_value >= 12:
+            ax.text(
+                up_value + down_value / 2,
+                index,
+                f"{down_value:.0f}%",
+                ha="center",
+                va="center",
+                fontsize=8,
+                color="white",
+            )
+    ax.invert_yaxis()
+    style_plot_axes(ax, grid_axis="x")
+    add_card(ax)
 
 
 def _plot_turnover(ax: Any, stats_df: pd.DataFrame, x: np.ndarray, labels: list[str]) -> None:
-    ax.plot(x, stats_df["amount"], color=YELLOW, marker="o", linewidth=2, markersize=6)
-    amounts = [float(value) for value in stats_df["amount"]]
+    mean_amount = float(stats_df["amount"].mean())
+    deviation = (stats_df["amount"] / mean_amount - 1) * 100
+    ax.plot(x, deviation, color=YELLOW, marker="o", linewidth=2, markersize=6)
+    amounts = [float(value) for value in deviation]
     for i, amount in enumerate(amounts):
         x_offset, y_offset, va = turnover_label_offset(amounts, i)
         ax.annotate(
-            f"{amount:.0f}亿",
+            f"{amount:+.0f}%",
             (i, amount),
             textcoords="offset points",
             xytext=(x_offset, y_offset),
@@ -122,9 +141,18 @@ def _plot_turnover(ax: Any, stats_df: pd.DataFrame, x: np.ndarray, labels: list[
         )
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=10, color=FG)
-    ax.set_ylabel("成交额（亿）", fontproperties=cjk, fontsize=10, color=MUTED)
-    ax.set_title("日总成交额", loc="left", fontproperties=cjk_heavy, fontsize=11.5, pad=8, color=FG)
+    ax.set_ylabel("相对周均", fontproperties=cjk, fontsize=10, color=MUTED)
+    ax.set_title(
+        "成交活跃度（相对周均）",
+        loc="left",
+        fontproperties=cjk_heavy,
+        fontsize=11.5,
+        pad=8,
+        color=FG,
+    )
+    ax.axhline(0, color=LINE, linewidth=0.8)
     style_plot_axes(ax, grid_axis="y")
+    add_card(ax)
 
 
 def generate_weekly_chart(
@@ -141,8 +169,10 @@ def generate_weekly_chart(
     x = np.arange(len(stats_df))
     date_labels = [d[4:6] + "/" + d[6:8] for d in stats_df["date"]]
     up_days = int((stats_df["up"] > stats_df["down"]).sum())
-    up_ratio = up_days / len(stats_df) * 100
-    summary = f"{len(stats_df)} 个交易日 · {up_days} 天上涨 · 上涨日占比 {up_ratio:.0f}%"
+    summary = (
+        f"{len(stats_df)} 个交易日 · 上涨日 {up_days}/{len(stats_df)} · "
+        f"周均成交额 {stats_df['amount'].mean():.0f}亿"
+    )
 
     fig, (ax1, ax2) = plt.subplots(
         2,
@@ -153,7 +183,7 @@ def generate_weekly_chart(
         gridspec_kw={
             "left": 0.09,
             "right": 0.95,
-            "top": 0.78,
+            "top": 0.76,
             "bottom": 0.10,
             "hspace": 0.45,
         },

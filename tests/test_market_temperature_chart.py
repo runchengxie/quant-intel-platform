@@ -87,3 +87,30 @@ def test_market_temperature_cli_reads_evening_review(tmp_path: Path) -> None:
 
     assert exit_code == 0
     assert out_path.is_file()
+
+
+def test_market_temperature_uses_dot_scale_and_semantic_risk_note(
+    tmp_path: Path, monkeypatch
+) -> None:
+    rendered_text: list[str] = []
+    original_text = Axes.text
+
+    def capture_text(self, x, y, text, *args, **kwargs):
+        rendered_text.append(str(text))
+        return original_text(self, x, y, text, *args, **kwargs)
+
+    monkeypatch.setattr(Axes, "text", capture_text)
+    generate_market_temperature(
+        {
+            "status": "数据分化",
+            "heat_score": 32,
+            "fragility_score": 62,
+            "dimensions": {"广度": 24.4, "亏钱风险": 59.5},
+        },
+        "20260715",
+        str(tmp_path / "temperature.png"),
+    )
+
+    assert "0" in rendered_text and "50" in rendered_text and "100" in rendered_text
+    assert "风险偏高" in rendered_text
+    assert not any(text == "统一按 0–100 展示" for text in rendered_text)

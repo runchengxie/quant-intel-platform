@@ -8,6 +8,7 @@ from a_share_daily.charts.theme import (
     LIGHT,
     add_report_header,
     apply_editorial_background,
+    apply_graph_paper,
 )
 
 
@@ -29,6 +30,19 @@ def test_editorial_background_is_idempotent_and_does_not_add_axes() -> None:
         assert fig.get_facecolor()[:3] == to_rgb(LIGHT.BG)
     finally:
         plt.close(fig)
+
+
+def test_editorial_background_is_quiet_by_default_and_graph_paper_is_explicit() -> None:
+    fig = plt.figure(figsize=(4, 3))
+    graph_fig = plt.figure(figsize=(4, 3))
+    try:
+        apply_editorial_background(fig)
+        quiet_artist_count = len(fig.artists)
+        apply_graph_paper(graph_fig)
+        assert len(graph_fig.artists) > quiet_artist_count
+    finally:
+        plt.close(fig)
+        plt.close(graph_fig)
 
 
 def test_report_header_uses_editorial_hierarchy() -> None:
