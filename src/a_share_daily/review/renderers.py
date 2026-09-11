@@ -13,6 +13,7 @@ import pandas as pd
 
 from .. import data as D
 from ..market_temperature_render import render_market_temperature_section
+from ..report_theme import get_report_theme
 from .formatters import _fmt_yuan, _pct, _sign
 from .loaders import build_review_payload
 
@@ -221,8 +222,9 @@ def _render_extreme_section(overview: Mapping[str, Any]) -> list[str]:
     return lines
 
 
-def build_report(trade_date: str) -> str:
+def build_report(trade_date: str, *, theme: str = "research_editorial") -> str:
     """Build complete markdown report."""
+    selected_theme = get_report_theme(theme)
     payload = build_review_payload(trade_date)
     indices = payload["indices"]
     overview = payload["overview"]
@@ -254,7 +256,8 @@ def build_report(trade_date: str) -> str:
 
     lines.append("---")
     lines.append(
-        f"*数据: Tushare / market-data-platform | 生成: {datetime.now().strftime('%Y-%m-%d %H:%M')}*"
+        f"*数据: Tushare / market-data-platform | 主题: {selected_theme.label} | "
+        f"生成: {datetime.now().strftime('%Y-%m-%d %H:%M')}*"
     )
 
     return "\n".join(lines)

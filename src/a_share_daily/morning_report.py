@@ -14,6 +14,7 @@ from typing import Any
 
 from a_share_daily.freshness import render_freshness_section
 from a_share_daily.global_leadlag import GLOBAL_LEAD_LAG_INSTRUMENTS, INDEX_LABELS
+from a_share_daily.report_theme import get_report_theme
 
 NEWS_MARKET_ORDER = ("cn", "jp", "kr", "us")
 NEWS_MARKET_LABELS = {"cn": "A股", "jp": "日股", "kr": "韩股", "us": "美股"}
@@ -335,6 +336,7 @@ def render_morning_report(
     news: Mapping[str, Any] | None = None,
     *,
     generated_at: datetime | None = None,
+    theme: str = "research_editorial",
 ) -> str:
     generated = generated_at or datetime.now()
     date_text = str(
@@ -345,6 +347,7 @@ def render_morning_report(
     )
     assert isinstance(cross, Mapping)
     news = news or {}
+    selected_theme = get_report_theme(theme)
     freshness_title = "7. 数据质量"
 
     sections: list[list[str]] = [
@@ -352,6 +355,7 @@ def render_morning_report(
             f"# 亚洲市场盘前 / 美股市场盘后（{date_text}）",
             "",
             f"生成时间: {generated.strftime('%Y-%m-%d %H:%M')}",
+            f"报告主题: {selected_theme.label}",
             "生成方式: market-intel 结构化事实 + 规则模板；未使用自由写作流程。",
         ],
         _render_news_section(news),

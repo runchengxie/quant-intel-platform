@@ -108,6 +108,12 @@ def _add_morning_commands(sub: argparse._SubParsersAction) -> None:
         default=_default_feishu_chat_id(),
         help="Feishu chat ID",
     )
+    report.add_argument(
+        "--theme",
+        choices=("research_editorial", "warm_light", "dark_terminal"),
+        default=os.environ.get("A_SHARE_REPORT_THEME", "research_editorial"),
+        help="Report theme shared with weekly and evening reports",
+    )
 
 
 def _add_watch_command(sub: argparse._SubParsersAction) -> None:
@@ -217,6 +223,16 @@ def _add_weekly_basket_command(sub: argparse._SubParsersAction) -> None:
         help="Microcap positions in V1; 0 uses a 7/3/0 DailyWatch/Cashflow split",
     )
     basket.add_argument("--previous", help="Previous canonical basket.json")
+    basket.add_argument(
+        "--performance",
+        help="Optional provider-side weekly_basket.performance.v1 JSON artifact",
+    )
+    basket.add_argument(
+        "--theme",
+        choices=("research_editorial", "warm_light", "dark_terminal"),
+        default=os.environ.get("A_SHARE_REPORT_THEME", "research_editorial"),
+        help="Report theme; content and delivery remain unchanged",
+    )
     basket.add_argument("--output-root", required=True, help="Weekly basket artifact root")
     basket.add_argument(
         "--send", action="store_true", help="Send only to the explicit personal app target"
@@ -255,6 +271,12 @@ def _add_operational_commands(sub: argparse._SubParsersAction) -> None:
             "--feishu-chat-id",
             default=_default_feishu_chat_id(),
             help="Feishu chat ID",
+        )
+        command.add_argument(
+            "--theme",
+            choices=("research_editorial", "warm_light", "dark_terminal"),
+            default=os.environ.get("A_SHARE_REPORT_THEME", "research_editorial"),
+            help="Report theme shared with weekly and morning reports",
         )
 
 
@@ -298,7 +320,7 @@ def _cmd_morning_report(args: argparse.Namespace) -> int | None:
 
     manifest = load_json(args.manifest)
     news = load_json(args.news)
-    output = render_morning_report(manifest, news)
+    output = render_morning_report(manifest, news, theme=args.theme)
     write_report(args.out, output)
     print(output)
     return _maybe_send_feishu(output, args)
@@ -497,6 +519,10 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
     from .weekly_client_basket_delivery import send_personal_basket_report
     from .weekly_client_basket_render import render_basket_markdown, write_rendered_outputs
 
+    performance = None
+    if args.performance:
+        performance = json.loads(Path(args.performance).expanduser().resolve().read_text(encoding="utf-8"))
+
     if args.send and args.dry_run:
         print("[FAIL] --send and --dry-run cannot be used together", file=sys.stderr)
         return 1
@@ -513,8 +539,13 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
         )
         output_root = Path(args.output_root).expanduser().resolve()
         paths = write_basket_artifacts(artifact, output_root)
-        rendered = write_rendered_outputs(artifact, output_root / args.as_of_date)
-        markdown = render_basket_markdown(artifact)
+        rendered = write_rendered_outputs(
+            artifact,
+            output_root / args.as_of_date,
+            theme=args.theme,
+            performance=performance,
+        )
+        markdown = render_basket_markdown(artifact, theme=args.theme, performance=performance)
         delivery = None
         if args.send:
             delivery = send_personal_basket_report(
@@ -523,6 +554,7 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
                 chat_id=args.personal_chat_id or "",
                 lark_cli=args.lark_cli,
                 receipt_path=output_root / args.as_of_date / "delivery_receipt.json",
+                image_path=rendered.get("png"),
             )
             _update_weekly_basket_receipt(
                 paths["receipt"],
@@ -575,7 +607,7 @@ def _cmd_evening_review(args: argparse.Namespace) -> int | None:
             print("[FAIL] cannot determine latest trading date", file=sys.stderr)
             return 1
 
-    output = review_json(trade_date) if args.json else build_report(trade_date)
+    output = review_json(trade_date) if args.json else build_report(trade_date, theme=args.theme)
     print(output)
     return _maybe_send_feishu(output, args)
 

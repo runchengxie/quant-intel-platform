@@ -76,3 +76,28 @@ def test_send_uses_app_identity_and_stable_idempotency_key(
     assert calls[0][calls[0].index("--idempotency-key") + 1] == idempotency_key(
         "ou_owner", "20260914", "# test"
     )
+
+
+def test_send_can_follow_text_with_app_image(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    calls: list[list[str]] = []
+    image = tmp_path / "report.png"
+    image.write_bytes(b"png")
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda command, **kwargs: calls.append(command) or _ok(),
+    )
+
+    receipt = send_personal_basket_report(
+        "# test",
+        report_date="20260914",
+        chat_id="ou_owner",
+        lark_cli="/bin/lark-cli",
+        receipt_path=tmp_path / "receipt.json",
+        image_path=image,
+    )
+
+    assert receipt.image_status == "sent"
+    assert len(calls) == 2
+    assert "--image" in calls[1]
+    assert calls[1][calls[1].index("--image") + 1] == "report.png"
