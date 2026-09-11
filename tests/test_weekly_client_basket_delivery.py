@@ -78,7 +78,9 @@ def test_send_uses_app_identity_and_stable_idempotency_key(
     )
 
 
-def test_send_can_follow_text_with_app_image(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_send_can_follow_text_with_app_image(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     calls: list[list[str]] = []
     image = tmp_path / "report.png"
     image.write_bytes(b"png")

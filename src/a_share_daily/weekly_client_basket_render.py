@@ -42,7 +42,8 @@ def _performance_lines(performance: dict[str, Any] | None) -> list[str]:
     change = (last / first - 1.0) * 100 if first else 0.0
     return [
         f"- 历史净值：{first:.3f} → {last:.3f}（累计 {change:+.2f}%）",
-        f"- 曲线区间：{series[0]['date']} 至 {series[-1]['date']}；来源方法：{performance.get('methodology', {}).get('method', '未说明')}。",
+        f"- 曲线区间：{series[0]['date']} 至 {series[-1]['date']}；"
+        f"来源方法：{performance.get('methodology', {}).get('method', '未说明')}。",
     ]
 
 
@@ -83,7 +84,8 @@ def render_basket_markdown(
             "",
             f"- 新增（NEW）：{_status_symbols(artifact, 'NEW')}",
             f"- 保留（KEEP）：{_status_symbols(artifact, 'KEEP')}",
-            f"- 剔除（DROP）：{_status_symbols(artifact, 'DROP')}（DROP: {_status_symbols(artifact, 'DROP')}）",
+            f"- 剔除（DROP）：{_status_symbols(artifact, 'DROP')}"
+            f"（DROP: {_status_symbols(artifact, 'DROP')}）",
             "",
             "## 历史净值",
             "",

@@ -521,7 +521,8 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
 
     performance = None
     if args.performance:
-        performance = json.loads(Path(args.performance).expanduser().resolve().read_text(encoding="utf-8"))
+        performance_path = Path(args.performance).expanduser().resolve()
+        performance = json.loads(performance_path.read_text(encoding="utf-8"))
 
     if args.send and args.dry_run:
         print("[FAIL] --send and --dry-run cannot be used together", file=sys.stderr)
