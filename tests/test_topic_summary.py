@@ -47,7 +47,9 @@ def test_load_topic_summary_validates_contract_and_dates(tmp_path: Path) -> None
         {"topics": [{"topic": "主题", "count": 1, "weight": -1, "rank": 1}]},
     ],
 )
-def test_load_topic_summary_rejects_invalid_payload(tmp_path: Path, overrides: dict[str, object]) -> None:
+def test_load_topic_summary_rejects_invalid_payload(
+    tmp_path: Path, overrides: dict[str, object]
+) -> None:
     path = tmp_path / "topic_summary.json"
     _write(path, **overrides)
 
@@ -90,7 +92,9 @@ def test_generate_topic_reads_daily_watch20_summary(tmp_path: Path) -> None:
     assert output.is_file()
 
 
-def test_generate_topic_uses_percentages_dynamic_top_n_and_concentration(tmp_path: Path, monkeypatch) -> None:
+def test_generate_topic_uses_percentages_dynamic_top_n_and_concentration(
+    tmp_path: Path, monkeypatch
+) -> None:
     source = tmp_path / "topic_summary.json"
     _write(
         source,
@@ -135,6 +139,8 @@ def test_generate_topic_uses_percentages_dynamic_top_n_and_concentration(tmp_pat
 
 def test_generate_topic_rejects_legacy_candidate_universe(tmp_path: Path) -> None:
     source = tmp_path / "candidate_universe.json"
-    source.write_text(json.dumps({"topics": [{"topic": "旧主题", "weight": 1.0}]}), encoding="utf-8")
+    source.write_text(
+        json.dumps({"topics": [{"topic": "旧主题", "weight": 1.0}]}), encoding="utf-8"
+    )
 
     assert generate_topic(str(source), str(tmp_path / "topic.png")) is None

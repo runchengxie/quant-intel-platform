@@ -103,9 +103,7 @@ def test_weekly_chart_subtitle_and_breadth_use_report_language(tmp_path, monkeyp
     monkeypatch.setattr(Figure, "text", capture_figure_text)
     monkeypatch.setattr(Axes, "set_title", capture_set_title)
     frames = {
-        day: pd.DataFrame(
-            {"pct_chg": [1.0, -1.0, 0.5, 0.0], "amount": [2_000_000] * 4}
-        )
+        day: pd.DataFrame({"pct_chg": [1.0, -1.0, 0.5, 0.0], "amount": [2_000_000] * 4})
         for day in ["20260907", "20260908", "20260909", "20260910", "20260911"]
     }
 

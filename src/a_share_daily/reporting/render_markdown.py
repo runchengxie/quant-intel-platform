@@ -7,7 +7,12 @@ from .themes import ReportTheme
 
 
 def render_markdown(document: ReportDocument, theme: ReportTheme) -> str:
-    lines = [f"# {document.title}", "", f"> {document.report_type} · {document.report_date} · {theme.name}", ""]
+    lines = [
+        f"# {document.title}",
+        "",
+        f"> {document.report_type} · {document.report_date} · {theme.name}",
+        "",
+    ]
     for group in document.metrics:
         lines.extend([f"## {group.title}", ""])
         lines.extend(f"- {metric.label}：{metric.value}{metric.unit}" for metric in group.metrics)
@@ -15,7 +20,9 @@ def render_markdown(document: ReportDocument, theme: ReportTheme) -> str:
     for section in document.sections:
         lines.extend([f"## {section.title}", ""])
         for group in section.metrics:
-            lines.extend(f"- {metric.label}：{metric.value}{metric.unit}" for metric in group.metrics)
+            lines.extend(
+                f"- {metric.label}：{metric.value}{metric.unit}" for metric in group.metrics
+            )
         for position in section.positions:
             lines.append(f"- `{position.symbol}` {position.name} · {position.status}")
         lines.append("")

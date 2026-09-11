@@ -88,9 +88,7 @@ def generate(us_stocks: dict, trade_date: str, output: str) -> str:
     us_date = f"{trade_date[:4]}-{trade_date[4:6]}-{trade_date[6:]}"
     benchmark = dict(zip(SYMBOLS[:3], pcts[:3], strict=False))
     leader_pairs = [
-        (name, pct)
-        for name, pct, kind in zip(names, pcts, kinds, strict=True)
-        if kind == "leader"
+        (name, pct) for name, pct, kind in zip(names, pcts, kinds, strict=True) if kind == "leader"
     ]
     strongest = max(leader_pairs, key=lambda item: item[1], default=None)
     semiconductor = benchmark.get("SMH")

@@ -263,7 +263,10 @@ def test_generate_chart_uses_compact_research_sections(monkeypatch, tmp_path):
     monkeypatch.setattr(
         matplotlib.axes.Axes,
         "set_title",
-        lambda self, label, *args, **kwargs: (seen.append(str(label)), original(self, label, *args, **kwargs))[1],
+        lambda self, label, *args, **kwargs: (
+            seen.append(str(label)),
+            original(self, label, *args, **kwargs),
+        )[1],
     )
 
     generate_chart(snapshot, tmp_path / "size-style.png")

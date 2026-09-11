@@ -89,7 +89,9 @@ def test_market_temperature_cli_reads_evening_review(tmp_path: Path) -> None:
     assert out_path.is_file()
 
 
-def test_market_temperature_uses_dot_scale_and_semantic_risk_note(tmp_path: Path, monkeypatch) -> None:
+def test_market_temperature_uses_dot_scale_and_semantic_risk_note(
+    tmp_path: Path, monkeypatch
+) -> None:
     rendered_text: list[str] = []
     original_text = Axes.text
 

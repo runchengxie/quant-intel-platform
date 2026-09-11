@@ -105,9 +105,13 @@ def generate_topic(
     topics_sorted = sorted(topics, key=lambda t: t["weight"], reverse=True)[:10]
     names = [format_topic_label(t.get("topic")) for t in topics_sorted]
     weights = [t["weight"] for t in topics_sorted]
-    displayed_weights = [float(weight) * 100 if float(weight) <= 1 else float(weight) for weight in weights]
+    displayed_weights = [
+        float(weight) * 100 if float(weight) <= 1 else float(weight) for weight in weights
+    ]
     top_three = sum(displayed_weights[:3])
-    concentration = "主题集中度高" if displayed_weights and displayed_weights[0] >= 50 else "主题分布较分散"
+    concentration = (
+        "主题集中度高" if displayed_weights and displayed_weights[0] >= 50 else "主题分布较分散"
+    )
 
     report_date = str(data.get("signal_date") or data.get("source_date") or "")
     fig, ax = plt.subplots(figsize=(10, 5.5), facecolor=BG)
@@ -123,7 +127,11 @@ def generate_topic(
     )
     y_pos = np.arange(len(names))
     colors = [
-        MUTED if name == "其他" else ACCENT if index == 0 else BLUE_SCALE[min(index, len(BLUE_SCALE) - 1)]
+        MUTED
+        if name == "其他"
+        else ACCENT
+        if index == 0
+        else BLUE_SCALE[min(index, len(BLUE_SCALE) - 1)]
         for index, name in enumerate(names)
     ]
     bars = ax.barh(y_pos, displayed_weights, height=0.56, color=colors, alpha=0.9)

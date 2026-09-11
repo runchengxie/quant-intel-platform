@@ -51,7 +51,16 @@ def _draw_up_down_donut(ax, up: int, down: int, flat: int) -> None:
     for share, color, label in zip(shares, [UP, DOWN, FLAT], ["涨", "跌", "平"], strict=True):
         ax.barh([0], [share], left=left, color=color, height=0.36, alpha=0.9)
         if share >= 10:
-            ax.text(left + share / 2, 0, f"{label} {share:.0f}%", ha="center", va="center", color="white", fontsize=9, fontproperties=cjk)
+            ax.text(
+                left + share / 2,
+                0,
+                f"{label} {share:.0f}%",
+                ha="center",
+                va="center",
+                color="white",
+                fontsize=9,
+                fontproperties=cjk,
+            )
         left += share
     ax.set_xlim(0, 100)
     ax.set_yticks([])
@@ -130,8 +139,16 @@ def _draw_sentiment_panel(
             va="center",
             fontweight="bold",
         )
-    ax.text(0.0, 0.98, "情绪指标", transform=ax.transAxes, fontproperties=cjk_heavy,
-            fontsize=11.5, color=FG, va="top")
+    ax.text(
+        0.0,
+        0.98,
+        "情绪指标",
+        transform=ax.transAxes,
+        fontproperties=cjk_heavy,
+        fontsize=11.5,
+        color=FG,
+        va="top",
+    )
 
 
 def _draw_margin_panel(ax, margin_df: pd.DataFrame) -> None:

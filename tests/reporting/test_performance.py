@@ -14,18 +14,20 @@ from a_share_daily.reporting.performance import (
 
 def _write(path, *, series=None):
     payload = {
-                "schema_version": "weekly_basket.performance.v1",
-                "report_date": "20260911",
-                "source": "test",
-                "series": series
-                or [
-                    {"date": "20260901", "nav": 1.0},
-                    {"date": "20260911", "nav": 1.1},
-                ],
-                "artifact_sha256": "",
-            }
+        "schema_version": "weekly_basket.performance.v1",
+        "report_date": "20260911",
+        "source": "test",
+        "series": series
+        or [
+            {"date": "20260901", "nav": 1.0},
+            {"date": "20260911", "nav": 1.1},
+        ],
+        "artifact_sha256": "",
+    }
     unsigned = {key: value for key, value in payload.items() if key != "artifact_sha256"}
-    canonical = json.dumps(unsigned, ensure_ascii=False, sort_keys=True, separators=(",", ":")).encode()
+    canonical = json.dumps(
+        unsigned, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+    ).encode()
     payload["artifact_sha256"] = hashlib.sha256(canonical).hexdigest()
     path.write_text(json.dumps(payload), encoding="utf-8")
 

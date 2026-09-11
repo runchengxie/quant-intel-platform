@@ -90,5 +90,7 @@ class ReportDocument:
             "sections": self.sections,
             "notices": self.notices,
         }
-        encoded = json.dumps(payload, ensure_ascii=False, sort_keys=True, default=lambda x: x.__dict__)
+        encoded = json.dumps(
+            payload, ensure_ascii=False, sort_keys=True, default=lambda x: x.__dict__
+        )
         return hashlib.sha256(encoded.encode("utf-8")).hexdigest()

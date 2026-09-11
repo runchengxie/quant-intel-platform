@@ -77,7 +77,9 @@ def _plot_breadth(ax: Any, stats_df: pd.DataFrame, x: np.ndarray, labels: list[s
     y = np.arange(len(stats_df))
     ax.barh(y, up_share, color=UP, alpha=0.9, label="上涨", height=0.52)
     ax.barh(y, down_share, left=up_share, color=DOWN, alpha=0.9, label="下跌", height=0.52)
-    ax.barh(y, flat_share, left=up_share + down_share, color=FLAT, alpha=0.9, label="平盘", height=0.52)
+    ax.barh(
+        y, flat_share, left=up_share + down_share, color=FLAT, alpha=0.9, label="平盘", height=0.52
+    )
     ax.set_yticks(y)
     ax.set_yticklabels(labels, fontsize=9.5, color=FG)
     ax.set_xlim(0, 100)
@@ -95,9 +97,25 @@ def _plot_breadth(ax: Any, stats_df: pd.DataFrame, x: np.ndarray, labels: list[s
         borderaxespad=0,
     )
     for index, (up_value, down_value) in enumerate(zip(up_share, down_share, strict=True)):
-        ax.text(up_value / 2, index, f"{up_value:.0f}%", ha="center", va="center", fontsize=8, color="white")
+        ax.text(
+            up_value / 2,
+            index,
+            f"{up_value:.0f}%",
+            ha="center",
+            va="center",
+            fontsize=8,
+            color="white",
+        )
         if down_value >= 12:
-            ax.text(up_value + down_value / 2, index, f"{down_value:.0f}%", ha="center", va="center", fontsize=8, color="white")
+            ax.text(
+                up_value + down_value / 2,
+                index,
+                f"{down_value:.0f}%",
+                ha="center",
+                va="center",
+                fontsize=8,
+                color="white",
+            )
     ax.invert_yaxis()
     style_plot_axes(ax, grid_axis="x")
     add_card(ax)
@@ -124,7 +142,14 @@ def _plot_turnover(ax: Any, stats_df: pd.DataFrame, x: np.ndarray, labels: list[
     ax.set_xticks(x)
     ax.set_xticklabels(labels, fontsize=10, color=FG)
     ax.set_ylabel("相对周均", fontproperties=cjk, fontsize=10, color=MUTED)
-    ax.set_title("成交活跃度（相对周均）", loc="left", fontproperties=cjk_heavy, fontsize=11.5, pad=8, color=FG)
+    ax.set_title(
+        "成交活跃度（相对周均）",
+        loc="left",
+        fontproperties=cjk_heavy,
+        fontsize=11.5,
+        pad=8,
+        color=FG,
+    )
     ax.axhline(0, color=LINE, linewidth=0.8)
     style_plot_axes(ax, grid_axis="y")
     add_card(ax)

@@ -8,7 +8,9 @@ from matplotlib.figure import Figure
 from a_share_daily.charts.us_overnight import generate
 
 
-def test_us_overnight_groups_market_and_leaders_and_writes_summary(tmp_path: Path, monkeypatch) -> None:
+def test_us_overnight_groups_market_and_leaders_and_writes_summary(
+    tmp_path: Path, monkeypatch
+) -> None:
     rendered_text: list[str] = []
     original_text = Axes.text
     original_figure_text = Figure.text

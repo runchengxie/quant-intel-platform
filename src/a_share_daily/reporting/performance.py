@@ -54,7 +54,10 @@ def load_performance(path: Path, *, report_date: str) -> PerformanceSeries:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise PerformanceArtifactError("performance artifact unavailable") from exc
-    if not isinstance(payload, dict) or payload.get("schema_version") != "weekly_basket.performance.v1":
+    if (
+        not isinstance(payload, dict)
+        or payload.get("schema_version") != "weekly_basket.performance.v1"
+    ):
         raise PerformanceArtifactError("unsupported performance artifact schema")
     digest = str(payload.get("artifact_sha256", ""))
     if digest != hashlib.sha256(_canonical(payload)).hexdigest():
@@ -69,7 +72,9 @@ def load_performance(path: Path, *, report_date: str) -> PerformanceSeries:
     normalized_benchmark = None
     if benchmark_points is not None:
         first_benchmark = benchmark_points[0][1]
-        normalized_benchmark = tuple((date, value / first_benchmark) for date, value in benchmark_points)
+        normalized_benchmark = tuple(
+            (date, value / first_benchmark) for date, value in benchmark_points
+        )
     return PerformanceSeries(normalized, normalized_benchmark)
 
 
@@ -86,4 +91,9 @@ def performance_metrics(series: PerformanceSeries, *, report_date: str) -> tuple
     return tuple(metrics)
 
 
-__all__ = ["PerformanceArtifactError", "PerformanceSeries", "load_performance", "performance_metrics"]
+__all__ = [
+    "PerformanceArtifactError",
+    "PerformanceSeries",
+    "load_performance",
+    "performance_metrics",
+]

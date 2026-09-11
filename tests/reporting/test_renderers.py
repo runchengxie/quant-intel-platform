@@ -12,7 +12,9 @@ def _document() -> ReportDocument:
         report_date="20260911",
         title="A股晨报",
         metrics=(MetricGroup("市场", (Metric("上涨占比", 62, "%"),)),),
-        sections=(ReportSection("摘要", metrics=(MetricGroup("重点", (Metric("温度", "偏暖"),)),)),),
+        sections=(
+            ReportSection("摘要", metrics=(MetricGroup("重点", (Metric("温度", "偏暖"),)),)),
+        ),
     )
 
 

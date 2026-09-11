@@ -46,10 +46,23 @@ def _draw_distribution(fig: Any, up: int, down: int, flat: int) -> None:
     ax.set_xticklabels(["0%", "50%", "100%"], fontsize=8, color=MUTED)
     ax.set_title("市场广度", loc="left", fontproperties=cjk_heavy, fontsize=11.5, color=FG, pad=5)
     for share, label, _color, start in zip(
-        shares, ["涨", "跌", "平"], [UP, DOWN, FLAT], [0, shares[0], shares[0] + shares[1]], strict=True
+        shares,
+        ["涨", "跌", "平"],
+        [UP, DOWN, FLAT],
+        [0, shares[0], shares[0] + shares[1]],
+        strict=True,
     ):
         if share >= 10:
-            ax.text(start + share / 2, 0, f"{label} {share:.0f}%", ha="center", va="center", color="white", fontsize=9, fontproperties=cjk)
+            ax.text(
+                start + share / 2,
+                0,
+                f"{label} {share:.0f}%",
+                ha="center",
+                va="center",
+                color="white",
+                fontsize=9,
+                fontproperties=cjk,
+            )
 
 
 def _draw_stat_cards(fig: Any, daily: Any, limit_up_count: int, avg_pct: float, total: int) -> None:
@@ -106,7 +119,16 @@ def _draw_stat_cards(fig: Any, daily: Any, limit_up_count: int, avg_pct: float, 
                 color=MUTED,
                 va="center",
             )
-    ax.text(0.0, 0.98, "市场速览", transform=ax.transAxes, fontproperties=cjk_heavy, fontsize=11.5, color=FG, va="top")
+    ax.text(
+        0.0,
+        0.98,
+        "市场速览",
+        transform=ax.transAxes,
+        fontproperties=cjk_heavy,
+        fontsize=11.5,
+        color=FG,
+        va="top",
+    )
 
 
 def generate_sentiment(
