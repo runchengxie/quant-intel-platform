@@ -19,6 +19,17 @@ DATA_PLATFORM_ROOT=/path/to/local/data
 
 请勿提交真实凭据、本地 `.env` 文件或服务商返回的真实数据快照。
 
+## AI 市场资讯模型
+
+AI 市场资讯支持智谱 GLM、阿里百炼和 Google Gemini。`api_keys.json` 中的
+`ai_news` 配置可以提供默认值，但部署环境中的 provider-specific 环境变量会覆盖
+同名字段。例如，`AI_NEWS_PROVIDER=aliyun` 与 `ALIYUN_MODEL=qwen3.7-flash` 会让
+运行时使用阿里百炼的 `qwen3.7-flash`，即使 JSON 中仍有通用的 `model` 字段。
+
+每次调用入口都会发出一条 `ai_news_runtime` 结构化日志，包含最终解析的
+`provider`、`model`、`base_url` 和 `fallback_order`。该日志不包含 API key，适合用于
+核对生产实际模型和服务商配置。
+
 ## 跨仓配置
 
 研究仓和数据仓通过明确的路径与公开 CLI 配置。平台不会导入相邻仓库的源码，也不会根据开发者的 home 目录猜测路径。
