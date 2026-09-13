@@ -53,7 +53,7 @@ MDP 现为这些数据集的权威 owner。market-intel 已改为消费
 
 ```bash
 export DATA_PLATFORM_ROOT=$HOME/data/market-data-platform
-export MDP_DIR=$HOME/code/research-workspace/market-data-platform
+export MDP_DIR=$RESEARCH_WORKSPACE_ROOT/quant-market-data-platform
 ```
 
 新机器或服务器只需要满足两个条件：

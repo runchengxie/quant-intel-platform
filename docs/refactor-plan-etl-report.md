@@ -84,7 +84,7 @@
 
 ### 关键修正要点
 
-- `PROJECT_ROOT` 重算：原脚本用 `Path(__file__).resolve().parents[1]` 反推仓库根（在 `project_tools/` 层）。迁入 `src/a_share_analysis/factor_tools/` 后，该写法只能到 `src/a_share_analysis/`，故全部改为 `parents[3]`（factor_tools → a_share_analysis → src → 仓库根）。硬编码绝对路径（如 `/home/richard/data/market-data-platform`、`/home/richard/code/research-workspace/market-data-platform`）原样保留，属运行环境约定。
+- `PROJECT_ROOT` 重算：原脚本用 `Path(__file__).resolve().parents[1]` 反推仓库根（在 `project_tools/` 层）。迁入 `src/a_share_analysis/factor_tools/` 后，该写法只能到 `src/a_share_analysis/`，故全部改为 `parents[3]`（factor_tools → a_share_analysis → src → 仓库根）。硬编码绝对路径（如 `/home/richard/data/market-data-platform`）只作为当前机器的历史运行说明，正式配置仍使用环境变量。
 - 互相 import 改包导入：`a_share_factor_walk_forward` 与 `a_share_minute_volume_oos_audit` 内的 `import a_share_factor_incremental_experiment as base` 改为 `from a_share_analysis.factor_tools import incremental_experiment as base`。`volume_oos_audit` 的 `import a_share_factor_walk_forward as walk` 改为 `from a_share_analysis.factor_tools import walk_forward as walk`。`from a_share_minute_volume_calendar import add_open_to_open_execution_labels` 改为 `from a_share_analysis.factor_tools.volume_calendar import add_open_to_open_execution_labels`。
 - `minute_raw_completeness` 顶部把 `project_tools` 加入 `sys.path` 的片段已删除（迁入包后由包导入处理），其函数内裸导入 `from a_share_minute_factor_smoke import ...` 改为 `from a_share_analysis.factor_tools.minute_factor_smoke import ...`。
 - `quantall_bridge` 的 `from a_share_analysis.quantall import (...)` 改为相对导入 `from ..quantall import (...)`（`..` 指 `a_share_analysis`）。
