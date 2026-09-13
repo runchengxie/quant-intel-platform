@@ -155,3 +155,36 @@ def test_morning_report_omits_hotsector_warning_when_premium_skipped() -> None:
     assert "热点候选池为空" not in text
     assert "高权限 TuShare" not in text
     assert "关注映射: AI芯片" in text
+
+
+def test_morning_report_includes_korea_preopen_and_overnight_signals() -> None:
+    text = render_morning_report(
+        {
+            "date": "20260914",
+            "date_dash": "2026-09-14",
+            "cross_market": {
+                "korea_preopen": {
+                    "signal": "bullish",
+                    "risk_level": "high",
+                    "residual_pct_chg": 2.8,
+                    "concepts": ["HBM", "存储芯片"],
+                    "source": "daily-proxy",
+                },
+                "korea_overnight": {
+                    "signal": "bearish",
+                    "risk_level": "medium",
+                    "drivers": ["000660.KS -3.0%"],
+                    "source": "daily-proxy",
+                },
+            },
+        },
+        {},
+        generated_at=datetime(2026, 9, 14, 7, 0),
+    )
+
+    assert "韩国早盘 → A股开盘" in text
+    assert "行业残差 +2.8%" in text
+    assert "HBM、存储芯片" in text
+    assert "韩国盘后/夜盘 → 次日A股预警" in text
+    assert "风险等级 medium" in text
+    assert "日线代理" in text
