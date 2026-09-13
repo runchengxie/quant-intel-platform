@@ -43,8 +43,8 @@ def test_weekly_basket_dry_run_writes_report_and_does_not_send(
             "source_date": "20260901",
             "signal_date": "20260902",
             "targets": [
-                {"symbol": f"CF{i:03d}.SZ", "name": f"CF{i}", "target_weight": 1 / 3}
-                for i in range(1, 4)
+                {"symbol": f"CF{i:03d}.SZ", "name": f"CF{i}", "target_weight": 1 / 6}
+                for i in range(1, 7)
             ],
         },
     )
@@ -67,7 +67,7 @@ def test_weekly_basket_dry_run_writes_report_and_does_not_send(
             "source_date": "20260911",
             "signal_date": "20260912",
             "positions": [
-                {"symbol": f"MC{i:03d}.SZ", "name": f"MC{i}", "rank": i} for i in range(1, 4)
+                {"symbol": f"MC{i:03d}.SZ", "name": f"MC{i}", "rank": i} for i in range(1, 5)
             ],
         },
     )
@@ -102,6 +102,14 @@ def test_weekly_basket_dry_run_writes_report_and_does_not_send(
     assert (output_root / "20260914" / "report.md").exists()
     assert (
         json.loads((output_root / "20260914" / "receipt.json").read_text())["send_status"]
-        == "not_requested"
+        == "dry_run"
     )
-    assert "not_requested" in capsys.readouterr().out
+    basket = json.loads((output_root / "20260914" / "basket.json").read_text())
+    assert basket["config"]["quotas"] == {
+        "dailywatch_family": 0,
+        "cashflow": 6,
+        "microcap": 4,
+    }
+    assert len(basket["monitoring"]) == 5
+    output = json.loads(capsys.readouterr().out)
+    assert output["send_status"] == "dry_run"

@@ -48,9 +48,9 @@ class BasketPosition(SourcePosition):
 class BasketConfig:
     quotas: Mapping[str, int] = field(
         default_factory=lambda: {
-            "dailywatch_family": 4,
-            "cashflow": 3,
-            "microcap": 3,
+            "dailywatch_family": 0,
+            "cashflow": 6,
+            "microcap": 4,
         }
     )
     allow_microcap_shadow: bool = True
@@ -71,6 +71,7 @@ class BasketArtifact:
     trade_delta: TradeDelta
     config: BasketConfig
     source_inputs: tuple[dict[str, Any], ...]
+    monitoring: tuple[SourcePosition, ...] = ()
     schema_version: str = SCHEMA_VERSION
 
 
@@ -199,6 +200,7 @@ def compose_weekly_basket(
         trade_delta=TradeDelta(added=added, kept=kept, dropped=dropped),
         config=config,
         source_inputs=_source_inputs(source_positions),
+        monitoring=tuple(source_positions.get("dailywatch_family", ())),
     )
 
 
@@ -238,6 +240,7 @@ def _basket_payload(artifact: BasketArtifact) -> dict[str, Any]:
         "positions": [_position_payload(row) for row in artifact.positions],
         "trade_delta": _json_safe(artifact.trade_delta),
         "source_inputs": list(artifact.source_inputs),
+        "monitoring": [_position_payload(row) for row in artifact.monitoring],
     }
 
 
@@ -398,6 +401,44 @@ def enrich_source_names(
             )
         enriched[sleeve] = rows
     return enriched
+
+
+def filter_source_positions_by_instruments(
+    source_positions: Mapping[str, Sequence[SourcePosition]],
+    instruments_by_symbol: Mapping[str, Mapping[str, Any]],
+    *,
+    as_of_date: str,
+) -> dict[str, list[SourcePosition]]:
+    """Keep securities that were listed and not delisted on the report date."""
+    report_date = _date(as_of_date, label="as_of_date")
+    normalized = {
+        str(symbol).strip().upper(): instrument
+        for symbol, instrument in instruments_by_symbol.items()
+    }
+    filtered: dict[str, list[SourcePosition]] = {}
+
+    def instrument_text(instrument: Mapping[str, Any], key: str) -> str:
+        text = str(instrument.get(key) or "").strip()
+        return "" if text.lower() in {"nan", "nat", "none"} else text
+
+    for sleeve, positions in source_positions.items():
+        rows: list[SourcePosition] = []
+        for position in positions:
+            instrument = normalized.get(position.symbol.strip().upper())
+            if instrument is None:
+                continue
+            list_date = instrument_text(instrument, "list_date")
+            delist_date = instrument_text(instrument, "delist_date")
+            if list_date and list_date > report_date:
+                continue
+            if delist_date and delist_date <= report_date:
+                continue
+            list_status = str(instrument.get("list_status") or "").strip().upper()
+            if list_status != "L" and not (delist_date and delist_date > report_date):
+                continue
+            rows.append(position)
+        filtered[sleeve] = rows
+    return filtered
 
 
 def load_dailywatch_family(path: Path, *, as_of_date: str) -> list[SourcePosition]:
@@ -577,6 +618,10 @@ def load_previous_basket(path: Path) -> BasketArtifact:
         trade_delta=TradeDelta(added=(), kept=tuple(positions), dropped=()),
         config=config,
         source_inputs=tuple(payload.get("source_inputs", ())),
+        monitoring=tuple(
+            SourcePosition(**row)
+            for row in _rows(payload.get("monitoring", []), label="previous monitoring")
+        ),
     )
 
 
@@ -589,6 +634,7 @@ __all__ = [
     "WeeklyBasketError",
     "compose_weekly_basket",
     "enrich_source_names",
+    "filter_source_positions_by_instruments",
     "load_cashflow_selection",
     "load_dailywatch_family",
     "load_microcap_selection",

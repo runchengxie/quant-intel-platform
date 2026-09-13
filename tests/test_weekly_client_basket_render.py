@@ -31,8 +31,8 @@ def _source(symbol: str, strategy: str, rank: int) -> SourcePosition:
 def _artifact():
     sources = {
         "dailywatch_family": [_source(f"DW{i:03d}", "dailywatch_family", i) for i in range(1, 5)],
-        "cashflow": [_source(f"CF{i:03d}", "cashflow", i) for i in range(1, 4)],
-        "microcap": [_source(f"MC{i:03d}", "microcap", i) for i in range(1, 4)],
+        "cashflow": [_source(f"CF{i:03d}", "cashflow", i) for i in range(1, 7)],
+        "microcap": [_source(f"MC{i:03d}", "microcap", i) for i in range(1, 5)],
     }
     return compose_weekly_basket(sources, as_of_date="20260914")
 
@@ -51,6 +51,8 @@ def test_markdown_contains_ten_positions_and_shadow_disclaimer() -> None:
     assert "KEEP" in text
     assert "DROP: 无" in text
     assert "research shadow" in text
+    assert "DailyWatch 独立监控" in text
+    assert "DW001" in text
 
 
 def test_csv_columns_are_stable() -> None:
