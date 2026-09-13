@@ -18,7 +18,7 @@ import io
 import json
 import os
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -26,6 +26,12 @@ import requests
 
 from .cross_market_fetcher import Fetcher, FredAdapter
 from .global_leadlag import US_TO_A_MAPPING, aggregate_concept_signals, fetch_symbols
+from .korea_market import (
+    KOREA_INDEX_SYMBOL,
+    KOREA_SYMBOLS,
+    compute_korea_signal,
+    fetch_korea_daily_quotes,
+)
 
 # Symbols to fetch (US mega-cap/semis + Japan/Korea semis + benchmark ETFs)
 US_SYMBOLS = fetch_symbols()
@@ -78,6 +84,9 @@ class CrossMarketResult:
     mapping: list[dict] = field(default_factory=list)
     global_lead_lag: list[dict] = field(default_factory=list)
     commodity_mapping: list[dict] = field(default_factory=list)
+    korea_quotes: dict[str, dict] = field(default_factory=dict)
+    korea_preopen: dict = field(default_factory=dict)
+    korea_overnight: dict = field(default_factory=dict)
     errors: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -91,6 +100,9 @@ class CrossMarketResult:
             "concept_mapping": self.mapping,
             "global_lead_lag": self.global_lead_lag,
             "commodity_concept_mapping": self.commodity_mapping,
+            "korea_quotes": self.korea_quotes,
+            "korea_preopen": self.korea_preopen,
+            "korea_overnight": self.korea_overnight,
             "errors": self.errors,
         }
 
@@ -255,6 +267,28 @@ def _fetch_commodities() -> dict[str, Any]:
         return {"error": f"yfinance commodities failed: {e}"}
 
 
+def _fetch_korea_signals(trade_date: str) -> tuple[dict[str, dict], dict, dict]:
+    """Fetch keyless Korea daily data and expose two A-share warning windows.
+
+    The current free-provider fallback is daily, so both windows are explicitly
+    marked as ``daily-proxy``. A future intraday provider can feed the same
+    ``compute_korea_signal`` contract without changing report consumers.
+    """
+    target = _parse_yyyymmdd(trade_date) or date.today()
+    start = (target - timedelta(days=7)).isoformat()
+    end = target.isoformat()
+    quotes = fetch_korea_daily_quotes(
+        [*KOREA_SYMBOLS, KOREA_INDEX_SYMBOL],
+        start,
+        end,
+    )
+    return (
+        quotes,
+        compute_korea_signal(quotes, window="preopen"),
+        compute_korea_signal(quotes, window="overnight"),
+    )
+
+
 def _compute_commodity_mapping(
     commodities: dict[str, dict],
     mapping_table: dict[str, list[str]] = COMMODITY_TO_A_MAPPING,
@@ -393,9 +427,11 @@ def _find_snapshot_path(trade_date: str) -> tuple[Path, bool] | None:
     date_dash = f"{trade_date[:4]}-{trade_date[4:6]}-{trade_date[6:]}"
 
     # 1) Exact date snapshot
-    snapshot_root = Path(os.environ["CROSS_MARKET_SNAPSHOT_ROOT"]).expanduser() if os.environ.get(
-        "CROSS_MARKET_SNAPSHOT_ROOT"
-    ) else _DATA_SNAPSHOTS_ROOT
+    snapshot_root = (
+        Path(os.environ["CROSS_MARKET_SNAPSHOT_ROOT"]).expanduser()
+        if os.environ.get("CROSS_MARKET_SNAPSHOT_ROOT")
+        else _DATA_SNAPSHOTS_ROOT
+    )
     exact = snapshot_root / "cross-market" / f"{date_dash}.json"
     if exact.exists():
         return exact, True
@@ -580,6 +616,17 @@ def run(trade_date: str | None = None) -> dict[str, Any]:
     # Commodity → A concept mapping
     _map_commodities_into(result)
 
+    # Korea early-session and overnight warning proxies. This is optional and
+    # must never block the rest of the cross-market report.
+    try:
+        (
+            result.korea_quotes,
+            result.korea_preopen,
+            result.korea_overnight,
+        ) = _fetch_korea_signals(trade_date)
+    except Exception as e:
+        result.errors.append(f"korea: {e}")
+
     # Macro indicators (FRED + yfinance)
     try:
         result.macros = _fetch_macros()
@@ -618,6 +665,47 @@ def _render_global_lead_lag_section(data: dict[str, Any]) -> list[str]:
         lines.append("- 全球领先资产波动均<1%，无明显映射信号")
     lines.append("")
     return lines
+
+
+def _render_korea_signal_section(data: dict[str, Any]) -> list[str]:
+    """Render Korea's lead signal without hiding daily-proxy limitations."""
+    signal = data.get("korea_preopen")
+    if not isinstance(signal, dict) or not signal or signal.get("source") == "unavailable":
+        return []
+    tag = (
+        "[OK]"
+        if signal.get("signal") == "bullish"
+        else "[WARN]"
+        if signal.get("signal") == "bearish"
+        else ""
+    )
+    concepts = "、".join(str(item) for item in signal.get("concepts", [])[:5]) or "韩国核心资产"
+    source_note = (
+        "日线代理，非盘中数据"
+        if signal.get("source") == "daily-proxy"
+        else str(signal.get("source"))
+    )
+    return [
+        "### 韩国早盘 → A股开盘信号",
+        f"- {tag} {signal.get('signal', 'neutral')}，行业残差 {float(signal.get('residual_pct_chg', 0)):+.1f}%，"
+        f"映射 {concepts}；数据源：{source_note}",
+        "",
+    ]
+
+
+def _render_korea_overnight_section(data: dict[str, Any]) -> list[str]:
+    """Render Korea's next-session warning proxy when available."""
+    signal = data.get("korea_overnight")
+    if not isinstance(signal, dict) or not signal or signal.get("source") == "unavailable":
+        return []
+    level = signal.get("risk_level", "unknown")
+    drivers = "、".join(str(item) for item in signal.get("drivers", [])[:3])
+    source_note = "日线代理" if signal.get("source") == "daily-proxy" else str(signal.get("source"))
+    return [
+        "### 韩国盘后/夜盘 → 次日A股预警",
+        f"- 风险等级：{level}，方向：{signal.get('signal', 'neutral')}，驱动：{drivers or '暂无'}；数据源：{source_note}",
+        "",
+    ]
 
 
 def _render_commodity_section(data: dict[str, Any]) -> list[str]:
@@ -702,6 +790,8 @@ def generate_summary(data: dict[str, Any]) -> str:
     """
     lines: list[str] = []
     lines.extend(_render_global_lead_lag_section(data))
+    lines.extend(_render_korea_signal_section(data))
+    lines.extend(_render_korea_overnight_section(data))
     lines.extend(_render_commodity_section(data))
     lines.extend(_render_macro_section(data))
     lines.extend(_render_aaii_section(data))
