@@ -145,7 +145,8 @@ def load_performance(
     if schema == "weekly_basket.performance.v2":
         if artifact_report_date != report_date:
             raise PerformanceArtifactError("performance report_date must match report date")
-        if benchmark_points is None or benchmark_name != "沪深300价格指数（不含股息）":
+        supported_benchmarks = {"沪深300价格指数（不含股息）", "沪深300全收益指数"}
+        if benchmark_points is None or benchmark_name not in supported_benchmarks:
             raise PerformanceArtifactError("performance benchmark is required")
         if (
             not isinstance(execution_audit, Mapping)

@@ -77,6 +77,15 @@ def test_load_performance_normalizes_and_builds_chart(tmp_path):
     assert performance_metrics(series, report_date="20260911")[0].value == pytest.approx(10.0)
 
 
+def test_load_performance_accepts_csi300_total_return_benchmark(tmp_path):
+    path = tmp_path / "performance.json"
+    _write(path, benchmark_name="沪深300全收益指数")
+
+    series = load_performance(path, report_date="20260911")
+
+    assert series.benchmark_name == "沪深300全收益指数"
+
+
 def test_load_performance_rejects_short_series(tmp_path):
     path = tmp_path / "performance.json"
     _write(path, series=[{"date": "2026-09-01", "nav": 1.0}])
