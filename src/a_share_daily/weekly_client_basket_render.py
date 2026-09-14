@@ -37,11 +37,17 @@ def _performance_lines(performance: dict[str, Any] | None) -> list[str]:
     series = performance.get("series", [])
     if not series:
         return [f"- 历史净值：{performance.get('status', 'unavailable')}。"]
+    metrics = performance.get("metrics", {})
     first = float(series[0]["nav"])
     last = float(series[-1]["nav"])
-    change = (last / first - 1.0) * 100 if first else 0.0
+    change = float(metrics.get("total_return", last / first - 1.0)) * 100 if first else 0.0
+    annualized = float(metrics.get("annualized_return", 0.0)) * 100
+    drawdown = float(metrics.get("max_drawdown", 0.0)) * 100
+    observations = int(metrics.get("observations", len(series) - 1))
     return [
-        f"- 历史净值：{first:.3f} → {last:.3f}（累计 {change:+.2f}%）",
+        f"- PIT 拟合回测：累计 {change:+.2f}%；年化收益：{annualized:+.2f}%；"
+        f"最大回撤：{drawdown:+.2f}%；{observations} 期。",
+        f"- 历史净值：{first:.3f} → {last:.3f}。",
         f"- 曲线区间：{series[0]['date']} 至 {series[-1]['date']}；"
         f"来源方法：{performance.get('methodology', {}).get('method', '未说明')}。",
     ]
@@ -65,18 +71,25 @@ def render_basket_markdown(
         "",
         f"> WEEKLY CLIENT BASKET · {selected_theme.label} · 周内默认冻结。",
         "",
-        "## 本周组合",
+        "## 本周组合 · 现金流 6 + 微盘 4",
         "",
         f"> {len(artifact.positions)} 只股票 · {counts['NEW']} 只新增 · {counts['KEEP']} 只保留",
         "",
     ]
-    for index, position in enumerate(artifact.positions, start=1):
-        lines.append(
-            f"| {index} | {index:02d}｜**{_cell(position.name)}**（`{_cell(position.symbol)}`）｜"
-            f"{SLEEVE_LABELS.get(position.source_strategy, position.source_strategy)}｜"
-            f"{STATUS_LABELS.get(position.status, position.status)}（{position.status}）｜"
-            f"信号 {_cell(_date_dash(position.signal_date))}｜Rank {_cell(position.rank)}"
-        )
+    for strategy, heading in (("cashflow", "### 现金流 6"), ("microcap", "### 微盘 4")):
+        lines.extend([heading, ""])
+        grouped = [
+            (index, item)
+            for index, item in enumerate(artifact.positions, start=1)
+            if item.source_strategy == strategy
+        ]
+        for index, position in grouped:
+            lines.append(
+                f"| {index} | {index:02d}｜**{_cell(position.name)}**（`{_cell(position.symbol)}`）｜"
+                f"{STATUS_LABELS.get(position.status, position.status)}（{position.status}）｜"
+                f"信号 {_cell(_date_dash(position.signal_date))}｜Rank {_cell(position.rank)}"
+            )
+        lines.append("")
     lines.extend(
         [
             "",

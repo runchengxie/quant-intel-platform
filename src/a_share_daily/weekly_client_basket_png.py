@@ -8,7 +8,7 @@ from typing import Any, cast
 
 from .report_theme import ReportTheme, get_report_theme
 from .weekly_client_basket import BasketArtifact
-from .weekly_client_basket_render import SLEEVE_LABELS, STATUS_LABELS
+from .weekly_client_basket_render import STATUS_LABELS
 
 
 def _render_header(ax, artifact: BasketArtifact, theme: ReportTheme) -> None:
@@ -28,7 +28,7 @@ def _render_header(ax, artifact: BasketArtifact, theme: ReportTheme) -> None:
     )
     ax.text(
         0.02,
-        0.78,
+        0.72,
         "周度组合 10",
         transform=ax.transAxes,
         fontsize=27,
@@ -38,7 +38,7 @@ def _render_header(ax, artifact: BasketArtifact, theme: ReportTheme) -> None:
     )
     ax.text(
         0.02,
-        0.58,
+        0.31,
         "WEEKLY CLIENT BASKET  ·  "
         f"{artifact.report_date[:4]}-{artifact.report_date[4:6]}-{artifact.report_date[6:]}",
         transform=ax.transAxes,
@@ -49,7 +49,7 @@ def _render_header(ax, artifact: BasketArtifact, theme: ReportTheme) -> None:
     )
     ax.text(
         0.98,
-        0.58,
+        0.31,
         "现金流 6 + 微盘 4 · 周内冻结 · 研究观察",
         transform=ax.transAxes,
         fontsize=10,
@@ -60,125 +60,101 @@ def _render_header(ax, artifact: BasketArtifact, theme: ReportTheme) -> None:
     )
     ax.plot(
         [0.02, 0.98],
-        [0.47, 0.47],
+        [0.14, 0.14],
         transform=ax.transAxes,
         color=theme.rule,
         linewidth=0.8,
     )
-    stats = (
-        ("总持仓", len(artifact.positions)),
-        ("现金流", sum(p.source_strategy == "cashflow" for p in artifact.positions)),
-        ("微盘", sum(p.source_strategy == "microcap" for p in artifact.positions)),
-        ("本周新增", sum(p.status == "NEW" for p in artifact.positions)),
+    ax.text(
+        0.98,
+        0.94,
+        "PIT 拟合回测",
+        transform=ax.transAxes,
+        fontsize=9,
+        fontproperties=cjk_heavy,
+        color=theme.accent,
+        ha="right",
+        va="top",
     )
-    for index, (label, value) in enumerate(stats):
-        x = 0.02 + index * 0.245
+
+
+def _render_holdings_section(ax, title: str, positions, theme: ReportTheme) -> None:
+    from .charts.theme import cjk, cjk_heavy
+
+    ax.set_facecolor(theme.surface)
+    ax.axis("off")
+    rows = list(positions)
+    ax.text(
+        0.02,
+        0.94,
+        title,
+        transform=ax.transAxes,
+        fontproperties=cjk_heavy,
+        fontsize=13,
+        color=theme.ink,
+        va="top",
+    )
+    ax.plot([0.02, 0.98], [0.85, 0.85], transform=ax.transAxes, color=theme.rule, lw=0.8)
+    row_height = 0.78 / max(len(rows), 1)
+    for index, position in enumerate(rows, start=1):
+        y = 0.82 - (index - 0.5) * row_height
         ax.text(
-            x,
-            0.29,
-            str(value),
+            0.03,
+            y,
+            f"{index:02d}",
             transform=ax.transAxes,
-            fontsize=20,
-            fontproperties=cjk_heavy,
-            color=theme.accent if index in (0, 3) else theme.ink,
+            fontproperties=cjk,
+            fontsize=9,
+            color=theme.accent,
             va="center",
         )
         ax.text(
-            x + 0.048,
-            0.29,
-            label,
+            0.11,
+            y,
+            position.name or "未命名",
             transform=ax.transAxes,
-            fontsize=8.5,
+            fontproperties=cjk_heavy,
+            fontsize=11,
+            color=theme.ink,
+            va="center",
+        )
+        ax.text(
+            0.58,
+            y,
+            position.symbol,
+            transform=ax.transAxes,
             fontproperties=cjk,
+            fontsize=9,
             color=theme.muted,
             va="center",
         )
-    ax.text(
-        0.02,
-        0.04,
-        "本周组合",
-        transform=ax.transAxes,
-        fontsize=12,
-        fontproperties=cjk_heavy,
-        color=theme.ink,
-        va="bottom",
-    )
-
-
-def _render_card(card, index: int, position, theme: ReportTheme, fancy_box) -> None:
-    from .charts.theme import cjk, cjk_heavy
-
-    card.set_facecolor(theme.panel)
-    card.axis("off")
-    card.add_patch(
-        fancy_box(
-            (0, 0),
-            1,
-            1,
-            boxstyle="round,pad=0.012,rounding_size=0.015",
-            linewidth=0.7,
-            edgecolor=theme.rule,
-            facecolor=theme.panel,
-            transform=card.transAxes,
+        status = STATUS_LABELS.get(position.status, position.status)
+        ax.text(
+            0.96,
+            y,
+            status,
+            transform=ax.transAxes,
+            fontproperties=cjk,
+            fontsize=8.5,
+            color=theme.accent if position.status == "NEW" else theme.muted,
+            ha="right",
+            va="center",
         )
-    )
-    card.plot(
-        [0.025, 0.025],
-        [0.12, 0.88],
-        transform=card.transAxes,
-        color=theme.accent,
-        linewidth=2.0,
-        solid_capstyle="round",
-    )
-    card.text(
-        0.06,
-        0.76,
-        f"{index + 1:02d}",
-        transform=card.transAxes,
-        fontsize=10,
-        fontproperties=cjk,
-        color=theme.muted,
-    )
-    card.text(
-        0.18,
-        0.76,
-        position.name or "未命名",
-        transform=card.transAxes,
-        fontsize=12,
-        fontproperties=cjk_heavy,
-        color=theme.ink,
-    )
-    card.text(
-        0.18,
-        0.52,
-        position.symbol,
-        transform=card.transAxes,
-        fontsize=8.5,
-        fontproperties=cjk,
-        color=theme.muted,
-    )
-    card.text(
-        0.06,
-        0.17,
-        SLEEVE_LABELS.get(position.source_strategy, position.source_strategy),
-        transform=card.transAxes,
-        fontsize=8,
-        fontproperties=cjk,
-        color=theme.muted,
-    )
-    card.text(
-        0.90,
-        0.18,
-        STATUS_LABELS.get(position.status, position.status),
-        transform=card.transAxes,
-        fontsize=8,
-        fontproperties=cjk,
-        ha="right",
-        color=theme.accent if position.status == "NEW" else theme.muted,
-    )
+        if index < len(rows):
+            line_y = 0.82 - index * row_height
+            ax.plot(
+                [0.03, 0.97],
+                [line_y, line_y],
+                transform=ax.transAxes,
+                color=theme.rule,
+                lw=0.45,
+                alpha=0.7,
+            )
 
 
 def _render_curve(curve_ax, performance: Mapping[str, object] | None, theme: ReportTheme) -> None:
+    from .charts.theme import cjk, cjk_heavy
+
     curve_ax.set_facecolor(theme.panel)
     raw_series = (performance or {}).get("series", [])
     series: list[Mapping[str, Any]] = []
@@ -190,21 +166,54 @@ def _render_curve(curve_ax, performance: Mapping[str, object] | None, theme: Rep
         ]
     if series:
         values = [float(row["nav"]) for row in series]
-        curve_ax.plot(range(len(values)), values, color=theme.accent, linewidth=2.2)
-        curve_ax.fill_between(
-            range(len(values)), values, min(values), color=theme.accent, alpha=0.08
-        )
+        x_values = list(range(len(values)))
+        curve_ax.plot(x_values, values, color=theme.accent, linewidth=2.2, label="6+4 组合")
+        raw_benchmark = (performance or {}).get("benchmark", [])
+        if isinstance(raw_benchmark, list) and len(raw_benchmark) == len(values):
+            benchmark = [float(cast(Mapping[str, Any], row)["nav"]) for row in raw_benchmark]
+            curve_ax.plot(
+                x_values, benchmark, color=theme.muted, linewidth=1.4, linestyle="--", label="基准"
+            )
+        curve_ax.fill_between(x_values, values, min(values), color=theme.accent, alpha=0.08)
         curve_ax.set_title(
-            "历史净值 · provider performance.json", loc="left", color=theme.ink, fontsize=11
+            "PIT 拟合回测 · 历史净值",
+            loc="left",
+            color=theme.ink,
+            fontsize=12,
+            fontproperties=cjk_heavy,
+            pad=36,
         )
-        curve_ax.text(
-            1.0,
-            1.04,
-            f"{values[-1] / values[0] - 1:+.2%}",
-            transform=curve_ax.transAxes,
-            ha="right",
-            color=theme.accent,
+        metrics = (performance or {}).get("metrics", {})
+        metric_values = (
+            ("累计收益", float(cast(Mapping[str, Any], metrics).get("total_return", 0.0)), "%"),
+            (
+                "年化收益",
+                float(cast(Mapping[str, Any], metrics).get("annualized_return", 0.0)),
+                "%",
+            ),
+            ("最大回撤", float(cast(Mapping[str, Any], metrics).get("max_drawdown", 0.0)), "%"),
+            ("样本周期", int(cast(Mapping[str, Any], metrics).get("observations", 0)), "期"),
         )
+        metric_x = (0.02, 0.29, 0.56, 0.80)
+        for index, (label, value, unit) in enumerate(metric_values):
+            display = f"{value:+.1%}" if unit == "%" else f"{value} {unit}"
+            curve_ax.text(
+                metric_x[index],
+                1.08,
+                f"{label}  {display}",
+                transform=curve_ax.transAxes,
+                fontproperties=cjk,
+                fontsize=8.5,
+                color=theme.accent if index == 0 else theme.ink,
+            )
+        curve_ax.legend(loc="upper left", frameon=False, prop=cjk, fontsize=8)
+        tick_indexes = sorted({0, len(values) // 2, len(values) - 1})
+        curve_ax.set_xticks(tick_indexes)
+        tick_labels = []
+        for index in tick_indexes:
+            date = str(series[index]["date"]).replace("-", "")
+            tick_labels.append(f"{date[:4]}-{date[4:6]}")
+        curve_ax.set_xticklabels(tick_labels)
     else:
         curve_ax.text(
             0.02,
@@ -232,28 +241,24 @@ def render_basket_png(
 
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
-    from matplotlib.patches import FancyBboxPatch
 
     plt.rcParams["font.sans-serif"] = ["Source Han Sans CN", "DejaVu Sans"]
     plt.rcParams["axes.unicode_minus"] = False
     output = Path(output_path).expanduser().resolve()
     raw_series = (performance or {}).get("series", [])
     has_performance = isinstance(raw_series, list) and bool(raw_series)
-    figure_height = 13.5 if has_performance else 12.2
+    figure_height = 13.5 if has_performance else 11.8
     fig = plt.figure(figsize=(12.0, figure_height), dpi=140, facecolor=selected.surface)
-    rows = 8 if has_performance else 7
-    ratios = [1.25, 0.22, 1.0, 1.0, 1.0, 1.0, 1.0]
-    if has_performance:
-        ratios.append(1.15)
-    grid = fig.add_gridspec(rows, 2, height_ratios=ratios)
-    _render_header(fig.add_subplot(grid[0:2, :]), artifact, selected)
-
-    for index, position in enumerate(artifact.positions):
-        card = fig.add_subplot(grid[2 + index // 2, index % 2])
-        _render_card(card, index, position, selected, FancyBboxPatch)
+    ratios = [1.2, 3.0, 2.1, 2.5 if has_performance else 0.5]
+    grid = fig.add_gridspec(4, 1, height_ratios=ratios)
+    _render_header(fig.add_subplot(grid[0]), artifact, selected)
+    cashflow = [p for p in artifact.positions if p.source_strategy == "cashflow"]
+    microcap = [p for p in artifact.positions if p.source_strategy == "microcap"]
+    _render_holdings_section(fig.add_subplot(grid[1]), "现金流 6", cashflow, selected)
+    _render_holdings_section(fig.add_subplot(grid[2]), "微盘 4", microcap, selected)
 
     if has_performance:
-        curve_ax = fig.add_subplot(grid[7, :])
+        curve_ax = fig.add_subplot(grid[3])
         _render_curve(curve_ax, performance, selected)
     else:
         fig.text(
@@ -263,7 +268,14 @@ def render_basket_png(
             color=selected.muted,
             fontsize=7.5,
         )
-    fig.subplots_adjust(left=0.05, right=0.95, top=0.98, bottom=0.05, hspace=0.24, wspace=0.10)
+    fig.text(
+        0.05,
+        0.018,
+        "Research Shadow · PIT 拟合回测 · 10 bps · 仅供研究观察，不构成投资建议",
+        color=selected.muted,
+        fontsize=7.5,
+    )
+    fig.subplots_adjust(left=0.07, right=0.93, top=0.98, bottom=0.06, hspace=0.30)
     output.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(output, facecolor=selected.surface, bbox_inches="tight")
     plt.close(fig)
