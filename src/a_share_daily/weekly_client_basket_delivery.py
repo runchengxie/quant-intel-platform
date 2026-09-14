@@ -7,6 +7,7 @@ import json
 import os
 import subprocess
 from dataclasses import asdict, dataclass, replace
+from datetime import datetime
 from pathlib import Path
 
 from .weekly_client_basket import _atomic_write
@@ -45,9 +46,11 @@ def personal_chat_id(explicit_chat_id: str | None = None) -> str:
 
 
 def idempotency_key(chat_id: str, report_date: str, markdown: str) -> str:
-    digest = hashlib.sha256(markdown.encode("utf-8")).hexdigest()[:24]
-    scope = hashlib.sha256(f"{chat_id}:{report_date}:{digest}".encode()).hexdigest()[:24]
-    return f"weekly-basket-text-{scope}"
+    """Return the immutable text key for one target and ISO report week."""
+    del markdown
+    target_hash = hashlib.sha256(chat_id.encode()).hexdigest()[:16]
+    report_week = datetime.strptime(report_date, "%Y%m%d").strftime("%G-W%V")
+    return f"weekly-basket:{target_hash}:{report_week}:text"
 
 
 def _write_receipt(path: Path, receipt: DeliveryReceipt) -> None:
@@ -71,7 +74,7 @@ def _send_image(*, lark_cli: str, chat_id: str, image_path: Path, idempotency: s
             "--image",
             image.name,
             "--idempotency-key",
-            f"{idempotency}-image",
+            idempotency.removesuffix(":text") + ":image",
             "--format",
             "json",
         ],
@@ -109,6 +112,35 @@ def send_personal_basket_report(
         )
         _write_receipt(receipt_path, receipt)
         return receipt
+
+    if receipt_path.is_file():
+        try:
+            existing = DeliveryReceipt(**json.loads(receipt_path.read_text(encoding="utf-8")))
+        except (OSError, json.JSONDecodeError, TypeError) as exc:
+            raise WeeklyBasketDeliveryError("existing delivery receipt is invalid") from exc
+        if (
+            existing.report_date != report_date
+            or existing.chat_id != target
+            or existing.idempotency_key != key
+        ):
+            raise WeeklyBasketDeliveryError("existing delivery receipt identity mismatch")
+        if existing.status == "sent":
+            if image_path is None or existing.image_status == "sent":
+                return existing
+            try:
+                recovered = replace(
+                    existing,
+                    image_status=_send_image(
+                        lark_cli=lark_cli,
+                        chat_id=target,
+                        image_path=image_path,
+                        idempotency=key,
+                    ),
+                )
+            except (OSError, subprocess.SubprocessError):
+                recovered = replace(existing, image_status="failed")
+            _write_receipt(receipt_path, recovered)
+            return recovered
 
     command = [
         lark_cli,

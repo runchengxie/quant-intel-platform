@@ -5,6 +5,7 @@ import json
 import sys
 from pathlib import Path
 
+import pandas as pd
 import pytest
 
 from a_share_daily import cli
@@ -30,7 +31,7 @@ def _official_cashflow(tmp_path: Path) -> tuple[Path, Path]:
             "selected_count": 6,
             "targets": [
                 {
-                    "symbol": f"CF{i:03d}.SZ",
+                    "symbol": f"600{i:03d}.SH",
                     "name": f"CF{i}",
                     "official_rank": i,
                     "official_weight": 1 / (i + 10),
@@ -63,18 +64,56 @@ def _weekly_args(tmp_path: Path, *, mode: str) -> list[str]:
     microcap = _write(
         tmp_path / "microcap.json",
         {
-            "schema_version": "microcap.selection.v1",
+            "schema_version": "microcap.selection.v2",
             "status": "passed",
             "shadow": True,
             "research_only": True,
             "eligible_for_live": False,
-            "source_date": "20260911",
-            "signal_date": "20260912",
+            "signal_date": "20260911",
+            "valid_from": "20260911",
+            "valid_until": "20260917",
             "positions": [
-                {"symbol": f"MC{i:03d}.SZ", "name": f"MC{i}", "rank": i} for i in range(1, 5)
+                {"symbol": f"000{i:03d}.SZ", "name": f"MC{i}", "rank": i} for i in range(1, 11)
             ],
         },
     )
+    microcap_receipt = _write(
+        tmp_path / "microcap-receipt.json",
+        {
+            "schema_version": "microcap.selection.receipt.v2",
+            "status": "passed",
+            "signal_date": "20260911",
+            "valid_from": "20260911",
+            "valid_until": "20260917",
+            "research_only": True,
+            "eligible_for_live": False,
+            "artifact_sha256": hashlib.sha256(microcap.read_bytes()).hexdigest(),
+        },
+    )
+    instruments = tmp_path / "instruments.parquet"
+    market = tmp_path / "market.parquet"
+    calendar = tmp_path / "calendar.parquet"
+    symbols = [f"600{i:03d}.SH" for i in range(1, 7)] + [f"000{i:03d}.SZ" for i in range(1, 5)]
+    pd.DataFrame(
+        {
+            "ts_code": symbols,
+            "name": symbols,
+            "list_status": "L",
+            "list_date": "20100101",
+            "delist_date": None,
+        }
+    ).to_parquet(instruments)
+    pd.DataFrame(
+        {
+            "ts_code": symbols,
+            "trade_date": "20260911",
+            "amount": 30_000_000.0,
+            "is_st": False,
+            "is_suspended": False,
+            "close": 10.0,
+        }
+    ).to_parquet(market)
+    pd.DataFrame({"cal_date": ["20260911", "20260914"], "is_open": [1, 1]}).to_parquet(calendar)
     return [
         "a-share-daily",
         "weekly-basket",
@@ -86,10 +125,35 @@ def _weekly_args(tmp_path: Path, *, mode: str) -> list[str]:
         str(cashflow_receipt),
         "--microcap",
         str(microcap),
+        "--microcap-receipt",
+        str(microcap_receipt),
+        "--instruments",
+        str(instruments),
+        "--market-snapshot",
+        str(market),
+        "--calendar",
+        str(calendar),
         "--output-root",
         str(tmp_path / "output"),
+        "--state-root",
+        str(tmp_path / "state"),
+        "--personal-chat-id",
+        "ou_owner",
         mode,
     ]
+
+
+def test_weekly_basket_parser_has_no_legacy_strategy_arguments() -> None:
+    parser = cli._build_parser()
+    weekly = next(
+        action.choices["weekly-basket"]
+        for action in parser._actions
+        if getattr(action, "choices", None) and "weekly-basket" in action.choices
+    )
+    options = {option for action in weekly._actions for option in action.option_strings}
+    assert "--dailywatch" not in options
+    assert "--d11-h5" not in options
+    assert "--microcap-quota" not in options
 
 
 def test_weekly_basket_dry_run_writes_report_and_does_not_send(

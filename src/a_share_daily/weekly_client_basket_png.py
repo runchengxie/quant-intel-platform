@@ -184,12 +184,20 @@ def _render_curve(curve_ax, performance: Mapping[str, object] | None, theme: Rep
         raw_benchmark = (performance or {}).get("benchmark", [])
         if isinstance(raw_benchmark, list) and len(raw_benchmark) == len(values):
             benchmark = [float(cast(Mapping[str, Any], row)["nav"]) for row in raw_benchmark]
+            benchmark_name = str(
+                (performance or {}).get("benchmark_name", "沪深300价格指数（不含股息）")
+            )
             curve_ax.plot(
-                x_values, benchmark, color=theme.muted, linewidth=1.4, linestyle="--", label="基准"
+                x_values,
+                benchmark,
+                color=theme.muted,
+                linewidth=1.4,
+                linestyle="--",
+                label=benchmark_name,
             )
         curve_ax.fill_between(x_values, values, min(values), color=theme.accent, alpha=0.08)
         curve_ax.set_title(
-            "历史时点重建回测 · 净值",
+            f"历史时点重建回测 · 60/40 袖内等权 · 截止 {series[-1]['date']}",
             loc="left",
             color=theme.ink,
             fontsize=12,
@@ -270,18 +278,18 @@ def render_basket_png(
     if has_performance:
         curve_ax = fig.add_subplot(grid[2])
         _render_curve(curve_ax, performance, selected)
-    else:
-        fig.text(
-            0.05,
-            0.018,
-            "Research Shadow · 历史净值暂不可用 · 仅供研究观察，不构成投资建议",
-            color=selected.muted,
-            fontsize=7.5,
+        methodology = cast(Mapping[str, Any], (performance or {}).get("methodology", {}))
+        footer = (
+            "Research Observation · 历史时点重建回测 · "
+            f"{float(methodology.get('cost_bps', 0.0)):.1f} bps · "
+            "不代表实盘历史 · 不构成投资建议"
         )
+    else:
+        footer = "Research Observation · 历史净值暂不可用 · 不代表实盘历史 · 不构成投资建议"
     fig.text(
         0.05,
         0.018,
-        "Research Shadow · 历史时点重建回测 · 10 bps · 研究代理，不代表实盘历史",
+        footer,
         color=selected.muted,
         fontsize=7.5,
     )

@@ -18,10 +18,13 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import hashlib
 import json
 import os
 import subprocess
 import sys
+from dataclasses import asdict
+from datetime import datetime
 from pathlib import Path
 
 
@@ -204,28 +207,20 @@ def _add_weekly_basket_command(sub: argparse._SubParsersAction) -> None:
         help="Compose a validated weekly ten-stock basket and optional personal Feishu report",
     )
     basket.add_argument("--as-of-date", required=True, help="Basket date YYYYMMDD")
-    basket.add_argument("--dailywatch", help="Deprecated; DailyWatch is not part of the 6+4 report")
-    basket.add_argument("--d11-h5", help="Optional D11-H5 artifact overriding --dailywatch")
     basket.add_argument("--cashflow", required=True, help="Cashflow selection JSON artifact")
     basket.add_argument(
         "--cashflow-receipt", required=True, help="Cashflow publication receipt JSON"
     )
-    basket.add_argument("--microcap", help="Microcap shadow selection JSON artifact")
+    basket.add_argument("--microcap", required=True, help="Microcap v2 selection JSON artifact")
+    basket.add_argument("--microcap-receipt", required=True, help="Microcap v2 receipt JSON")
+    basket.add_argument("--instruments", required=True, help="Pinned instrument snapshot parquet")
     basket.add_argument(
-        "--instruments",
-        help="Optional symbol/name snapshot parquet used to fill code-only display names",
+        "--market-snapshot", required=True, help="Prior-session status/price parquet"
     )
-    basket.add_argument(
-        "--microcap-quota",
-        type=int,
-        choices=(4,),
-        default=4,
-        help="Microcap positions; Weekly 6+4 uses four",
-    )
-    basket.add_argument("--previous", help="Previous canonical basket.json")
+    basket.add_argument("--calendar", required=True, help="A-share trading calendar parquet")
     basket.add_argument(
         "--performance",
-        help="Optional provider-side weekly_basket.performance.v1 JSON artifact",
+        help="Provider-side weekly_basket.performance.v2 JSON artifact",
     )
     basket.add_argument(
         "--theme",
@@ -234,11 +229,16 @@ def _add_weekly_basket_command(sub: argparse._SubParsersAction) -> None:
         help="Report theme; content and delivery remain unchanged",
     )
     basket.add_argument("--output-root", required=True, help="Weekly basket artifact root")
+    basket.add_argument("--state-root", required=True, help="Immutable weekly basket state root")
+    basket.add_argument("--override-weekly-lock", action="store_true")
+    basket.add_argument("--override-reason")
     basket.add_argument(
         "--send", action="store_true", help="Send only to the explicit personal app target"
     )
     basket.add_argument("--dry-run", action="store_true", help="Build artifacts without sending")
-    basket.add_argument("--personal-chat-id", help="Explicit personal Feishu chat ID")
+    basket.add_argument(
+        "--personal-chat-id", required=True, help="Explicit personal Feishu user ID"
+    )
     basket.add_argument(
         "--lark-cli",
         default=os.environ.get("LARK_CLI", str(Path.home() / ".local" / "bin" / "lark-cli")),
@@ -447,10 +447,8 @@ def _load_weekly_basket_inputs(args: argparse.Namespace):
     from .weekly_client_basket import (
         BasketConfig,
         enrich_source_names,
-        filter_source_positions_by_instruments,
         load_cashflow_selection,
         load_microcap_selection,
-        load_previous_basket,
     )
 
     source_positions = {
@@ -461,13 +459,11 @@ def _load_weekly_basket_inputs(args: argparse.Namespace):
             as_of_date=args.as_of_date,
         ),
     }
-    source_positions["microcap"] = (
-        load_microcap_selection(
-            Path(args.microcap).expanduser().resolve(),
-            as_of_date=args.as_of_date,
-        )
-        if args.microcap_quota
-        else []
+    source_positions["microcap"] = load_microcap_selection(
+        Path(args.microcap).expanduser().resolve(),
+        receipt_path=Path(args.microcap_receipt).expanduser().resolve(),
+        as_of_date=args.as_of_date,
+        allow_legacy=args.dry_run,
     )
     if args.instruments:
         import pandas as pd
@@ -484,26 +480,14 @@ def _load_weekly_basket_inputs(args: argparse.Namespace):
             )
         )
         source_positions = enrich_source_names(source_positions, names)
-        instruments = {
-            str(row.get(symbol_column) or "").strip().upper(): row
-            for row in frame.to_dict(orient="records")
-        }
-        source_positions = filter_source_positions_by_instruments(
-            source_positions,
-            instruments,
-            as_of_date=args.as_of_date,
-        )
     config = BasketConfig(
         quotas={
             "dailywatch_family": 0,
             "cashflow": 6,
-            "microcap": args.microcap_quota,
+            "microcap": 4,
         }
     )
-    previous = (
-        load_previous_basket(Path(args.previous).expanduser().resolve()) if args.previous else None
-    )
-    return source_positions, config, previous
+    return source_positions, config
 
 
 def _update_weekly_basket_receipt(
@@ -536,24 +520,86 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
     if args.send and not args.performance:
         print("[FAIL] weekly basket: --performance is required for --send", file=sys.stderr)
         return 1
-    if args.microcap_quota and not args.microcap:
-        print("[FAIL] --microcap is required when --microcap-quota is non-zero", file=sys.stderr)
-        return 1
     try:
         performance = None
         if args.performance:
             from .reporting.performance import load_performance
 
             performance = load_performance(
-                Path(args.performance).expanduser().resolve(), report_date=args.as_of_date
+                Path(args.performance).expanduser().resolve(),
+                report_date=args.as_of_date,
+                allow_legacy=args.dry_run,
             ).to_payload()
-        source_positions, config, previous = _load_weekly_basket_inputs(args)
+        from .weekly_basket_state import (
+            acquire_weekly_lock,
+            load_previous_successful_basket,
+        )
+        from .weekly_client_basket import basket_artifact_from_payload
+        from .weekly_client_basket_delivery import personal_chat_id
+
+        target = personal_chat_id(args.personal_chat_id)
+        target_hash = hashlib.sha256(target.encode()).hexdigest()[:16]
+        report_week = datetime.strptime(args.as_of_date, "%Y%m%d").strftime("%G-W%V")
+        state_root = Path(args.state_root).expanduser().resolve()
+        previous_payload = load_previous_successful_basket(
+            state_root, report_week=report_week, target_hash=target_hash
+        )
+        previous = basket_artifact_from_payload(previous_payload) if previous_payload else None
+        source_positions, config = _load_weekly_basket_inputs(args)
         artifact = compose_weekly_basket(
             source_positions,
             as_of_date=args.as_of_date,
             previous_basket=previous,
             config=config,
         )
+        from .weekly_basket_preflight import run_weekly_basket_preflight
+
+        preflight = run_weekly_basket_preflight(
+            artifact.positions,
+            report_date=args.as_of_date,
+            instruments_path=Path(args.instruments).expanduser().resolve(),
+            market_path=Path(args.market_snapshot).expanduser().resolve(),
+            calendar_path=Path(args.calendar).expanduser().resolve(),
+            enforce_stable_paths=not args.dry_run,
+        )
+        basket_payload = {
+            "schema_version": artifact.schema_version,
+            "report_date": artifact.report_date,
+            "config": {
+                "quotas": dict(artifact.config.quotas),
+                "allow_microcap_shadow": artifact.config.allow_microcap_shadow,
+            },
+            "positions": [asdict(row) for row in artifact.positions],
+            "trade_delta": asdict(artifact.trade_delta),
+            "source_inputs": list(artifact.source_inputs),
+        }
+        input_hashes = {
+            **preflight.input_hashes,
+            "cashflow_receipt": hashlib.sha256(
+                Path(args.cashflow_receipt).expanduser().resolve().read_bytes()
+            ).hexdigest(),
+            "microcap_receipt": hashlib.sha256(
+                Path(args.microcap_receipt).expanduser().resolve().read_bytes()
+            ).hexdigest(),
+            **{
+                f"{row['sleeve']}:{index}": row["artifact_sha256"]
+                for index, row in enumerate(artifact.source_inputs)
+            },
+        }
+        if args.performance:
+            input_hashes["performance"] = hashlib.sha256(
+                Path(args.performance).expanduser().resolve().read_bytes()
+            ).hexdigest()
+        lock = acquire_weekly_lock(
+            state_root,
+            report_week=preflight.report_week,
+            target_hash=target_hash,
+            basket=basket_payload,
+            input_hashes=input_hashes,
+            override=args.override_weekly_lock,
+            override_reason=args.override_reason,
+        )
+        artifact = basket_artifact_from_payload(lock.basket)
         output_root = Path(args.output_root).expanduser().resolve()
         paths = write_basket_artifacts(artifact, output_root)
         rendered = write_rendered_outputs(

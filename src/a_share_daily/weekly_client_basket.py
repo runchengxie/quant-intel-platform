@@ -600,16 +600,55 @@ def load_cashflow_selection(
     ]
 
 
+def _validate_microcap_v2(
+    artifact: Mapping[str, Any],
+    *,
+    path: Path,
+    receipt_path: Path | None,
+    report_date: str,
+    signal_date: str,
+) -> None:
+    if receipt_path is None:
+        raise WeeklyBasketError("Microcap v2 publication receipt is required")
+    receipt = _read_json_object(receipt_path, label="Microcap publication receipt")
+    if (
+        receipt.get("schema_version") != "microcap.selection.receipt.v2"
+        or receipt.get("status") != "passed"
+        or receipt.get("research_only") is not True
+        or receipt.get("eligible_for_live") is not False
+    ):
+        raise WeeklyBasketError("Microcap publication receipt is not passed")
+    validity = (
+        _date(str(artifact.get("valid_from") or ""), label="Microcap valid_from"),
+        _date(str(artifact.get("valid_until") or ""), label="Microcap valid_until"),
+    )
+    receipt_validity = (
+        _date(str(receipt.get("valid_from") or ""), label="Microcap receipt valid_from"),
+        _date(str(receipt.get("valid_until") or ""), label="Microcap receipt valid_until"),
+    )
+    if validity != receipt_validity or not validity[0] <= report_date <= validity[1]:
+        raise WeeklyBasketError("Microcap selection validity does not cover as_of_date")
+    if receipt.get("signal_date") != signal_date:
+        raise WeeklyBasketError("Microcap receipt signal date mismatch")
+    if receipt.get("artifact_sha256") != _file_hash(path):
+        raise WeeklyBasketError("Microcap publication receipt hash mismatch")
+
+
 def load_microcap_selection(
     path: Path,
     *,
     as_of_date: str,
+    receipt_path: Path | None = None,
     shadow: bool = True,
+    allow_legacy: bool = False,
 ) -> list[SourcePosition]:
     """Load a microcap artifact only when it explicitly declares shadow status."""
     report_date = _date(as_of_date, label="as_of_date")
     artifact = _read_json_object(path, label="Microcap selection")
-    if artifact.get("schema_version") != "microcap.selection.v1":
+    schema = artifact.get("schema_version")
+    if schema == "microcap.selection.v1" and not allow_legacy:
+        raise WeeklyBasketError("Microcap selection v1 is allowed only for legacy diagnostics")
+    if schema not in {"microcap.selection.v1", "microcap.selection.v2"}:
         raise WeeklyBasketError("Microcap selection schema is unsupported")
     if not shadow or artifact.get("shadow") is not True:
         raise WeeklyBasketError("Microcap selection requires an explicit shadow marker")
@@ -623,12 +662,23 @@ def load_microcap_selection(
     )
     if signal_date > report_date:
         raise WeeklyBasketError("Microcap signal_date is after as_of_date")
+    if schema == "microcap.selection.v2":
+        _validate_microcap_v2(
+            artifact,
+            path=path,
+            receipt_path=receipt_path,
+            report_date=report_date,
+            signal_date=signal_date,
+        )
     rows = _rows(
         artifact.get("positions", artifact.get("targets")),
         label="Microcap positions",
     )
-    if len(rows) < 3:
-        raise WeeklyBasketError("Microcap selection must contain at least three candidates")
+    minimum_candidates = 10 if schema == "microcap.selection.v2" else 3
+    if len(rows) < minimum_candidates:
+        raise WeeklyBasketError(
+            f"Microcap selection must contain at least {minimum_candidates} candidates"
+        )
     digest = _file_hash(path)
     return [
         _row_position(
@@ -647,9 +697,8 @@ def load_microcap_selection(
     ]
 
 
-def load_previous_basket(path: Path) -> BasketArtifact:
-    """Load a previously written canonical basket for NEW/KEEP/DROP diffing."""
-    payload = _read_json_object(path, label="previous basket")
+def basket_artifact_from_payload(payload: Mapping[str, Any]) -> BasketArtifact:
+    """Validate and load one canonical basket payload."""
     if payload.get("schema_version") != SCHEMA_VERSION:
         raise WeeklyBasketError("previous basket schema is unsupported")
     report_date = _date(str(payload.get("report_date") or ""), label="previous report_date")
@@ -668,13 +717,32 @@ def load_previous_basket(path: Path) -> BasketArtifact:
         quotas=dict(config_payload.get("quotas", {})),
         allow_microcap_shadow=bool(config_payload.get("allow_microcap_shadow", True)),
     )
+    delta_payload = payload.get("trade_delta", {})
+    if not isinstance(delta_payload, Mapping):
+        raise WeeklyBasketError("previous basket trade_delta is malformed")
+
+    def delta_rows(label: str) -> tuple[BasketPosition, ...]:
+        try:
+            return tuple(BasketPosition(**row) for row in delta_payload.get(label, ()))
+        except TypeError as exc:
+            raise WeeklyBasketError("previous basket trade_delta is malformed") from exc
+
     return BasketArtifact(
         report_date=report_date,
         positions=tuple(positions),
-        trade_delta=TradeDelta(added=(), kept=tuple(positions), dropped=()),
+        trade_delta=TradeDelta(
+            added=delta_rows("added"),
+            kept=delta_rows("kept"),
+            dropped=delta_rows("dropped"),
+        ),
         config=config,
         source_inputs=tuple(payload.get("source_inputs", ())),
     )
+
+
+def load_previous_basket(path: Path) -> BasketArtifact:
+    """Load a previously written canonical basket for NEW/KEEP/DROP diffing."""
+    return basket_artifact_from_payload(_read_json_object(path, label="previous basket"))
 
 
 __all__ = [
@@ -684,6 +752,7 @@ __all__ = [
     "SourcePosition",
     "TradeDelta",
     "WeeklyBasketError",
+    "basket_artifact_from_payload",
     "compose_weekly_basket",
     "enrich_source_names",
     "filter_source_positions_by_instruments",
