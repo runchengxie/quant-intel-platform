@@ -154,6 +154,7 @@ def test_weekly_basket_parser_has_no_legacy_strategy_arguments() -> None:
     assert "--dailywatch" not in options
     assert "--d11-h5" not in options
     assert "--microcap-quota" not in options
+    assert "--group-chat-id" in options
 
 
 def test_weekly_basket_dry_run_writes_report_and_does_not_send(

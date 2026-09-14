@@ -10,6 +10,7 @@ from a_share_daily.weekly_client_basket_delivery import (
     WeeklyBasketDeliveryError,
     idempotency_key,
     personal_chat_id,
+    send_basket_report,
     send_personal_basket_report,
 )
 
@@ -150,3 +151,41 @@ def test_recovery_retries_only_failed_image(
     assert receipt.image_status == "sent"
     assert len(calls) == 1
     assert "--image" in calls[0]
+
+
+def test_group_send_uses_chat_id_and_independent_receipt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    calls: list[list[str]] = []
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda command, **kwargs: calls.append(command) or _ok(),
+    )
+
+    receipt = send_basket_report(
+        "# test",
+        report_date="20260914",
+        target_id="oc_quant",
+        target_kind="group",
+        lark_cli="/bin/lark-cli",
+        receipt_path=tmp_path / "group.json",
+    )
+
+    assert receipt.status == "sent"
+    assert "--chat-id" in calls[0]
+    assert calls[0][calls[0].index("--chat-id") + 1] == "oc_quant"
+    assert "--user-id" not in calls[0]
+
+
+def test_target_kind_and_id_must_match(tmp_path: Path) -> None:
+    with pytest.raises(WeeklyBasketDeliveryError, match="group chat ID"):
+        send_basket_report(
+            "# test",
+            report_date="20260914",
+            target_id="ou_owner",
+            target_kind="group",
+            lark_cli="/bin/lark-cli",
+            receipt_path=tmp_path / "receipt.json",
+            dry_run=True,
+        )
