@@ -78,78 +78,91 @@ def _render_header(ax, artifact: BasketArtifact, theme: ReportTheme) -> None:
     )
 
 
-def _render_holdings_section(ax, title: str, positions, theme: ReportTheme) -> None:
+def _render_holdings(ax, artifact: BasketArtifact, theme: ReportTheme) -> None:
     from .charts.theme import cjk, cjk_heavy
 
     ax.set_facecolor(theme.surface)
     ax.axis("off")
-    rows = list(positions)
-    ax.text(
-        0.02,
-        0.94,
-        title,
-        transform=ax.transAxes,
-        fontproperties=cjk_heavy,
-        fontsize=13,
-        color=theme.ink,
-        va="top",
+    sections = (
+        ("现金流 6", [p for p in artifact.positions if p.source_strategy == "cashflow"], 0.98),
+        ("微盘 4", [p for p in artifact.positions if p.source_strategy == "microcap"], 0.38),
     )
-    ax.plot([0.02, 0.98], [0.85, 0.85], transform=ax.transAxes, color=theme.rule, lw=0.8)
-    row_height = 0.78 / max(len(rows), 1)
-    for index, position in enumerate(rows, start=1):
-        y = 0.82 - (index - 0.5) * row_height
+    for title, rows, title_y in sections:
         ax.text(
-            0.03,
-            y,
-            f"{index:02d}",
-            transform=ax.transAxes,
-            fontproperties=cjk,
-            fontsize=9,
-            color=theme.accent,
-            va="center",
-        )
-        ax.text(
-            0.11,
-            y,
-            position.name or "未命名",
+            0.02,
+            title_y,
+            title,
             transform=ax.transAxes,
             fontproperties=cjk_heavy,
-            fontsize=11,
+            fontsize=13,
             color=theme.ink,
-            va="center",
+            va="top",
         )
-        ax.text(
-            0.58,
-            y,
-            position.symbol,
-            transform=ax.transAxes,
-            fontproperties=cjk,
-            fontsize=9,
-            color=theme.muted,
-            va="center",
-        )
-        status = STATUS_LABELS.get(position.status, position.status)
-        ax.text(
-            0.96,
-            y,
-            status,
-            transform=ax.transAxes,
-            fontproperties=cjk,
-            fontsize=8.5,
-            color=theme.accent if position.status == "NEW" else theme.muted,
-            ha="right",
-            va="center",
-        )
-        if index < len(rows):
-            line_y = 0.82 - index * row_height
-            ax.plot(
-                [0.03, 0.97],
-                [line_y, line_y],
-                transform=ax.transAxes,
-                color=theme.rule,
-                lw=0.45,
-                alpha=0.7,
+        rule_y = title_y - 0.07
+        ax.plot([0.02, 0.98], [rule_y, rule_y], transform=ax.transAxes, color=theme.rule, lw=0.8)
+        row_height = 0.075
+        for index, position in enumerate(rows, start=1):
+            y = rule_y - (index - 0.5) * row_height
+            _render_holding_row(
+                ax, index, position, y, row_height, len(rows), theme, cjk, cjk_heavy
             )
+
+
+def _render_holding_row(
+    ax, index, position, y, row_height, row_count, theme, cjk, cjk_heavy
+) -> None:
+    ax.text(
+        0.03,
+        y,
+        f"{index:02d}",
+        transform=ax.transAxes,
+        fontproperties=cjk,
+        fontsize=9,
+        color=theme.accent,
+        va="center",
+    )
+    ax.text(
+        0.11,
+        y,
+        position.name or "未命名",
+        transform=ax.transAxes,
+        fontproperties=cjk_heavy,
+        fontsize=11,
+        color=theme.ink,
+        va="center",
+    )
+    ax.text(
+        0.58,
+        y,
+        position.symbol,
+        transform=ax.transAxes,
+        fontproperties=cjk,
+        fontsize=9,
+        color=theme.muted,
+        va="center",
+    )
+    status = STATUS_LABELS.get(position.status, position.status)
+    ax.text(
+        0.96,
+        y,
+        status,
+        transform=ax.transAxes,
+        fontproperties=cjk,
+        fontsize=8.5,
+        color=theme.accent if position.status == "NEW" else theme.muted,
+        ha="right",
+        va="center",
+    )
+    if index < row_count:
+        line_y = y - row_height / 2
+        ax.plot(
+            [0.03, 0.97],
+            [line_y, line_y],
+            transform=ax.transAxes,
+            color=theme.rule,
+            lw=0.45,
+            alpha=0.7,
+        )
 
 
 def _render_curve(curve_ax, performance: Mapping[str, object] | None, theme: ReportTheme) -> None:
@@ -249,16 +262,13 @@ def render_basket_png(
     has_performance = isinstance(raw_series, list) and bool(raw_series)
     figure_height = 13.5 if has_performance else 11.8
     fig = plt.figure(figsize=(12.0, figure_height), dpi=140, facecolor=selected.surface)
-    ratios = [1.2, 3.0, 2.1, 2.5 if has_performance else 0.5]
-    grid = fig.add_gridspec(4, 1, height_ratios=ratios)
+    ratios = [1.2, 5.1, 2.5 if has_performance else 0.5]
+    grid = fig.add_gridspec(3, 1, height_ratios=ratios)
     _render_header(fig.add_subplot(grid[0]), artifact, selected)
-    cashflow = [p for p in artifact.positions if p.source_strategy == "cashflow"]
-    microcap = [p for p in artifact.positions if p.source_strategy == "microcap"]
-    _render_holdings_section(fig.add_subplot(grid[1]), "现金流 6", cashflow, selected)
-    _render_holdings_section(fig.add_subplot(grid[2]), "微盘 4", microcap, selected)
+    _render_holdings(fig.add_subplot(grid[1]), artifact, selected)
 
     if has_performance:
-        curve_ax = fig.add_subplot(grid[3])
+        curve_ax = fig.add_subplot(grid[2])
         _render_curve(curve_ax, performance, selected)
     else:
         fig.text(
