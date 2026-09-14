@@ -351,9 +351,7 @@ def _previous_attempts(
         "selection_sha256": selection_sha256,
         "publication_receipt_sha256": publication_receipt_sha256,
     }
-    mismatches = [
-        field for field, value in expected.items() if previous.get(field) != value
-    ]
+    mismatches = [field for field, value in expected.items() if previous.get(field) != value]
     if mismatches:
         raise CashflowDeliveryError(
             "previous cashflow delivery receipt identity mismatch: " + ",".join(mismatches)
@@ -457,7 +455,9 @@ def deliver(
                 }
             )
         else:
-            attempts.append(_send(lark_cli=lark_cli, chat_id=chat_id, markdown=markdown, artifact=artifact))
+            attempts.append(
+                _send(lark_cli=lark_cli, chat_id=chat_id, markdown=markdown, artifact=artifact)
+            )
     success = all(row["status"] in {"sent", "already_sent"} for row in attempts)
     receipt = {
         "schema_version": DELIVERY_SCHEMA,

@@ -19,6 +19,10 @@ DATA_PLATFORM_ROOT=/path/to/local/data
 
 请勿提交真实凭据、本地 `.env` 文件或服务商返回的真实数据快照。
 
+韩国早盘和盘后代理路径不要求 API key，依次回退到 FinanceDataReader、pykrx
+和 yfinance。快照会记录实际 `source` 与 `degraded`，这不代表已获得
+KRX/NXT 官方盘中数据。
+
 ## AI 市场资讯模型
 
 AI 市场资讯支持智谱 GLM、阿里百炼和 Google Gemini。`api_keys.json` 中的
