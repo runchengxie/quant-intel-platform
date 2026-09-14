@@ -1,4 +1,4 @@
-"""Consume the versioned style-factor artifact produced by research-workspace.
+"""Consume the versioned style-factor artifact produced by quant-research.
 
 This command deliberately contains no factor calculation or backtest logic. The owner
 workflow publishes a complete report, charts, daily factor returns, manifest, SHA-256
@@ -161,7 +161,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--force", action="store_true")
     parser.add_argument(
         "--strategy-csv",
-        help="unsupported here; run the research-workspace publisher with this option",
+        help="unsupported here; run the quant-research publisher with this option",
     )
     parser.add_argument("--strategy-name", default="strategy")
     parser.add_argument(
@@ -179,7 +179,7 @@ def main() -> None:
     if args.strategy_csv or args.quick:
         raise SystemExit(
             "style_analysis is now a read-only artifact consumer. "
-            "Run research-workspace's style_factor_attribution publisher for recomputation."
+            "Run quant-research's style_factor_attribution publisher for recomputation."
         )
     artifact = resolve_style_artifact(Path(args.data_root), args.version)
     destination = consume_style_artifact(artifact, Path(args.outdir), force=args.force)

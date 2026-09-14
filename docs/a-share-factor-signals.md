@@ -1,7 +1,7 @@
 # A 股外部因子信号试验（历史记录）
 
 > 本页仅保留迁移历史。因子面板、分钟特征、Hermite 和滚动训练已迁入
-> 相关能力已经迁移到 research-workspace。market-intel 不再提供本页所述的产出入口或报告观察入口。
+> 相关能力已经迁移到 `quant-research` 与 `strategy-pipeline`。market-intel 不再提供本页所述的产出入口或报告观察入口。
 
 本页记录 `market-intel` 接入 A 股外部因子面板的当前状态。这里只用于工程试验和研究验证，不构成投资建议。
 

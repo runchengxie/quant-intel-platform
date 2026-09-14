@@ -298,7 +298,7 @@ def test_step_hotsector_does_not_execute_retired_owner_without_input(
 
     assert result["skipped"] is True
     assert result["ok"] is False
-    assert "research-workspace" in result["reason"]
+    assert "quant-research" in result["reason"]
 
 
 def test_step_data_freshness_skips_configured_report_datasets(

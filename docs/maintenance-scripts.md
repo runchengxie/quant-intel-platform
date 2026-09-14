@@ -31,10 +31,10 @@
 | `scripts/refresh_tushare_daily.sh` | 亚洲市场日频数据刷新 systemd timer 入口（15:30 CST 后），A 股与日韩市场的当日唯一定时抓取 |
 | `scripts/publish_a_share_current.sh` | TuShare 原始刷新后发布 A 股当前契约：构建并校验 daily_clean、构建并校验股票池、修复累计原始清单、晋升产物 |
 | `scripts/local_fetch_cross_market.sh` | 本机跨市场数据抓取 Linux cron 入口（05:00 CST 之后、07:00 Hermes 之前），三层补抓策略的 Layer 2 |
-| `scripts/refresh_weekly_style_factors.sh` | 周六 08:15 风格因子兼容入口：转调用 research-workspace owner，保留调度与回执路径兼容 |
+| `scripts/refresh_weekly_style_factors.sh` | 周六 08:15 风格因子兼容入口：转调用 `quant-research` owner，保留调度与回执路径兼容 |
 | `scripts/weekly_recap.sh` | 周报 cron 入口：价值因子区制周报与基于晨报的市场周报 |
 | `scripts/morning_product_supervisor.sh` | 加载与晨报相同的凭证与目标，监督 DailyWatch20、D11-H5 和报告投递 |
-| `scripts/daily_watch20_delivery.sh` | 校验 research-workspace 的 DailyWatch20 artifact 并调用本仓投递器 |
+| `scripts/daily_watch20_delivery.sh` | 校验 `strategy-pipeline` 的 DailyWatch20 artifact 并调用本仓投递器 |
 | `scripts/ensure_hermes_gateway.sh` | 确保 systemd 托管的 Hermes 网关处于活跃状态，健康实例不重启 |
 | `scripts/fetch_ai_market_news.py` | 结构化 AI 市场新闻抓取的薄 CLI 包装 |
 | `scripts/refresh_a_share_index_daily.py` | A 股指数日频数据刷新脚本 |
@@ -76,12 +76,12 @@
 
 ## A 股日报 CLI：`a_share_daily`
 
-`src/a_share_daily/` 承担晨报和晚报的正式生成、图表输出和飞书事实层投递。它依赖本机 `DATA_PLATFORM_ROOT`、research-workspace 的公开 CLI/artifact 和 `data-snapshots/` 快照。当前已有投递、新闻契约、CLI 冒烟、缺数据边界和部署检查测试。
+`src/a_share_daily/` 承担晨报和晚报的正式生成、图表输出和飞书事实层投递。它依赖本机 `DATA_PLATFORM_ROOT`、owner 的公开 CLI/artifact 和 `data-snapshots/` 快照。当前已有投递、新闻契约、CLI 冒烟、缺数据边界和部署检查测试。
 
 已落地：
 
 1. `a-share-daily doctor` 可检查脚本权限、`market-data-platform` 仓库、数据湖、latest 快照、AI key、飞书投递目标、`lark-cli`。`--live` 在 Windows 上额外检查 Task Scheduler，在 Linux 上额外检查 systemd timer，并同时检查 Hermes 定时任务。
-2. `refresh_tushare_report_datasets.sh` 负责补抓主题、资金流、概念和涨跌停关键数据。这些接口默认关闭，设置 `A_SHARE_ENABLE_TUSHARE_PREMIUM=1` 后才请求。DailyWatch20 的候选池、研究计算和正式产物均由 research-workspace 负责。本仓只校验、渲染和投递已发布产物。
+2. `refresh_tushare_report_datasets.sh` 负责补抓主题、资金流、概念和涨跌停关键数据。这些接口默认关闭，设置 `A_SHARE_ENABLE_TUSHARE_PREMIUM=1` 后才请求。DailyWatch20 的候选池、研究计算和正式产物均由 `quant-research` / `strategy-pipeline` 负责。本仓只校验、渲染和投递已发布产物。
 3. 根项目 `ty check` 已覆盖全部 `src/` 源码，包括日报 CLI、流水线、data、review、cross-market、charts 与投递。
 4. 流水线层测试已覆盖缺日频核心数据、高权限 TuShare 默认跳过、缺可选 owner artifact 和缺 `moneyflow_ths` 时的返回契约与占位图行为。
 

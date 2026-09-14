@@ -1,6 +1,6 @@
 # 研究平台发布产物消费
 
-`market-intel` 可以读取 `research-workspace` 生成的 `research.platform-publication.v1` 产物包，不需要引入研究方的实现代码。
+`market-intel` 可以读取 `quant-research`、`quant-platform` 或 `strategy-pipeline` 生成的 `research.platform-publication.v1` 产物包，不需要引入研究方的实现代码。
 
 ## 作用
 
@@ -27,7 +27,7 @@ DailyWatch20、style-factor、D11-H5 以及其他已经建立的契约继续有�
 
 ## 发布过程
 
-当前改动依赖 `research-workspace` 的 platform-publication 契约分支。合并前需要完成以下事项：
+当前改动依赖 owner 的 platform-publication 契约。合并前需要完成以下事项：
 
 1. 合并上游工作区的契约改动
 2. 将 `research-contracts` 锁定到工作区 `main` 的最新提交

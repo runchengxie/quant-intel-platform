@@ -45,5 +45,5 @@ def test_boundary_requires_versioned_artifact_consumption() -> None:
 
     assert "版本化文件产物" in text
     assert "不直接 import" in text
-    assert "research-workspace" in text
+    assert "quant-research" in text
     assert "market-intel" in text

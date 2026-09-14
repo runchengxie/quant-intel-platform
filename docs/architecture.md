@@ -118,7 +118,7 @@ market-intel/
       cross_market.py     # 跨市场 US→A 概念映射
       charts/             # 情绪、资金流、主题、跨市场等图表
     a_share_analysis/      # A 股分析工具箱
-      value_regime_weekly.py # 价值因子周报，长期研究文档归档在 research-workspace/docs/
+      value_regime_weekly.py # 价值因子周报，长期研究文档归档在 quant-research/docs/
       style_analysis.py      # 5 因子回测
     style_replica_bridge/  # 风格复制桥接：把回测结果转成报告用 tearsheet
     ops_common/            # 共享运维工具

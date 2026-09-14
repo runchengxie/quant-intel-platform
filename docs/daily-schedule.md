@@ -1,6 +1,6 @@
 # Market Intel 日内调度时间表
 
-本文记录 `market-intel` 当前负责的报告、投递、数据准备和恢复任务。研究算法、因子实验、消融和策略生产逻辑由 `research-workspace` 负责。本仓只在必要时通过公开 CLI 恢复正式 artifact。
+本文记录 `market-intel` 当前负责的报告、投递、数据准备和恢复任务。研究算法、因子实验、消融和策略生产逻辑由 `quant-research`、`quant-platform` 和 `strategy-pipeline` 负责。本仓只在必要时通过公开 CLI 恢复正式 artifact。
 
 ## 设计原则
 
@@ -17,7 +17,7 @@
 
 | 时间 | 入口 | Owner 类型 | 作用 |
 | --- | --- | --- | --- |
-| 05:20 工作日 | `daily-watch20-producer.timer` → `refresh_daily_watch20.sh` | 运维桥 → research-workspace | 检查 DailyWatch20 输入和分钟级新鲜度，必要时补分钟数据，再调用 `strategy watchlist20 run/freshness` 发布正式 artifact |
+| 05:20 工作日 | `daily-watch20-producer.timer` → `refresh_daily_watch20.sh` | 运维桥 → strategy-pipeline | 检查 DailyWatch20 输入和分钟级新鲜度，必要时补分钟数据，再调用 `strategy watchlist20 run/freshness` 发布正式 artifact |
 | 06:00 / 06:45 | `local-fetch-cross-market.timer` | market-intel | 刷新跨市场快照，第二次为较晚更新的数据源补抓 |
 | 06:40 工作日 | `a-share-morning-product-supervisor-preflight.timer` | market-intel | 检查正式 DailyWatch20/D11-H5 artifact 与同日恢复条件 |
 | 06:50 工作日 | `hermes-gateway-preflight.timer` | market-intel | Gateway inactive 时启动并复检，健康时 noop |
@@ -29,7 +29,7 @@
 | 18:50 工作日 | `hermes-gateway-preflight.timer` | market-intel | 晚报前再次检查 Gateway |
 | 19:00 工作日 | Hermes `evening_pipeline.sh` | market-intel | 发送亚洲盘后 / 美股盘前晚报 |
 | 19:20 / 20:30 | `a-share-report-datasets-refresh.timer` | market-data-platform producer | 晚间回填与次日 freshness 修复 |
-| 周六 08:15 | `a-share-style-factor-weekly-refresh.timer` | research-workspace producer bridge | 调用标准入口发布周度风格因子，本仓不实现因子计算 |
+| 周六 08:15 | `a-share-style-factor-weekly-refresh.timer` | quant-research producer bridge | 调用标准入口发布周度风格因子，本仓不实现因子计算 |
 | 周六 09:00 | Hermes `weekly_recap.sh` | market-intel | 消费已发布周度研究产物并发送周报 |
 | 开机后约 5 分钟，之后每 45 分钟 | `market-intel-scheduled-recovery.timer` | market-intel | 核对数据、报告输入、正式策略 artifact 和投递状态，并按允许列表做有限恢复 |
 
@@ -43,7 +43,7 @@
 - `a-share-ai-stock-picker-freshness.timer`
 - 三个历史 owner submodule 中的任何定时任务
 
-`setup_cron.sh --layer2` 会主动 disable 并删除这些旧 user-unit 文件。研究需求应进入 research-workspace 对应 owner，而不是恢复旧 timer。
+`setup_cron.sh --layer2` 会主动 disable 并删除这些旧 user-unit 文件。研究需求应进入对应 owner，而不是恢复旧 timer。
 
 ## DailyWatch20 生产边界
 
@@ -120,7 +120,9 @@ uv run python scripts/send_daily_watch20.py \
 ## 部署
 
 ```bash
-export RESEARCH_WORKSPACE_ROOT=/path/to/research-workspace
+export DATA_PLATFORM_ROOT=/path/to/data/market-data-platform
+export MDP_DIR=/path/to/quant-market-data-platform
+export STRATEGY_PIPELINE_ROOT=/path/to/strategy-pipeline
 bash scripts/setup_cron.sh --layer2
 bash scripts/setup_cron.sh --layer3
 uv run a-share-daily doctor --live
@@ -136,4 +138,4 @@ systemctl --user status daily-watch20-producer.timer
 hermes cron list
 ```
 
-研究侧定时和 experiment cadence 以 `research-workspace` / `strategy-research` 文档为准，不在本时间表重复维护。
+研究侧定时和 experiment cadence 以 `quant-research` / `strategy-research` 文档为准，不在本时间表重复维护。

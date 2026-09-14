@@ -1,4 +1,4 @@
-"""Consumer validation for research-workspace weekly analysis artifacts."""
+"""Consumer validation for owner-published weekly analysis artifacts."""
 
 from __future__ import annotations
 
