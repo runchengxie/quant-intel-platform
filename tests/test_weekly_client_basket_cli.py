@@ -15,6 +15,49 @@ def _write(path: Path, payload: dict[str, object]) -> Path:
     return path
 
 
+def _official_cashflow(tmp_path: Path) -> tuple[Path, Path]:
+    cashflow = _write(
+        tmp_path / "cashflow.json",
+        {
+            "schema_version": "strategy_app.cashflow.official_top6.v1",
+            "status": "passed",
+            "research_only": True,
+            "eligible_for_live": False,
+            "strategy_id": "cni_980092_official_top6_v1",
+            "index_code": "980092.SZ",
+            "report_date": "20260914",
+            "official_snapshot_date": "20260831",
+            "selected_count": 6,
+            "targets": [
+                {
+                    "symbol": f"CF{i:03d}.SZ",
+                    "name": f"CF{i}",
+                    "official_rank": i,
+                    "official_weight": 1 / (i + 10),
+                }
+                for i in range(1, 7)
+            ],
+        },
+    )
+    receipt = _write(
+        tmp_path / "cashflow-receipt.json",
+        {
+            "schema_version": "strategy_app.cashflow.official_top6.v1",
+            "status": "passed",
+            "research_only": True,
+            "eligible_for_live": False,
+            "strategy_id": "cni_980092_official_top6_v1",
+            "index_code": "980092.SZ",
+            "report_date": "20260914",
+            "official_snapshot_date": "20260831",
+            "selected_count": 6,
+            "selection_sha256": hashlib.sha256(cashflow.read_bytes()).hexdigest(),
+            "gates": {"snapshot_complete": "passed", "top6_listed": "passed"},
+        },
+    )
+    return cashflow, receipt
+
+
 def test_weekly_basket_dry_run_writes_report_and_does_not_send(
     tmp_path: Path,
     monkeypatch,
@@ -32,30 +75,7 @@ def test_weekly_basket_dry_run_writes_report_and_does_not_send(
             ],
         },
     )
-    cashflow = _write(
-        tmp_path / "cashflow.json",
-        {
-            "schema_version": "strategy_app.cashflow.selection.v1",
-            "status": "passed",
-            "research_only": True,
-            "eligible_for_live": False,
-            "strategy_id": "cashflow_quality_top50_v1",
-            "source_date": "20260901",
-            "signal_date": "20260902",
-            "targets": [
-                {"symbol": f"CF{i:03d}.SZ", "name": f"CF{i}", "target_weight": 1 / 6}
-                for i in range(1, 7)
-            ],
-        },
-    )
-    cashflow_receipt = _write(
-        tmp_path / "cashflow-receipt.json",
-        {
-            "schema_version": "strategy_pipeline.cashflow.publication.v1",
-            "status": "passed",
-            "selection_sha256": hashlib.sha256(cashflow.read_bytes()).hexdigest(),
-        },
-    )
+    cashflow, cashflow_receipt = _official_cashflow(tmp_path)
     microcap = _write(
         tmp_path / "microcap.json",
         {

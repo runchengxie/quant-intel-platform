@@ -242,6 +242,100 @@ def test_cashflow_adapter_rejects_unverified_publication(tmp_path: Path) -> None
     selection = _write_json(
         tmp_path / "cashflow.json",
         {
+            "schema_version": "strategy_app.cashflow.official_top6.v1",
+            "status": "passed",
+            "research_only": True,
+            "eligible_for_live": False,
+            "strategy_id": "cni_980092_official_top6_v1",
+            "index_code": "980092.SZ",
+            "report_date": "20260914",
+            "official_snapshot_date": "20260831",
+            "selected_count": 6,
+            "targets": [
+                {
+                    "symbol": f"CF{i:03d}.SZ",
+                    "official_rank": i,
+                    "official_weight": 0.1 / i,
+                }
+                for i in range(1, 7)
+            ],
+        },
+    )
+    receipt = _write_json(
+        tmp_path / "receipt.json",
+        {
+            "schema_version": "strategy_app.cashflow.official_top6.v1",
+            "status": "blocked",
+            "research_only": True,
+            "eligible_for_live": False,
+            "strategy_id": "cni_980092_official_top6_v1",
+            "index_code": "980092.SZ",
+            "report_date": "20260914",
+            "official_snapshot_date": "20260831",
+            "selected_count": 6,
+            "selection_sha256": hashlib.sha256(selection.read_bytes()).hexdigest(),
+            "gates": {"snapshot_complete": "passed", "top6_listed": "passed"},
+        },
+    )
+
+    with pytest.raises(WeeklyBasketError, match="publication"):
+        load_cashflow_selection(selection, receipt, as_of_date="20260914")
+
+
+def test_cashflow_adapter_loads_official_cni_top6(tmp_path: Path) -> None:
+    selection = _write_json(
+        tmp_path / "cashflow.json",
+        {
+            "schema_version": "strategy_app.cashflow.official_top6.v1",
+            "status": "passed",
+            "research_only": True,
+            "eligible_for_live": False,
+            "strategy_id": "cni_980092_official_top6_v1",
+            "index_code": "980092.SZ",
+            "report_date": "20260914",
+            "official_snapshot_date": "20260831",
+            "selected_count": 6,
+            "targets": [
+                {
+                    "symbol": f"CF{i:03d}.SZ",
+                    "official_rank": i,
+                    "official_weight": 0.1 / i,
+                    "published_weight": 10 / i,
+                }
+                for i in range(1, 7)
+            ],
+        },
+    )
+    receipt = _write_json(
+        tmp_path / "receipt.json",
+        {
+            "schema_version": "strategy_app.cashflow.official_top6.v1",
+            "status": "passed",
+            "research_only": True,
+            "eligible_for_live": False,
+            "strategy_id": "cni_980092_official_top6_v1",
+            "index_code": "980092.SZ",
+            "report_date": "20260914",
+            "official_snapshot_date": "20260831",
+            "selected_count": 6,
+            "selection_sha256": hashlib.sha256(selection.read_bytes()).hexdigest(),
+            "gates": {"snapshot_complete": "passed", "top6_listed": "passed"},
+        },
+    )
+
+    rows = load_cashflow_selection(selection, receipt, as_of_date="20260914")
+
+    assert len(rows) == 6
+    assert rows[0].rank == 1
+    assert rows[0].score == pytest.approx(0.1)
+    assert rows[0].source_product == "cni_980092_official_top6_v1"
+    assert rows[0].signal_date == "20260914"
+
+
+def test_cashflow_adapter_rejects_legacy_cashflow_selection(tmp_path: Path) -> None:
+    selection = _write_json(
+        tmp_path / "cashflow.json",
+        {
             "schema_version": "strategy_app.cashflow.selection.v1",
             "status": "passed",
             "research_only": True,
@@ -249,19 +343,49 @@ def test_cashflow_adapter_rejects_unverified_publication(tmp_path: Path) -> None
             "strategy_id": "cashflow_quality_top50_v1",
             "source_date": "20260901",
             "signal_date": "20260902",
-            "targets": [{"symbol": "CF001.SZ", "name": "Cash", "target_weight": 1.0}],
+            "targets": [{"symbol": "CF001.SZ", "target_weight": 1.0}],
         },
     )
     receipt = _write_json(
         tmp_path / "receipt.json",
         {
-            "schema_version": "strategy_pipeline.cashflow.publication.v1",
-            "status": "blocked",
+            "status": "passed",
             "selection_sha256": hashlib.sha256(selection.read_bytes()).hexdigest(),
         },
     )
 
-    with pytest.raises(WeeklyBasketError, match="publication"):
+    with pytest.raises(WeeklyBasketError, match="official CNI"):
+        load_cashflow_selection(selection, receipt, as_of_date="20260914")
+
+
+def test_cashflow_adapter_rejects_receipt_snapshot_mismatch(tmp_path: Path) -> None:
+    payload = {
+        "schema_version": "strategy_app.cashflow.official_top6.v1",
+        "status": "passed",
+        "research_only": True,
+        "eligible_for_live": False,
+        "strategy_id": "cni_980092_official_top6_v1",
+        "index_code": "980092.SZ",
+        "report_date": "20260914",
+        "official_snapshot_date": "20260831",
+        "selected_count": 6,
+        "targets": [
+            {"symbol": f"CF{i:03d}.SZ", "official_rank": i, "official_weight": 0.1 / i}
+            for i in range(1, 7)
+        ],
+    }
+    selection = _write_json(tmp_path / "cashflow.json", payload)
+    receipt = _write_json(
+        tmp_path / "receipt.json",
+        {
+            **{key: value for key, value in payload.items() if key != "targets"},
+            "official_snapshot_date": "20260731",
+            "selection_sha256": hashlib.sha256(selection.read_bytes()).hexdigest(),
+            "gates": {"snapshot_complete": "passed", "top6_listed": "passed"},
+        },
+    )
+
+    with pytest.raises(WeeklyBasketError, match="snapshot"):
         load_cashflow_selection(selection, receipt, as_of_date="20260914")
 
 
