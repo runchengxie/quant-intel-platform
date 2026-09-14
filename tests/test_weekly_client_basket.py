@@ -63,7 +63,7 @@ def _normal_sources(
     }
 
 
-def test_compose_uses_six_cashflow_four_microcap_and_monitors_dailywatch() -> None:
+def test_compose_uses_only_six_cashflow_and_four_microcap() -> None:
     sources = _normal_sources(
         cashflow=[_position(f"CF{i:03d}", "cashflow", rank=i) for i in range(1, 7)]
     )
@@ -74,7 +74,7 @@ def test_compose_uses_six_cashflow_four_microcap_and_monitors_dailywatch() -> No
     assert len({row.symbol for row in artifact.positions}) == 10
     assert sum(row.source_strategy == "cashflow" for row in artifact.positions) == 6
     assert sum(row.source_strategy == "microcap" for row in artifact.positions) == 4
-    assert [row.symbol for row in artifact.monitoring] == [f"DW{i:03d}" for i in range(1, 6)]
+    assert {row["sleeve"] for row in artifact.source_inputs} == {"cashflow", "microcap"}
 
 
 def test_cashflow_without_new_rebalance_keeps_original_signal_date() -> None:

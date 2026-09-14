@@ -77,16 +77,6 @@ def render_basket_markdown(
             f"{STATUS_LABELS.get(position.status, position.status)}（{position.status}）｜"
             f"信号 {_cell(_date_dash(position.signal_date))}｜Rank {_cell(position.rank)}"
         )
-    lines.extend(["", "## DailyWatch 独立监控", ""])
-    if artifact.monitoring:
-        lines.append("> 仅作盘中观察，不占 10 股名额，不进入交易差分、组合权重或历史绩效。")
-        for position in artifact.monitoring:
-            lines.append(
-                f"- Rank {_cell(position.rank)}｜**{_cell(position.name)}**"
-                f"（`{_cell(position.symbol)}`）｜信号 {_cell(_date_dash(position.signal_date))}"
-            )
-    else:
-        lines.append("- 当前没有可用的 DailyWatch 监控项。")
     lines.extend(
         [
             "",
