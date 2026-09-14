@@ -218,9 +218,9 @@ def _add_weekly_basket_command(sub: argparse._SubParsersAction) -> None:
     basket.add_argument(
         "--microcap-quota",
         type=int,
-        choices=(0, 2, 3),
-        default=3,
-        help="Microcap positions in V1; 0 uses a 7/3/0 DailyWatch/Cashflow split",
+        choices=(4,),
+        default=4,
+        help="Microcap positions; Weekly 6+4 uses four",
     )
     basket.add_argument("--previous", help="Previous canonical basket.json")
     basket.add_argument(
@@ -447,6 +447,7 @@ def _load_weekly_basket_inputs(args: argparse.Namespace):
     from .weekly_client_basket import (
         BasketConfig,
         enrich_source_names,
+        filter_source_positions_by_instruments,
         load_cashflow_selection,
         load_dailywatch_family,
         load_microcap_selection,
@@ -485,10 +486,19 @@ def _load_weekly_basket_inputs(args: argparse.Namespace):
             )
         )
         source_positions = enrich_source_names(source_positions, names)
+        instruments = {
+            str(row.get(symbol_column) or "").strip().upper(): row
+            for row in frame.to_dict(orient="records")
+        }
+        source_positions = filter_source_positions_by_instruments(
+            source_positions,
+            instruments,
+            as_of_date=args.as_of_date,
+        )
     config = BasketConfig(
         quotas={
-            "dailywatch_family": 10 - 3 - args.microcap_quota,
-            "cashflow": 3,
+            "dailywatch_family": 0,
+            "cashflow": 6,
             "microcap": args.microcap_quota,
         }
     )
@@ -498,12 +508,15 @@ def _load_weekly_basket_inputs(args: argparse.Namespace):
     return source_positions, config, previous
 
 
-def _update_weekly_basket_receipt(receipt_path: Path, delivery_path: Path, status: str) -> None:
+def _update_weekly_basket_receipt(
+    receipt_path: Path, delivery_path: Path | None, status: str
+) -> None:
     from .weekly_client_basket import _atomic_write
 
     payload = json.loads(receipt_path.read_text(encoding="utf-8"))
     payload["send_status"] = status
-    payload["delivery_receipt"] = str(delivery_path)
+    if delivery_path is not None:
+        payload["delivery_receipt"] = str(delivery_path)
     _atomic_write(
         receipt_path,
         (json.dumps(payload, ensure_ascii=False, indent=2) + "\n").encode("utf-8"),
@@ -548,6 +561,8 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
         )
         markdown = render_basket_markdown(artifact, theme=args.theme, performance=performance)
         delivery = None
+        if args.dry_run:
+            _update_weekly_basket_receipt(paths["receipt"], None, "dry_run")
         if args.send:
             delivery = send_personal_basket_report(
                 markdown,
@@ -583,7 +598,13 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
                         **{key: str(value) for key, value in paths.items()},
                         **{key: str(value) for key, value in rendered.items()},
                     },
-                    "send_status": delivery.status if delivery else "not_requested",
+                    "send_status": (
+                        delivery.status
+                        if delivery
+                        else "dry_run"
+                        if args.dry_run
+                        else "not_requested"
+                    ),
                 },
                 ensure_ascii=False,
                 indent=2,

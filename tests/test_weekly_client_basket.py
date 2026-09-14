@@ -12,6 +12,7 @@ from a_share_daily.weekly_client_basket import (
     WeeklyBasketError,
     compose_weekly_basket,
     enrich_source_names,
+    filter_source_positions_by_instruments,
     load_cashflow_selection,
     load_dailywatch_family,
     load_microcap_selection,
@@ -55,26 +56,25 @@ def _normal_sources(
         ],
         "cashflow": cashflow
         if cashflow is not None
-        else [_position(f"CF{i:03d}", "cashflow", rank=i) for i in range(1, 5)],
+        else [_position(f"CF{i:03d}", "cashflow", rank=i) for i in range(1, 7)],
         "microcap": microcap
         if microcap is not None
         else [_position(f"MC{i:03d}", "microcap", rank=i) for i in range(1, 5)],
     }
 
 
-def test_compose_uses_four_dailywatch_three_cashflow_three_microcap() -> None:
-    artifact = compose_weekly_basket(_normal_sources(), as_of_date="20260914")
+def test_compose_uses_six_cashflow_four_microcap_and_monitors_dailywatch() -> None:
+    sources = _normal_sources(
+        cashflow=[_position(f"CF{i:03d}", "cashflow", rank=i) for i in range(1, 7)]
+    )
+    artifact = compose_weekly_basket(sources, as_of_date="20260914")
 
     assert len(artifact.positions) == 10
-    assert {row.source_strategy for row in artifact.positions} == {
-        "dailywatch_family",
-        "cashflow",
-        "microcap",
-    }
+    assert {row.source_strategy for row in artifact.positions} == {"cashflow", "microcap"}
     assert len({row.symbol for row in artifact.positions}) == 10
-    assert sum(row.source_strategy == "dailywatch_family" for row in artifact.positions) == 4
-    assert sum(row.source_strategy == "cashflow" for row in artifact.positions) == 3
-    assert sum(row.source_strategy == "microcap" for row in artifact.positions) == 3
+    assert sum(row.source_strategy == "cashflow" for row in artifact.positions) == 6
+    assert sum(row.source_strategy == "microcap" for row in artifact.positions) == 4
+    assert [row.symbol for row in artifact.monitoring] == [f"DW{i:03d}" for i in range(1, 6)]
 
 
 def test_cashflow_without_new_rebalance_keeps_original_signal_date() -> None:
@@ -91,6 +91,9 @@ def test_cashflow_without_new_rebalance_keeps_original_signal_date() -> None:
                 source,
                 _position("CF002", "cashflow", rank=2),
                 _position("CF003", "cashflow", rank=3),
+                _position("CF004", "cashflow", rank=4),
+                _position("CF005", "cashflow", rank=5),
+                _position("CF006", "cashflow", rank=6),
             ]
         ),
         as_of_date="20260914",
@@ -112,17 +115,47 @@ def test_enrich_source_names_fills_missing_cashflow_name() -> None:
     assert enriched["dailywatch_family"][0].name == "Name DW001"
 
 
+def test_filter_source_positions_excludes_symbols_not_listed_on_report_date() -> None:
+    sources = _normal_sources(microcap=[])
+    sources["cashflow"] = [
+        _position("DELISTED.SZ", "cashflow", rank=1),
+        _position("ACTIVE.SZ", "cashflow", rank=2),
+        _position("LATER.SZ", "cashflow", rank=3),
+        _position("FUTURE_DELIST.SZ", "cashflow", rank=4),
+    ]
+
+    filtered = filter_source_positions_by_instruments(
+        sources,
+        {
+            "DELISTED.SZ": {"list_status": "D", "list_date": "20100101", "delist_date": "20200101"},
+            "ACTIVE.SZ": {"list_status": "L", "list_date": "20100101", "delist_date": ""},
+            "LATER.SZ": {"list_status": "L", "list_date": "20260915", "delist_date": ""},
+            "FUTURE_DELIST.SZ": {
+                "list_status": "D",
+                "list_date": "20100101",
+                "delist_date": "20270101",
+            },
+        },
+        as_of_date="20260914",
+    )
+
+    assert [row.symbol for row in filtered["cashflow"]] == ["ACTIVE.SZ", "FUTURE_DELIST.SZ"]
+
+
 def test_duplicate_symbol_is_replaced_by_same_sleeve_candidate() -> None:
-    sources = _normal_sources()
-    sources["cashflow"][0] = replace(sources["cashflow"][0], symbol="DW001")
+    sources = _normal_sources(
+        microcap=[_position(f"MC{i:03d}", "microcap", rank=i) for i in range(1, 6)]
+    )
+    sources["microcap"][0] = replace(sources["microcap"][0], symbol="CF001")
 
     artifact = compose_weekly_basket(sources, as_of_date="20260914")
 
     assert len({row.symbol for row in artifact.positions}) == 10
-    assert [row.symbol for row in artifact.positions if row.source_strategy == "cashflow"] == [
-        "CF002",
-        "CF003",
-        "CF004",
+    assert [row.symbol for row in artifact.positions if row.source_strategy == "microcap"] == [
+        "MC002",
+        "MC003",
+        "MC004",
+        "MC005",
     ]
 
 
@@ -209,6 +242,100 @@ def test_cashflow_adapter_rejects_unverified_publication(tmp_path: Path) -> None
     selection = _write_json(
         tmp_path / "cashflow.json",
         {
+            "schema_version": "strategy_app.cashflow.official_top6.v1",
+            "status": "passed",
+            "research_only": True,
+            "eligible_for_live": False,
+            "strategy_id": "cni_980092_official_top6_v1",
+            "index_code": "980092.SZ",
+            "report_date": "20260914",
+            "official_snapshot_date": "20260831",
+            "selected_count": 6,
+            "targets": [
+                {
+                    "symbol": f"CF{i:03d}.SZ",
+                    "official_rank": i,
+                    "official_weight": 0.1 / i,
+                }
+                for i in range(1, 7)
+            ],
+        },
+    )
+    receipt = _write_json(
+        tmp_path / "receipt.json",
+        {
+            "schema_version": "strategy_app.cashflow.official_top6.v1",
+            "status": "blocked",
+            "research_only": True,
+            "eligible_for_live": False,
+            "strategy_id": "cni_980092_official_top6_v1",
+            "index_code": "980092.SZ",
+            "report_date": "20260914",
+            "official_snapshot_date": "20260831",
+            "selected_count": 6,
+            "selection_sha256": hashlib.sha256(selection.read_bytes()).hexdigest(),
+            "gates": {"snapshot_complete": "passed", "top6_listed": "passed"},
+        },
+    )
+
+    with pytest.raises(WeeklyBasketError, match="publication"):
+        load_cashflow_selection(selection, receipt, as_of_date="20260914")
+
+
+def test_cashflow_adapter_loads_official_cni_top6(tmp_path: Path) -> None:
+    selection = _write_json(
+        tmp_path / "cashflow.json",
+        {
+            "schema_version": "strategy_app.cashflow.official_top6.v1",
+            "status": "passed",
+            "research_only": True,
+            "eligible_for_live": False,
+            "strategy_id": "cni_980092_official_top6_v1",
+            "index_code": "980092.SZ",
+            "report_date": "20260914",
+            "official_snapshot_date": "20260831",
+            "selected_count": 6,
+            "targets": [
+                {
+                    "symbol": f"CF{i:03d}.SZ",
+                    "official_rank": i,
+                    "official_weight": 0.1 / i,
+                    "published_weight": 10 / i,
+                }
+                for i in range(1, 7)
+            ],
+        },
+    )
+    receipt = _write_json(
+        tmp_path / "receipt.json",
+        {
+            "schema_version": "strategy_app.cashflow.official_top6.v1",
+            "status": "passed",
+            "research_only": True,
+            "eligible_for_live": False,
+            "strategy_id": "cni_980092_official_top6_v1",
+            "index_code": "980092.SZ",
+            "report_date": "20260914",
+            "official_snapshot_date": "20260831",
+            "selected_count": 6,
+            "selection_sha256": hashlib.sha256(selection.read_bytes()).hexdigest(),
+            "gates": {"snapshot_complete": "passed", "top6_listed": "passed"},
+        },
+    )
+
+    rows = load_cashflow_selection(selection, receipt, as_of_date="20260914")
+
+    assert len(rows) == 6
+    assert rows[0].rank == 1
+    assert rows[0].score == pytest.approx(0.1)
+    assert rows[0].source_product == "cni_980092_official_top6_v1"
+    assert rows[0].signal_date == "20260914"
+
+
+def test_cashflow_adapter_rejects_legacy_cashflow_selection(tmp_path: Path) -> None:
+    selection = _write_json(
+        tmp_path / "cashflow.json",
+        {
             "schema_version": "strategy_app.cashflow.selection.v1",
             "status": "passed",
             "research_only": True,
@@ -216,19 +343,49 @@ def test_cashflow_adapter_rejects_unverified_publication(tmp_path: Path) -> None
             "strategy_id": "cashflow_quality_top50_v1",
             "source_date": "20260901",
             "signal_date": "20260902",
-            "targets": [{"symbol": "CF001.SZ", "name": "Cash", "target_weight": 1.0}],
+            "targets": [{"symbol": "CF001.SZ", "target_weight": 1.0}],
         },
     )
     receipt = _write_json(
         tmp_path / "receipt.json",
         {
-            "schema_version": "strategy_pipeline.cashflow.publication.v1",
-            "status": "blocked",
+            "status": "passed",
             "selection_sha256": hashlib.sha256(selection.read_bytes()).hexdigest(),
         },
     )
 
-    with pytest.raises(WeeklyBasketError, match="publication"):
+    with pytest.raises(WeeklyBasketError, match="official CNI"):
+        load_cashflow_selection(selection, receipt, as_of_date="20260914")
+
+
+def test_cashflow_adapter_rejects_receipt_snapshot_mismatch(tmp_path: Path) -> None:
+    payload = {
+        "schema_version": "strategy_app.cashflow.official_top6.v1",
+        "status": "passed",
+        "research_only": True,
+        "eligible_for_live": False,
+        "strategy_id": "cni_980092_official_top6_v1",
+        "index_code": "980092.SZ",
+        "report_date": "20260914",
+        "official_snapshot_date": "20260831",
+        "selected_count": 6,
+        "targets": [
+            {"symbol": f"CF{i:03d}.SZ", "official_rank": i, "official_weight": 0.1 / i}
+            for i in range(1, 7)
+        ],
+    }
+    selection = _write_json(tmp_path / "cashflow.json", payload)
+    receipt = _write_json(
+        tmp_path / "receipt.json",
+        {
+            **{key: value for key, value in payload.items() if key != "targets"},
+            "official_snapshot_date": "20260731",
+            "selection_sha256": hashlib.sha256(selection.read_bytes()).hexdigest(),
+            "gates": {"snapshot_complete": "passed", "top6_listed": "passed"},
+        },
+    )
+
+    with pytest.raises(WeeklyBasketError, match="snapshot"):
         load_cashflow_selection(selection, receipt, as_of_date="20260914")
 
 

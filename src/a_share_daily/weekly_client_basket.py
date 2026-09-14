@@ -6,6 +6,7 @@ import csv
 import hashlib
 import io
 import json
+import math
 import os
 import re
 from collections.abc import Mapping, Sequence
@@ -14,6 +15,9 @@ from pathlib import Path
 from typing import Any, cast
 
 SCHEMA_VERSION = "a_share_daily.weekly_client_basket.v1"
+OFFICIAL_CASHFLOW_SCHEMA = "strategy_app.cashflow.official_top6.v1"
+OFFICIAL_CASHFLOW_STRATEGY = "cni_980092_official_top6_v1"
+OFFICIAL_CASHFLOW_INDEX = "980092.SZ"
 DATE_RE = re.compile(r"^\d{8}$")
 SLEEVE_ORDER = ("dailywatch_family", "cashflow", "microcap")
 
@@ -48,9 +52,9 @@ class BasketPosition(SourcePosition):
 class BasketConfig:
     quotas: Mapping[str, int] = field(
         default_factory=lambda: {
-            "dailywatch_family": 4,
-            "cashflow": 3,
-            "microcap": 3,
+            "dailywatch_family": 0,
+            "cashflow": 6,
+            "microcap": 4,
         }
     )
     allow_microcap_shadow: bool = True
@@ -71,6 +75,7 @@ class BasketArtifact:
     trade_delta: TradeDelta
     config: BasketConfig
     source_inputs: tuple[dict[str, Any], ...]
+    monitoring: tuple[SourcePosition, ...] = ()
     schema_version: str = SCHEMA_VERSION
 
 
@@ -199,6 +204,7 @@ def compose_weekly_basket(
         trade_delta=TradeDelta(added=added, kept=kept, dropped=dropped),
         config=config,
         source_inputs=_source_inputs(source_positions),
+        monitoring=tuple(source_positions.get("dailywatch_family", ())),
     )
 
 
@@ -238,6 +244,7 @@ def _basket_payload(artifact: BasketArtifact) -> dict[str, Any]:
         "positions": [_position_payload(row) for row in artifact.positions],
         "trade_delta": _json_safe(artifact.trade_delta),
         "source_inputs": list(artifact.source_inputs),
+        "monitoring": [_position_payload(row) for row in artifact.monitoring],
     }
 
 
@@ -348,6 +355,8 @@ def _row_position(
         rank=(
             int(row["rank"])
             if row.get("rank") is not None
+            else int(row["official_rank"])
+            if row.get("official_rank") is not None
             else int(row["model_rank"])
             if row.get("model_rank") is not None
             else int(row["selection_rank"])
@@ -357,6 +366,8 @@ def _row_position(
         score=(
             float(row["score"])
             if row.get("score") is not None
+            else float(row["official_weight"])
+            if row.get("official_weight") is not None
             else float(row["score_D11_20"])
             if row.get("score_D11_20") is not None
             else float(row["score_percentile"])
@@ -398,6 +409,44 @@ def enrich_source_names(
             )
         enriched[sleeve] = rows
     return enriched
+
+
+def filter_source_positions_by_instruments(
+    source_positions: Mapping[str, Sequence[SourcePosition]],
+    instruments_by_symbol: Mapping[str, Mapping[str, Any]],
+    *,
+    as_of_date: str,
+) -> dict[str, list[SourcePosition]]:
+    """Keep securities that were listed and not delisted on the report date."""
+    report_date = _date(as_of_date, label="as_of_date")
+    normalized = {
+        str(symbol).strip().upper(): instrument
+        for symbol, instrument in instruments_by_symbol.items()
+    }
+    filtered: dict[str, list[SourcePosition]] = {}
+
+    def instrument_text(instrument: Mapping[str, Any], key: str) -> str:
+        text = str(instrument.get(key) or "").strip()
+        return "" if text.lower() in {"nan", "nat", "none"} else text
+
+    for sleeve, positions in source_positions.items():
+        rows: list[SourcePosition] = []
+        for position in positions:
+            instrument = normalized.get(position.symbol.strip().upper())
+            if instrument is None:
+                continue
+            list_date = instrument_text(instrument, "list_date")
+            delist_date = instrument_text(instrument, "delist_date")
+            if list_date and list_date > report_date:
+                continue
+            if delist_date and delist_date <= report_date:
+                continue
+            list_status = str(instrument.get("list_status") or "").strip().upper()
+            if list_status != "L" and not (delist_date and delist_date > report_date):
+                continue
+            rows.append(position)
+        filtered[sleeve] = rows
+    return filtered
 
 
 def load_dailywatch_family(path: Path, *, as_of_date: str) -> list[SourcePosition]:
@@ -455,6 +504,65 @@ def load_dailywatch_family(path: Path, *, as_of_date: str) -> list[SourcePositio
     return result
 
 
+def _validate_official_cashflow_contract(
+    artifact: Mapping[str, Any], receipt: Mapping[str, Any], *, report_date: str
+) -> tuple[str, str, list[Mapping[str, Any]]]:
+    identity = {
+        "schema_version": OFFICIAL_CASHFLOW_SCHEMA,
+        "strategy_id": OFFICIAL_CASHFLOW_STRATEGY,
+        "index_code": OFFICIAL_CASHFLOW_INDEX,
+    }
+    if any(artifact.get(key) != value for key, value in identity.items()):
+        raise WeeklyBasketError("Cashflow selection must use the official CNI 980092 Top 6")
+    if any(receipt.get(key) != value for key, value in identity.items()):
+        raise WeeklyBasketError("Cashflow publication receipt must match the official CNI Top 6")
+    if artifact.get("status") != "passed" or not artifact.get("research_only"):
+        raise WeeklyBasketError("Cashflow selection must be a passed research artifact")
+    if artifact.get("eligible_for_live") is not False:
+        raise WeeklyBasketError("Cashflow selection must remain ineligible for live use")
+    if (
+        receipt.get("status") != "passed"
+        or receipt.get("research_only") is not True
+        or receipt.get("eligible_for_live") is not False
+    ):
+        raise WeeklyBasketError("Cashflow publication receipt is not passed")
+    signal_date = _date(str(artifact.get("report_date") or ""), label="Cashflow report_date")
+    receipt_date = _date(str(receipt.get("report_date") or ""), label="Cashflow receipt date")
+    if signal_date != report_date or receipt_date != report_date:
+        raise WeeklyBasketError("Cashflow report_date must match as_of_date")
+    snapshot_date = _date(
+        str(artifact.get("official_snapshot_date") or ""),
+        label="Cashflow official_snapshot_date",
+    )
+    receipt_snapshot_date = _date(
+        str(receipt.get("official_snapshot_date") or ""),
+        label="Cashflow receipt official_snapshot_date",
+    )
+    if snapshot_date > report_date:
+        raise WeeklyBasketError("Cashflow official snapshot is after as_of_date")
+    if receipt_snapshot_date != snapshot_date:
+        raise WeeklyBasketError("Cashflow receipt snapshot does not match selection")
+    rows = _rows(artifact.get("targets"), label="Cashflow targets")
+    if artifact.get("selected_count") != 6 or receipt.get("selected_count") != 6 or len(rows) != 6:
+        raise WeeklyBasketError("official CNI Cashflow selection must contain exactly six targets")
+    if receipt.get("gates") != {"snapshot_complete": "passed", "top6_listed": "passed"}:
+        raise WeeklyBasketError("official CNI Cashflow receipt gates are not passed")
+    symbols = [str(row.get("symbol") or "").strip().upper() for row in rows]
+    ranks = [row.get("official_rank") for row in rows]
+    weights = [row.get("official_weight") for row in rows]
+    if len(set(symbols)) != 6 or "" in symbols or ranks != list(range(1, 7)):
+        raise WeeklyBasketError("official CNI Cashflow targets are incomplete or out of rank order")
+    if any(
+        isinstance(weight, bool)
+        or not isinstance(weight, (int, float))
+        or not math.isfinite(weight)
+        or weight <= 0
+        for weight in weights
+    ):
+        raise WeeklyBasketError("official CNI Cashflow weights must be positive numbers")
+    return signal_date, snapshot_date, rows
+
+
 def load_cashflow_selection(
     selection_path: Path,
     publication_receipt_path: Path,
@@ -465,21 +573,12 @@ def load_cashflow_selection(
     report_date = _date(as_of_date, label="as_of_date")
     artifact = _read_json_object(selection_path, label="Cashflow selection")
     receipt = _read_json_object(publication_receipt_path, label="Cashflow publication receipt")
-    if artifact.get("status") != "passed" or not artifact.get("research_only"):
-        raise WeeklyBasketError("Cashflow selection must be a passed research artifact")
-    if artifact.get("eligible_for_live") is not False:
-        raise WeeklyBasketError("Cashflow selection must remain ineligible for live use")
-    if receipt.get("status") != "passed":
-        raise WeeklyBasketError("Cashflow publication receipt is not passed")
-    selection_hash = _file_hash(selection_path)
-    if receipt.get("selection_sha256") != selection_hash:
-        raise WeeklyBasketError("Cashflow publication receipt hash mismatch")
-    source_date = _date(str(artifact.get("source_date") or ""), label="Cashflow source_date")
-    signal_date = _date(str(artifact.get("signal_date") or ""), label="Cashflow signal_date")
-    if signal_date > report_date:
-        raise WeeklyBasketError("Cashflow signal_date is after as_of_date")
-    rows = _rows(artifact.get("targets"), label="Cashflow targets")
+    signal_date, snapshot_date, rows = _validate_official_cashflow_contract(
+        artifact, receipt, report_date=report_date
+    )
     digest = _file_hash(selection_path)
+    if receipt.get("selection_sha256") != digest:
+        raise WeeklyBasketError("Cashflow publication receipt hash mismatch")
     return [
         _row_position(
             row,
@@ -497,7 +596,7 @@ def load_cashflow_selection(
             artifact_sha256=digest,
             research_only=True,
             eligible_for_live=False,
-            default_reason=f"Cashflow selection from source date {source_date}",
+            default_reason=f"Official CNI 980092 weight rank on {snapshot_date}",
         )
         for row in rows
     ]
@@ -577,6 +676,10 @@ def load_previous_basket(path: Path) -> BasketArtifact:
         trade_delta=TradeDelta(added=(), kept=tuple(positions), dropped=()),
         config=config,
         source_inputs=tuple(payload.get("source_inputs", ())),
+        monitoring=tuple(
+            SourcePosition(**row)
+            for row in _rows(payload.get("monitoring", []), label="previous monitoring")
+        ),
     )
 
 
@@ -589,6 +692,7 @@ __all__ = [
     "WeeklyBasketError",
     "compose_weekly_basket",
     "enrich_source_names",
+    "filter_source_positions_by_instruments",
     "load_cashflow_selection",
     "load_dailywatch_family",
     "load_microcap_selection",
