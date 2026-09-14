@@ -204,7 +204,7 @@ def _add_weekly_basket_command(sub: argparse._SubParsersAction) -> None:
         help="Compose a validated weekly ten-stock basket and optional personal Feishu report",
     )
     basket.add_argument("--as-of-date", required=True, help="Basket date YYYYMMDD")
-    basket.add_argument("--dailywatch", required=True, help="DailyWatch20 or D11-H5 JSON artifact")
+    basket.add_argument("--dailywatch", help="Deprecated; DailyWatch is not part of the 6+4 report")
     basket.add_argument("--d11-h5", help="Optional D11-H5 artifact overriding --dailywatch")
     basket.add_argument("--cashflow", required=True, help="Cashflow selection JSON artifact")
     basket.add_argument(
@@ -449,14 +449,12 @@ def _load_weekly_basket_inputs(args: argparse.Namespace):
         enrich_source_names,
         filter_source_positions_by_instruments,
         load_cashflow_selection,
-        load_dailywatch_family,
         load_microcap_selection,
         load_previous_basket,
     )
 
-    source_path = Path(args.d11_h5 or args.dailywatch).expanduser().resolve()
     source_positions = {
-        "dailywatch_family": load_dailywatch_family(source_path, as_of_date=args.as_of_date),
+        "dailywatch_family": [],
         "cashflow": load_cashflow_selection(
             Path(args.cashflow).expanduser().resolve(),
             Path(args.cashflow_receipt).expanduser().resolve(),

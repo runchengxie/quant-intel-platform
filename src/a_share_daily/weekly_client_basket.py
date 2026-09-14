@@ -75,7 +75,6 @@ class BasketArtifact:
     trade_delta: TradeDelta
     config: BasketConfig
     source_inputs: tuple[dict[str, Any], ...]
-    monitoring: tuple[SourcePosition, ...] = ()
     schema_version: str = SCHEMA_VERSION
 
 
@@ -121,10 +120,11 @@ def _previous_symbols(previous_basket: BasketArtifact | None) -> set[str]:
 
 def _source_inputs(
     source_positions: Mapping[str, Sequence[SourcePosition]],
+    config: BasketConfig,
 ) -> tuple[dict[str, Any], ...]:
     values: list[dict[str, Any]] = []
     for sleeve in SLEEVE_ORDER:
-        rows = source_positions.get(sleeve, ())
+        rows = source_positions.get(sleeve, ()) if config.quotas[sleeve] else ()
         if rows:
             values.extend(
                 {
@@ -203,8 +203,7 @@ def compose_weekly_basket(
         positions=tuple(selected),
         trade_delta=TradeDelta(added=added, kept=kept, dropped=dropped),
         config=config,
-        source_inputs=_source_inputs(source_positions),
-        monitoring=tuple(source_positions.get("dailywatch_family", ())),
+        source_inputs=_source_inputs(source_positions, config),
     )
 
 
@@ -244,7 +243,6 @@ def _basket_payload(artifact: BasketArtifact) -> dict[str, Any]:
         "positions": [_position_payload(row) for row in artifact.positions],
         "trade_delta": _json_safe(artifact.trade_delta),
         "source_inputs": list(artifact.source_inputs),
-        "monitoring": [_position_payload(row) for row in artifact.monitoring],
     }
 
 
@@ -676,10 +674,6 @@ def load_previous_basket(path: Path) -> BasketArtifact:
         trade_delta=TradeDelta(added=(), kept=tuple(positions), dropped=()),
         config=config,
         source_inputs=tuple(payload.get("source_inputs", ())),
-        monitoring=tuple(
-            SourcePosition(**row)
-            for row in _rows(payload.get("monitoring", []), label="previous monitoring")
-        ),
     )
 
 

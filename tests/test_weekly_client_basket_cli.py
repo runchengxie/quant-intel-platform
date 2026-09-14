@@ -63,18 +63,6 @@ def test_weekly_basket_dry_run_writes_report_and_does_not_send(
     monkeypatch,
     capsys,
 ) -> None:
-    dailywatch = _write(
-        tmp_path / "dailywatch.json",
-        {
-            "status": "passed",
-            "source_date": "20260911",
-            "signal_date": "20260912",
-            "positions": [
-                {"symbol": f"DW{i:03d}.SZ", "name": f"DW{i}", "rank": i, "score": 1 / i}
-                for i in range(1, 6)
-            ],
-        },
-    )
     cashflow, cashflow_receipt = _official_cashflow(tmp_path)
     microcap = _write(
         tmp_path / "microcap.json",
@@ -100,8 +88,6 @@ def test_weekly_basket_dry_run_writes_report_and_does_not_send(
             "weekly-basket",
             "--as-of-date",
             "20260914",
-            "--dailywatch",
-            str(dailywatch),
             "--cashflow",
             str(cashflow),
             "--cashflow-receipt",
@@ -130,6 +116,7 @@ def test_weekly_basket_dry_run_writes_report_and_does_not_send(
         "cashflow": 6,
         "microcap": 4,
     }
-    assert len(basket["monitoring"]) == 5
+    assert "monitoring" not in basket
+    assert all(row["sleeve"] != "dailywatch_family" for row in basket["source_inputs"])
     output = json.loads(capsys.readouterr().out)
     assert output["send_status"] == "dry_run"

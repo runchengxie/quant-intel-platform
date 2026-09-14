@@ -51,8 +51,7 @@ def test_markdown_contains_ten_positions_and_shadow_disclaimer() -> None:
     assert "KEEP" in text
     assert "DROP: 无" in text
     assert "research shadow" in text
-    assert "DailyWatch 独立监控" in text
-    assert "DW001" in text
+    assert "DailyWatch" not in text
 
 
 def test_csv_columns_are_stable() -> None:
