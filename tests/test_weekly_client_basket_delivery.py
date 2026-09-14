@@ -72,7 +72,8 @@ def test_send_uses_app_identity_and_stable_idempotency_key(
 
     assert receipt.status == "sent"
     assert "--as" in calls[0] and calls[0][calls[0].index("--as") + 1] == "bot"
-    assert "--chat-id" in calls[0] and calls[0][calls[0].index("--chat-id") + 1] == "ou_owner"
+    assert "--user-id" in calls[0] and calls[0][calls[0].index("--user-id") + 1] == "ou_owner"
+    assert "--chat-id" not in calls[0]
     assert calls[0][calls[0].index("--idempotency-key") + 1] == idempotency_key(
         "ou_owner", "20260914", "# test"
     )
@@ -101,5 +102,6 @@ def test_send_can_follow_text_with_app_image(
 
     assert receipt.image_status == "sent"
     assert len(calls) == 2
+    assert "--user-id" in calls[1] and calls[1][calls[1].index("--user-id") + 1] == "ou_owner"
     assert "--image" in calls[1]
     assert calls[1][calls[1].index("--image") + 1] == "report.png"
