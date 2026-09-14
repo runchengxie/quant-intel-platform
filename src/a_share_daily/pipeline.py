@@ -214,7 +214,7 @@ def step_hotsector(date_str: str) -> dict[str, Any]:
             "candidates": 0,
             "universe_json": "",
             "exit_code": 0,
-            "reason": "research-workspace 未提供可选热点候选 artifact",
+            "reason": "quant-research 未提供可选热点候选 artifact",
             "data_sources": {},
         }
 
@@ -227,7 +227,7 @@ def step_hotsector(date_str: str) -> dict[str, Any]:
             "candidates": 0,
             "universe_json": "",
             "exit_code": 0,
-            "reason": f"research-workspace 热点候选 artifact 不存在: {universe_json}",
+            "reason": f"quant-research 热点候选 artifact 不存在: {universe_json}",
             "data_sources": {},
         }
 

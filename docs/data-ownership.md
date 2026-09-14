@@ -18,7 +18,7 @@
 |---|---|---|---|
 | A 股全量日频、资金流、概念、两融、指数、历史回测输入 | `market-data-platform` | 通过 `DATA_PLATFORM_ROOT/assets/tushare/a_share/` 只读 | 不允许在报告阶段补抓全量 |
 | ETF rotation / hot-sector 原始输入 | `market-data-platform` | 子项目只读 `DATA_PLATFORM_ROOT` | 不允许写回数据湖 |
-| DailyWatch20 候选池、策略计算和正式 artifact | `research-workspace` | `market-intel` 只读并校验 `WATCHLIST20_ROOT` | 由 owner 发布，market-intel 不重算 |
+| DailyWatch20 候选池、策略计算和正式 artifact | `quant-research` / `strategy-pipeline` | `market-intel` 只读并校验 `WATCHLIST20_ROOT` | 由 owner 发布，market-intel 不重算 |
 | 跨市场快照：美股、日韩、商品、宏观、情绪 | `market-intel` | `data-snapshots/cross-market/` 与 `latest/` | 允许快照缺失时兜底，并写回快照 |
 | TuShare 轻量快照 | `market-intel` | `data-snapshots/tushare/`，供备份任务和便携环境读取 | 允许 GitHub Actions 定时轻量抓取 |
 | GLM/Aliyun/Gemini 市场新闻 | `market-intel` | 只消费结构化 `items[]`：`title/source/url/published_at/summary` | 允许联网搜索，未通过校验则跳过 |
@@ -53,7 +53,7 @@ MDP 现为这些数据集的权威 owner。market-intel 已改为消费
 
 ```bash
 export DATA_PLATFORM_ROOT=$HOME/data/market-data-platform
-export MDP_DIR=$RESEARCH_WORKSPACE_ROOT/quant-market-data-platform
+export MDP_DIR=/path/to/quant-market-data-platform
 ```
 
 新机器或服务器只需要满足两个条件：
@@ -87,8 +87,8 @@ scripts/morning_pipeline.sh
 
 流程：
 
-1. `daily_watch20_delivery.sh` 校验并发送 research-workspace 的 DailyWatch20，失败时不阻塞后续报告。
-2. `a_share_daily.d11_h5_shadow_delivery` 只消费 research-workspace 的研究产物。旧 AI 精选入口仅保留显式人工兼容调用，不进入默认调度。
+1. `daily_watch20_delivery.sh` 校验并发送 `strategy-pipeline` 的 DailyWatch20，失败时不阻塞后续报告。
+2. `a_share_daily.d11_h5_shadow_delivery` 只消费 owner 发布的研究产物。旧 AI 精选入口仅保留显式人工兼容调用，不进入默认调度。
 3. 默认写空新闻 JSON，只有 `MORNING_ENABLE_AI_NEWS=1` 时才调用 `fetch_ai_market_news.py`。
 4. `a-share-daily morning` 生成机械清单。
 5. `a-share-daily morning-report` 根据清单、快照和新闻 `items[]` 渲染 Markdown。

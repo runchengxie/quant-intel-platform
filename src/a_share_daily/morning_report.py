@@ -309,7 +309,7 @@ def _render_a_share_section(manifest: Mapping[str, Any], cross: Mapping[str, Any
         )
         if isinstance(candidates, int) and candidates > 0:
             lines.append(
-                f"- [fetch] 热点候选池 {candidates} 只，来源 research-workspace owner artifact。"
+                f"- [fetch] 热点候选池 {candidates} 只，来源 quant-research owner artifact。"
             )
         elif isinstance(hotsector, Mapping) and hotsector and not hotsector_skipped:
             reason = str(hotsector.get("reason") or "hotsector 产出 0 只候选")

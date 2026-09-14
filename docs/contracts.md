@@ -123,8 +123,8 @@ ETL 写出的事件流原始产物。无授权新闻只保存可审计元数据�
 
 ## DailyWatch20 正式产物
 
-research-workspace 发布、由 `scripts/daily_watch20_delivery.sh` 消费的 DailyWatch20 正式 artifact。
-该产物遵循 research-workspace 的公开 schema，用于表达已准入的关注清单，不表达执行目标。
+`strategy-pipeline` 发布、由 `scripts/daily_watch20_delivery.sh` 消费的 DailyWatch20 正式 artifact。
+该产物遵循 owner 的公开 schema，用于表达已准入的关注清单，不表达执行目标。
 
 最小字段：
 
@@ -148,7 +148,7 @@ research-workspace 发布、由 `scripts/daily_watch20_delivery.sh` 消费的 Da
 `alpha_research.signals` 契约。
 
 生产调度会同时生成 `signals.meta.json`，并通过 `hotsector validate-output` 检查来源能力、
-候选数量和非空信号文件。若后续需要组合持仓，由 research-workspace 的
+候选数量和非空信号文件。若后续需要组合持仓，由 `quant-research` / `quant-platform` 的
 `hotsector_overlay` 显式消费该文件，若需要执行目标，再由 `strategy export-targets`
 显式导出 `targets.json`。
 
@@ -453,7 +453,7 @@ research-workspace 发布、由 `scripts/daily_watch20_delivery.sh` 消费的 Da
 
 ## DailyWatch20 逐股热点热度输入
 
-`strategy watchlist20 news-heat-export`（由 research-workspace/strategy-pipeline 提供）将当日
+`strategy watchlist20 news-heat-export`（由 `strategy-pipeline` 提供）将当日
 hot-sector 候选发布为严格日期化的可选模型输入。`market-intel` 不再提供该生产命令或生产实现，
 只在日报链路中消费已发布 artifact。
 默认根目录为
@@ -484,7 +484,7 @@ upstream_confidence_score
 `candidate_universe.json` 可能同时包含 `quality_report` / `outcome_report`，导出器只读取
 候选白名单字段并明确禁止消费这些未来评估字段。
 
-research-workspace 生产者准入时必须调用等价于
+`strategy-pipeline` 生产者准入时必须调用等价于
 `validate_news_heat_artifact(..., expected_source_date=...)` 的检查：receipt 和质量状态均为
 `passed`、`source_date == data_as_of == expected_source_date`、市场范围仅 `sh-sz`、行数达到
 约定下限、CSV 校验和和列顺序一致、股票唯一、分数有限且位于 `[0,1]`、排名连续。
@@ -574,7 +574,7 @@ A 袖 4 只、B 袖 16 只、袖内排名为连续的 `1..N`、分数字段均�
 
 ## DailyWatch20 主题摘要产物
 
-`research-workspace/strategy-pipeline` 从最终发布的 `watchlist_20.json` 生成同一 run 目录下的
+`strategy-pipeline` 从最终发布的 `watchlist_20.json` 生成同一 run 目录下的
 `topic_summary.json`，`market-intel` 只消费该文件生成晨报热点主题分布图，不再读取旧的
 `hotsector/candidate_universe.json`。当前契约为 `daily_watch20.topic_summary.v1`，其中
 `topics[]` 含 `topic`、`count`、`weight`、`rank`，`aggregation` 固定为

@@ -1,6 +1,6 @@
 """Internal-only StyleReplica-A80B20-v0 → Feishu bridge.
 
-Thin bridge layer that connects research-workspace's StyleReplica pipeline
+Thin bridge layer that connects quant-research's StyleReplica pipeline
 to market-intel's Feishu delivery infrastructure.
 
 Does NOT duplicate any factor/portfolio logic — only runs the pipeline
