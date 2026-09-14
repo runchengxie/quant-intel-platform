@@ -233,11 +233,16 @@ def _add_weekly_basket_command(sub: argparse._SubParsersAction) -> None:
     basket.add_argument("--override-weekly-lock", action="store_true")
     basket.add_argument("--override-reason")
     basket.add_argument(
-        "--send", action="store_true", help="Send only to the explicit personal app target"
+        "--send", action="store_true", help="Send to explicit personal and group app targets"
     )
     basket.add_argument("--dry-run", action="store_true", help="Build artifacts without sending")
     basket.add_argument(
         "--personal-chat-id", required=True, help="Explicit personal Feishu user ID"
+    )
+    basket.add_argument(
+        "--group-chat-id",
+        default=os.environ.get("WEEKLY_BASKET_GROUP_CHAT_ID"),
+        help="Explicit Feishu group chat ID (oc_...) required for --send",
     )
     basket.add_argument(
         "--lark-cli",
@@ -511,7 +516,7 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
         compose_weekly_basket,
         write_basket_artifacts,
     )
-    from .weekly_client_basket_delivery import send_personal_basket_report
+    from .weekly_client_basket_delivery import send_basket_report
     from .weekly_client_basket_render import render_basket_markdown, write_rendered_outputs
 
     if args.send and args.dry_run:
@@ -530,6 +535,9 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
                 report_date=args.as_of_date,
                 allow_legacy=args.dry_run,
             ).to_payload()
+        if args.send and not args.group_chat_id:
+            print("[FAIL] weekly basket: --group-chat-id is required for --send", file=sys.stderr)
+            return 1
         from .weekly_basket_state import (
             acquire_weekly_lock,
             load_previous_successful_basket,
@@ -609,29 +617,42 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
             performance=performance,
         )
         markdown = render_basket_markdown(artifact, theme=args.theme, performance=performance)
-        delivery = None
+        deliveries = []
         if args.dry_run:
             _update_weekly_basket_receipt(paths["receipt"], None, "dry_run")
         if args.send:
-            delivery = send_personal_basket_report(
-                markdown,
-                report_date=args.as_of_date,
-                chat_id=args.personal_chat_id or "",
-                lark_cli=args.lark_cli,
-                receipt_path=output_root / args.as_of_date / "delivery_receipt.json",
-                image_path=rendered.get("png"),
+            delivery_dir = output_root / args.as_of_date / "delivery"
+            for target_kind, target_id in (
+                ("personal", args.personal_chat_id),
+                ("group", args.group_chat_id),
+            ):
+                deliveries.append(
+                    send_basket_report(
+                        markdown,
+                        report_date=args.as_of_date,
+                        target_id=target_id,
+                        target_kind=target_kind,
+                        lark_cli=args.lark_cli,
+                        receipt_path=delivery_dir / f"{target_kind}.json",
+                        image_path=rendered.get("png"),
+                    )
+                )
+            overall_status = (
+                "sent"
+                if all(row.status == "sent" and row.image_status == "sent" for row in deliveries)
+                else "failed"
             )
             _update_weekly_basket_receipt(
                 paths["receipt"],
-                output_root / args.as_of_date / "delivery_receipt.json",
-                delivery.status,
+                delivery_dir,
+                overall_status,
             )
-            if delivery.status != "sent":
+            if overall_status != "sent":
                 print(
                     json.dumps(
                         {
                             "paths": {key: str(value) for key, value in paths.items()},
-                            "delivery": delivery.__dict__,
+                            "deliveries": [row.__dict__ for row in deliveries],
                         },
                         ensure_ascii=False,
                         indent=2,
@@ -648,11 +669,7 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
                         **{key: str(value) for key, value in rendered.items()},
                     },
                     "send_status": (
-                        delivery.status
-                        if delivery
-                        else "dry_run"
-                        if args.dry_run
-                        else "not_requested"
+                        "sent" if deliveries else "dry_run" if args.dry_run else "not_requested"
                     ),
                 },
                 ensure_ascii=False,

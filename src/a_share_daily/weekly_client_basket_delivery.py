@@ -60,7 +60,22 @@ def _write_receipt(path: Path, receipt: DeliveryReceipt) -> None:
     )
 
 
-def _send_image(*, lark_cli: str, chat_id: str, image_path: Path, idempotency: str) -> str:
+def _target_args(target_id: str, target_kind: str) -> list[str]:
+    if target_kind == "personal" and not target_id.startswith("oc_"):
+        return ["--user-id", target_id]
+    if target_kind == "group" and target_id.startswith("oc_"):
+        return ["--chat-id", target_id]
+    raise WeeklyBasketDeliveryError(f"{target_kind} target does not match its group chat ID type")
+
+
+def _send_image(
+    *,
+    lark_cli: str,
+    target_id: str,
+    target_kind: str,
+    image_path: Path,
+    idempotency: str,
+) -> str:
     image = image_path.expanduser().resolve()
     result = subprocess.run(  # noqa: S603
         [
@@ -69,8 +84,7 @@ def _send_image(*, lark_cli: str, chat_id: str, image_path: Path, idempotency: s
             "+messages-send",
             "--as",
             "bot",
-            "--user-id",
-            chat_id,
+            *_target_args(target_id, target_kind),
             "--image",
             image.name,
             "--idempotency-key",
@@ -87,18 +101,22 @@ def _send_image(*, lark_cli: str, chat_id: str, image_path: Path, idempotency: s
     return "sent" if result.returncode == 0 else "failed"
 
 
-def send_personal_basket_report(
+def send_basket_report(
     markdown: str,
     *,
     report_date: str,
-    chat_id: str,
+    target_id: str,
+    target_kind: str,
     lark_cli: str,
     receipt_path: Path,
     dry_run: bool = False,
     image_path: Path | None = None,
 ) -> DeliveryReceipt:
-    """Send once to one explicit personal chat using the app identity."""
-    target = personal_chat_id(chat_id)
+    """Send once to one explicit personal or group target using app identity."""
+    target = target_id.strip()
+    if not target or any(separator in target for separator in (",", ";", "\n", "\r")):
+        raise WeeklyBasketDeliveryError("delivery requires one explicit target")
+    target_args = _target_args(target, target_kind)
     key = idempotency_key(target, report_date, markdown)
     markdown_hash = hashlib.sha256(markdown.encode("utf-8")).hexdigest()
     if dry_run:
@@ -132,7 +150,8 @@ def send_personal_basket_report(
                     existing,
                     image_status=_send_image(
                         lark_cli=lark_cli,
-                        chat_id=target,
+                        target_id=target,
+                        target_kind=target_kind,
                         image_path=image_path,
                         idempotency=key,
                     ),
@@ -148,8 +167,7 @@ def send_personal_basket_report(
         "+messages-send",
         "--as",
         "bot",
-        "--user-id",
-        target,
+        *target_args,
         "--markdown",
         markdown,
         "--idempotency-key",
@@ -180,7 +198,11 @@ def send_personal_basket_report(
                 receipt = replace(
                     receipt,
                     image_status=_send_image(
-                        lark_cli=lark_cli, chat_id=target, image_path=image_path, idempotency=key
+                        lark_cli=lark_cli,
+                        target_id=target,
+                        target_kind=target_kind,
+                        image_path=image_path,
+                        idempotency=key,
                     ),
                 )
             except (OSError, subprocess.SubprocessError):
@@ -198,10 +220,34 @@ def send_personal_basket_report(
     return receipt
 
 
+def send_personal_basket_report(
+    markdown: str,
+    *,
+    report_date: str,
+    chat_id: str,
+    lark_cli: str,
+    receipt_path: Path,
+    dry_run: bool = False,
+    image_path: Path | None = None,
+) -> DeliveryReceipt:
+    """Backward-compatible personal delivery wrapper."""
+    return send_basket_report(
+        markdown,
+        report_date=report_date,
+        target_id=personal_chat_id(chat_id),
+        target_kind="personal",
+        lark_cli=lark_cli,
+        receipt_path=receipt_path,
+        dry_run=dry_run,
+        image_path=image_path,
+    )
+
+
 __all__ = [
     "DeliveryReceipt",
     "WeeklyBasketDeliveryError",
     "idempotency_key",
     "personal_chat_id",
+    "send_basket_report",
     "send_personal_basket_report",
 ]
