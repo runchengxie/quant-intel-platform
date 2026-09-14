@@ -107,7 +107,9 @@ def test_load_selection_rejects_live_eligible_artifact(tmp_path: Path) -> None:
     path.write_text(json.dumps(artifact), encoding="utf-8")
 
     with pytest.raises(delivery.CashflowDeliveryError, match="eligible_for_live"):
-        delivery.load_selection(path, expected_source_date="20260904", expected_signal_date="20260907")
+        delivery.load_selection(
+            path, expected_source_date="20260904", expected_signal_date="20260907"
+        )
 
 
 def test_load_selection_rejects_unknown_policy(tmp_path: Path) -> None:
@@ -117,7 +119,9 @@ def test_load_selection_rejects_unknown_policy(tmp_path: Path) -> None:
     path.write_text(json.dumps(artifact), encoding="utf-8")
 
     with pytest.raises(delivery.CashflowDeliveryError, match="policy"):
-        delivery.load_selection(path, expected_source_date="20260904", expected_signal_date="20260907")
+        delivery.load_selection(
+            path, expected_source_date="20260904", expected_signal_date="20260907"
+        )
 
 
 def test_render_markdown_contains_identity_and_target_weights() -> None:
@@ -175,7 +179,9 @@ def test_load_executable_artifact_rejects_non_lot_shares(tmp_path: Path) -> None
     path.write_text(json.dumps(artifact), encoding="utf-8")
 
     with pytest.raises(delivery.CashflowDeliveryError, match="lot"):
-        delivery.load_executable(path, expected_source_date="20260904", expected_signal_date="20260907")
+        delivery.load_executable(
+            path, expected_source_date="20260904", expected_signal_date="20260907"
+        )
 
 
 def test_validate_publication_receipt_rejects_tampered_selection(tmp_path: Path) -> None:
@@ -183,7 +189,9 @@ def test_validate_publication_receipt_rejects_tampered_selection(tmp_path: Path)
     selection_path = tmp_path / "selection.json"
     selection_path.write_text(json.dumps(artifact), encoding="utf-8")
     publication_path = _publication_receipt(artifact, selection_path)
-    selection_path.write_text(json.dumps({**artifact, "content_sha256": "b" * 64}), encoding="utf-8")
+    selection_path.write_text(
+        json.dumps({**artifact, "content_sha256": "b" * 64}), encoding="utf-8"
+    )
 
     with pytest.raises(delivery.CashflowDeliveryError, match="selection_sha256"):
         delivery.validate_publication_receipt(
@@ -191,7 +199,9 @@ def test_validate_publication_receipt_rejects_tampered_selection(tmp_path: Path)
         )
 
 
-def test_deliver_is_idempotent_and_writes_receipt(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_deliver_is_idempotent_and_writes_receipt(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
     selection_path = tmp_path / "selection.json"
     selection_path.write_text(json.dumps(_artifact()), encoding="utf-8")
     receipt_path = tmp_path / "delivery-receipt.json"
@@ -200,7 +210,11 @@ def test_deliver_is_idempotent_and_writes_receipt(tmp_path: Path, monkeypatch: p
 
     def fake_run(command: list[str], **_kwargs: object) -> object:
         calls.append(command)
-        return type("Result", (), {"returncode": 0, "stdout": '{"ok":true,"data":{"message_id":"om_1"}}', "stderr": ""})()
+        return type(
+            "Result",
+            (),
+            {"returncode": 0, "stdout": '{"ok":true,"data":{"message_id":"om_1"}}', "stderr": ""},
+        )()
 
     monkeypatch.setattr(delivery.subprocess, "run", fake_run)
     artifact = delivery.load_selection(
@@ -281,4 +295,3 @@ def test_failure_receipt_is_alertable_and_retryable(tmp_path: Path) -> None:
     assert receipt["status"] == "failed"
     assert receipt["success"] is False
     assert receipt["error"] == "publication receipt mismatch"
-

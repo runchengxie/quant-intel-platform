@@ -40,9 +40,7 @@ def build_evening_manifest(
     return manifest
 
 
-def write_evening_manifest(
-    source_path: Path, output_path: Path, *, expected_date: str
-) -> None:
+def write_evening_manifest(source_path: Path, output_path: Path, *, expected_date: str) -> None:
     """Read a chart-generation payload and atomically publish an evening manifest."""
     try:
         payload = json.loads(source_path.read_text(encoding="utf-8"))

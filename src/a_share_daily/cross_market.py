@@ -393,9 +393,11 @@ def _find_snapshot_path(trade_date: str) -> tuple[Path, bool] | None:
     date_dash = f"{trade_date[:4]}-{trade_date[4:6]}-{trade_date[6:]}"
 
     # 1) Exact date snapshot
-    snapshot_root = Path(os.environ["CROSS_MARKET_SNAPSHOT_ROOT"]).expanduser() if os.environ.get(
-        "CROSS_MARKET_SNAPSHOT_ROOT"
-    ) else _DATA_SNAPSHOTS_ROOT
+    snapshot_root = (
+        Path(os.environ["CROSS_MARKET_SNAPSHOT_ROOT"]).expanduser()
+        if os.environ.get("CROSS_MARKET_SNAPSHOT_ROOT")
+        else _DATA_SNAPSHOTS_ROOT
+    )
     exact = snapshot_root / "cross-market" / f"{date_dash}.json"
     if exact.exists():
         return exact, True

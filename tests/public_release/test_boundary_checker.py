@@ -16,9 +16,7 @@ def test_boundary_checker_rejects_private_marker(tmp_path: Path) -> None:
 
 
 def test_boundary_checker_accepts_generic_example(tmp_path: Path) -> None:
-    (tmp_path / "README.md").write_text(
-        "MARKET_INTEL_CLIENT_CHAT_ID=example", encoding="utf-8"
-    )
+    (tmp_path / "README.md").write_text("MARKET_INTEL_CLIENT_CHAT_ID=example", encoding="utf-8")
 
     result = check_tree(tmp_path)
 

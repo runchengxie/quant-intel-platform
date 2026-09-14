@@ -45,7 +45,9 @@ def _validate_status(status: dict[str, Any]) -> None:
     target_like_fields = {"targets", "selection", "target_weights", "symbols"}
     present = sorted(field for field in target_like_fields if field in status)
     if present:
-        raise CashflowStatusError(f"target-like fields are not allowed in status payload: {present}")
+        raise CashflowStatusError(
+            f"target-like fields are not allowed in status payload: {present}"
+        )
 
 
 def render_status_markdown(status: dict[str, Any]) -> str:
@@ -143,13 +145,13 @@ def deliver_status(
 ) -> dict[str, Any]:
     """Deliver a status-only message to explicit chats, with receipt idempotency."""
     _validate_status(status)
-    normalized_chat_ids = tuple(dict.fromkeys(chat_id.strip() for chat_id in chat_ids if chat_id.strip()))
+    normalized_chat_ids = tuple(
+        dict.fromkeys(chat_id.strip() for chat_id in chat_ids if chat_id.strip())
+    )
     if not normalized_chat_ids:
         raise CashflowStatusError("at least one explicit Feishu chat ID is required")
     if not dry_run and send_confirmation != SEND_CONFIRMATION:
-        raise CashflowStatusError(
-            f"real status send requires confirmation {SEND_CONFIRMATION!r}"
-        )
+        raise CashflowStatusError(f"real status send requires confirmation {SEND_CONFIRMATION!r}")
 
     identity = _identity(status)
     prior = _read_receipt(receipt_path)
@@ -194,7 +196,9 @@ def deliver_status(
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    parser = argparse.ArgumentParser(description="Send cashflow strategy status to explicit Feishu chats")
+    parser = argparse.ArgumentParser(
+        description="Send cashflow strategy status to explicit Feishu chats"
+    )
     parser.add_argument("--status-json", required=True, help="Status-only input JSON")
     parser.add_argument("--receipt", required=True, help="Status delivery receipt path")
     parser.add_argument("--chat-id", action="append", required=True, help="Explicit Feishu chat ID")
@@ -225,4 +229,3 @@ def main(argv: list[str] | None = None) -> int:
 
 if __name__ == "__main__":  # pragma: no cover
     raise SystemExit(main())
-
