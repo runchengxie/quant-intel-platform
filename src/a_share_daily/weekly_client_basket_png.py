@@ -68,7 +68,7 @@ def _render_header(ax, artifact: BasketArtifact, theme: ReportTheme) -> None:
     ax.text(
         0.98,
         0.94,
-        "PIT 拟合回测",
+        "历史时点重建",
         transform=ax.transAxes,
         fontsize=9,
         fontproperties=cjk_heavy,
@@ -189,7 +189,7 @@ def _render_curve(curve_ax, performance: Mapping[str, object] | None, theme: Rep
             )
         curve_ax.fill_between(x_values, values, min(values), color=theme.accent, alpha=0.08)
         curve_ax.set_title(
-            "PIT 拟合回测 · 历史净值",
+            "历史时点重建回测 · 净值",
             loc="left",
             color=theme.ink,
             fontsize=12,
@@ -281,7 +281,7 @@ def render_basket_png(
     fig.text(
         0.05,
         0.018,
-        "Research Shadow · PIT 拟合回测 · 10 bps · 仅供研究观察，不构成投资建议",
+        "Research Shadow · 历史时点重建回测 · 10 bps · 研究代理，不代表实盘历史",
         color=selected.muted,
         fontsize=7.5,
     )

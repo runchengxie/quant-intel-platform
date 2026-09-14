@@ -119,7 +119,9 @@ def test_markdown_and_png_accept_provider_performance_artifact(tmp_path: Path) -
     assert "累计 +20.00%" in text
     assert "现金流 6" in text
     assert "微盘 4" in text
-    assert "PIT 拟合回测" in text
+    assert "历史时点重建回测" in text
+    assert "按各历史时点当时可得信息重建" in text
+    assert "PIT 拟合回测" not in text
     assert "年化收益：+9.50%" in text
     assert "最大回撤：-18.00%" in text
     assert "145 期" in text
