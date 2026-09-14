@@ -530,18 +530,23 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
     from .weekly_client_basket_delivery import send_personal_basket_report
     from .weekly_client_basket_render import render_basket_markdown, write_rendered_outputs
 
-    performance = None
-    if args.performance:
-        performance_path = Path(args.performance).expanduser().resolve()
-        performance = json.loads(performance_path.read_text(encoding="utf-8"))
-
     if args.send and args.dry_run:
         print("[FAIL] --send and --dry-run cannot be used together", file=sys.stderr)
+        return 1
+    if args.send and not args.performance:
+        print("[FAIL] weekly basket: --performance is required for --send", file=sys.stderr)
         return 1
     if args.microcap_quota and not args.microcap:
         print("[FAIL] --microcap is required when --microcap-quota is non-zero", file=sys.stderr)
         return 1
     try:
+        performance = None
+        if args.performance:
+            from .reporting.performance import load_performance
+
+            performance = load_performance(
+                Path(args.performance).expanduser().resolve(), report_date=args.as_of_date
+            ).to_payload()
         source_positions, config, previous = _load_weekly_basket_inputs(args)
         artifact = compose_weekly_basket(
             source_positions,
