@@ -45,11 +45,12 @@ def _performance_lines(performance: dict[str, Any] | None) -> list[str]:
     drawdown = float(metrics.get("max_drawdown", 0.0)) * 100
     observations = int(metrics.get("observations", len(series) - 1))
     return [
-        f"- PIT 拟合回测：累计 {change:+.2f}%；年化收益：{annualized:+.2f}%；"
+        f"- 历史时点重建回测：累计 {change:+.2f}%；年化收益：{annualized:+.2f}%；"
         f"最大回撤：{drawdown:+.2f}%；{observations} 期。",
         f"- 历史净值：{first:.3f} → {last:.3f}。",
         f"- 曲线区间：{series[0]['date']} 至 {series[-1]['date']}；"
         f"来源方法：{performance.get('methodology', {}).get('method', '未说明')}。",
+        "- 口径说明：按各历史时点当时可得信息重建，属于研究代理，不代表实盘历史。",
     ]
 
 
