@@ -213,10 +213,16 @@ def _render_asia_section(cross: Mapping[str, Any]) -> list[str]:
             else str(preopen.get("source", "unknown"))
         )
         residual = float(preopen.get("residual_pct_chg", 0) or 0)
-        lines.append(
-            f"- {tag} 韩国早盘 → A股开盘: {signal}，行业残差 {residual:+.1f}%，"
-            f"映射 {concepts}，数据源 {source}。"
-        )
+        alert = preopen.get("risk_level") == "high" or abs(residual) >= 2
+        if alert:
+            lines.append(
+                f"- {tag} 韩国早盘 → A股开盘: {signal}，行业残差 {residual:+.1f}%，"
+                f"映射 {concepts}，数据源 {source}。"
+            )
+        else:
+            lines.append(
+                f"- {tag} 韩国早盘：{signal}，行业残差 {residual:+.1f}%，数据源 {source}。"
+            )
 
     overnight = cross.get("korea_overnight")
     if isinstance(overnight, Mapping) and overnight.get("source") != "unavailable":
@@ -229,10 +235,16 @@ def _render_asia_section(cross: Mapping[str, Any]) -> list[str]:
             if overnight.get("source") == "daily-proxy"
             else str(overnight.get("source", "unknown"))
         )
-        lines.append(
-            f"- {tag} 韩国盘后/夜盘 → 次日A股预警: 风险等级 {level}，方向 {signal}，"
-            f"驱动 {drivers}，数据源 {source}。"
-        )
+        alert = level == "high"
+        if alert:
+            lines.append(
+                f"- {tag} 韩国盘后/夜盘 → 次日A股预警: 风险等级 {level}，方向 {signal}，"
+                f"驱动 {drivers}，数据源 {source}。"
+            )
+        else:
+            lines.append(
+                f"- {tag} 韩国盘后/夜盘：风险等级 {level}，方向 {signal}，数据源 {source}。"
+            )
     return lines
 
 

@@ -172,7 +172,7 @@ def test_morning_report_includes_korea_preopen_and_overnight_signals() -> None:
                 },
                 "korea_overnight": {
                     "signal": "bearish",
-                    "risk_level": "medium",
+                    "risk_level": "high",
                     "drivers": ["000660.KS -3.0%"],
                     "source": "daily-proxy",
                 },
@@ -186,5 +186,35 @@ def test_morning_report_includes_korea_preopen_and_overnight_signals() -> None:
     assert "行业残差 +2.8%" in text
     assert "HBM、存储芯片" in text
     assert "韩国盘后/夜盘 → 次日A股预警" in text
-    assert "风险等级 medium" in text
+    assert "风险等级 high" in text
     assert "日线代理" in text
+
+
+def test_morning_report_keeps_normal_korea_signal_compact() -> None:
+    text = render_morning_report(
+        {
+            "date": "20260914",
+            "date_dash": "2026-09-14",
+            "cross_market": {
+                "korea_preopen": {
+                    "signal": "neutral",
+                    "risk_level": "low",
+                    "residual_pct_chg": 0.3,
+                    "concepts": ["HBM", "存储芯片"],
+                    "source": "daily-proxy",
+                },
+                "korea_overnight": {
+                    "signal": "neutral",
+                    "risk_level": "low",
+                    "drivers": ["000660.KS +0.2%"],
+                    "source": "daily-proxy",
+                },
+            },
+        },
+        {},
+    )
+
+    assert "韩国早盘：neutral，行业残差 +0.3%" in text
+    assert "韩国盘后/夜盘：风险等级 low，方向 neutral" in text
+    assert "映射 HBM、存储芯片" not in text
+    assert "驱动 000660.KS +0.2%" not in text
