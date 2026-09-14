@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from PIL import Image
+
 from a_share_daily.weekly_client_basket import SourcePosition, compose_weekly_basket
 from a_share_daily.weekly_client_basket_render import (
     render_basket_csv,
@@ -78,6 +80,10 @@ def test_write_rendered_outputs_creates_markdown_and_csv(tmp_path: Path) -> None
     assert paths["markdown"].exists()
     assert paths["csv"].exists()
     assert paths["png"].exists()
+    with Image.open(paths["png"]) as image:
+        width, height = image.size
+    assert 0.75 <= width / height <= 1.0
+    assert height < 2_500
 
 
 def test_markdown_and_png_accept_provider_performance_artifact(tmp_path: Path) -> None:
