@@ -44,12 +44,27 @@ def _performance_lines(performance: dict[str, Any] | None) -> list[str]:
     annualized = float(metrics.get("annualized_return", 0.0)) * 100
     drawdown = float(metrics.get("max_drawdown", 0.0)) * 100
     observations = int(metrics.get("observations", len(series) - 1))
+    methodology = performance.get("methodology", {})
+    audit = performance.get("execution_audit", {})
+    cost_bps = float(methodology.get("cost_bps", 0.0))
+    execution = (
+        "下一交易日开盘"
+        if methodology.get("execution") in {None, "next_session_open"}
+        else str(methodology.get("execution"))
+    )
     return [
         f"- 历史时点重建回测：累计 {change:+.2f}%；年化收益：{annualized:+.2f}%；"
         f"最大回撤：{drawdown:+.2f}%；{observations} 期。",
         f"- 历史净值：{first:.3f} → {last:.3f}。",
         f"- 曲线区间：{series[0]['date']} 至 {series[-1]['date']}；"
-        f"来源方法：{performance.get('methodology', {}).get('method', '未说明')}。",
+        f"净值截止：{series[-1]['date']}。",
+        f"- 基准：{performance.get('benchmark_name', '未说明')}；组合口径：60/40、袖内等权；"
+        f"成本：{cost_bps:.1f} bps；执行：{execution}。",
+        f"- 执行审计：入场缺价 {int(audit.get('missing_entry_price_count', 0))}；"
+        f"退出缺价 {int(audit.get('missing_exit_price_count', 0))}；"
+        f"不可交易 {int(audit.get('untradable_count', 0))}；"
+        f"平均现金权重 {float(audit.get('average_cash_weight', 0.0)):.2%}。",
+        "- 缺价权重保留为现金，不向剩余股票重新归一；当前为区间回放，无逐笔 broker ledger。",
         "- 口径说明：按各历史时点当时可得信息重建，属于研究代理，不代表实盘历史。",
     ]
 
@@ -111,7 +126,7 @@ def render_basket_markdown(
             if shadow_present
             else "- 当前组合来源均为正式有效 artifact。",
             "- 每只股票保留原始 signal_date、valid_until 和来源 artifact hash。",
-            "- 非投资建议；请以实际可交易性和风控为准。",
+            "- Research Observation · 不代表实盘历史 · 不构成投资建议。",
         ]
     )
     return "\n".join(lines) + "\n"

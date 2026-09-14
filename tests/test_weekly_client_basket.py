@@ -402,7 +402,7 @@ def test_microcap_adapter_requires_explicit_shadow_marker(tmp_path: Path) -> Non
     )
 
     with pytest.raises(WeeklyBasketError, match="shadow"):
-        load_microcap_selection(path, as_of_date="20260914")
+        load_microcap_selection(path, as_of_date="20260914", allow_legacy=True)
 
 
 def test_microcap_adapter_requires_research_only_and_three_candidates(tmp_path: Path) -> None:
@@ -423,7 +423,7 @@ def test_microcap_adapter_requires_research_only_and_three_candidates(tmp_path: 
     )
 
     with pytest.raises(WeeklyBasketError, match="research-only"):
-        load_microcap_selection(path, as_of_date="20260914")
+        load_microcap_selection(path, as_of_date="20260914", allow_legacy=True)
 
 
 def test_microcap_adapter_preserves_shadow_positions(tmp_path: Path) -> None:
@@ -444,8 +444,82 @@ def test_microcap_adapter_preserves_shadow_positions(tmp_path: Path) -> None:
         },
     )
 
-    rows = load_microcap_selection(path, as_of_date="20260914")
+    rows = load_microcap_selection(path, as_of_date="20260914", allow_legacy=True)
 
     assert [row.symbol for row in rows] == ["MC001.SZ", "MC002.SZ", "MC003.SZ"]
     assert all(row.research_only for row in rows)
     assert all(not row.eligible_for_live for row in rows)
+
+
+def test_microcap_v2_requires_matching_receipt_hash_and_validity(tmp_path: Path) -> None:
+    selection = _write_json(
+        tmp_path / "selection.json",
+        {
+            "schema_version": "microcap.selection.v2",
+            "status": "passed",
+            "shadow": True,
+            "research_only": True,
+            "eligible_for_live": False,
+            "product_id": "microcap_smallest400_shadow_v2",
+            "signal_date": "20260911",
+            "valid_from": "20260911",
+            "valid_until": "20260917",
+            "positions": [
+                {"symbol": f"000{i:03d}.SZ", "name": f"MC{i}", "rank": i} for i in range(1, 11)
+            ],
+        },
+    )
+    receipt = _write_json(
+        tmp_path / "receipt.json",
+        {
+            "schema_version": "microcap.selection.receipt.v2",
+            "status": "passed",
+            "signal_date": "20260911",
+            "valid_from": "20260911",
+            "valid_until": "20260917",
+            "research_only": True,
+            "eligible_for_live": False,
+            "artifact_sha256": hashlib.sha256(selection.read_bytes()).hexdigest(),
+        },
+    )
+
+    rows = load_microcap_selection(selection, receipt_path=receipt, as_of_date="20260914")
+    assert len(rows) == 10
+
+    payload = json.loads(receipt.read_text())
+    payload["artifact_sha256"] = "0" * 64
+    receipt.write_text(json.dumps(payload))
+    with pytest.raises(WeeklyBasketError, match="hash"):
+        load_microcap_selection(selection, receipt_path=receipt, as_of_date="20260914")
+
+
+def test_microcap_v2_rejects_expired_selection(tmp_path: Path) -> None:
+    selection = _write_json(
+        tmp_path / "selection.json",
+        {
+            "schema_version": "microcap.selection.v2",
+            "status": "passed",
+            "shadow": True,
+            "research_only": True,
+            "eligible_for_live": False,
+            "signal_date": "20260901",
+            "valid_from": "20260901",
+            "valid_until": "20260907",
+            "positions": [{"symbol": f"000{i:03d}.SZ", "rank": i} for i in range(1, 11)],
+        },
+    )
+    receipt = _write_json(
+        tmp_path / "receipt.json",
+        {
+            "schema_version": "microcap.selection.receipt.v2",
+            "status": "passed",
+            "signal_date": "20260901",
+            "valid_from": "20260901",
+            "valid_until": "20260907",
+            "research_only": True,
+            "eligible_for_live": False,
+            "artifact_sha256": hashlib.sha256(selection.read_bytes()).hexdigest(),
+        },
+    )
+    with pytest.raises(WeeklyBasketError, match="validity"):
+        load_microcap_selection(selection, receipt_path=receipt, as_of_date="20260914")

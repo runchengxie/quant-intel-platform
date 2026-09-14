@@ -10,6 +10,8 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
 from .model import Metric, SeriesChart
 
 
@@ -25,6 +27,9 @@ class PerformanceSeries:
     evidence_tier: str = ""
     methodology: Mapping[str, Any] = field(default_factory=dict)
     limitations: tuple[str, ...] = ()
+    benchmark_name: str = ""
+    execution_audit: Mapping[str, Any] = field(default_factory=dict)
+    report_date: str = ""
 
     def to_chart(self) -> SeriesChart:
         return SeriesChart("历史净值", self.points)
@@ -41,6 +46,9 @@ class PerformanceSeries:
             "evidence_tier": self.evidence_tier,
             "methodology": dict(self.methodology or {}),
             "limitations": list(self.limitations),
+            "benchmark_name": self.benchmark_name,
+            "execution_audit": dict(self.execution_audit),
+            "report_date": self.report_date,
         }
 
 
@@ -108,15 +116,19 @@ def _metadata(
     return metrics, evidence_tier, methodology, tuple(str(item) for item in raw_limitations)
 
 
-def load_performance(path: Path, *, report_date: str) -> PerformanceSeries:
+def load_performance(
+    path: Path, *, report_date: str, allow_legacy: bool = False
+) -> PerformanceSeries:
     try:
         payload = json.loads(Path(path).read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise PerformanceArtifactError("performance artifact unavailable") from exc
-    if (
-        not isinstance(payload, dict)
-        or payload.get("schema_version") != "weekly_basket.performance.v1"
-    ):
+    if not isinstance(payload, dict):
+        raise PerformanceArtifactError("unsupported performance artifact schema")
+    schema = payload.get("schema_version")
+    if schema == "weekly_basket.performance.v1" and not allow_legacy:
+        raise PerformanceArtifactError("performance v1 is allowed only for legacy diagnostics")
+    if schema not in {"weekly_basket.performance.v1", "weekly_basket.performance.v2"}:
         raise PerformanceArtifactError("unsupported performance artifact schema")
     digest = str(payload.get("artifact_sha256", ""))
     if digest != hashlib.sha256(_canonical(payload)).hexdigest():
@@ -127,6 +139,22 @@ def load_performance(path: Path, *, report_date: str) -> PerformanceSeries:
     if benchmark_points is not None and [d for d, _ in benchmark_points] != [d for d, _ in points]:
         raise PerformanceArtifactError("benchmark dates do not align")
     metrics, evidence_tier, methodology, limitations = _metadata(payload, points)
+    benchmark_name = str(payload.get("benchmark_name") or "")
+    execution_audit = payload.get("execution_audit")
+    artifact_report_date = str(payload.get("report_date") or "").replace("-", "")
+    if schema == "weekly_basket.performance.v2":
+        if artifact_report_date != report_date:
+            raise PerformanceArtifactError("performance report_date must match report date")
+        if benchmark_points is None or benchmark_name != "沪深300价格指数（不含股息）":
+            raise PerformanceArtifactError("performance benchmark is required")
+        if (
+            not isinstance(execution_audit, Mapping)
+            or execution_audit.get("preserve_gross_exposure") is not True
+        ):
+            raise PerformanceArtifactError("performance execution audit is required")
+        last_date = pd.Timestamp(points[-1][0])
+        if (pd.Timestamp(report_date) - last_date).days > 7:
+            raise PerformanceArtifactError("performance is stale")
     first = points[0][1]
     normalized = tuple((date, value / first) for date, value in points)
     normalized_benchmark = None
@@ -142,6 +170,9 @@ def load_performance(path: Path, *, report_date: str) -> PerformanceSeries:
         evidence_tier,
         methodology,
         limitations,
+        benchmark_name,
+        dict(execution_audit or {}),
+        artifact_report_date,
     )
 
 

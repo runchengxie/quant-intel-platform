@@ -88,7 +88,8 @@ def test_write_rendered_outputs_creates_markdown_and_csv(tmp_path: Path) -> None
 
 def test_markdown_and_png_accept_provider_performance_artifact(tmp_path: Path) -> None:
     performance = {
-        "schema_version": "weekly_basket.performance.v1",
+        "schema_version": "weekly_basket.performance.v2",
+        "report_date": "20260914",
         "status": "ok",
         "series": [
             {"date": "2024-09-24", "nav": 1.0},
@@ -98,6 +99,7 @@ def test_markdown_and_png_accept_provider_performance_artifact(tmp_path: Path) -
             {"date": "2024-09-24", "nav": 1.0},
             {"date": "2026-09-14", "nav": 1.1},
         ],
+        "benchmark_name": "沪深300价格指数（不含股息）",
         "metrics": {
             "total_return": 0.2,
             "annualized_return": 0.095,
@@ -110,6 +112,17 @@ def test_markdown_and_png_accept_provider_performance_artifact(tmp_path: Path) -
             "method": "weekly_64_reconstructed_pit_proxy",
             "cost_bps": 10.0,
             "limitations": ["period_return_replay"],
+        },
+        "execution_audit": {
+            "missing_price_count": 2,
+            "missing_entry_price_count": 1,
+            "missing_exit_price_count": 1,
+            "untradable_count": 1,
+            "average_realized_position_count": 9.8,
+            "average_cash_weight": 0.02,
+            "max_cash_weight": 0.1,
+            "blocked_dates": ["2025-01-06"],
+            "preserve_gross_exposure": True,
         },
     }
 
@@ -125,6 +138,14 @@ def test_markdown_and_png_accept_provider_performance_artifact(tmp_path: Path) -
     assert "年化收益：+9.50%" in text
     assert "最大回撤：-18.00%" in text
     assert "145 期" in text
+    assert "净值截止：2026-09-14" in text
+    assert "沪深300价格指数（不含股息）" in text
+    assert "60/40" in text and "袖内等权" in text
+    assert "10.0 bps" in text
+    assert "下一交易日开盘" in text
+    assert "缺价权重保留为现金" in text
+    assert "无逐笔 broker ledger" in text
+    assert "Research Observation · 不代表实盘历史 · 不构成投资建议" in text
     assert paths["png"].stat().st_size > 1_000
     with Image.open(paths["png"]) as image:
         width, height = image.size

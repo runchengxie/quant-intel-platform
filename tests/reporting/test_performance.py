@@ -14,7 +14,7 @@ from a_share_daily.reporting.performance import (
 
 def _write(path, *, series=None, **overrides):
     payload = {
-        "schema_version": "weekly_basket.performance.v1",
+        "schema_version": "weekly_basket.performance.v2",
         "report_date": "20260911",
         "status": "ok",
         "evidence_tier": "reconstructed_proxy",
@@ -27,6 +27,7 @@ def _write(path, *, series=None, **overrides):
             {"date": "2026-09-01", "nav": 1.0},
             {"date": "2026-09-11", "nav": 1.03},
         ],
+        "benchmark_name": "沪深300价格指数（不含股息）",
         "metrics": {
             "total_return": 0.1,
             "annualized_return": 0.2,
@@ -38,6 +39,17 @@ def _write(path, *, series=None, **overrides):
             "method": "weekly_64_reconstructed_pit_proxy",
             "cost_bps": 10.0,
             "limitations": ["period_return_replay"],
+        },
+        "execution_audit": {
+            "missing_price_count": 0,
+            "missing_entry_price_count": 0,
+            "missing_exit_price_count": 0,
+            "untradable_count": 0,
+            "average_realized_position_count": 10.0,
+            "average_cash_weight": 0.0,
+            "max_cash_weight": 0.0,
+            "blocked_dates": [],
+            "preserve_gross_exposure": True,
         },
         "artifact_sha256": "",
     }
