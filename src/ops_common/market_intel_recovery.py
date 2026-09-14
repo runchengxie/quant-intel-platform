@@ -37,7 +37,9 @@ def run(argv: Sequence[str] | None = None) -> int:
                 "SCHEDULED_RECOVERY_STATE_ROOT",
                 str(context.project_root / "state/scheduled_recovery"),
             )
-        ).expanduser().resolve()
+        )
+        .expanduser()
+        .resolve()
     )
     status, receipt = recovery.reconcile(
         now=now,

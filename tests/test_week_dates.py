@@ -5,7 +5,13 @@ from a_share_daily.data import get_week_dates
 
 
 def test_week_dates_returns_trailing_week_through_trade_date() -> None:
-    assert get_week_dates("20260831") == ["20260825", "20260826", "20260827", "20260828", "20260831"]
+    assert get_week_dates("20260831") == [
+        "20260825",
+        "20260826",
+        "20260827",
+        "20260828",
+        "20260831",
+    ]
 
 
 def test_weekly_chart_accepts_trailing_week_for_monday(tmp_path) -> None:

@@ -8,8 +8,20 @@ from a_share_daily.topic_summary_fallback import build_fallback_topic_summary
 def test_dc_concept_topic_summary_aggregates_concepts_without_degradation() -> None:
     concept = pd.DataFrame(
         [
-            {"theme_code": "A", "name": "人工智能", "pct_change": 5.0, "main_change": 100.0, "z_t_num": 2},
-            {"theme_code": "B", "name": "新能源", "pct_change": 1.0, "main_change": 10.0, "z_t_num": 0},
+            {
+                "theme_code": "A",
+                "name": "人工智能",
+                "pct_change": 5.0,
+                "main_change": 100.0,
+                "z_t_num": 2,
+            },
+            {
+                "theme_code": "B",
+                "name": "新能源",
+                "pct_change": 1.0,
+                "main_change": 10.0,
+                "z_t_num": 0,
+            },
         ]
     )
     members = pd.DataFrame(

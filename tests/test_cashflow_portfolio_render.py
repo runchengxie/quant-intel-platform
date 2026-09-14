@@ -65,9 +65,7 @@ def test_portfolio_markdown_contains_industry_breakdown() -> None:
     artifact = _artifact()
     artifact["targets"] = [
         {**row, "industry": industry}
-        for row, industry in zip(
-            artifact["targets"], ["é¶è¡", "é¶è¡", "å»è¯"], strict=True
-        )
+        for row, industry in zip(artifact["targets"], ["é¶è¡", "é¶è¡", "å»è¯"], strict=True)
     ]
 
     markdown = render_cashflow_portfolio_markdown(artifact)
@@ -141,4 +139,3 @@ def test_executable_png_uses_top_holdings_and_execution_kpis(tmp_path: Path) -> 
 
     assert output.is_file()
     assert output.stat().st_size > 10_000
-
