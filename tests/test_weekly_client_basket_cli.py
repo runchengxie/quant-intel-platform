@@ -58,11 +58,7 @@ def _official_cashflow(tmp_path: Path) -> tuple[Path, Path]:
     return cashflow, receipt
 
 
-def test_weekly_basket_dry_run_writes_report_and_does_not_send(
-    tmp_path: Path,
-    monkeypatch,
-    capsys,
-) -> None:
+def _weekly_args(tmp_path: Path, *, mode: str) -> list[str]:
     cashflow, cashflow_receipt = _official_cashflow(tmp_path)
     microcap = _write(
         tmp_path / "microcap.json",
@@ -79,26 +75,30 @@ def test_weekly_basket_dry_run_writes_report_and_does_not_send(
             ],
         },
     )
+    return [
+        "a-share-daily",
+        "weekly-basket",
+        "--as-of-date",
+        "20260914",
+        "--cashflow",
+        str(cashflow),
+        "--cashflow-receipt",
+        str(cashflow_receipt),
+        "--microcap",
+        str(microcap),
+        "--output-root",
+        str(tmp_path / "output"),
+        mode,
+    ]
+
+
+def test_weekly_basket_dry_run_writes_report_and_does_not_send(
+    tmp_path: Path,
+    monkeypatch,
+    capsys,
+) -> None:
     output_root = tmp_path / "output"
-    monkeypatch.setattr(
-        sys,
-        "argv",
-        [
-            "a-share-daily",
-            "weekly-basket",
-            "--as-of-date",
-            "20260914",
-            "--cashflow",
-            str(cashflow),
-            "--cashflow-receipt",
-            str(cashflow_receipt),
-            "--microcap",
-            str(microcap),
-            "--output-root",
-            str(output_root),
-            "--dry-run",
-        ],
-    )
+    monkeypatch.setattr(sys, "argv", _weekly_args(tmp_path, mode="--dry-run"))
 
     with pytest.raises(SystemExit) as exc_info:
         cli.main()
@@ -120,3 +120,44 @@ def test_weekly_basket_dry_run_writes_report_and_does_not_send(
     assert all(row["sleeve"] != "dailywatch_family" for row in basket["source_inputs"])
     output = json.loads(capsys.readouterr().out)
     assert output["send_status"] == "dry_run"
+
+
+def test_weekly_basket_send_requires_performance_before_delivery(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    called = False
+
+    def forbidden_delivery(*args, **kwargs):
+        nonlocal called
+        called = True
+        raise AssertionError("delivery must not run")
+
+    monkeypatch.setattr(sys, "argv", _weekly_args(tmp_path, mode="--send"))
+    monkeypatch.setattr(
+        "a_share_daily.weekly_client_basket_delivery.send_personal_basket_report",
+        forbidden_delivery,
+    )
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    assert exc_info.value.code == 1
+    assert called is False
+    assert "--performance is required" in capsys.readouterr().err
+    assert not (tmp_path / "output" / "20260914" / "report.png").exists()
+
+
+def test_weekly_basket_send_rejects_invalid_performance_before_delivery(
+    tmp_path: Path, monkeypatch, capsys
+) -> None:
+    performance = _write(tmp_path / "performance.json", {"schema_version": "wrong.v1"})
+    argv = _weekly_args(tmp_path, mode="--send")
+    argv[2:2] = ["--performance", str(performance)]
+    monkeypatch.setattr(sys, "argv", argv)
+
+    with pytest.raises(SystemExit) as exc_info:
+        cli.main()
+
+    assert exc_info.value.code == 1
+    assert "unsupported performance artifact schema" in capsys.readouterr().err
+    assert not (tmp_path / "output" / "20260914" / "report.png").exists()
