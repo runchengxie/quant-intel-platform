@@ -199,6 +199,52 @@ def _render_asia_section(cross: Mapping[str, Any]) -> list[str]:
         lines.append("- 日本半导体: " + "，".join(jp_movers))
     if kr_movers:
         lines.append("- 韩国半导体: " + "，".join(kr_movers))
+
+    preopen = cross.get("korea_preopen")
+    if isinstance(preopen, Mapping) and preopen.get("source") != "unavailable":
+        signal = str(preopen.get("signal", "neutral"))
+        tag = "[OK]" if signal == "bullish" else "[WARN]" if signal == "bearish" else "[fetch]"
+        concepts = (
+            "、".join(str(item) for item in preopen.get("concepts", [])[:5]) or "韩国核心资产"
+        )
+        source = (
+            "日线代理"
+            if preopen.get("source") == "daily-proxy"
+            else str(preopen.get("source", "unknown"))
+        )
+        residual = float(preopen.get("residual_pct_chg", 0) or 0)
+        alert = preopen.get("risk_level") == "high" or abs(residual) >= 2
+        if alert:
+            lines.append(
+                f"- {tag} 韩国早盘 → A股开盘: {signal}，行业残差 {residual:+.1f}%，"
+                f"映射 {concepts}，数据源 {source}。"
+            )
+        else:
+            lines.append(
+                f"- {tag} 韩国早盘：{signal}，行业残差 {residual:+.1f}%，数据源 {source}。"
+            )
+
+    overnight = cross.get("korea_overnight")
+    if isinstance(overnight, Mapping) and overnight.get("source") != "unavailable":
+        signal = str(overnight.get("signal", "neutral"))
+        tag = "[WARN]" if signal == "bearish" else "[OK]" if signal == "bullish" else "[fetch]"
+        level = str(overnight.get("risk_level", "unknown"))
+        drivers = "，".join(str(item) for item in overnight.get("drivers", [])[:3]) or "暂无"
+        source = (
+            "日线代理"
+            if overnight.get("source") == "daily-proxy"
+            else str(overnight.get("source", "unknown"))
+        )
+        alert = level == "high"
+        if alert:
+            lines.append(
+                f"- {tag} 韩国盘后/夜盘 → 次日A股预警: 风险等级 {level}，方向 {signal}，"
+                f"驱动 {drivers}，数据源 {source}。"
+            )
+        else:
+            lines.append(
+                f"- {tag} 韩国盘后/夜盘：风险等级 {level}，方向 {signal}，数据源 {source}。"
+            )
     return lines
 
 
