@@ -100,4 +100,4 @@ for relative in tracked:
 print(f"clean public export created at {destination}")
 PY
 
-python "$destination/scripts/public_release/check_boundary.py"
+(cd "$destination" && python scripts/public_release/check_boundary.py)
