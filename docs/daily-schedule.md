@@ -87,6 +87,10 @@ Hermes 重启可能折叠错过的 recurring run。晨报和晚报脚本因此�
 
 研究侧 factor pipeline 已从正式 recovery specs 过滤掉。恢复器不会因为报告缺失而自行启动研究实验。
 
+部署方可以给恢复命令传入 `--disable-stage <stage>`，用于明确停用某个工作流。被停用阶段的
+下游依赖也会标记为 `disabled_dependency`，恢复器不会探测、重跑或告警这些阶段。例如停用
+`morning_model` 会同时跳过依赖它的 `morning_report`。停用后这条链路不再由恢复器监控。
+
 每个 stage 的自动恢复次数有限，并写入 `state/scheduled_recovery/<YYYYMMDD>.json`。`latest.json` 与 heartbeat 记录最新状态，失败告警按 fingerprint 去重。
 
 ## 手动恢复

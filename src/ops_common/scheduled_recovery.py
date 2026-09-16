@@ -255,6 +255,25 @@ def _failure_fingerprint(stages: Sequence[Mapping[str, Any]]) -> str | None:
     return hashlib.sha256(encoded).hexdigest()[:24]
 
 
+def _disabled_stage_statuses(
+    specs: Sequence[RecoverySpec], requested: Sequence[str]
+) -> dict[str, str]:
+    """Return configured disabled stages and every downstream dependent."""
+    known = {spec.key for spec in specs}
+    unknown = set(requested) - known
+    if unknown:
+        raise ValueError(f"unknown disabled recovery stage(s): {', '.join(sorted(unknown))}")
+    disabled = dict.fromkeys(requested, "disabled_by_configuration")
+    changed = True
+    while changed:
+        changed = False
+        for spec in specs:
+            if spec.key not in disabled and any(key in disabled for key in spec.dependencies):
+                disabled[spec.key] = "disabled_dependency"
+                changed = True
+    return disabled
+
+
 def _parse_systemd_timestamp(value: str, timezone: ZoneInfo) -> datetime | None:
     if not value:
         return None
@@ -731,6 +750,55 @@ def _build_alert(
     }
 
 
+def _reconcile_stages(
+    specs: Sequence[RecoverySpec],
+    disabled: Mapping[str, str],
+    *,
+    context: FreshnessContext,
+    targets: BusinessTargets,
+    local_now: datetime,
+    repair: bool,
+    attempts: dict[str, list[dict[str, Any]]],
+    max_attempts: int,
+    cooldown_minutes: int,
+    in_progress_grace_minutes: int,
+    runner: CommandRunner,
+    freshness_probe: FreshnessProbe,
+) -> tuple[list[dict[str, Any]], dict[str, bool]]:
+    stages: list[dict[str, Any]] = []
+    outcomes: dict[str, bool] = {}
+    for spec in specs:
+        if spec.key in disabled:
+            stages.append(
+                {
+                    "key": spec.key,
+                    "layer": spec.layer,
+                    "dependencies": list(spec.dependencies),
+                    "status": disabled[spec.key],
+                }
+            )
+            outcomes[spec.key] = True
+            continue
+        dependencies_ok = all(outcomes.get(key, False) for key in spec.dependencies)
+        entry, resolved = _reconcile_stage(
+            spec,
+            context=context,
+            targets=targets,
+            local_now=local_now,
+            repair=repair,
+            dependencies_ok=dependencies_ok,
+            attempts=attempts,
+            max_attempts=max_attempts,
+            cooldown_minutes=cooldown_minutes,
+            in_progress_grace_minutes=in_progress_grace_minutes,
+            runner=runner,
+            freshness_probe=freshness_probe,
+        )
+        stages.append(entry)
+        outcomes[spec.key] = resolved
+    return stages, outcomes
+
+
 def reconcile(
     *,
     now: datetime,
@@ -745,6 +813,7 @@ def reconcile(
     runner: CommandRunner = _run_command,
     freshness_probe: FreshnessProbe = probe_stage,
     notifier: Notifier | None = None,
+    disabled_stages: Sequence[str] = (),
 ) -> tuple[int, dict[str, Any]]:
     """Reconcile the freshness DAG and return ``(exit_code, receipt)``."""
     local_now = now.astimezone(context_timezone())
@@ -767,26 +836,21 @@ def reconcile(
     )
     previous = _read_state(state_path, date_key)
     attempts = _previous_attempts(state_path, date_key)
-    stages: list[dict[str, Any]] = []
-    outcomes: dict[str, bool] = {}
-    for spec in specs:
-        dependencies_ok = all(outcomes.get(key, False) for key in spec.dependencies)
-        entry, resolved = _reconcile_stage(
-            spec,
-            context=context,
-            targets=resolved_targets,
-            local_now=local_now,
-            repair=repair,
-            dependencies_ok=dependencies_ok,
-            attempts=attempts,
-            max_attempts=max_attempts,
-            cooldown_minutes=cooldown_minutes,
-            in_progress_grace_minutes=in_progress_grace_minutes,
-            runner=runner,
-            freshness_probe=freshness_probe,
-        )
-        stages.append(entry)
-        outcomes[spec.key] = resolved
+    disabled = _disabled_stage_statuses(specs, disabled_stages)
+    stages, outcomes = _reconcile_stages(
+        specs,
+        disabled,
+        context=context,
+        targets=resolved_targets,
+        local_now=local_now,
+        repair=repair,
+        attempts=attempts,
+        max_attempts=max_attempts,
+        cooldown_minutes=cooldown_minutes,
+        in_progress_grace_minutes=in_progress_grace_minutes,
+        runner=runner,
+        freshness_probe=freshness_probe,
+    )
     success = all(outcomes.values())
     failure_fingerprint = _failure_fingerprint(stages) if not success else None
     receipt: dict[str, Any] = {
@@ -799,6 +863,7 @@ def reconcile(
         "cooldown_minutes": cooldown_minutes,
         "business_targets": asdict(resolved_targets),
         "success": success,
+        "disabled_stages": disabled,
         "run_id": run_id,
         "failure_fingerprint": failure_fingerprint,
         "stages": stages,
@@ -852,6 +917,12 @@ def _parser() -> argparse.ArgumentParser:
         default=DEFAULT_IN_PROGRESS_GRACE_MINUTES,
     )
     parser.add_argument("--notify", action="store_true")
+    parser.add_argument(
+        "--disable-stage",
+        action="append",
+        default=[],
+        help="mark a stage and its downstream dependents as intentionally disabled",
+    )
     parser.add_argument("--as-of", help="Asia/Shanghai timestamp in ISO-8601 format")
     return parser
 
@@ -910,6 +981,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         cooldown_minutes=args.cooldown_minutes,
         in_progress_grace_minutes=args.in_progress_grace_minutes,
         notifier=_notify_recovery_failure if args.notify else None,
+        disabled_stages=args.disable_stage,
     )
     json.dump(receipt, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
