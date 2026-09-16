@@ -9,15 +9,14 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import sys
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-from a_share_daily.delivery.io_util import PROJECT_ROOT
 from a_share_daily.delivery.targets import _redact_target
+from ops_common.paths import resolve_owner_path
 
 DELIVERY_SCHEMA = "a_share_report_delivery.v1"
 
@@ -179,12 +178,12 @@ def _artifact_entry(path: Path, *, role: str) -> dict[str, Any]:
 
 
 def _delivery_state_dir() -> Path:
-    return Path(
-        os.environ.get(
-            "A_SHARE_DELIVERY_STATE_DIR",
-            str(PROJECT_ROOT / "state" / "a_share_daily_delivery"),
-        )
-    ).expanduser()
+    return resolve_owner_path(
+        "market-intel",
+        category="state",
+        override_env="A_SHARE_DELIVERY_STATE_DIR",
+        suffix=("a_share_daily_delivery",),
+    )
 
 
 def _write_delivery_status(

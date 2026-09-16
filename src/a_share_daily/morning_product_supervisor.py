@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any
 
 from ops_common.env import resolve_data_platform_root
+from ops_common.paths import resolve_owner_path
 
 from .trading_calendar import TradingCalendarError, is_open_trading_day
 
@@ -78,14 +79,24 @@ def _default_data_root() -> Path:
     return resolve_data_platform_root(required=True)
 
 
-def _default_state_root(project_root: Path) -> Path:
+def _default_state_root(_project_root: Path) -> Path:
     explicit = os.environ.get("MORNING_SUPERVISOR_STATE_DIR", "").strip()
     if explicit:
         return Path(explicit).expanduser()
-    delivery_state = os.environ.get("A_SHARE_DELIVERY_STATE_DIR", "").strip()
-    if delivery_state:
-        return Path(delivery_state).expanduser() / "morning_product_supervisor"
-    return project_root / "state/morning_product_supervisor"
+    if os.environ.get("A_SHARE_DELIVERY_STATE_DIR", "").strip():
+        return (
+            resolve_owner_path(
+                "market-intel",
+                category="state",
+                override_env="A_SHARE_DELIVERY_STATE_DIR",
+            )
+            / "morning_product_supervisor"
+        )
+    return resolve_owner_path(
+        "market-intel",
+        category="state",
+        suffix=("morning_product_supervisor",),
+    )
 
 
 def _latest_data_lake_trade_date(data_root: Path) -> str | None:

@@ -9,9 +9,18 @@ MARKET_INTEL_CLIENT_CHAT_ID=example_client_target
 MARKET_INTEL_INTERNAL_CHAT_ID=example_internal_target
 MARKET_INTEL_PUBLIC_CHAT_ID=example_public_target
 DATA_PLATFORM_ROOT=/path/to/local/data
+A_SHARE_OUTPUT_DIR=/path/to/report/output
+A_SHARE_DELIVERY_STATE_DIR=/path/to/delivery/state
+SCHEDULED_RECOVERY_STATE_ROOT=/path/to/recovery/state
+CROSS_MARKET_SNAPSHOT_ROOT=/path/to/cross-market/snapshots
 ```
 
 上面的受众 ID 只是示例。目标为空时，系统仍可执行离线渲染和 CI 测试，也不会发送消息。
+
+`DATA_PLATFORM_ROOT` 是持久化运行目录的默认根。A 股报告默认写入
+`$DATA_PLATFORM_ROOT/reports/market-intel/a_share_daily`，投递回执和恢复状态默认写入
+`$DATA_PLATFORM_ROOT/state/market-intel/`。部署需要独立布局时，可以设置上面的细粒度变量。
+没有配置数据根目录或覆盖路径时，持久化入口会失败并提示补充配置。
 
 ## 凭据
 

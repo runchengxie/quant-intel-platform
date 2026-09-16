@@ -32,6 +32,7 @@ from ops_common.business_freshness import (
     write_report_audit,
 )
 from ops_common.env import resolve_data_platform_root
+from ops_common.paths import resolve_owner_path
 from ops_common.report_window import delivery_decision
 
 
@@ -963,14 +964,12 @@ def run(argv: Sequence[str] | None = None) -> int:
     state_root = (
         args.state_root.expanduser().resolve()
         if args.state_root
-        else Path(
-            os.environ.get(
-                "SCHEDULED_RECOVERY_STATE_ROOT",
-                str(context.project_root / "state/scheduled_recovery"),
-            )
-        )
-        .expanduser()
-        .resolve()
+        else resolve_owner_path(
+            "market-intel",
+            category="state",
+            override_env="SCHEDULED_RECOVERY_STATE_ROOT",
+            suffix=("scheduled_recovery",),
+        ).resolve()
     )
     status, receipt = reconcile(
         now=now,

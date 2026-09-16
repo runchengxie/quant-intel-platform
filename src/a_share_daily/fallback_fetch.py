@@ -24,12 +24,16 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+from ops_common.paths import resolve_owner_path
+
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
 SNAPSHOT_ROOT = Path(
     os.environ.get("CROSS_MARKET_SNAPSHOT_ROOT", str(PROJECT_ROOT / "data-snapshots"))
 ).expanduser()
 SNAPSHOT_DIR = SNAPSHOT_ROOT / "cross-market"
 LATEST_DIR = SNAPSHOT_ROOT / "latest"
+_LEGACY_SNAPSHOT_DIR = PROJECT_ROOT / "data-snapshots" / "cross-market"
+_LEGACY_LATEST_DIR = PROJECT_ROOT / "data-snapshots" / "latest"
 
 
 def _snapshot_dirs() -> tuple[Path, Path]:
@@ -37,6 +41,13 @@ def _snapshot_dirs() -> tuple[Path, Path]:
     configured = os.environ.get("CROSS_MARKET_SNAPSHOT_ROOT", "").strip()
     if configured:
         root = Path(configured).expanduser()
+        return root / "cross-market", root / "latest"
+    if SNAPSHOT_DIR == _LEGACY_SNAPSHOT_DIR and LATEST_DIR == _LEGACY_LATEST_DIR:
+        root = resolve_owner_path(
+            "market-intel",
+            category="reports",
+            suffix=("cross_market_snapshots",),
+        )
         return root / "cross-market", root / "latest"
     return SNAPSHOT_DIR, LATEST_DIR
 

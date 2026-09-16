@@ -15,6 +15,7 @@ from typing import Any
 import pandas as pd
 
 from ops_common.env import resolve_data_platform_root
+from ops_common.paths import resolve_owner_path
 
 from . import cross_market as _cross_market
 from . import data as D
@@ -36,11 +37,26 @@ from .weekly_context import write_weekly_context
 
 # ── Config ───────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_LEGACY_OUTPUT_DIR = PROJECT_ROOT / "out" / "a_share_daily"
 HOTSECTOR_INPUT_ENV = "A_SHARE_HOTSECTOR_INPUT"
 TOPIC_SUMMARY_INPUT_ENV = "A_SHARE_TOPIC_SUMMARY_INPUT"
-OUTPUT_DIR = Path(
-    os.environ.get("A_SHARE_OUTPUT_DIR", str(PROJECT_ROOT / "out" / "a_share_daily"))
-).expanduser()
+
+
+def _default_output_dir() -> Path:
+    configured = os.environ.get("A_SHARE_OUTPUT_DIR", "").strip()
+    if configured:
+        return Path(configured).expanduser()
+    if (
+        os.environ.get("DATA_PLATFORM_ROOT", "").strip()
+        or os.environ.get("MDP_FALLBACK_ROOT", "").strip()
+    ):
+        return resolve_owner_path("market-intel", category="reports", suffix=("a_share_daily",))
+    # Keep imports usable for offline unit tests.  Any real write resolves the
+    # external root in _ensure_output_dir and fails clearly when it is absent.
+    return _LEGACY_OUTPUT_DIR
+
+
+OUTPUT_DIR = _default_output_dir()
 FEISHU_CHAT_ID = os.environ.get("A_SHARE_FEISHU_CHAT_ID", "")
 EXPECTED_CHART_KEYS = (
     "topic",
@@ -108,6 +124,15 @@ def _env_flag(name: str, *, default: bool = False) -> bool:
     if value is None:
         return default
     return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def _cross_market_snapshot_root() -> Path:
+    return resolve_owner_path(
+        "market-intel",
+        category="reports",
+        override_env="CROSS_MARKET_SNAPSHOT_ROOT",
+        suffix=("cross_market_snapshots",),
+    )
 
 
 def _split_dataset_env(name: str) -> set[str]:
@@ -542,9 +567,7 @@ def _run_weekly_chart(state: _ChartState) -> tuple[list[str], dict[str, pd.DataF
 def _weekly_gold_prices(week_dates: list[str]) -> dict[str, float]:
     week_gold: dict[str, float] = {}
     for day in week_dates:
-        snapshot_root = Path(
-            os.environ.get("CROSS_MARKET_SNAPSHOT_ROOT", str(PROJECT_ROOT / "data-snapshots"))
-        ).expanduser()
+        snapshot_root = Path(_cross_market_snapshot_root()).expanduser()
         snap_path = snapshot_root / "cross-market" / f"{day[:4]}-{day[4:6]}-{day[6:]}.json"
         with contextlib.suppress(Exception):
             snap = json.loads(snap_path.read_text(encoding="utf-8"))
@@ -622,13 +645,27 @@ def _chart_manifest(state: _ChartState) -> dict[str, Any]:
     }
 
 
+def _ensure_output_dir() -> None:
+    """Create the report directory after validating its external location."""
+
+    global OUTPUT_DIR
+    if OUTPUT_DIR == _LEGACY_OUTPUT_DIR:
+        configured = os.environ.get("A_SHARE_OUTPUT_DIR", "").strip()
+        OUTPUT_DIR = (
+            Path(configured).expanduser()
+            if configured
+            else resolve_owner_path("market-intel", category="reports", suffix=("a_share_daily",))
+        )
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+
 def step_charts(
     trade_date: str, topic_summary_json: str = "", *, universe_json: str | None = None
 ) -> dict[str, Any]:
     """Generate all 6 charts. Returns manifest of successes/failures."""
     if universe_json is not None:
         topic_summary_json = universe_json
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    _ensure_output_dir()
     state = _ChartState(trade_date=trade_date)
     try:
         daily, limit_up = _load_daily_chart_inputs(trade_date)
@@ -654,7 +691,7 @@ def step_charts(
 
 def run_morning(trade_date: str | None = None) -> dict[str, Any]:
     """Full morning pipeline. Returns manifest dict."""
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    _ensure_output_dir()
     if trade_date is None:
         trade_date = datetime.now().strftime("%Y%m%d")
 

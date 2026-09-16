@@ -72,11 +72,12 @@ def _report_delivery_problems(
     path: Path, project_root: Path, env: Mapping[str, str], date: str
 ) -> list[str]:
     kind = "morning" if path.name == "morning_manifest.json" else "evening"
-    delivery_dir = Path(
-        env.get(
-            "A_SHARE_DELIVERY_STATE_DIR", str(project_root / "state" / "a_share_daily_delivery")
-        )
-    ).expanduser()
+    configured_delivery = env.get("A_SHARE_DELIVERY_STATE_DIR", "").strip()
+    delivery_dir = (
+        Path(configured_delivery).expanduser()
+        if configured_delivery
+        else _configured_data_root(env) / "state/market-intel/a_share_daily_delivery"
+    )
     receipt_path = delivery_dir / f"{kind}_latest.json"
     if not receipt_path.is_file():
         return [f"{path.name} delivery_receipt_missing={receipt_path}"]
@@ -139,9 +140,12 @@ def _weekly_artifact_problems(output_dir: Path) -> list[str]:
 
 def _check_report_artifact_health(project_root: Path, env: Mapping[str, str]) -> CheckResult:
     """Check latest report manifests, files, and delivery receipts."""
-    output_dir = Path(
-        env.get("A_SHARE_OUTPUT_DIR", str(project_root / "out" / "a_share_daily"))
-    ).expanduser()
+    configured_output = env.get("A_SHARE_OUTPUT_DIR", "").strip()
+    output_dir = (
+        Path(configured_output).expanduser()
+        if configured_output
+        else _configured_data_root(env) / "reports/market-intel/a_share_daily"
+    )
     manifests = [output_dir / "morning_manifest.json", output_dir / "evening_manifest.json"]
     present = [path for path in manifests if path.is_file()]
     weekly_files = (
