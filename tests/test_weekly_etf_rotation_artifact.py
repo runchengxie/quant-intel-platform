@@ -64,6 +64,24 @@ def test_loads_research_artifact_and_exposes_display_context(tmp_path: Path) -> 
         ({"source": {"input_sha256": "0"}}, "SHA-256"),
         ({"data_as_of": "20260820"}, "data_as_of"),
         ({"trade_delta_basis": "broker_holdings"}, "trade_delta_basis"),
+        (
+            {"positions": [{"symbol": "999999", "target_weight": 1.0, "status": "NEW"}]},
+            "frozen universe",
+        ),
+        ({"trade_delta": {"symbol": "510300"}}, "trade_delta must be a list"),
+        (
+            {
+                "trade_delta": [
+                    {
+                        "symbol": "999999",
+                        "previous_weight": 0.0,
+                        "target_weight": 1.0,
+                        "status": "NEW",
+                    }
+                ]
+            },
+            "trade_delta",
+        ),
     ],
 )
 def test_rejects_unsafe_or_malformed_artifact(

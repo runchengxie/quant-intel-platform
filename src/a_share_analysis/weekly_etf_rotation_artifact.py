@@ -19,6 +19,16 @@ VARIANT_IDS = {
     "weekly_etf_rotation_qp_min_variance_v1",
 }
 ACTION_STATUSES = {"NEW", "INCREASE", "KEEP", "REDUCE", "EXIT"}
+FROZEN_SYMBOLS = {
+    "510300",
+    "510500",
+    "512100",
+    "510880",
+    "159915",
+    "588000",
+    "518880",
+    "511260",
+}
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -116,6 +126,10 @@ def _positions(payload: dict[str, Any]) -> tuple[tuple[dict[str, Any], ...], flo
         symbol = str(row.get("symbol") or "").strip()
         if not symbol or symbol in symbols:
             raise WeeklyEtfRotationArtifactError("positions must contain unique symbols")
+        if symbol not in FROZEN_SYMBOLS:
+            raise WeeklyEtfRotationArtifactError(
+                f"positions[{index}].symbol is not in frozen universe"
+            )
         symbols.add(symbol)
         weight = _number(row.get("target_weight"), f"positions[{index}].target_weight")
         status = str(row.get("status") or "")
@@ -123,6 +137,24 @@ def _positions(payload: dict[str, Any]) -> tuple[tuple[dict[str, Any], ...], flo
             raise WeeklyEtfRotationArtifactError(f"positions[{index}].status is invalid")
         normalized.append({**cast(dict[str, Any], row), "symbol": symbol, "target_weight": weight})
     return tuple(normalized), sum(row["target_weight"] for row in normalized)
+
+
+def _trade_delta(payload: dict[str, Any]) -> None:
+    rows = payload.get("trade_delta")
+    if not isinstance(rows, list):
+        raise WeeklyEtfRotationArtifactError("trade_delta must be a list")
+    symbols: set[str] = set()
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            raise WeeklyEtfRotationArtifactError(f"trade_delta[{index}] must be an object")
+        symbol = str(row.get("symbol") or "").strip()
+        if symbol not in FROZEN_SYMBOLS or symbol in symbols:
+            raise WeeklyEtfRotationArtifactError(f"trade_delta[{index}].symbol is invalid")
+        symbols.add(symbol)
+        _number(row.get("previous_weight"), f"trade_delta[{index}].previous_weight")
+        _number(row.get("target_weight"), f"trade_delta[{index}].target_weight")
+        if row.get("status") not in ACTION_STATUSES:
+            raise WeeklyEtfRotationArtifactError(f"trade_delta[{index}].status is invalid")
 
 
 def _totals(payload: dict[str, Any], total: float) -> None:
@@ -158,6 +190,7 @@ def load_weekly_etf_rotation_artifact(
     signal_date, data_as_of, execution_window = _timing(payload, expected_signal_date)
     normalized, total_weight = _positions(payload)
     _totals(payload, total_weight)
+    _trade_delta(payload)
     return WeeklyEtfRotationArtifact(
         strategy_id=STRATEGY_ID,
         variant_id=variant_id,
