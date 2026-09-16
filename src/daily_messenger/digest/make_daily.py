@@ -639,6 +639,24 @@ def run(argv: list[str] | None = None) -> int:
         news_text,
     )
 
+    _finish_run(
+        logger,
+        started_at=started_at,
+        degraded=degraded,
+        summary_lines=summary_lines,
+        date_str=str(date_str),
+    )
+    return 0
+
+
+def _finish_run(
+    logger: logging.Logger,
+    *,
+    started_at: datetime,
+    degraded: bool,
+    summary_lines: list[str],
+    date_str: str,
+) -> None:
     duration = (datetime.now(UTC) - started_at).total_seconds()
     log(
         logger,
@@ -665,7 +683,6 @@ def run(argv: list[str] | None = None) -> int:
         duration_seconds=round(duration, 2),
         summary_lines=len(summary_lines),
     )
-    return 0
 
 
 if __name__ == "__main__":

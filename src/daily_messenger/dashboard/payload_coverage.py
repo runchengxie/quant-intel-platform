@@ -315,6 +315,33 @@ def _coverage_row(key: str, label: str, status: str, detail: str) -> dict[str, s
     return {"key": key, "label": label, "status": status, "detail": detail}
 
 
+def _coverage_flags(
+    *,
+    scores_doc: JsonDocument,
+    status_doc: JsonDocument,
+    cross_market_doc: JsonDocument,
+    tushare_doc: JsonDocument,
+    panel_doc: PanelDocument,
+) -> dict[str, object]:
+    return {
+        "themes": _as_list(scores_doc.data.get("themes")),
+        "sources": _as_list(status_doc.data.get("sources")),
+        "cross_markets": bool(_as_mapping(cross_market_doc.data.get("us_stocks")))
+        or bool(_as_mapping(cross_market_doc.data.get("macros"))),
+        "tushare_breadth": bool(_as_mapping(tushare_doc.data.get("breadth"))),
+        "has_panel_state": any(
+            _number(row.get("own_risk_appetite_score")) is not None for row in panel_doc.rows
+        ),
+        "has_participation": any(
+            _number(row.get("rsp_spy_participation_proxy")) is not None for row in panel_doc.rows
+        ),
+        "has_valuation": any(
+            _number(row.get("valuation_rate_gap_proxy")) is not None for row in panel_doc.rows
+        ),
+        "derived_panel": _panel_is_derived(panel_doc),
+    }
+
+
 def _coverage(
     *,
     scores_doc: JsonDocument,
@@ -327,22 +354,21 @@ def _coverage(
     neighbors: Sequence[Mapping[str, object]],
     neighbor_summary: Sequence[Mapping[str, object]],
 ) -> list[dict[str, str]]:
-    themes = _as_list(scores_doc.data.get("themes"))
-    sources = _as_list(status_doc.data.get("sources"))
-    cross_markets = bool(_as_mapping(cross_market_doc.data.get("us_stocks"))) or bool(
-        _as_mapping(cross_market_doc.data.get("macros"))
+    flags = _coverage_flags(
+        scores_doc=scores_doc,
+        status_doc=status_doc,
+        cross_market_doc=cross_market_doc,
+        tushare_doc=tushare_doc,
+        panel_doc=panel_doc,
     )
-    tushare_breadth = bool(_as_mapping(tushare_doc.data.get("breadth")))
-    has_panel_state = any(
-        _number(row.get("own_risk_appetite_score")) is not None for row in panel_doc.rows
-    )
-    has_participation = any(
-        _number(row.get("rsp_spy_participation_proxy")) is not None for row in panel_doc.rows
-    )
-    has_valuation = any(
-        _number(row.get("valuation_rate_gap_proxy")) is not None for row in panel_doc.rows
-    )
-    derived_panel = _panel_is_derived(panel_doc)
+    themes = flags["themes"]
+    sources = flags["sources"]
+    cross_markets = flags["cross_markets"]
+    tushare_breadth = flags["tushare_breadth"]
+    has_panel_state = flags["has_panel_state"]
+    has_participation = flags["has_participation"]
+    has_valuation = flags["has_valuation"]
+    derived_panel = flags["derived_panel"]
     risk_detail = (
         "未提供状态面板时，已从 Cboe/FRED VIX、Cboe Put/Call 和 AAII 自动派生代理指标。"
         if derived_panel
