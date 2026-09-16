@@ -3,13 +3,12 @@
 from __future__ import annotations
 
 import json
-import os
 import sys
 from collections.abc import Sequence
 from datetime import datetime
-from pathlib import Path
 
 from ops_common import scheduled_recovery as recovery
+from ops_common.paths import resolve_owner_path
 
 MARKET_INTEL_SPECS = recovery.DEFAULT_SPECS
 
@@ -32,14 +31,12 @@ def run(argv: Sequence[str] | None = None) -> int:
     state_root = (
         args.state_root.expanduser().resolve()
         if args.state_root
-        else Path(
-            os.environ.get(
-                "SCHEDULED_RECOVERY_STATE_ROOT",
-                str(context.project_root / "state/scheduled_recovery"),
-            )
-        )
-        .expanduser()
-        .resolve()
+        else resolve_owner_path(
+            "market-intel",
+            category="state",
+            override_env="SCHEDULED_RECOVERY_STATE_ROOT",
+            suffix=("scheduled_recovery",),
+        ).resolve()
     )
     status, receipt = recovery.reconcile(
         now=now,

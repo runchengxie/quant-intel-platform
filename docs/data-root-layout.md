@@ -22,7 +22,9 @@
 
 - 主数据根已经迁移到 `~/data/quant/market-data-platform`。
 - 旧的 `~/data/market-data-platform` 目录当前不存在。
-- 代码和调度模板应优先读取 `DATA_PLATFORM_ROOT`。本地脚本的默认值只用于开发机兜底。
+- 代码和调度模板应读取 `DATA_PLATFORM_ROOT`。正式报告、回执和恢复状态默认写入
+  `reports/market-intel/` 与 `state/market-intel/`，也可以用对应的细粒度环境变量覆盖。
+  未配置数据根目录时，持久化入口会直接报错，不会在代码仓库中创建 `out/` 或 `state/`。
 - `quant-intel-platform` 只读取数据平台发布的资产和研究侧发布的 artifact，不把生产数据提交到代码仓库。
 - 代码仓库里的 `out/` 和 `state/` 可能保存历史运行路径。这些路径属于当时的回执和审计记录，不能批量改写。
 
