@@ -8,28 +8,26 @@ and repairs stale stages in dependency order with bounded daily attempts.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import os
 import subprocess
 import sys
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import asdict, dataclass
-from datetime import UTC, datetime, time, timedelta
+from datetime import UTC, datetime, time
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from ops_common import recovery_actions, recovery_probes, recovery_state
 from ops_common.business_freshness import (
     BusinessTargets,
     FreshnessContext,
     FreshnessResult,
     build_business_targets,
     load_open_dates,
-    missing_daily_sessions,
     probe_stage,
     stage_target,
-    write_report_audit,
 )
 from ops_common.env import resolve_data_platform_root
 from ops_common.paths import resolve_owner_path
@@ -140,180 +138,42 @@ _ALERTABLE_STATUSES = frozenset(
 )
 
 
-def _run_command(command: Sequence[str]) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(  # noqa: S603 - argv comes from a static stage allow-list
-        list(command),
-        capture_output=True,
-        text=True,
-        check=False,
-    )
-
-
-def _systemd_properties(
-    unit: str,
-    properties: Sequence[str],
-    *,
-    runner: CommandRunner,
-) -> dict[str, str]:
-    command = ["systemctl", "--user", "show", unit]
-    command.extend(f"--property={item}" for item in properties)
-    result = runner(command)
-    if result.returncode != 0:
-        return {
-            "LoadState": "not-found",
-            "CommandError": (result.stderr or result.stdout).strip()[:500],
-        }
-    values: dict[str, str] = {}
-    for line in result.stdout.splitlines():
-        key, separator, value = line.partition("=")
-        if separator:
-            values[key] = value
-    return values
-
-
-def _systemd_probe(spec: RecoverySpec, *, runner: CommandRunner) -> dict[str, str]:
-    if spec.timer is None or spec.service is None:
-        return {
-            "timer_load_state": "coordinator",
-            "timer_unit_file_state": "enabled",
-            "timer_active_state": "active",
-            "service_load_state": "coordinator",
-            "service_active_state": "inactive",
-            "service_sub_state": "dead",
-            "service_result": "unknown",
-        }
-    timer = _systemd_properties(
-        spec.timer,
-        ("LoadState", "UnitFileState", "ActiveState"),
-        runner=runner,
-    )
-    service = _systemd_properties(
-        spec.service,
-        (
-            "LoadState",
-            "ActiveState",
-            "SubState",
-            "Result",
-            "ExecMainStatus",
-            "ExecMainStartTimestamp",
-            "ExecMainExitTimestamp",
-            "InvocationID",
-        ),
-        runner=runner,
-    )
-    return {
-        "timer_load_state": timer.get("LoadState", "unknown"),
-        "timer_unit_file_state": timer.get("UnitFileState", "unknown"),
-        "timer_active_state": timer.get("ActiveState", "unknown"),
-        "service_load_state": service.get("LoadState", "unknown"),
-        "service_active_state": service.get("ActiveState", "unknown"),
-        "service_sub_state": service.get("SubState", "unknown"),
-        "service_result": service.get("Result", "unknown"),
-        "service_exit_status": service.get("ExecMainStatus", ""),
-        "service_start_timestamp": service.get("ExecMainStartTimestamp", ""),
-        "service_exit_timestamp": service.get("ExecMainExitTimestamp", ""),
-        "invocation_id": service.get("InvocationID", ""),
-    }
+# Compatibility wrappers keep the existing private module surface stable for
+# callers and tests while the implementations live in focused modules.
+_run_command = recovery_probes.run_command
 
 
 def _read_state(path: Path, date_key: str) -> dict[str, Any]:
-    try:
-        payload = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return {}
-    if not isinstance(payload, dict) or payload.get("date") != date_key:
-        return {}
-    return payload
+    return recovery_state.read_state(path, date_key)
 
 
 def _atomic_write_json(path: Path, payload: Mapping[str, Any]) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
-    try:
-        temporary.write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
-        temporary.replace(path)
-    finally:
-        temporary.unlink(missing_ok=True)
+    recovery_state.atomic_write_json(path, payload)
 
 
 def _failure_fingerprint(stages: Sequence[Mapping[str, Any]]) -> str | None:
-    failures = [
-        {
-            "key": stage.get("key"),
-            "status": "unhealthy",
-            "target_date": stage.get("target_date"),
-            "detail": stage.get("detail") or stage.get("initial_freshness", {}).get("detail"),
-        }
-        for stage in stages
-        if stage.get("status") in _ALERTABLE_STATUSES
-    ]
-    if not failures:
-        return None
-    encoded = json.dumps(failures, ensure_ascii=False, sort_keys=True).encode("utf-8")
-    return hashlib.sha256(encoded).hexdigest()[:24]
+    return recovery_state.failure_fingerprint(stages, alertable_statuses=_ALERTABLE_STATUSES)
 
 
 def _disabled_stage_statuses(
     specs: Sequence[RecoverySpec], requested: Sequence[str]
 ) -> dict[str, str]:
-    """Return configured disabled stages and every downstream dependent."""
-    known = {spec.key for spec in specs}
-    unknown = set(requested) - known
-    if unknown:
-        raise ValueError(f"unknown disabled recovery stage(s): {', '.join(sorted(unknown))}")
-    disabled = dict.fromkeys(requested, "disabled_by_configuration")
-    changed = True
-    while changed:
-        changed = False
-        for spec in specs:
-            if spec.key not in disabled and any(key in disabled for key in spec.dependencies):
-                disabled[spec.key] = "disabled_dependency"
-                changed = True
-    return disabled
+    return recovery_state.disabled_stage_statuses(specs, requested)
 
 
-def _parse_systemd_timestamp(value: str, timezone: ZoneInfo) -> datetime | None:
-    if not value:
-        return None
-    try:
-        parsed = datetime.fromisoformat(value)
-    except ValueError:
-        try:
-            parsed = datetime.strptime(value, "%a %Y-%m-%d %H:%M:%S %Z")
-        except ValueError:
-            return None
-    return parsed.replace(tzinfo=timezone) if parsed.tzinfo is None else parsed
-
-
-def _current_contract_output_present(context: FreshnessContext, target_date: str) -> bool:
-    root = context.data_root / "assets/tushare/a_share/daily"
-    return any(
-        (candidate / "data/000001.SZ.parquet").is_file()
-        and (candidate / "data/000001.SZ.parquet").stat().st_size > 0
-        for candidate in root.glob(f"a_share_all_*_{target_date}_daily_clean")
-    )
+def _systemd_probe(spec: RecoverySpec, *, runner: CommandRunner) -> dict[str, str]:
+    return recovery_probes.systemd_probe(spec, runner=runner)
 
 
 def _active_service_entry(
     systemd: Mapping[str, str], *, local_now: datetime, grace_minutes: int
 ) -> dict[str, Any]:
-    started = _parse_systemd_timestamp(
-        systemd.get("service_start_timestamp", ""), context_timezone()
+    return recovery_probes.active_service_entry(
+        systemd,
+        local_now=local_now,
+        grace_minutes=grace_minutes,
+        timezone=context_timezone(),
     )
-    runtime_seconds = max(0.0, (local_now - started).total_seconds()) if started else None
-    timeout_seconds = grace_minutes * 60
-    return {
-        "runtime_seconds": runtime_seconds,
-        "runtime_timeout_seconds": timeout_seconds,
-        "status": (
-            "stuck_in_progress"
-            if runtime_seconds is not None and runtime_seconds >= timeout_seconds
-            else "in_progress"
-        ),
-    }
 
 
 def _completion_pending(
@@ -322,17 +182,111 @@ def _completion_pending(
     context: FreshnessContext,
     target_date: str,
 ) -> bool:
-    return (
-        spec.key == "current_contract"
-        and systemd["service_active_state"] == "inactive"
-        and systemd["service_result"] == "success"
-        and _current_contract_output_present(context, target_date)
-    )
+    return recovery_probes.completion_pending(spec, systemd, context, target_date)
 
 
 def _unavailable_stage(spec: RecoverySpec, entry: dict[str, Any]) -> tuple[dict[str, Any], bool]:
-    entry["status"] = "optional_not_installed" if spec.optional else "not_installed"
-    return entry, spec.optional
+    return recovery_probes.unavailable_stage(spec, entry)
+
+
+def _recent_attempt(attempts: Sequence[Mapping[str, Any]], now: datetime, cooldown: int) -> bool:
+    return recovery_state.recent_attempt(attempts, now, cooldown)
+
+
+def _successful_delivery_attempt(
+    attempts: Sequence[Mapping[str, Any]], *, target_date: str, report_mode: str
+) -> bool:
+    return recovery_state.successful_delivery_attempt(
+        attempts, target_date=target_date, report_mode=report_mode
+    )
+
+
+def _budget_attempts(
+    attempts: Sequence[Mapping[str, Any]],
+    *,
+    spec: RecoverySpec,
+    target_date: str,
+    report_mode: str,
+) -> list[Mapping[str, Any]]:
+    return recovery_state.budget_attempts(
+        attempts,
+        report_kind=spec.report_kind,
+        target_date=target_date,
+        report_mode=report_mode,
+    )
+
+
+def _timer_available(probe: Mapping[str, str]) -> bool:
+    return recovery_probes.timer_available(probe)
+
+
+def _action_command(
+    spec: RecoverySpec,
+    *,
+    context: FreshnessContext,
+    target_date: str,
+    signal_date: str,
+    report_mode: str,
+) -> list[str]:
+    return recovery_actions.action_command(
+        spec,
+        context=context,
+        target_date=target_date,
+        signal_date=signal_date,
+        report_mode=report_mode,
+    )
+
+
+def _probe_freshness(
+    probe: FreshnessProbe,
+    context: FreshnessContext,
+    spec: RecoverySpec,
+    *,
+    target_date: str,
+    signal_date: str,
+    report_mode: str,
+) -> FreshnessResult:
+    return recovery_actions.probe_freshness(
+        probe,
+        context,
+        spec,
+        target_date=target_date,
+        signal_date=signal_date,
+        report_mode=report_mode,
+    )
+
+
+def _attempt_recovery(
+    spec: RecoverySpec,
+    *,
+    context: FreshnessContext,
+    target_date: str,
+    signal_date: str,
+    report_mode: str,
+    local_now: datetime,
+    stage_attempts: list[dict[str, Any]],
+    runner: CommandRunner,
+    freshness_probe: FreshnessProbe,
+) -> tuple[dict[str, Any], bool]:
+    return recovery_actions.attempt_recovery(
+        spec,
+        context=context,
+        target_date=target_date,
+        signal_date=signal_date,
+        report_mode=report_mode,
+        local_now=local_now,
+        stage_attempts=stage_attempts,
+        runner=runner,
+        freshness_probe=freshness_probe,
+    )
+
+
+def _notify_recovery_failure(message: str) -> bool:
+    return recovery_actions.notify_recovery_failure(message)
+
+
+def _previous_attempts(state_path: Path, date_key: str) -> dict[str, list[dict[str, Any]]]:
+    return recovery_state.previous_attempts(state_path, date_key)
 
 
 def _reconcile_stale_stage(
@@ -399,97 +353,6 @@ def _reconcile_stale_stage(
     return entry, recovered
 
 
-def _notify_recovery_failure(message: str) -> bool:
-    chat_id = (
-        os.environ.get("WATCHDOG_ALERT_FEISHU_CHAT_ID", "").strip()
-        or os.environ.get("A_SHARE_FEISHU_DM_CHAT_ID", "").strip()
-    )
-    lark_cli = os.environ.get("LARK_CLI", str(Path.home() / ".local/bin/lark-cli"))
-    if not chat_id or not Path(lark_cli).is_file():
-        return False
-    key = "scheduled-recovery-" + hashlib.sha256(message.encode("utf-8")).hexdigest()[:24]
-    try:
-        result = subprocess.run(  # noqa: S603 - command uses a fixed argv shape
-            [
-                lark_cli,
-                "im",
-                "+messages-send",
-                "--chat-id",
-                chat_id,
-                "--msg-type",
-                "text",
-                "--text",
-                message,
-                "--idempotency-key",
-                key,
-                "--as",
-                "bot",
-                "--format",
-                "json",
-            ],
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=30,
-        )
-    except (OSError, subprocess.TimeoutExpired):
-        return False
-    return result.returncode == 0
-
-
-def _recent_attempt(attempts: Sequence[Mapping[str, Any]], now: datetime, cooldown: int) -> bool:
-    if not attempts:
-        return False
-    value = attempts[-1].get("started_at")
-    if not isinstance(value, str):
-        return False
-    try:
-        started = datetime.fromisoformat(value)
-    except ValueError:
-        return False
-    if started.tzinfo is None:
-        started = started.replace(tzinfo=UTC)
-    return now.astimezone(UTC) - started.astimezone(UTC) < timedelta(minutes=cooldown)
-
-
-def _successful_delivery_attempt(
-    attempts: Sequence[Mapping[str, Any]],
-    *,
-    target_date: str,
-    report_mode: str,
-) -> bool:
-    return any(
-        attempt.get("returncode") == 0
-        and attempt.get("target_date") == target_date
-        and attempt.get("report_mode") == report_mode
-        for attempt in attempts
-    )
-
-
-def _budget_attempts(
-    attempts: Sequence[Mapping[str, Any]],
-    *,
-    spec: RecoverySpec,
-    target_date: str,
-    report_mode: str,
-) -> list[Mapping[str, Any]]:
-    if spec.report_kind is None:
-        return [
-            attempt for attempt in attempts if attempt.get("target_date") in {None, target_date}
-        ]
-    return [
-        attempt
-        for attempt in attempts
-        if attempt.get("target_date") == target_date and attempt.get("report_mode") == report_mode
-    ]
-
-
-def _timer_available(probe: Mapping[str, str]) -> bool:
-    return probe.get("timer_load_state") in {"loaded", "coordinator"} and probe.get(
-        "timer_unit_file_state"
-    ) in {"enabled", "enabled-runtime"}
-
-
 def _stage_gate(
     spec: RecoverySpec,
     *,
@@ -512,123 +375,6 @@ def _stage_gate(
     if decision.mode == "wait":
         return "waiting_delivery_window", decision.mode
     return None, decision.mode
-
-
-def _action_command(
-    spec: RecoverySpec,
-    *,
-    context: FreshnessContext,
-    target_date: str,
-    signal_date: str,
-    report_mode: str,
-) -> list[str]:
-    missing = (
-        ",".join(missing_daily_sessions(context, target_date)) if spec.key == "daily_market" else ""
-    )
-    return [
-        str(context.project_root / "scripts/recover_business_stage.sh"),
-        spec.key,
-        target_date,
-        signal_date,
-        report_mode,
-        missing,
-    ]
-
-
-def _probe_freshness(
-    probe: FreshnessProbe,
-    context: FreshnessContext,
-    spec: RecoverySpec,
-    *,
-    target_date: str,
-    signal_date: str,
-    report_mode: str,
-) -> FreshnessResult:
-    try:
-        return probe(
-            context,
-            stage_key=spec.key,
-            target_date=target_date,
-            signal_date=signal_date,
-            report_mode=report_mode,
-        )
-    except Exception as exc:  # noqa: BLE001 - probe errors belong in the receipt
-        return FreshnessResult(
-            fresh=False,
-            status="probe_error",
-            target_date=target_date,
-            actual_date=None,
-            detail=f"{type(exc).__name__}: {exc}"[:500],
-        )
-
-
-def _attempt_recovery(
-    spec: RecoverySpec,
-    *,
-    context: FreshnessContext,
-    target_date: str,
-    signal_date: str,
-    report_mode: str,
-    local_now: datetime,
-    stage_attempts: list[dict[str, Any]],
-    runner: CommandRunner,
-    freshness_probe: FreshnessProbe,
-) -> tuple[dict[str, Any], bool]:
-    command = _action_command(
-        spec,
-        context=context,
-        target_date=target_date,
-        signal_date=signal_date,
-        report_mode=report_mode,
-    )
-    result = runner(command)
-    stage_attempts.append(
-        {
-            "started_at": local_now.astimezone(UTC).isoformat(),
-            "target_date": target_date,
-            "signal_date": signal_date,
-            "report_mode": report_mode,
-            "returncode": result.returncode,
-            "detail": (result.stderr or result.stdout).strip()[-1000:],
-        }
-    )
-    budget_attempts = _budget_attempts(
-        stage_attempts,
-        spec=spec,
-        target_date=target_date,
-        report_mode=report_mode,
-    )
-    if result.returncode == 0 and spec.report_kind and report_mode == "audit_only":
-        report_signal = signal_date if spec.report_kind == "morning" else target_date
-        write_report_audit(
-            context,
-            kind=spec.report_kind,
-            source_date=target_date,
-            signal_date=report_signal,
-            reason="delivery_window_expired",
-        )
-    final = _probe_freshness(
-        freshness_probe,
-        context,
-        spec,
-        target_date=target_date,
-        signal_date=signal_date,
-        report_mode=report_mode,
-    )
-    recovered = result.returncode == 0 and final.fresh
-    return {
-        "attempt_count": len(budget_attempts),
-        "action": command,
-        "action_returncode": result.returncode,
-        "final_freshness": final.to_dict(),
-        "status": (
-            "audit_generated"
-            if recovered and report_mode == "audit_only"
-            else "recovered"
-            if recovered
-            else "recovery_failed"
-        ),
-    }, recovered
 
 
 def _reconcile_stage(
@@ -705,18 +451,6 @@ def _reconcile_stage(
         runner=runner,
         freshness_probe=freshness_probe,
     )
-
-
-def _previous_attempts(state_path: Path, date_key: str) -> dict[str, list[dict[str, Any]]]:
-    previous = _read_state(state_path, date_key)
-    payload = previous.get("attempts")
-    if not isinstance(payload, dict):
-        return {}
-    attempts: dict[str, list[dict[str, Any]]] = {}
-    for key, value in payload.items():
-        if isinstance(key, str) and isinstance(value, list):
-            attempts[key] = [dict(item) for item in value if isinstance(item, Mapping)]
-    return attempts
 
 
 def _build_alert(
