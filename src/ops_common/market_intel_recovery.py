@@ -51,6 +51,7 @@ def run(argv: Sequence[str] | None = None) -> int:
         cooldown_minutes=args.cooldown_minutes,
         in_progress_grace_minutes=args.in_progress_grace_minutes,
         notifier=recovery._notify_recovery_failure if args.notify else None,
+        disabled_stages=args.disable_stage,
     )
     json.dump(receipt, sys.stdout, ensure_ascii=False, indent=2)
     sys.stdout.write("\n")
