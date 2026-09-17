@@ -48,9 +48,9 @@ uv run a-share-daily --help
 涉及 A 股正式策略产物、数据湖或恢复入口时，部署方需要显式提供各 owner 路径：
 
 ```bash
-export DATA_PLATFORM_ROOT=/path/to/data/market-data-platform
+export DATA_PLATFORM_ROOT=/path/to/data/quant-market-data-platform
 export MDP_DIR=/path/to/quant-market-data-platform
-export STRATEGY_PIPELINE_ROOT=/path/to/strategy-pipeline
+export STRATEGY_PIPELINE_ROOT=/path/to/quant-research
 ```
 
 这些路径只用于调用公开 CLI，不作为源码导入路径使用。详见[跨仓边界契约](docs/boundary-contract.md)。
