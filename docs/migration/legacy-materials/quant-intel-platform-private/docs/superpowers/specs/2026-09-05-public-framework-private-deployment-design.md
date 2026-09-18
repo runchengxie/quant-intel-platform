@@ -159,7 +159,7 @@ audiences:
 
 The public CLI may accept an injected configuration path or environment variables, but public defaults must be safe and non-delivering. A local run without destinations must render or validate artifacts without attempting to contact a real target.
 
-Existing customer-specific names such as `kaichuan` and `A_SHARE_KAICHUAN_*` are migration liabilities. They should be retained only in the private repository as compatibility aliases until production has moved to generic audience names.
+Existing customer-specific names such as `private_customer_alias` and `A_SHARE_PRIVATE_CUSTOMER_*` are migration liabilities. They should be retained only in the private repository as compatibility aliases until production has moved to generic audience names.
 
 ## Artifact and version contract
 

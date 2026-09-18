@@ -5,6 +5,12 @@ repo_url: https://github.com/runchengxie/quant-intel-platform
 repo_name: runchengxie/quant-intel-platform
 edit_uri: edit/main/docs/
 
+# Historical/private migration material is kept in the repository for traceability,
+# but is not part of the public documentation site.
+exclude_docs: |
+  migration/legacy-materials/**
+  superpowers/**
+
 theme:
   name: material
   language: zh
