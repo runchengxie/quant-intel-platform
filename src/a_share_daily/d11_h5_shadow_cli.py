@@ -87,9 +87,16 @@ def run(argv: Sequence[str] | None = None) -> int:
         )
         print(f"D11-H5 delivery healthy: {receipt_path}")
         return 0
-    strategy_root_raw = args.strategy_root or os.environ.get("STRATEGY_PIPELINE_ROOT")
+    strategy_root_raw = (
+        args.strategy_root
+        or os.environ.get("QUANT_RESEARCH_ROOT")
+        or os.environ.get("STRATEGY_PIPELINE_ROOT")
+    )
     if not strategy_root_raw:
-        raise delivery.D11H5DeliveryError("STRATEGY_PIPELINE_ROOT / --strategy-root is required")
+        raise delivery.D11H5DeliveryError(
+            "QUANT_RESEARCH_ROOT / --strategy-root is required; "
+            "STRATEGY_PIPELINE_ROOT is a legacy compatibility alias"
+        )
     strategy_root = Path(strategy_root_raw).expanduser().resolve()
     data_root = (args.data_root or _default_data_root()).expanduser().resolve()
     strategy_output_root = (
