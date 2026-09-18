@@ -126,7 +126,7 @@ uv run python scripts/send_daily_watch20.py \
 ```bash
 export DATA_PLATFORM_ROOT=/path/to/data/market-data-platform
 export MDP_DIR=/path/to/quant-market-data-platform
-export STRATEGY_PIPELINE_ROOT=/path/to/strategy-pipeline
+export QUANT_RESEARCH_ROOT=/path/to/quant-research
 bash scripts/setup_cron.sh --layer2
 bash scripts/setup_cron.sh --layer3
 uv run a-share-daily doctor --live

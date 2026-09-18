@@ -495,7 +495,7 @@ upstream_confidence_score
 
 ```bash
 DATA_PLATFORM_ROOT=~/data/market-data-platform \
-  uv run --project "$STRATEGY_PIPELINE_ROOT" strategy watchlist20 news-heat-export \
+  uv run --project "$QUANT_RESEARCH_ROOT" strategy watchlist20 news-heat-export \
     --source-date 20260710
 ```
 

@@ -21,7 +21,7 @@
 | 违规写法 | 正确写法 |
 |---|---|
 | 任意开发机固定的仓库路径 | 读 `DATA_PLATFORM_ROOT`（数据湖）或 `MDP_DIR`（代码仓），二者均由部署方显式设置 |
-| `cd "$STRATEGY_PIPELINE_ROOT" && uv run strategy ...` | `uv run --project "$STRATEGY_PIPELINE_ROOT" strategy ...`（不切换工作目录） |
+| `cd "$QUANT_RESEARCH_ROOT" && uv run strategy ...` | `uv run --project "$QUANT_RESEARCH_ROOT" strategy ...`（不切换工作目录） |
 | 默认兜底写死 `$HOME/code/...` | 默认不兜底。缺失则报错退出，由部署方通过环境变量提供 |
 
 ### 已收口示范
@@ -34,12 +34,12 @@
 ### 脚本、systemd 和 Windows（本批次已完成收口）
 
 - `scripts/*.sh`（morning、evening、publish、refresh_tushare_daily、weekly_recap、morning_product_supervisor、refresh_tushare_report_datasets）：移除 `MDP_DIR` 默认值，改为强制要求，并统一引用 `$MDP_DIR` 下的 `.env.local`。
-- `scripts/refresh_daily_watch20.sh`：只通过 `STRATEGY_PIPELINE_ROOT` 和 `MDP_DIR` 调用公开 producer CLI。缺少 news heat 时继续运行，不在本仓重建。
+- `scripts/refresh_daily_watch20.sh`：只通过 `QUANT_RESEARCH_ROOT` 和 `MDP_DIR` 调用公开 producer CLI。缺少 news heat 时继续运行，不在本仓重建。
 - `scripts/daily_watch20_delivery.sh`：只校验 `strategy-pipeline` 产出的 DailyWatch20 artifact，再调用本仓渲染/投递入口。
 - `scripts/hotsector_research_handoff.sh`、`scripts/send_hotsector_client_preview.py`：仅保留指向 DailyWatch20 的兼容壳，不再启动历史 hotsector owner。
 - `scripts/windows/common.ps1`：`MDP_DIR` 默认去掉，未设则派生或报错
 - `scripts/setup_cron.sh`：安装时把
-  `DATA_PLATFORM_ROOT`/`MDP_DIR`/`STRATEGY_PIPELINE_ROOT` 写入权限为 `0600` 的
+  `DATA_PLATFORM_ROOT`/`MDP_DIR`/`QUANT_RESEARCH_ROOT` 写入权限为 `0600` 的
   部署环境文件。systemd 通过 `EnvironmentFile=` 加载，Hermes 三个入口在边界检查前
   source，同一部署配置覆盖两类调度器
 - 依赖跨仓路径的 systemd service（包括 DailyWatch20 producer、morning supervisor 与
@@ -51,7 +51,7 @@
 - `src/a_share_daily/deploy_check.py`、`tushare_credentials.py` 只接受显式 `MDP_DIR`
 - DailyWatch20 分钟完整性由 `src/a_share_daily/daily_watch20_raw_completeness.py` 负责。
   因子、Hermite、walk-forward、OOS 和消融实现均由 `quant-research` owner 负责。
-- `scripts/setup_cron.sh` 要求显式 `MDP_DIR` 和 `STRATEGY_PIPELINE_ROOT`，不再提供
+- `scripts/setup_cron.sh` 要求显式 `MDP_DIR` 和 `QUANT_RESEARCH_ROOT`，不再提供
   开发机固定路径默认值。
 
 仓库扫描与定点测试共同约束上述入口，不再把开发机目录结构当部署契约。

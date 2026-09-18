@@ -72,7 +72,7 @@ bash scripts/refresh_daily_watch20.sh
 ```bash
 export DATA_PLATFORM_ROOT=/path/to/data/market-data-platform
 export MDP_DIR=/path/to/quant-market-data-platform
-export STRATEGY_PIPELINE_ROOT=/path/to/strategy-pipeline
+export QUANT_RESEARCH_ROOT=/path/to/quant-research
 bash scripts/setup_cron.sh --layer2
 bash scripts/setup_cron.sh --layer3
 ```
@@ -123,7 +123,7 @@ bash scripts/setup_cron.sh --layer3
 ```bash
 DATA_PLATFORM_ROOT=/path/to/data/market-data-platform
 MDP_DIR=/path/to/quant-market-data-platform
-STRATEGY_PIPELINE_ROOT=/path/to/strategy-pipeline
+QUANT_RESEARCH_ROOT=/path/to/quant-research
 ```
 
 仓库路径只用于启动公开 CLI，不是 Python API。
@@ -138,7 +138,7 @@ public framework 的 lint、类型检查、离线测试和构建应优先放在�
 
 开发和实验使用 `/home/richard/code/.worktrees/` 下的独立 worktree。日报、周报、投递和恢复
 任务必须使用稳定的生产检出路径，不得依赖会被清理的开发 worktree。当前生产路径由部署环境
-通过 `MARKET_INTEL_ROOT`、`DATA_PLATFORM_ROOT`、`MDP_DIR` 和 `STRATEGY_PIPELINE_ROOT`
+通过 `MARKET_INTEL_ROOT`、`DATA_PLATFORM_ROOT`、`MDP_DIR` 和 `QUANT_RESEARCH_ROOT`
 显式提供。运行数据、报告产物、receipt、缓存和日志放在仓库外。路径迁移后必须 reload
 systemd，并用对应入口做 smoke test。
 
