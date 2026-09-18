@@ -142,7 +142,7 @@ Read only `MARKET_INTEL_CLIENT_CHAT_ID`, `MARKET_INTEL_INTERNAL_CHAT_ID`, and `M
 
 - [ ] **Step 4: Update delivery callers and remove customer semantics from public behavior**
 
-Change delivery call sites that currently call `_audience_chat_id("kaichuan")` to call `resolve_audience_targets("client")`. Change result keys such as `kaichuan_enabled` to `client_enabled`. Keep any compatibility mapping in a later private deployment adapter, not in public source.
+Change delivery call sites that currently call `_audience_chat_id("private_customer_alias")` to call `resolve_audience_targets("client")`. Change result keys such as `private_customer_alias_enabled` to `client_enabled`. Keep any compatibility mapping in a later private deployment adapter, not in public source.
 
 - [ ] **Step 5: Run focused and existing delivery tests**
 
@@ -152,7 +152,7 @@ Expected: PASS with no customer-specific environment variable required.
 
 - [ ] **Step 6: Run the public source scan and commit**
 
-Run: `rg -n -i 'kaichuan|凯川|A_SHARE_KAICHUAN' src tests docs README.md`
+Run: `rg -n -i 'private_customer_alias|private customer|A_SHARE_PRIVATE_CUSTOMER' src tests docs README.md`
 
 Expected: no matches in public source, tests, README, or public docs after the task's related documentation changes.
 
@@ -248,7 +248,7 @@ git commit -m "refactor: require explicit external data roots"
 def test_public_fixtures_contain_no_private_markers():
     root = Path(__file__).parents[2]
     text = "\n".join(path.read_text() for path in (root / "tests/fixtures/public").rglob("*"))
-    for marker in ("fast.xiaodefa.cn", "feishu.cn", "凯川", "kaichuan", "token_label"):
+    for marker in ("private.example.invalid", "messaging.example.invalid", "private customer", "private_customer_alias", "credential_label"):
         assert marker.lower() not in text.lower()
 
 
@@ -313,7 +313,7 @@ def test_public_docs_have_no_private_markers():
     root = Path(__file__).parents[2]
     files = [root / "README.md", *(root / "docs").glob("*.md")]
     text = "\n".join(path.read_text() for path in files if path.exists())
-    for marker in ("凯川", "kaichuan", "fast.xiaodefa.cn", "my.feishu.cn/docx/"):
+    for marker in ("private customer", "private_customer_alias", "private.example.invalid", "messaging.example.invalid/docx/"):
         assert marker.lower() not in text.lower()
 ```
 
@@ -407,9 +407,9 @@ Run the private repository's unit/contract checks and a no-send production dry r
 
 ```python
 def test_boundary_checker_rejects_private_marker(tmp_path):
-    (tmp_path / "README.md").write_text("internal endpoint: https://fast.xiaodefa.cn")
+    (tmp_path / "README.md").write_text("internal endpoint: https://private.example.invalid")
     result = check_tree(tmp_path)
-    assert "fast.xiaodefa.cn" in result.forbidden_matches
+    assert "private.example.invalid" in result.forbidden_matches
 
 
 def test_boundary_checker_accepts_generic_example(tmp_path):
@@ -470,7 +470,7 @@ git commit -m "ci: add secret-free public quality gate"
 Run:
 
 ```bash
-git grep -n -I -i -E 'api[_-]?key|secret|token|private[_-]?key|feishu\.cn|fast\.xiaodefa\.cn|kaichuan|凯川|chat[_-]?id|/home/[^ ]*market-data-platform' $(git rev-list --all) -- ':!docs/public-release/private-migration-notes.md'
+git grep -n -I -i -E 'api[_-]?key|secret|token|private[_-]?key|feishu\.cn|fast\.xiaodefa\.cn|private_customer_alias|private customer|chat[_-]?id|/home/[^ ]*market-data-platform' $(git rev-list --all) -- ':!docs/public-release/private-migration-notes.md'
 ```
 
 Also run an approved secret scanner such as `gitleaks git --redact --verbose` against the full repository history. Record findings and dispositions in the private release checklist, not in public documentation if the finding contains sensitive values.
