@@ -46,7 +46,7 @@ def _read_env_file(path: Path) -> dict[str, str]:
 
 def _default_env(project_root: Path) -> dict[str, str]:
     merged = dict(os.environ)
-    stable_dir = Path.home() / ".config/market-intel"
+    stable_dir = Path.home() / ".config/richard/shared"
     for env_path in (
         stable_dir / "market-intel.env",
         stable_dir / "market-data-platform.env",
@@ -71,7 +71,7 @@ def _api_key_flags(project_root: Path, env: Mapping[str, str]) -> tuple[bool, bo
     paths = [
         Path(configured_path).expanduser() if configured_path else None,
         project_root / "api_keys.json",
-        Path.home() / ".config/market-intel/api_keys.json",
+        Path.home() / ".config/richard/secrets/api_keys.json",
     ]
     seen: set[Path] = set()
     for api_keys_path in paths:
