@@ -2,9 +2,9 @@
 
 [打开网页版说明书](https://runchengxie.github.io/quant-intel-platform/)
 
-面向用户的自动化市场情报与投递系统。它抓取全球市场和新闻，消费 `quant-research` 与 `strategy-pipeline` 发布的 A 股策略与研究产物，把市场事实和版本化产物渲染成日报、晚报、周报、网页看板与飞书消息，并处理投递窗口、幂等、新鲜度和故障恢复。
+面向用户的自动化市场情报与投递系统。它抓取全球市场和新闻，消费 `quant-research` 发布的 A 股策略与研究产物，把市场事实和版本化产物渲染成日报、晚报、周报、网页看板与飞书消息，并处理投递窗口、幂等、新鲜度和故障恢复。`strategy-pipeline` 是由 `quant-platform` 提供的兼容 CLI 名称，不是独立 owner。
 
-策略计算、因子研究、回测、消融和模型生产由 `quant-research`、`quant-platform` 与 `strategy-pipeline` 按职责负责。跨仓协作只使用公开 CLI 和版本化文件契约。`market-intel` 可以调用 owner 的公开生产入口进行当日恢复，但不维护研究逻辑。
+策略计算、因子研究、回测、消融和模型生产由 `quant-research` 与 `quant-platform` 按职责负责。跨仓协作只使用公开 CLI 和版本化文件契约。本仓通过公开 owner 入口进行当日恢复，但不维护研究逻辑。
 
 ## 它能产出什么
 
@@ -17,16 +17,15 @@
 ## 系统边界
 
 ```text
-quant-research / quant-platform / market-data-platform
-  strategy-pipeline / quant-execution-engine
+quant-research / quant-platform / quant-market-data-platform
                   │
                   │ public CLI + versioned artifacts
                   ▼
-market-intel
+quant-intel-platform
   market context → validation → report/render → delivery → operations
 ```
 
-历史上本仓曾内嵌 `a-share-factor-core`、`hot-sector-screener`、`ai-stock-picker` 三个 submodule。它们已退休并从仓库移除：相关研究能力已经由 `quant-research`、`quant-platform` 和 `strategy-pipeline` 接管，旧 AI 精选定时产品也已停止生产。
+历史上本仓曾内嵌 `a-share-factor-core`、`hot-sector-screener`、`ai-stock-picker` 三个 submodule。它们已退休并从仓库移除，相关研究能力已经由 `quant-research` 和 `quant-platform` 接管。
 
 ## 快速开始
 
@@ -50,7 +49,7 @@ uv run a-share-daily --help
 ```bash
 export DATA_PLATFORM_ROOT=/path/to/data/quant-market-data-platform
 export MDP_DIR=/path/to/quant-market-data-platform
-export STRATEGY_PIPELINE_ROOT=/path/to/quant-research
+export QUANT_RESEARCH_ROOT=/path/to/quant-research
 ```
 
 这些路径只用于调用公开 CLI，不作为源码导入路径使用。详见[跨仓边界契约](docs/boundary-contract.md)。
@@ -99,12 +98,12 @@ dm btc report
 uv run a-share-daily doctor --live
 uv run a-share-daily morning
 
-# DailyWatch20 正式产物：由 strategy-pipeline 生成，market-intel 校验并投递
+# DailyWatch20 正式产物：由 quant-research 通过 strategy-pipeline CLI 生成，本仓校验并投递
 bash scripts/refresh_daily_watch20.sh
 uv run python scripts/send_daily_watch20.py --help
 ```
 
-`refresh_daily_watch20.sh` 是恢复桥接脚本。它检查数据和分钟级新鲜度，再调用 `strategy-pipeline` 的公开 `strategy watchlist20 ...` 入口。模型、候选池、消融和研究实现由 `quant-research` / `strategy-pipeline` 负责。
+`refresh_daily_watch20.sh` 是恢复桥接脚本。它检查数据和分钟级新鲜度，再调用 `quant-research` 提供的公开 `strategy watchlist20 ...` 入口。模型、候选池、消融和研究实现由 `quant-research` 负责，通用编排由 `quant-platform` 提供。
 
 ## 文档导航
 
