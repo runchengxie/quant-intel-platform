@@ -226,6 +226,18 @@ def _add_btc_parser(subparsers: argparse._SubParsersAction) -> None:
     )
 
 
+def _add_daily_report_parser(subparsers: argparse._SubParsersAction) -> None:
+    for command, help_text in (
+        ("market-facts", "Build normalized market facts"),
+        ("market-events", "Build normalized market events"),
+        ("research", "Run evidence-linked research jobs"),
+        ("daily-report", "Build validated market daily report"),
+    ):
+        parser = subparsers.add_parser(command, help=help_text)
+        parser.add_argument("--date", help="Report cutoff date (YYYY-MM-DD)")
+        parser.add_argument("--out", default="out/daily_report", help="Artifact output directory")
+
+
 def _add_style_replica_parser(subparsers: argparse._SubParsersAction) -> None:
     # ── StyleReplica-A80B20-v0 push ──────────────────────────────────────────
     sr_parser = subparsers.add_parser(
@@ -266,6 +278,7 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_state_panel_parser(subparsers, state_panel)
     _add_btc_parser(subparsers)
     _add_style_replica_parser(subparsers)
+    _add_daily_report_parser(subparsers)
 
     return parser
 
@@ -412,9 +425,23 @@ def _dispatch_state_panel(args: argparse.Namespace, logger: logging.Logger) -> i
     return _execute_step("state_panel", state_panel.run, state_panel_args, logger)
 
 
+def _dispatch_daily_report(args: argparse.Namespace, logger: logging.Logger) -> int:
+    from daily_messenger.daily_report.pipeline import run_daily_report
+
+    cutoff = (
+        datetime.fromisoformat(args.date).replace(tzinfo=UTC) if args.date else datetime.now(UTC)
+    )
+    report = run_daily_report(cutoff, Path(args.out), provider_config={"mode": "fixture"})
+    log(logger, logging.INFO, "daily_report_written", run_id=report.run_id, output=args.out)
+    return 0
+
+
 def _dispatch(args: argparse.Namespace, logger: logging.Logger) -> int:
     if getattr(args, "disable_throttle", False):
         os.environ["DM_DISABLE_THROTTLE"] = "1"
+
+    if args.command in {"market-facts", "market-events", "research", "daily-report"}:
+        return _dispatch_daily_report(args, logger)
 
     if args.command == "style-replica":
         return _dispatch_style_replica(args)
