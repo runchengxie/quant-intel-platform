@@ -26,8 +26,20 @@ def test_event_preserves_actual_previous_forecast_and_revised_values():
 
 def test_future_event_is_excluded_from_report_cutoff():
     rows = [
-        {"id": "past", "event_type": "news", "title": "Past", "source": "rss", "source_time": AS_OF},
-        {"id": "future", "event_type": "news", "title": "Future", "source": "rss", "source_time": AS_OF + timedelta(minutes=1)},
+        {
+            "id": "past",
+            "event_type": "news",
+            "title": "Past",
+            "source": "rss",
+            "source_time": AS_OF,
+        },
+        {
+            "id": "future",
+            "event_type": "news",
+            "title": "Future",
+            "source": "rss",
+            "source_time": AS_OF + timedelta(minutes=1),
+        },
     ]
     events = build_market_events(rows, as_of=AS_OF)
     assert [event.id for event in filter_events_as_of(events, AS_OF)] == ["past"]

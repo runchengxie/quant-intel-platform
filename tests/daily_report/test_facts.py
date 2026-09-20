@@ -16,7 +16,10 @@ def _fact(facts, fact_id):
 def test_build_market_facts_includes_curve_and_cross_market_metrics():
     payloads = {
         "treasury": {"2Y": {"change_bp": 8.0}, "5Y": {"change_bp": 6.0}, "10Y": {"change_bp": 4.0}},
-        "quotes": {"SPX": {"value": 0.16, "previous": 0.0}, "WTI": {"value": -1.6, "previous": 0.0}},
+        "quotes": {
+            "SPX": {"value": 0.16, "previous": 0.0},
+            "WTI": {"value": -1.6, "previous": 0.0},
+        },
     }
     facts = build_market_facts(payloads, as_of=AS_OF)
     assert _fact(facts, "treasury.2y.change_bp").value == 8.0
