@@ -640,3 +640,6 @@ message id，消息内容 hash 必须等于对应 presentation，源 selection r
 1. 更新上述示例
 2. 运行 `pytest -k contract`
 3. 更新对应快照测试
+## Evidence-linked market daily report
+
+`daily_report.json` is the public report artifact. It contains `schema_version`, `as_of`, `generated_at`, `run_id`, deterministic `facts`, source-backed `events`, research `claims`, `source_status` and `quality_summary`. Each claim must reference `evidence_ids` and `sources`. The report cutoff is authoritative, and sources after that cutoff are excluded.

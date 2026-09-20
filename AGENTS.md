@@ -177,3 +177,6 @@ worktree 和任务分支，明确文件与仓库责任范围，不得共用检�
 多个 worktree 共享 Git 配置和 hooks。任务中不得安装、重装或改写共享 hooks、
 修改 `core.hooksPath` 或停用校验。生产目录、scheduler、部署配置和生产发布均需
 独立授权，本协作流程不授权修改生产环境。
+## Daily report changes
+
+Keep deterministic facts separate from model research. New report claims must carry evidence IDs, source URLs and source times. Run the daily report tests and `project_tools/check_all.py --scope all` before proposing a release.

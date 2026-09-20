@@ -1,0 +1,23 @@
+{
+  "schema_version": "1.0",
+  "as_of": "2026-09-19T01:00:00+00:00",
+  "generated_at": "2026-09-19T01:00:00+00:00",
+  "run_id": "daily-2026-09-19",
+  "facts": [],
+  "events": [],
+  "claims": [
+    {
+      "claim": "Example claim",
+      "evidence_ids": ["index.spx.change_percent"],
+      "sources": ["https://example.test/source"],
+      "confidence": "confirmed",
+      "status": "accepted",
+      "attempts": 1
+    }
+  ],
+  "sections": [],
+  "missing_sources": [],
+  "quality_summary": {"status": "ok"},
+  "source_status": {"facts": {"quality": "ok"}},
+  "content_hash": ""
+}

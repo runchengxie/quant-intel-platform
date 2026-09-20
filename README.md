@@ -149,3 +149,6 @@ uv run python scripts/dev/install_git_hooks.py --check
 - 缺少可选资讯源时按配置降级。正式策略产物的日期或契约不满足时，系统会停止后续处理。
 - `market-intel` 不复制研究模型。缺少研究产物时，应修复对应 owner 的生产入口，或通过公开 CLI 恢复。
 - 报告和技术分析仅用于研究与信息整理，不构成投资建议。
+## Evidence-linked market daily report
+
+The platform can generate a versioned `daily_report.json` artifact with market facts, events, evidence-linked commentary and source quality status. Use `dm daily-report --date YYYY-MM-DD --out out/daily_report` for a local shadow run.

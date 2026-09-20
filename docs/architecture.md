@@ -169,3 +169,6 @@ A 股分析：`a-share-daily morning` / `evening` / `review`
 ### 环境加载与路径收口（`ops_common/env.py`）
 
 `ops_common/env.py` 负责 `.env` 加载与环境变量解析，统一各模块读取配置的方式。当操作员显式设置 `MDP_FALLBACK_ROOT` 时，该路径会作为候选根目录追加进搜索顺序，用于数据根不可达时的兜底（详见 [boundary-contract.md](boundary-contract.md) 的跨仓边界约定）。
+## Market daily report pipeline
+
+The market report pipeline runs `fetch -> normalize -> events -> research -> validate -> render`. Deterministic facts come from configured data sources. Research providers may explain facts and events, but cannot replace their values. Invalid or incomplete research is marked degraded while valid facts remain available.
