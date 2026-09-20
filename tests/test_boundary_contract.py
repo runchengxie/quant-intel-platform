@@ -50,4 +50,6 @@ def test_market_intel_does_not_hardcode_workspace_paths() -> None:
         if any(fragment in text for fragment in forbidden_fragments):
             violations.append(str(path.relative_to(ROOT)))
 
-    assert violations == [], "workspace paths must come from deployment configuration:\n" + "\n".join(violations)
+    assert violations == [], (
+        "workspace paths must come from deployment configuration:\n" + "\n".join(violations)
+    )

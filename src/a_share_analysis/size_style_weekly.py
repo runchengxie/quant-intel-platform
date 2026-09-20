@@ -273,7 +273,7 @@ def render_markdown(snapshot: dict[str, object]) -> str:
         "## 大小盘因子（风格）",
         f"数据截至 {snapshot['as_of']:%Y-%m-%d}",
         "",
-        "### 当前状态",
+        "### 01 当前状态",
         "",
         f"拥挤区间：{zone_label}。",
         f"- 小盘拥挤度：{snapshot['small_crowding']:.3f}",
@@ -281,13 +281,18 @@ def render_markdown(snapshot: dict[str, object]) -> str:
         "",
         direction_line,
         "",
-        "### 信号怎么读",
+        "### 02 证据怎么读",
         "",
         "拥挤程度用于选择均线周期。高拥挤时采用 5 日和 20 日均线，及时观察风格变化。"
         "低拥挤时采用 20 日和 60 日均线，侧重观察中期趋势。",
         "",
         "方向由沪深 300 与中证 1000 的相对强弱决定。短期均线高于长期均线时，大盘占优。"
         "其余情况下，小盘占优。拥挤程度只影响均线周期。",
+        "",
+        "### 04 下周观察",
+        "",
+        "- 观察相对强弱短均线是否跌破长均线。",
+        "- 观察近 20 日拥挤证据是否回落至 0.90 以下。",
         "",
         "本信号用于观察市场风格，不构成交易建议。",
         "",
@@ -345,15 +350,15 @@ def _add_chart_summary(
     zone_label = "高拥挤" if snapshot["crowding_zone"] == "high_crowding" else "低拥挤"
     signal_key = str(snapshot["signal"])
     signal_label = {
-        "large_cap": "看好大盘",
-        "small_cap": "看好小盘",
+        "large_cap": "大盘占优",
+        "small_cap": "小盘占优",
         "insufficient": "数据不足",
     }[signal_key]
     signal_color = theme.ACCENT if signal_key == "large_cap" else theme.UP
     metric_columns = (
-        (0.055, "当前信号", signal_label, signal_color),
-        (0.365, "拥挤区间", zone_label, theme.YELLOW),
-        (0.675, "当前均线", f"{short_window} / {long_window} 日", theme.FG),
+        (0.055, "CURRENT · 风格方向", signal_label, signal_color),
+        (0.405, "CURRENT · 拥挤状态", zone_label, theme.YELLOW),
+        (0.745, "EVIDENCE · 均线", f"{short_window} / {long_window} 日", theme.FG),
     )
     for x, label, value, color in metric_columns:
         fig.text(x, 0.795, label, fontsize=8, color=theme.MUTED, fontproperties=font)
@@ -411,7 +416,7 @@ def _plot_crowding_panel(
             fontweight="bold",
         )
     ax.set_title(
-        f"小盘拥挤风险证据｜近 {min(lookback_days, len(recent))} 个交易日",
+        f"02 · 拥挤风险｜近 {min(lookback_days, len(recent))} 个交易日",
         loc="left",
         color=theme.FG,
         fontsize=11,
@@ -467,7 +472,7 @@ def _plot_strength_panel(
         label=f"{long_window} 日均线",
     )
     ax.set_title(
-        "相对强弱｜沪深300 ÷ 中证1000",
+        "01 · 方向｜沪深300 ÷ 中证1000",
         loc="left",
         color=theme.FG,
         fontsize=11,
@@ -491,7 +496,7 @@ def _plot_strength_panel(
 def generate_chart(
     snapshot: dict[str, object],
     out_path: str | Path,
-    lookback_days: int = 500,
+    lookback_days: int = 120,
 ) -> Path:
     """Render a mobile-first decision card explaining the current signal."""
     import matplotlib
@@ -537,10 +542,10 @@ def generate_chart(
         right=0.95,
         top=0.70,
         bottom=0.085,
-        hspace=1.25,
+        hspace=1.4,
     )
-    crowding_ax = fig.add_subplot(grid[:6, 0])
-    strength_ax = fig.add_subplot(grid[6:, 0])
+    strength_ax = fig.add_subplot(grid[:6, 0])
+    crowding_ax = fig.add_subplot(grid[6:, 0])
     style_plot_axes(crowding_ax)
     style_plot_axes(strength_ax)
     _plot_crowding_panel(
@@ -569,7 +574,7 @@ def generate_chart(
     fig.text(
         0.075,
         0.035,
-        "拥挤证据 > 0.90｜拥挤决定均线快慢，均线交叉决定方向｜仅作风格风险参考",
+        "SIZE｜方向由均线交叉决定，拥挤程度决定观察周期｜仅作风格风险参考",
         fontsize=7.2,
         color=LIGHT.MUTED,
         fontproperties=cjk,

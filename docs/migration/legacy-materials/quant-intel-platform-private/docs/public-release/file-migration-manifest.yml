@@ -1,0 +1,78 @@
+version: 1
+files:
+  - path: src/
+    classification: public
+    action: retain
+    reason: framework runtime, contracts, rendering, validation, and generic delivery code
+  - path: tests/
+    classification: public
+    action: retain
+    reason: tests become offline and use synthetic fixtures
+  - path: config/
+    classification: public
+    action: sanitize
+    reason: retain generic analytical configuration without production destinations
+  - path: project_tools/
+    classification: public
+    action: retain
+    reason: local quality and repository maintenance tools
+  - path: .githooks/
+    classification: public
+    action: retain
+    reason: public repository quality hooks
+  - path: .github/workflows/
+    classification: split
+    action: sanitize
+    reason: retain only secret-free quality workflows; move production workflows to private deployment
+  - path: docs/
+    classification: split
+    action: sanitize
+    reason: keep public contracts and architecture; move customer and production runbooks
+  - path: scripts/
+    classification: split
+    action: move
+    reason: retain only local/public quality helpers; move production bridges, schedulers, and recovery entry points
+  - path: data-snapshots/
+    classification: remove
+    action: replace
+    reason: replace real provider snapshots with synthetic public fixtures
+  - path: .env.example
+    classification: split
+    action: sanitize
+    reason: keep generic placeholders and remove customer-specific variable names
+  - path: .envrc.example
+    classification: public
+    action: sanitize
+    reason: document explicit public-safe environment setup only
+  - path: .gitattributes
+    classification: public
+    action: retain
+    reason: repository text and diff behavior
+  - path: .gitignore
+    classification: public
+    action: update
+    reason: prevent state, output, secrets, and production data from entering the tree
+  - path: AGENTS.md
+    classification: public
+    action: sanitize
+    reason: preserve contributor and ownership boundaries without private topology
+  - path: README.md
+    classification: split
+    action: sanitize
+    reason: describe public framework and link to private deployment boundary
+  - path: api_keys.json.example
+    classification: public
+    action: retain
+    reason: placeholder-only credential schema
+  - path: pyproject.toml
+    classification: public
+    action: update
+    reason: public package metadata and dependency resolution
+  - path: uv.lock
+    classification: public
+    action: update
+    reason: reproducible public dependency resolution
+  - path: pytest.ini
+    classification: public
+    action: retain
+    reason: public test configuration

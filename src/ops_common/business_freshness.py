@@ -15,6 +15,8 @@ from zoneinfo import ZoneInfo
 import pandas as pd
 import yaml
 
+from ops_common.paths import resolve_owner_path
+
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 CORE_PARTITIONS = (
     "daily/a_share_all_daily_latest",
@@ -24,9 +26,7 @@ CORE_PARTITIONS = (
 )
 REQUIRED_REPORT_DATASETS = frozenset(
     {
-        "ths_hot",
         "dc_concept",
-        "dc_concept_cons",
         "kpl_concept_cons",
         "limit_list_ths",
     }
@@ -270,7 +270,7 @@ def _cross_market_probe(context: FreshnessContext, target: str) -> FreshnessResu
     snapshot_root = (
         Path(configured_root).expanduser().resolve()
         if configured_root
-        else context.project_root / "data-snapshots"
+        else context.data_root / "reports/market-intel/cross_market_snapshots"
     )
     path = snapshot_root / "latest/cross_market_snapshot.json"
     payload = _read_json(path)
@@ -326,19 +326,23 @@ def _delivery_receipt_ok(path: Path, source_date: str, signal_date: str) -> bool
 def _delivery_state_dir(context: FreshnessContext) -> Path:
     """Resolve delivery receipts from the stable runtime state when configured."""
 
-    configured = os.environ.get("A_SHARE_DELIVERY_STATE_DIR", "").strip()
-    if configured:
-        return Path(configured).expanduser()
-    return context.project_root / "state/a_share_daily_delivery"
+    return resolve_owner_path(
+        "market-intel",
+        category="state",
+        override_env="A_SHARE_DELIVERY_STATE_DIR",
+        suffix=("a_share_daily_delivery",),
+    )
 
 
 def _strategy_delivery_root(context: FreshnessContext) -> Path:
     """Resolve strategy receipts from stable output before release-local output."""
 
-    configured = os.environ.get("A_SHARE_OUTPUT_DIR", "").strip()
-    if configured:
-        return Path(configured).expanduser()
-    return context.project_root / "out/a_share_daily"
+    return resolve_owner_path(
+        "market-intel",
+        category="reports",
+        override_env="A_SHARE_OUTPUT_DIR",
+        suffix=("a_share_daily",),
+    )
 
 
 def _formal_delivery_ok(
@@ -346,29 +350,23 @@ def _formal_delivery_ok(
 ) -> bool:
     path = _delivery_state_dir(context) / f"{kind}_latest.json"
     payload = _read_json(path)
-    generated = str(payload.get("generated_at") or "").replace("-", "")[:8]
     return all(
         (
             payload.get("success") is True,
             payload.get("trade_date") == source_date,
-            generated == signal_date,
+            payload.get("signal_date") == signal_date,
         )
     )
 
 
 def report_audit_path(context: FreshnessContext, kind: str, signal_date: str) -> Path:
-    configured = os.environ.get("SCHEDULED_RECOVERY_STATE_ROOT", "").strip()
-    state_root = (
-        Path(configured).expanduser()
-        if configured
-        else context.project_root / "state/scheduled_recovery"
+    state_root = resolve_owner_path(
+        "market-intel",
+        category="state",
+        override_env="SCHEDULED_RECOVERY_STATE_ROOT",
+        suffix=("scheduled_recovery",),
     )
-    return (
-        state_root
-        / "report_audits"
-        / kind
-        / f"{signal_date}.json"
-    )
+    return state_root / "report_audits" / kind / f"{signal_date}.json"
 
 
 def write_report_audit(
@@ -439,18 +437,8 @@ def _report_probe(
     evidence = [str(delivery_state_dir / f"{kind}_latest.json")]
     if kind == "morning":
         output_root = _strategy_delivery_root(context)
-        daily = (
-            output_root
-            / "daily_watch20"
-            / signal_date
-            / "delivery_receipt.json"
-        )
-        d11 = (
-            output_root
-            / "d11_h5_shadow"
-            / signal_date
-            / "delivery_receipt.json"
-        )
+        daily = output_root / "daily_watch20" / signal_date / "delivery_receipt.json"
+        d11 = output_root / "d11_h5_shadow" / signal_date / "delivery_receipt.json"
         formal_ok = formal_ok and _delivery_receipt_ok(daily, source_date, signal_date)
         formal_ok = formal_ok and _delivery_receipt_ok(d11, source_date, signal_date)
         evidence.extend((str(daily), str(d11)))

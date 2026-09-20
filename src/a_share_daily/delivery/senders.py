@@ -12,7 +12,7 @@ import json
 import os
 import subprocess
 import sys
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -53,7 +53,9 @@ def _run_hermes(args: Sequence[str]) -> bool:
     return True
 
 
-def _run_lark(args: Sequence[str], *, cwd: Path | None = None) -> bool:
+def _run_lark_result(
+    args: Sequence[str], *, cwd: Path | None = None
+) -> tuple[bool, dict[str, Any]]:
     try:
         result = subprocess.run(
             list(args),
@@ -65,15 +67,20 @@ def _run_lark(args: Sequence[str], *, cwd: Path | None = None) -> bool:
         )
     except Exception as exc:
         print(f"[report_delivery] lark-cli failed: {exc}", file=sys.stderr)
-        return False
+        return False, {}
     if result.returncode != 0:
         stderr = (result.stderr or result.stdout or "").strip()
         print(
             f"[report_delivery] lark-cli returned {result.returncode}: {stderr[:500]}",
             file=sys.stderr,
         )
-        return False
-    return True
+        return False, _json_from_output(result.stdout or result.stderr or "")
+    return True, _json_from_output(result.stdout or "")
+
+
+def _run_lark(args: Sequence[str], *, cwd: Path | None = None) -> bool:
+    ok, _payload = _run_lark_result(args, cwd=cwd)
+    return ok
 
 
 def _json_from_output(text: str) -> dict[str, Any]:
@@ -86,6 +93,16 @@ def _json_from_output(text: str) -> dict[str, Any]:
     except json.JSONDecodeError:
         return {}
     return payload if isinstance(payload, dict) else {}
+
+
+def _message_id(payload: Mapping[str, Any]) -> str | None:
+    data = payload.get("data")
+    values: list[Any] = [payload.get("message_id"), payload.get("messageId")]
+    if isinstance(data, Mapping):
+        values.extend((data.get("message_id"), data.get("messageId")))
+    return next(
+        (value.strip() for value in values if isinstance(value, str) and value.strip()), None
+    )
 
 
 def _lark_bind_env() -> dict[str, str]:
@@ -264,6 +281,7 @@ def _send_lark_markdown(
     user_id: str | None = None,
     lark_cli: str | None = None,
     idempotency_scope: Sequence[str] | None = None,
+    message_ids: list[str] | None = None,
 ) -> bool:
     cli = _lark_cli_path(lark_cli)
     targets = _lark_target_arg_sets(chat_id=chat_id, user_id=user_id)
@@ -273,24 +291,31 @@ def _send_lark_markdown(
     for target in targets:
         key_material = tuple(idempotency_scope) if idempotency_scope is not None else (text,)
         idempotency_key = _idempotency_key("markdown", *target, *key_material)
-        results.append(
-            _run_lark(
-                [
-                    cli,
-                    "im",
-                    "+messages-send",
-                    *target,
-                    "--markdown",
-                    text,
-                    "--as",
-                    "bot",
-                    "--idempotency-key",
-                    idempotency_key,
-                    "--format",
-                    "json",
-                ]
-            )
-        )
+        command = [
+            cli,
+            "im",
+            "+messages-send",
+            *target,
+            "--markdown",
+            text,
+            "--as",
+            "bot",
+            "--idempotency-key",
+            idempotency_key,
+            "--format",
+            "json",
+        ]
+        if message_ids is None:
+            results.append(_run_lark(command))
+        else:
+            ok, payload = _run_lark_result(command)
+            message_id = _message_id(payload)
+            if message_id is not None:
+                message_ids.append(message_id)
+            # Message IDs are useful receipt metadata, but older/alternate
+            # lark-cli responses may not include one.  Delivery success must
+            # remain based on the command result for backward compatibility.
+            results.append(ok)
     return all(results)
 
 
@@ -300,6 +325,7 @@ def _send_lark_image(
     chat_id: str | None = None,
     user_id: str | None = None,
     lark_cli: str | None = None,
+    message_ids: list[str] | None = None,
 ) -> bool:
     if not image.exists():
         print(f"[report_delivery] chart missing: {image}", file=sys.stderr)
@@ -312,27 +338,30 @@ def _send_lark_image(
     results = []
     for target in targets:
         idempotency_key = _idempotency_key("image", *target, image.name, image_hash)
-        results.append(
-            _run_lark(
-                [
-                    cli,
-                    "im",
-                    "+messages-send",
-                    *target,
-                    "--msg-type",
-                    "image",
-                    "--image",
-                    image.name,
-                    "--as",
-                    "bot",
-                    "--idempotency-key",
-                    idempotency_key,
-                    "--format",
-                    "json",
-                ],
-                cwd=image.parent,
-            )
-        )
+        command = [
+            cli,
+            "im",
+            "+messages-send",
+            *target,
+            "--msg-type",
+            "image",
+            "--image",
+            image.name,
+            "--as",
+            "bot",
+            "--idempotency-key",
+            idempotency_key,
+            "--format",
+            "json",
+        ]
+        if message_ids is None:
+            results.append(_run_lark(command, cwd=image.parent))
+        else:
+            ok, payload = _run_lark_result(command, cwd=image.parent)
+            message_id = _message_id(payload)
+            if message_id is not None:
+                message_ids.append(message_id)
+            results.append(ok)
     return all(results)
 
 

@@ -11,6 +11,8 @@ from datetime import datetime, time
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+from .paths import resolve_owner_path
+
 SHANGHAI = ZoneInfo("Asia/Shanghai")
 REPORT_WINDOWS = {
     "morning": (time(6, 30), time(9, 15)),
@@ -110,11 +112,15 @@ def _parser() -> argparse.ArgumentParser:
 
 def run(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    project_root = Path(os.environ.get("MARKET_INTEL_ROOT", Path.cwd())).expanduser().resolve()
     state_root = (
         args.state_root.expanduser().resolve()
         if args.state_root
-        else project_root / "state/report_delivery_window"
+        else resolve_owner_path(
+            "market-intel",
+            category="state",
+            override_env="REPORT_DELIVERY_WINDOW_STATE_ROOT",
+            suffix=("report_delivery_window",),
+        ).resolve()
     )
     force = args.force_delivery or os.environ.get(
         "MARKET_INTEL_FORCE_REPORT_DELIVERY", ""

@@ -4,6 +4,8 @@ Usage:
     uv run a-share-daily morning [--date YYYYMMDD]
     uv run a-share-daily morning-report [--manifest PATH] [--news PATH] [--out PATH]
     uv run a-share-daily daily-watch20 [--source-date YYYYMMDD] [--dry-run]
+    uv run a-share-daily weekly-basket --as-of-date YYYYMMDD --dailywatch PATH
+        --cashflow PATH --cashflow-receipt PATH --output-root PATH [--send]
     uv run a-share-daily cashflow-delivery --selection PATH --source-date YYYYMMDD --signal-date YYYYMMDD --chat-id CHAT
     uv run a-share-daily cashflow-status-notify --status-json PATH --receipt PATH --chat-id CHAT [--send]
     uv run a-share-daily cashflow-portfolio-render --selection PATH --chart-out PATH
@@ -106,6 +108,12 @@ def _add_morning_commands(sub: argparse._SubParsersAction) -> None:
         default=_default_feishu_chat_id(),
         help="Feishu chat ID",
     )
+    report.add_argument(
+        "--theme",
+        choices=("research_editorial", "warm_light", "dark_terminal"),
+        default=os.environ.get("A_SHARE_REPORT_THEME", "research_editorial"),
+        help="Report theme shared with weekly and evening reports",
+    )
 
 
 def _add_watch_command(sub: argparse._SubParsersAction) -> None:
@@ -190,6 +198,55 @@ def _add_cashflow_commands(sub: argparse._SubParsersAction) -> None:
     )
 
 
+def _add_weekly_basket_command(sub: argparse._SubParsersAction) -> None:
+    basket = sub.add_parser(
+        "weekly-basket",
+        help="Compose a validated weekly ten-stock basket and optional personal Feishu report",
+    )
+    basket.add_argument("--as-of-date", required=True, help="Basket date YYYYMMDD")
+    basket.add_argument("--cashflow", required=True, help="Cashflow selection JSON artifact")
+    basket.add_argument(
+        "--cashflow-receipt", required=True, help="Cashflow publication receipt JSON"
+    )
+    basket.add_argument("--microcap", required=True, help="Microcap v2 selection JSON artifact")
+    basket.add_argument("--microcap-receipt", required=True, help="Microcap v2 receipt JSON")
+    basket.add_argument("--instruments", required=True, help="Pinned instrument snapshot parquet")
+    basket.add_argument(
+        "--market-snapshot", required=True, help="Prior-session status/price parquet"
+    )
+    basket.add_argument("--calendar", required=True, help="A-share trading calendar parquet")
+    basket.add_argument(
+        "--performance",
+        help="Provider-side weekly_basket.performance.v2 JSON artifact",
+    )
+    basket.add_argument(
+        "--theme",
+        choices=("research_editorial", "warm_light", "dark_terminal"),
+        default=os.environ.get("A_SHARE_REPORT_THEME", "research_editorial"),
+        help="Report theme; content and delivery remain unchanged",
+    )
+    basket.add_argument("--output-root", required=True, help="Weekly basket artifact root")
+    basket.add_argument("--state-root", required=True, help="Immutable weekly basket state root")
+    basket.add_argument("--override-weekly-lock", action="store_true")
+    basket.add_argument("--override-reason")
+    basket.add_argument(
+        "--send", action="store_true", help="Send to explicit personal and group app targets"
+    )
+    basket.add_argument("--dry-run", action="store_true", help="Build artifacts without sending")
+    basket.add_argument(
+        "--personal-chat-id", required=True, help="Explicit personal Feishu user ID"
+    )
+    basket.add_argument(
+        "--group-chat-id",
+        default=os.environ.get("WEEKLY_BASKET_GROUP_CHAT_ID"),
+        help="Explicit Feishu group chat ID (oc_...) required for --send",
+    )
+    basket.add_argument(
+        "--lark-cli",
+        default=os.environ.get("LARK_CLI", str(Path.home() / ".local" / "bin" / "lark-cli")),
+    )
+
+
 def _add_operational_commands(sub: argparse._SubParsersAction) -> None:
     doctor = sub.add_parser("doctor", help="Check A-share daily deployment")
     doctor.add_argument(
@@ -217,6 +274,12 @@ def _add_operational_commands(sub: argparse._SubParsersAction) -> None:
             default=_default_feishu_chat_id(),
             help="Feishu chat ID",
         )
+        command.add_argument(
+            "--theme",
+            choices=("research_editorial", "warm_light", "dark_terminal"),
+            default=os.environ.get("A_SHARE_REPORT_THEME", "research_editorial"),
+            help="Report theme shared with weekly and morning reports",
+        )
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -225,6 +288,7 @@ def _build_parser() -> argparse.ArgumentParser:
     _add_morning_commands(sub)
     _add_watch_command(sub)
     _add_cashflow_commands(sub)
+    _add_weekly_basket_command(sub)
     _add_operational_commands(sub)
     return parser
 
@@ -258,7 +322,7 @@ def _cmd_morning_report(args: argparse.Namespace) -> int | None:
 
     manifest = load_json(args.manifest)
     news = load_json(args.news)
-    output = render_morning_report(manifest, news)
+    output = render_morning_report(manifest, news, theme=args.theme)
     write_report(args.out, output)
     print(output)
     return _maybe_send_feishu(output, args)
@@ -381,6 +445,26 @@ def _cmd_cashflow_portfolio_render(args: argparse.Namespace) -> int:
     return 0
 
 
+def _load_weekly_basket_inputs(args: argparse.Namespace):
+    from .weekly_basket_command import _load_weekly_basket_inputs as load_inputs
+
+    return load_inputs(args)
+
+
+def _update_weekly_basket_receipt(
+    receipt_path: Path, delivery_path: Path | None, status: str
+) -> None:
+    from .weekly_basket_command import _update_weekly_basket_receipt as update_receipt
+
+    update_receipt(receipt_path, delivery_path, status)
+
+
+def _cmd_weekly_basket(args: argparse.Namespace) -> int:
+    from .weekly_basket_command import _cmd_weekly_basket as run_weekly_basket
+
+    return run_weekly_basket(args)
+
+
 def _cmd_evening_review(args: argparse.Namespace) -> int | None:
     from .review import build_json as review_json
     from .review import build_report
@@ -394,7 +478,7 @@ def _cmd_evening_review(args: argparse.Namespace) -> int | None:
             print("[FAIL] cannot determine latest trading date", file=sys.stderr)
             return 1
 
-    output = review_json(trade_date) if args.json else build_report(trade_date)
+    output = review_json(trade_date) if args.json else build_report(trade_date, theme=args.theme)
     print(output)
     return _maybe_send_feishu(output, args)
 
@@ -425,6 +509,9 @@ def _dispatch(args: argparse.Namespace) -> int | None:
 
     if args.command == "cashflow-portfolio-render":
         return _cmd_cashflow_portfolio_render(args)
+
+    if args.command == "weekly-basket":
+        return _cmd_weekly_basket(args)
 
     return _cmd_evening_review(args)
 

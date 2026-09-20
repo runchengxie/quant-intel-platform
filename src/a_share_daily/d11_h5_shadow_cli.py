@@ -10,10 +10,12 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from ops_common.env import resolve_data_platform_root
+from ops_common.paths import resolve_owner_path
 
 from . import d11_h5_shadow_delivery as delivery
 
 REQUIRED_GROUP_AUDIENCES = delivery.REQUIRED_GROUP_AUDIENCES
+_LEGACY_OUTPUT_ROOT = Path(__file__).resolve().parents[2] / "out/a_share_daily/d11_h5_shadow"
 
 
 def _default_data_root() -> Path:
@@ -22,15 +24,20 @@ def _default_data_root() -> Path:
 
 def _default_market_output_root() -> Path:
     project_root = Path(__file__).resolve().parents[2]
-    return Path(
-        os.environ.get(
-            "D11_H5_DELIVERY_OUTPUT_ROOT",
-            os.path.join(
-                os.environ.get("A_SHARE_OUTPUT_DIR", str(project_root / "out/a_share_daily")),
-                "d11_h5_shadow",
-            ),
-        )
-    )
+    configured = os.environ.get("D11_H5_DELIVERY_OUTPUT_ROOT", "").strip()
+    if configured:
+        return Path(configured).expanduser()
+    a_share_root = os.environ.get("A_SHARE_OUTPUT_DIR", "").strip()
+    if a_share_root:
+        return Path(a_share_root).expanduser() / "d11_h5_shadow"
+    if (
+        os.environ.get("DATA_PLATFORM_ROOT", "").strip()
+        or os.environ.get("MDP_FALLBACK_ROOT", "").strip()
+    ):
+        return resolve_owner_path("market-intel", category="reports", suffix=("d11_h5_shadow",))
+    # Keep --help usable without a deployment environment.  run() resolves
+    # this placeholder before any artifact is written.
+    return project_root / "out/a_share_daily/d11_h5_shadow"
 
 
 def _parser() -> argparse.ArgumentParser:
@@ -54,7 +61,16 @@ def _parser() -> argparse.ArgumentParser:
 
 def run(argv: Sequence[str] | None = None) -> int:
     args = _parser().parse_args(argv)
-    run_root = args.output_root.expanduser().resolve() / args.signal_date
+    output_root = args.output_root.expanduser().resolve()
+    if (
+        output_root == _LEGACY_OUTPUT_ROOT
+        and not os.environ.get("D11_H5_DELIVERY_OUTPUT_ROOT", "").strip()
+        and not os.environ.get("A_SHARE_OUTPUT_DIR", "").strip()
+    ):
+        output_root = resolve_owner_path(
+            "market-intel", category="reports", suffix=("d11_h5_shadow",)
+        ).resolve()
+    run_root = output_root / args.signal_date
     receipt_path = run_root / "delivery_receipt.json"
     targets = delivery._filtered_targets(
         explicit_chat_ids=args.chat_id,
@@ -71,9 +87,16 @@ def run(argv: Sequence[str] | None = None) -> int:
         )
         print(f"D11-H5 delivery healthy: {receipt_path}")
         return 0
-    strategy_root_raw = args.strategy_root or os.environ.get("STRATEGY_PIPELINE_ROOT")
+    strategy_root_raw = (
+        args.strategy_root
+        or os.environ.get("QUANT_RESEARCH_ROOT")
+        or os.environ.get("STRATEGY_PIPELINE_ROOT")
+    )
     if not strategy_root_raw:
-        raise delivery.D11H5DeliveryError("STRATEGY_PIPELINE_ROOT / --strategy-root is required")
+        raise delivery.D11H5DeliveryError(
+            "QUANT_RESEARCH_ROOT / --strategy-root is required; "
+            "STRATEGY_PIPELINE_ROOT is a legacy compatibility alias"
+        )
     strategy_root = Path(strategy_root_raw).expanduser().resolve()
     data_root = (args.data_root or _default_data_root()).expanduser().resolve()
     strategy_output_root = (

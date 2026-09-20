@@ -55,7 +55,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
-from a_share_daily.delivery import io_util, senders, state, targets
+from a_share_daily.delivery import io_util, routes, senders, state, targets
 from a_share_daily.delivery._format import (
     _date_dash,
     _dict,
@@ -85,6 +85,24 @@ from a_share_daily.delivery._render import (
     _render_evening_us_preview,
     build_evening_summary,
 )
+
+
+def _deliver_via_lark(**kwargs: Any) -> tuple[bool, bool]:
+    """Compatibility wrapper for the Lark route implementation."""
+    kwargs["routes_payload"] = kwargs.pop("routes")
+    return routes.deliver_via_lark(**kwargs)
+
+
+def _deliver_via_hermes(**kwargs: Any) -> tuple[bool, bool]:
+    """Compatibility wrapper for the Hermes route implementation."""
+    kwargs["routes_payload"] = kwargs.pop("routes")
+    return routes.deliver_via_hermes(**kwargs)
+
+
+def _deliver_via_webhook(**kwargs: Any) -> bool:
+    """Compatibility wrapper for the webhook route implementation."""
+    kwargs["routes_payload"] = kwargs.pop("routes")
+    return routes.deliver_via_webhook(**kwargs)
 
 
 def _send_morning_charts(
@@ -123,129 +141,6 @@ def _send_morning_charts(
                 print(f"[report_delivery] morning chart failed: {label}", file=sys.stderr)
 
 
-def _deliver_via_lark(
-    *,
-    context: senders._DeliveryContext,
-    kind: str,
-    trade_date: str,
-    text_files: Sequence[tuple[Path, str, str]],
-    image_paths: Sequence[Path],
-    routes: dict[str, Any],
-    mode: str,
-) -> tuple[bool, bool]:
-    lark_preflight = senders._ensure_lark_ready(
-        lark_cli=context.lark_cli, has_targets=bool(context.lark_targets)
-    )
-    routes["lark_preflight"] = lark_preflight
-    if not lark_preflight.get("ok"):
-        return (False, False)
-    lark_text_results = [
-        senders._send_lark_markdown(
-            _read_text(path),
-            chat_id=context.chat_id,
-            user_id=context.user_id,
-            lark_cli=context.lark_cli,
-            idempotency_scope=(kind, trade_date, path.name),
-        )
-        for path, _subject, _title in text_files
-    ]
-    lark_text_ok = all(lark_text_results) if lark_text_results else True
-    lark_image_results = [
-        senders._send_lark_image(
-            image, chat_id=context.chat_id, user_id=context.user_id, lark_cli=context.lark_cli
-        )
-        for image in image_paths
-    ]
-    lark_images_ok = all(lark_image_results) if lark_image_results else True
-    routes["lark_text"] = lark_text_ok
-    routes["lark_images"] = lark_images_ok
-    if lark_text_ok and lark_images_ok:
-        print(f"[report_delivery] {kind} lark-cli delivery completed", file=sys.stderr)
-    elif mode == "lark":
-        state._write_delivery_status(
-            kind=kind,
-            trade_date=trade_date,
-            mode=mode,
-            success=False,
-            routes=routes,
-            artifacts=[],
-            lark_targets=context.lark_targets,
-            hermes_targets=context.hermes_targets,
-        )
-        return (False, False)
-    return (lark_text_ok, lark_images_ok)
-
-
-def _deliver_via_hermes(
-    *,
-    context: senders._DeliveryContext,
-    kind: str,
-    trade_date: str,
-    text_files: Sequence[tuple[Path, str, str]],
-    image_paths: Sequence[Path],
-    routes: dict[str, Any],
-    mode: str,
-    lark_text_ok: bool,
-    lark_images_ok: bool,
-) -> tuple[bool, bool]:
-    if mode != "both" and lark_text_ok:
-        hermes_text_ok = True
-    else:
-        hermes_text_results = [
-            senders._send_hermes_file(
-                path,
-                subject=subject,
-                chat_id=context.chat_id,
-                target=context.hermes_target,
-                hermes_cli=context.hermes_cli,
-            )
-            for path, subject, _title in text_files
-        ]
-        hermes_text_ok = all(hermes_text_results) if hermes_text_results else True
-    if mode != "both" and lark_images_ok:
-        hermes_images_ok = True
-    else:
-        hermes_image_results = [
-            senders._send_hermes_image(
-                image,
-                chat_id=context.chat_id,
-                target=context.hermes_target,
-                hermes_cli=context.hermes_cli,
-            )
-            for image in image_paths
-        ]
-        hermes_images_ok = all(hermes_image_results) if hermes_image_results else True
-    routes["hermes_text"] = hermes_text_ok
-    routes["hermes_images"] = hermes_images_ok
-    if hermes_text_ok and hermes_images_ok:
-        print(f"[report_delivery] {kind} hermes delivery completed", file=sys.stderr)
-    elif mode == "hermes":
-        state._write_delivery_status(
-            kind=kind,
-            trade_date=trade_date,
-            mode=mode,
-            success=False,
-            routes=routes,
-            artifacts=[],
-            lark_targets=context.lark_targets,
-            hermes_targets=context.hermes_targets,
-        )
-        return (False, False)
-    return (hermes_text_ok, hermes_images_ok)
-
-
-def _deliver_via_webhook(
-    *, text_files: Sequence[tuple[Path, str, str]], routes: dict[str, Any], webhook_enabled_env: str
-) -> bool:
-    webhook_results = [
-        senders._send_webhook_text(path, title=title, enabled_env=webhook_enabled_env)
-        for path, _subject, title in text_files
-    ]
-    webhook_ok = all(webhook_results) if webhook_results else True
-    routes["webhook_text"] = webhook_ok
-    return webhook_ok
-
-
 def _deliver_markdown_files_and_images(
     *,
     kind: str,
@@ -256,8 +151,26 @@ def _deliver_markdown_files_and_images(
     artifacts: Sequence[dict[str, Any]],
     webhook_enabled_env: str,
     allow_webhook: bool = True,
+    signal_date: str | None = None,
 ) -> bool:
     mode = context.mode
+    message_ids: dict[str, list[str]] = {}
+    effective_signal_date = signal_date or trade_date
+    idempotency_key = state.delivery_idempotency_key(
+        kind=kind,
+        trade_date=trade_date,
+        signal_date=effective_signal_date,
+        mode=mode,
+        routes={},
+        artifacts=artifacts,
+        lark_targets=context.lark_targets,
+        hermes_targets=context.hermes_targets,
+    )
+    if state.has_successful_delivery(
+        state._delivery_state_dir() / f"{kind}_latest.json", idempotency_key
+    ):
+        print(f"[report_delivery] {kind} already delivered; skipping duplicate", file=sys.stderr)
+        return True
     base = kind.split("_", 1)[0]
     should_lark = senders._route_enabled(base, "lark", mode)
     should_hermes = senders._route_enabled(base, "hermes", mode)
@@ -278,6 +191,7 @@ def _deliver_markdown_files_and_images(
             image_paths=image_paths,
             routes=routes,
             mode=mode,
+            message_ids=message_ids,
         )
         if mode == "lark" and (not (lark_text_ok and lark_images_ok)):
             return False
@@ -308,19 +222,21 @@ def _deliver_markdown_files_and_images(
     state._write_delivery_status(
         kind=kind,
         trade_date=trade_date,
+        signal_date=effective_signal_date,
         mode=mode,
         success=success,
         routes=routes,
         artifacts=artifacts,
         lark_targets=context.lark_targets,
         hermes_targets=context.hermes_targets,
+        message_ids=message_ids,
     )
     return success
 
 
 def _prepare_morning_context(
     args: argparse.Namespace,
-) -> tuple[senders._DeliveryContext, str, list[Path], list[dict[str, Any]], str]:
+) -> tuple[senders._DeliveryContext, str, str, list[Path], list[dict[str, Any]], str]:
     report_path = Path(args.report).expanduser()
     _read_text(report_path)
     explicit_target = any(
@@ -351,9 +267,12 @@ def _prepare_morning_context(
         chart_keys=io_util.MORNING_CHART_KEYS,
     )
     trade_date = str(manifest_payload.get("date") or datetime.now().strftime("%Y%m%d"))
+    signal_date = str(
+        getattr(args, "signal_date", None) or manifest_payload.get("signal_date") or trade_date
+    )
     artifacts = [state._artifact_entry(report_path, role="morning_report")]
     artifacts.extend(state._artifact_entry(path, role="chart") for path in chart_paths)
-    return (context, trade_date, chart_paths, artifacts, mode)
+    return (context, trade_date, signal_date, chart_paths, artifacts, mode)
 
 
 def _deliver_morning_routes(
@@ -361,15 +280,32 @@ def _deliver_morning_routes(
     args: argparse.Namespace,
     context: senders._DeliveryContext,
     trade_date: str,
+    signal_date: str,
     text: str,
     chart_paths: list[Path],
     artifacts: list[dict[str, Any]],
     mode: str,
 ) -> int:
+    idempotency_key = state.delivery_idempotency_key(
+        kind="morning",
+        trade_date=trade_date,
+        signal_date=signal_date,
+        mode=mode,
+        routes={},
+        artifacts=artifacts,
+        lark_targets=context.lark_targets,
+        hermes_targets=context.hermes_targets,
+    )
+    if state.has_successful_delivery(
+        state._delivery_state_dir() / "morning_latest.json", idempotency_key
+    ):
+        print("[report_delivery] morning already delivered; skipping duplicate", file=sys.stderr)
+        return 0
     should_hermes = senders._route_enabled("morning", "hermes", mode)
     should_lark = senders._route_enabled("morning", "lark", mode)
     should_webhook = senders._route_enabled("morning", "webhook", mode)
     routes = senders._empty_routes()
+    message_ids: dict[str, list[str]] = {}
     if mode == "none":
         senders._write_disabled_delivery(
             kind="morning", trade_date=trade_date, context=context, artifacts=artifacts
@@ -387,6 +323,7 @@ def _deliver_morning_routes(
                 chat_id=context.chat_id,
                 user_id=context.user_id,
                 lark_cli=context.lark_cli,
+                message_ids=message_ids.setdefault("lark_text", []),
                 idempotency_scope=("morning", trade_date, "morning_report"),
             )
             lark_image_results = [
@@ -395,6 +332,7 @@ def _deliver_morning_routes(
                     chat_id=context.chat_id,
                     user_id=context.user_id,
                     lark_cli=context.lark_cli,
+                    message_ids=message_ids.setdefault("lark_images", []),
                 )
                 for image in chart_paths
             ]
@@ -411,12 +349,14 @@ def _deliver_morning_routes(
             state._write_delivery_status(
                 kind="morning",
                 trade_date=trade_date,
+                signal_date=signal_date,
                 mode=mode,
                 success=False,
                 routes=routes,
                 artifacts=artifacts,
                 lark_targets=context.lark_targets,
                 hermes_targets=context.hermes_targets,
+                message_ids=message_ids,
             )
             return 1
     hermes_ok = False
@@ -447,12 +387,14 @@ def _deliver_morning_routes(
             state._write_delivery_status(
                 kind="morning",
                 trade_date=trade_date,
+                signal_date=signal_date,
                 mode=mode,
                 success=False,
                 routes=routes,
                 artifacts=artifacts,
                 lark_targets=context.lark_targets,
                 hermes_targets=context.hermes_targets,
+                message_ids=message_ids,
             )
             return 1
     webhook_ok = False
@@ -468,12 +410,14 @@ def _deliver_morning_routes(
     state._write_delivery_status(
         kind="morning",
         trade_date=trade_date,
+        signal_date=signal_date,
         mode=mode,
         success=success,
         routes=routes,
         artifacts=artifacts,
         lark_targets=context.lark_targets,
         hermes_targets=context.hermes_targets,
+        message_ids=message_ids,
     )
     return 0 if success else 1
 
@@ -481,7 +425,7 @@ def _deliver_morning_routes(
 def deliver_morning(args: argparse.Namespace) -> int:
     report_path = Path(args.report).expanduser()
     text = _read_text(report_path)
-    context, trade_date, chart_paths, artifacts, mode = _prepare_morning_context(args)
+    context, trade_date, signal_date, chart_paths, artifacts, mode = _prepare_morning_context(args)
     _require_chart_bundle(
         chart_paths,
         expected=len(io_util.MORNING_CHARTS),
@@ -501,6 +445,7 @@ def deliver_morning(args: argparse.Namespace) -> int:
         args=args,
         context=context,
         trade_date=trade_date,
+        signal_date=signal_date,
         text=text,
         chart_paths=chart_paths,
         artifacts=artifacts,
@@ -605,6 +550,7 @@ def deliver_evening(args: argparse.Namespace) -> int:
     review_path = Path(args.review).expanduser()
     manifest_path = Path(args.manifest).expanduser() if getattr(args, "manifest", None) else None
     manifest_payload = _load_json(manifest_path)
+    signal_date = str(manifest_payload.get("signal_date") or args.date)
     chart_paths = _chart_paths(
         out_dir,
         getattr(args, "chart", None),
@@ -636,6 +582,12 @@ def deliver_evening(args: argparse.Namespace) -> int:
     if targets._segmented_daily_targets_configured() and (not explicit_target):
         client_chat_id = targets._audience_chat_id("client")
         internal_chat_id = targets._audience_chat_id("internal")
+        skip_internal = os.environ.get("A_SHARE_SKIP_INTERNAL_DELIVERY", "").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
         results: list[bool] = []
         lark_targets: list[str] = []
         hermes_targets: list[str] = []
@@ -654,9 +606,10 @@ def deliver_evening(args: argparse.Namespace) -> int:
                     + [state._artifact_entry(path, role="chart") for path in chart_paths],
                     webhook_enabled_env="EVENING_SEND_WEBHOOK",
                     allow_webhook=False,
+                    signal_date=signal_date,
                 )
             )
-        if internal_chat_id:
+        if internal_chat_id and not skip_internal:
             internal_context = senders._delivery_context(args, chat_id_override=internal_chat_id)
             lark_targets.extend(internal_context.lark_targets)
             hermes_targets.extend(internal_context.hermes_targets)
@@ -677,6 +630,7 @@ def deliver_evening(args: argparse.Namespace) -> int:
                     artifacts=artifacts,
                     webhook_enabled_env="EVENING_SEND_WEBHOOK",
                     allow_webhook=False,
+                    signal_date=signal_date,
                 )
             )
         context = senders._delivery_context(args)
@@ -684,12 +638,14 @@ def deliver_evening(args: argparse.Namespace) -> int:
         state._write_delivery_status(
             kind="evening",
             trade_date=args.date,
+            signal_date=signal_date,
             mode=context.mode,
             success=success,
             routes={
                 "segmented": True,
                 "client_enabled": bool(client_chat_id),
-                "internal_enabled": bool(internal_chat_id),
+                "internal_enabled": bool(internal_chat_id and not skip_internal),
+                "internal_skipped": bool(internal_chat_id and skip_internal),
                 "webhook_disabled_for_segmented_delivery": True,
             },
             artifacts=artifacts,
@@ -709,6 +665,7 @@ def deliver_evening(args: argparse.Namespace) -> int:
         image_paths=chart_paths,
         artifacts=artifacts,
         webhook_enabled_env="EVENING_SEND_WEBHOOK",
+        signal_date=signal_date,
     )
     return 0 if success else 1
 
@@ -725,6 +682,7 @@ def run(argv: list[str] | None = None) -> int:
     morning = sub.add_parser("morning", parents=[common], help="Deliver morning report")
     morning.add_argument("--report", required=True, help="Morning markdown report path")
     morning.add_argument("--manifest", help="Morning manifest JSON path")
+    morning.add_argument("--signal-date", help="Publication signal date YYYYMMDD")
     evening = sub.add_parser("evening", parents=[common], help="Deliver evening report")
     evening.add_argument("--date", required=True, help="Trade date YYYYMMDD")
     evening.add_argument("--out-dir", default="out/a_share_daily", help="A-share report output dir")

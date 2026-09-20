@@ -14,6 +14,7 @@ from typing import Any
 
 from a_share_daily.freshness import render_freshness_section
 from a_share_daily.global_leadlag import GLOBAL_LEAD_LAG_INSTRUMENTS, INDEX_LABELS
+from a_share_daily.report_theme import get_report_theme
 
 NEWS_MARKET_ORDER = ("cn", "jp", "kr", "us")
 NEWS_MARKET_LABELS = {"cn": "A股", "jp": "日股", "kr": "韩股", "us": "美股"}
@@ -198,6 +199,52 @@ def _render_asia_section(cross: Mapping[str, Any]) -> list[str]:
         lines.append("- 日本半导体: " + "，".join(jp_movers))
     if kr_movers:
         lines.append("- 韩国半导体: " + "，".join(kr_movers))
+
+    preopen = cross.get("korea_preopen")
+    if isinstance(preopen, Mapping) and preopen.get("source") != "unavailable":
+        signal = str(preopen.get("signal", "neutral"))
+        tag = "[OK]" if signal == "bullish" else "[WARN]" if signal == "bearish" else "[fetch]"
+        concepts = (
+            "、".join(str(item) for item in preopen.get("concepts", [])[:5]) or "韩国核心资产"
+        )
+        source = (
+            "日线代理"
+            if preopen.get("source") == "daily-proxy"
+            else str(preopen.get("source", "unknown"))
+        )
+        residual = float(preopen.get("residual_pct_chg", 0) or 0)
+        alert = preopen.get("risk_level") == "high" or abs(residual) >= 2
+        if alert:
+            lines.append(
+                f"- {tag} 韩国早盘 → A股开盘: {signal}，行业残差 {residual:+.1f}%，"
+                f"映射 {concepts}，数据源 {source}。"
+            )
+        else:
+            lines.append(
+                f"- {tag} 韩国早盘：{signal}，行业残差 {residual:+.1f}%，数据源 {source}。"
+            )
+
+    overnight = cross.get("korea_overnight")
+    if isinstance(overnight, Mapping) and overnight.get("source") != "unavailable":
+        signal = str(overnight.get("signal", "neutral"))
+        tag = "[WARN]" if signal == "bearish" else "[OK]" if signal == "bullish" else "[fetch]"
+        level = str(overnight.get("risk_level", "unknown"))
+        drivers = "，".join(str(item) for item in overnight.get("drivers", [])[:3]) or "暂无"
+        source = (
+            "日线代理"
+            if overnight.get("source") == "daily-proxy"
+            else str(overnight.get("source", "unknown"))
+        )
+        alert = level == "high"
+        if alert:
+            lines.append(
+                f"- {tag} 韩国盘后/夜盘 → 次日A股预警: 风险等级 {level}，方向 {signal}，"
+                f"驱动 {drivers}，数据源 {source}。"
+            )
+        else:
+            lines.append(
+                f"- {tag} 韩国盘后/夜盘：风险等级 {level}，方向 {signal}，数据源 {source}。"
+            )
     return lines
 
 
@@ -240,9 +287,7 @@ def _render_mapping_section(cross: Mapping[str, Any]) -> list[str]:
 def _render_a_share_section(manifest: Mapping[str, Any], cross: Mapping[str, Any]) -> list[str]:
     lines = ["## 5. A股盘前热点预判"]
     topic_summary = (
-        manifest.get("topic_summary")
-        if isinstance(manifest.get("topic_summary"), Mapping)
-        else {}
+        manifest.get("topic_summary") if isinstance(manifest.get("topic_summary"), Mapping) else {}
     )
     if topic_summary:
         topic_count = topic_summary.get("topic_count")
@@ -255,12 +300,16 @@ def _render_a_share_section(manifest: Mapping[str, Any], cross: Mapping[str, Any
             reason = str(topic_summary.get("reason") or "topic_summary.json 不可用")
             lines.append(f"- [WARN] DailyWatch20 热点主题不可用（{reason}）。")
     if not topic_summary:
-        hotsector = manifest.get("hotsector") if isinstance(manifest.get("hotsector"), Mapping) else {}
+        hotsector = (
+            manifest.get("hotsector") if isinstance(manifest.get("hotsector"), Mapping) else {}
+        )
         candidates = hotsector.get("candidates") if isinstance(hotsector, Mapping) else None
-        hotsector_skipped = bool(hotsector.get("skipped")) if isinstance(hotsector, Mapping) else False
+        hotsector_skipped = (
+            bool(hotsector.get("skipped")) if isinstance(hotsector, Mapping) else False
+        )
         if isinstance(candidates, int) and candidates > 0:
             lines.append(
-                f"- [fetch] 热点候选池 {candidates} 只，来源 research-workspace owner artifact。"
+                f"- [fetch] 热点候选池 {candidates} 只，来源 quant-research owner artifact。"
             )
         elif isinstance(hotsector, Mapping) and hotsector and not hotsector_skipped:
             reason = str(hotsector.get("reason") or "hotsector 产出 0 只候选")
@@ -335,6 +384,7 @@ def render_morning_report(
     news: Mapping[str, Any] | None = None,
     *,
     generated_at: datetime | None = None,
+    theme: str = "research_editorial",
 ) -> str:
     generated = generated_at or datetime.now()
     date_text = str(
@@ -345,6 +395,7 @@ def render_morning_report(
     )
     assert isinstance(cross, Mapping)
     news = news or {}
+    selected_theme = get_report_theme(theme)
     freshness_title = "7. 数据质量"
 
     sections: list[list[str]] = [
@@ -352,6 +403,7 @@ def render_morning_report(
             f"# 亚洲市场盘前 / 美股市场盘后（{date_text}）",
             "",
             f"生成时间: {generated.strftime('%Y-%m-%d %H:%M')}",
+            f"报告主题: {selected_theme.label}",
             "生成方式: market-intel 结构化事实 + 规则模板；未使用自由写作流程。",
         ],
         _render_news_section(news),

@@ -15,6 +15,7 @@ from typing import Any
 import pandas as pd
 
 from ops_common.env import resolve_data_platform_root
+from ops_common.paths import resolve_owner_path
 
 from . import cross_market as _cross_market
 from . import data as D
@@ -29,18 +30,33 @@ from .charts import (
 from .charts.theme import save_unavailable_chart
 from .cross_market import generate_summary as _gen_cross_summary
 from .daily_watch20_validation._common import resolve_watchlist20_root
-from .freshness import build_freshness_report
+from .freshness import build_freshness_report, load_freshness_snapshot
 from .topic_summary import TopicSummaryError, load_topic_summary
 from .topic_summary_fallback import build_composite_topic_summary
 from .weekly_context import write_weekly_context
 
 # ── Config ───────────────────────────────────────────────────
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
+_LEGACY_OUTPUT_DIR = PROJECT_ROOT / "out" / "a_share_daily"
 HOTSECTOR_INPUT_ENV = "A_SHARE_HOTSECTOR_INPUT"
 TOPIC_SUMMARY_INPUT_ENV = "A_SHARE_TOPIC_SUMMARY_INPUT"
-OUTPUT_DIR = Path(
-    os.environ.get("A_SHARE_OUTPUT_DIR", str(PROJECT_ROOT / "out" / "a_share_daily"))
-).expanduser()
+
+
+def _default_output_dir() -> Path:
+    configured = os.environ.get("A_SHARE_OUTPUT_DIR", "").strip()
+    if configured:
+        return Path(configured).expanduser()
+    if (
+        os.environ.get("DATA_PLATFORM_ROOT", "").strip()
+        or os.environ.get("MDP_FALLBACK_ROOT", "").strip()
+    ):
+        return resolve_owner_path("market-intel", category="reports", suffix=("a_share_daily",))
+    # Keep imports usable for offline unit tests.  Any real write resolves the
+    # external root in _ensure_output_dir and fails clearly when it is absent.
+    return _LEGACY_OUTPUT_DIR
+
+
+OUTPUT_DIR = _default_output_dir()
 FEISHU_CHAT_ID = os.environ.get("A_SHARE_FEISHU_CHAT_ID", "")
 EXPECTED_CHART_KEYS = (
     "topic",
@@ -110,6 +126,15 @@ def _env_flag(name: str, *, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "on"}
 
 
+def _cross_market_snapshot_root() -> Path:
+    return resolve_owner_path(
+        "market-intel",
+        category="reports",
+        override_env="CROSS_MARKET_SNAPSHOT_ROOT",
+        suffix=("cross_market_snapshots",),
+    )
+
+
 def _split_dataset_env(name: str) -> set[str]:
     raw = os.environ.get(name, "")
     return {item.strip() for item in raw.replace(";", ",").split(",") if item.strip()}
@@ -160,6 +185,9 @@ def _empty_hotsector_reason(data_sources: dict[str, Any] | None = None) -> str:
 
 def step_data_freshness(trade_date: str | None = None) -> dict[str, Any]:
     """Audit data freshness for all core datasets."""
+    frozen_snapshot = os.environ.get("A_SHARE_FRESHNESS_SNAPSHOT", "").strip()
+    if frozen_snapshot:
+        return load_freshness_snapshot(frozen_snapshot, target_date=trade_date)
     premium_enabled = premium_tushare_enabled()
     datasets = list(CORE_DATASETS)
     if premium_enabled:
@@ -172,7 +200,7 @@ def step_data_freshness(trade_date: str | None = None) -> dict[str, Any]:
         skip_reasons.update(dict.fromkeys(PREMIUM_DATASETS, "premium_disabled"))
     report: dict[str, str | None] = {}
     for ds in datasets:
-        latest = D._latest_date(ds)
+        latest = D._latest_date(ds, as_of_date=trade_date)
         if ds in ("index_daily", "ths_member") and latest is None:
             # Flat datasets: check file exists
             p = D.DATA_ROOT / ds
@@ -211,7 +239,7 @@ def step_hotsector(date_str: str) -> dict[str, Any]:
             "candidates": 0,
             "universe_json": "",
             "exit_code": 0,
-            "reason": "research-workspace 未提供可选热点候选 artifact",
+            "reason": "quant-research 未提供可选热点候选 artifact",
             "data_sources": {},
         }
 
@@ -224,7 +252,7 @@ def step_hotsector(date_str: str) -> dict[str, Any]:
             "candidates": 0,
             "universe_json": "",
             "exit_code": 0,
-            "reason": f"research-workspace 热点候选 artifact 不存在: {universe_json}",
+            "reason": f"quant-research 热点候选 artifact 不存在: {universe_json}",
             "data_sources": {},
         }
 
@@ -419,7 +447,7 @@ def _run_moneyflow_chart(state: _ChartState, premium_enabled: bool) -> None:
             )
     except FileNotFoundError:
         if _env_flag(MONEYFLOW_LATEST_ENV):
-            latest = D._latest_date("moneyflow_ths")
+            latest = D._latest_date("moneyflow_ths", as_of_date=state.trade_date)
             if latest and latest != state.trade_date:
                 try:
                     moneyflow = D.read_moneyflow_ths(latest)
@@ -454,24 +482,29 @@ def _run_moneyflow_chart(state: _ChartState, premium_enabled: bool) -> None:
         )
 
 
-def _latest_partition_dates(dataset: str) -> list[str]:
+def _latest_partition_dates(dataset: str, as_of_date: str | None = None) -> list[str]:
     latest_dirs = list((D.DATA_ROOT / dataset).glob("*_latest"))
-    data_dir = D.DATA_ROOT / dataset / latest_dirs[0] / "data"
-    return sorted([path.name.split("=")[1] for path in data_dir.glob("trade_date=*")])[-5:]
+    if not latest_dirs:
+        return []
+    data_dir = latest_dirs[0] / "data"
+    dates = sorted(path.name.split("=")[1] for path in data_dir.glob("trade_date=*"))
+    if as_of_date:
+        dates = [value for value in dates if value <= as_of_date]
+    return dates[-5:]
 
 
-def _recent_margin_data() -> list[dict[str, Any]]:
+def _recent_margin_data(as_of_date: str | None = None) -> list[dict[str, Any]]:
     margin_data: list[dict[str, Any]] = []
-    for day in _latest_partition_dates("margin"):
+    for day in _latest_partition_dates("margin", as_of_date=as_of_date):
         margin_df = D.read_margin(day)
         if not margin_df.empty:
             margin_data.append({"date": day, "rzye": margin_df["rzye"].sum() / 1e8})
     return margin_data
 
 
-def _recent_turnover_data() -> list[dict[str, Any]]:
+def _recent_turnover_data(as_of_date: str | None = None) -> list[dict[str, Any]]:
     turnover_data: list[dict[str, Any]] = []
-    for day in _latest_partition_dates("daily"):
+    for day in _latest_partition_dates("daily", as_of_date=as_of_date):
         daily_df = D.read_daily(day)
         turnover_data.append({"date": day, "amount": daily_df["amount"].sum() / 1e5})
     return turnover_data
@@ -492,8 +525,8 @@ def _run_dashboard_chart(state: _ChartState, daily: pd.DataFrame, limit_up: int)
             daily,
             limit_up,
             _max_board_count(state.trade_date),
-            pd.DataFrame(_recent_margin_data()),
-            pd.DataFrame(_recent_turnover_data()),
+            pd.DataFrame(_recent_margin_data(state.trade_date)),
+            pd.DataFrame(_recent_turnover_data(state.trade_date)),
             state.trade_date,
             str(OUTPUT_DIR / "daily_dashboard.png"),
         )
@@ -534,9 +567,7 @@ def _run_weekly_chart(state: _ChartState) -> tuple[list[str], dict[str, pd.DataF
 def _weekly_gold_prices(week_dates: list[str]) -> dict[str, float]:
     week_gold: dict[str, float] = {}
     for day in week_dates:
-        snapshot_root = Path(
-            os.environ.get("CROSS_MARKET_SNAPSHOT_ROOT", str(PROJECT_ROOT / "data-snapshots"))
-        ).expanduser()
+        snapshot_root = Path(_cross_market_snapshot_root()).expanduser()
         snap_path = snapshot_root / "cross-market" / f"{day[:4]}-{day[4:6]}-{day[6:]}.json"
         with contextlib.suppress(Exception):
             snap = json.loads(snap_path.read_text(encoding="utf-8"))
@@ -614,13 +645,27 @@ def _chart_manifest(state: _ChartState) -> dict[str, Any]:
     }
 
 
+def _ensure_output_dir() -> None:
+    """Create the report directory after validating its external location."""
+
+    global OUTPUT_DIR
+    if OUTPUT_DIR == _LEGACY_OUTPUT_DIR:
+        configured = os.environ.get("A_SHARE_OUTPUT_DIR", "").strip()
+        OUTPUT_DIR = (
+            Path(configured).expanduser()
+            if configured
+            else resolve_owner_path("market-intel", category="reports", suffix=("a_share_daily",))
+        )
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+
 def step_charts(
     trade_date: str, topic_summary_json: str = "", *, universe_json: str | None = None
 ) -> dict[str, Any]:
     """Generate all 6 charts. Returns manifest of successes/failures."""
     if universe_json is not None:
         topic_summary_json = universe_json
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    _ensure_output_dir()
     state = _ChartState(trade_date=trade_date)
     try:
         daily, limit_up = _load_daily_chart_inputs(trade_date)
@@ -646,7 +691,7 @@ def step_charts(
 
 def run_morning(trade_date: str | None = None) -> dict[str, Any]:
     """Full morning pipeline. Returns manifest dict."""
-    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+    _ensure_output_dir()
     if trade_date is None:
         trade_date = datetime.now().strftime("%Y%m%d")
 

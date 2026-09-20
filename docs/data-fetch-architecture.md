@@ -61,6 +61,24 @@ Hermes 日更定时任务默认保持暂停，仅作为人工补发或临时接�
 
 ## 亚洲市场数据保障
 
+韩国盘前信号使用独立的可选 provider 链，不要求 KRX Open API key：
+
+```text
+FinanceDataReader（无 key）
+        ↓ 失败或未安装
+pykrx（无 key）
+        ↓ 失败或未安装
+yfinance（现有基础兜底）
+```
+
+输出字段为 `korea_preopen` 和 `korea_overnight`，都会保留 `source` 与
+`degraded`。当前无 key 路径提供的是日线代理，不应解释为 NXT、KRX 盘中或
+KOSPI 200 夜盘的实时数据。报告会明确显示“日线代理，非盘中数据”。后续接入
+分钟数据时，只需向 `compute_korea_signal` 提供同样的报价结构，不改变报告契约。
+
+早盘信号以韩国核心半导体相对 `^KS11` 的残差收益作为方向，盘后/夜盘信号先
+作为次日 A 股风险预警。它们是信息提示，不直接生成交易指令。
+
 晚报侧使用同样的三层思路：
 
 ```

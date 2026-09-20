@@ -2,32 +2,30 @@
 
 [打开网页版说明书](https://runchengxie.github.io/quant-intel-platform/)
 
-面向用户的自动化市场情报与投递系统。它抓取全球市场和新闻，消费 `research-workspace` 发布的 A 股策略与研究产物，把市场事实和版本化产物渲染成日报、晚报、周报、网页看板与飞书消息，并处理投递窗口、幂等、新鲜度和故障恢复。
+面向用户的自动化市场情报与投递系统。它抓取全球市场和新闻，消费 `quant-research` 发布的 A 股策略与研究产物，把市场事实和版本化产物渲染成日报、晚报、周报、网页看板与飞书消息，并处理投递窗口、幂等、新鲜度和故障恢复。`strategy-pipeline` 是由 `quant-platform` 提供的兼容 CLI 名称，不是独立 owner。
 
-策略计算、因子研究、回测、消融和模型生产由 `research-workspace` 负责。跨仓协作只使用公开 CLI 和版本化文件契约。`market-intel` 可以调用研究仓的公开生产入口进行当日恢复，但不维护研究逻辑。
+策略计算、因子研究、回测、消融和模型生产由 `quant-research` 与 `quant-platform` 按职责负责。跨仓协作只使用公开 CLI 和版本化文件契约。本仓通过公开 owner 入口进行当日恢复，但不维护研究逻辑。
 
 ## 它能产出什么
 
 - 全球市场日报（`dm run`）：海外市场、主题评分、跨市场上下文与新闻事实
 - A 股晨报与晚报：消费 DailyWatch20、D11-H5 等已发布策略产物，并组合市场温度、新闻与图表
-- 价值/风格周报与决策卡：消费 research-workspace 发布的版本化研究产物
+- 价值/风格周报与决策卡：消费 owner 发布的版本化研究产物
 - 静态网页看板（`dm dashboard`）：分数、动作、快照与可选状态面板
 - 飞书投递：按受众分群发送，并记录回执、幂等键与恢复状态
 
 ## 系统边界
 
 ```text
-research-workspace
-  market-data-platform / alpha-research / portfolio-backtester
-  strategy-app / strategy-pipeline / strategy-research / execution
+quant-research / quant-platform / quant-market-data-platform
                   │
                   │ public CLI + versioned artifacts
                   ▼
-market-intel
+quant-intel-platform
   market context → validation → report/render → delivery → operations
 ```
 
-历史上本仓曾内嵌 `a-share-factor-core`、`hot-sector-screener`、`ai-stock-picker` 三个 submodule。它们已退休并从仓库移除：相关研究能力已经由 research-workspace 的职责仓接管，旧 AI 精选定时产品也已停止生产。
+历史上本仓曾内嵌 `a-share-factor-core`、`hot-sector-screener`、`ai-stock-picker` 三个 submodule。它们已退休并从仓库移除，相关研究能力已经由 `quant-research` 和 `quant-platform` 接管。
 
 ## 快速开始
 
@@ -46,12 +44,12 @@ uv run marketops --help
 uv run a-share-daily --help
 ```
 
-涉及 A 股正式策略产物、数据湖或恢复入口时，部署方需要显式提供 research-workspace 路径：
+涉及 A 股正式策略产物、数据湖或恢复入口时，部署方需要显式提供各 owner 路径：
 
 ```bash
-export RESEARCH_WORKSPACE_ROOT=/path/to/research-workspace
-export MDP_DIR="$RESEARCH_WORKSPACE_ROOT/quant-market-data-platform"
-export STRATEGY_PIPELINE_ROOT="$RESEARCH_WORKSPACE_ROOT/strategy-pipeline"
+export DATA_PLATFORM_ROOT=/path/to/data/quant-market-data-platform
+export MDP_DIR=/path/to/quant-market-data-platform
+export QUANT_RESEARCH_ROOT=/path/to/quant-research
 ```
 
 这些路径只用于调用公开 CLI，不作为源码导入路径使用。详见[跨仓边界契约](docs/boundary-contract.md)。
@@ -67,7 +65,7 @@ uv run pytest
 uv run python scripts/dev/install_git_hooks.py
 ```
 
-`market-intel` 的质量门只检查本仓。research-workspace 及其负责的仓库使用各自的质量门，本仓不会跨目录代跑测试。
+`market-intel` 的质量门只检查本仓。各 owner 仓库使用各自的质量门，本仓不会跨目录代跑测试。
 
 ## 仓库里有什么
 
@@ -100,18 +98,18 @@ dm btc report
 uv run a-share-daily doctor --live
 uv run a-share-daily morning
 
-# DailyWatch20 正式产物：由 strategy-pipeline 生成，market-intel 校验并投递
+# DailyWatch20 正式产物：由 quant-research 通过 strategy-pipeline CLI 生成，本仓校验并投递
 bash scripts/refresh_daily_watch20.sh
 uv run python scripts/send_daily_watch20.py --help
 ```
 
-`refresh_daily_watch20.sh` 是恢复桥接脚本。它检查数据和分钟级新鲜度，再调用 `strategy-pipeline` 的公开 `strategy watchlist20 ...` 入口。模型、候选池、消融和研究实现由 research-workspace 负责。
+`refresh_daily_watch20.sh` 是恢复桥接脚本。它检查数据和分钟级新鲜度，再调用 `quant-research` 提供的公开 `strategy watchlist20 ...` 入口。模型、候选池、消融和研究实现由 `quant-research` 负责，通用编排由 `quant-platform` 提供。
 
 ## 文档导航
 
 - [网页版说明书](https://runchengxie.github.io/quant-intel-platform/)：在线阅读完整文档
 - [系统架构](docs/architecture.md)：报告、数据源与运行链路
-- [跨仓边界契约](docs/boundary-contract.md)：market-intel / research-workspace 职责与调用规则
+- [跨仓边界契约](docs/boundary-contract.md)：market-intel 与各 owner 的职责和调用规则
 - [日内调度](docs/daily-schedule.md)：报告与数据任务时间表
 - [运维手册](docs/operations.md)：降级、幂等、恢复与排障
 - [数据 owner](docs/data-ownership.md)：MDP 与报告侧数据边界
@@ -149,5 +147,5 @@ uv run python scripts/dev/install_git_hooks.py --check
 
 - 报告产物写入 `out/`，运行状态与投递回执写入 `state/`。
 - 缺少可选资讯源时按配置降级。正式策略产物的日期或契约不满足时，系统会停止后续处理。
-- `market-intel` 不复制研究模型。缺少研究产物时，应修复 research-workspace 中的生产入口，或通过该入口恢复。
+- `market-intel` 不复制研究模型。缺少研究产物时，应修复对应 owner 的生产入口，或通过公开 CLI 恢复。
 - 报告和技术分析仅用于研究与信息整理，不构成投资建议。

@@ -36,6 +36,7 @@ from pathlib import Path
 from typing import Any
 
 from ops_common.env import resolve_data_platform_root
+from ops_common.paths import resolve_owner_path
 
 from .trading_calendar import TradingCalendarError, is_open_trading_day
 
@@ -63,6 +64,11 @@ def _env_truthy(name: str, *, default: bool = False) -> bool:
     return raw.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def _d11_h5_enabled() -> bool:
+    """Return whether the research-only D11-H5 shadow is explicitly enabled."""
+    return _env_truthy("MORNING_SUPERVISOR_D11_H5_ENABLED", default=False)
+
+
 def _default_project_root() -> Path:
     return Path(
         os.environ.get("MARKET_INTEL_ROOT", str(Path(__file__).resolve().parents[2]))
@@ -73,14 +79,24 @@ def _default_data_root() -> Path:
     return resolve_data_platform_root(required=True)
 
 
-def _default_state_root(project_root: Path) -> Path:
+def _default_state_root(_project_root: Path) -> Path:
     explicit = os.environ.get("MORNING_SUPERVISOR_STATE_DIR", "").strip()
     if explicit:
         return Path(explicit).expanduser()
-    delivery_state = os.environ.get("A_SHARE_DELIVERY_STATE_DIR", "").strip()
-    if delivery_state:
-        return Path(delivery_state).expanduser() / "morning_product_supervisor"
-    return project_root / "state/morning_product_supervisor"
+    if os.environ.get("A_SHARE_DELIVERY_STATE_DIR", "").strip():
+        return (
+            resolve_owner_path(
+                "market-intel",
+                category="state",
+                override_env="A_SHARE_DELIVERY_STATE_DIR",
+            )
+            / "morning_product_supervisor"
+        )
+    return resolve_owner_path(
+        "market-intel",
+        category="state",
+        suffix=("morning_product_supervisor",),
+    )
 
 
 def _latest_data_lake_trade_date(data_root: Path) -> str | None:
@@ -654,7 +670,10 @@ def supervise(config: SupervisorConfig) -> tuple[int, dict[str, Any]]:
             recovery=lambda: _daily_delivery_recovery(config, source_date),
             config=config,
         )
-    if config.phase == "postflight":
+    # D11-H5 is research-only and depends on a separate strategy owner runtime.
+    # Keep it available for an explicit shadow run, but do not let that optional
+    # product make the production watchdog unhealthy by default.
+    if config.phase == "postflight" and _d11_h5_enabled():
         products["d11_h5_shadow"]["delivery"] = _run_stage(
             probe=lambda: _d11_h5_delivery_probe(config, source_date),
             recovery=lambda: _d11_h5_delivery_recovery(config, source_date),

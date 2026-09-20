@@ -1,7 +1,7 @@
 """Publish the raw-minute completeness receipt used by DailyWatch20 recovery.
 
 This is operational glue for the report scheduler. Research factor expansion and
-Top200 observation ownership live in research-workspace and deliberately do not
+Top200 observation ownership lives in quant-research and deliberately does not
 share this module.
 """
 

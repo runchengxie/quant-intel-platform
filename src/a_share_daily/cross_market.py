@@ -18,14 +18,21 @@ import io
 import json
 import os
 from dataclasses import dataclass, field
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
 import requests
 
 from .cross_market_fetcher import Fetcher, FredAdapter
+from .cross_market_summary import generate_summary as _generate_summary
 from .global_leadlag import US_TO_A_MAPPING, aggregate_concept_signals, fetch_symbols
+from .korea_market import (
+    KOREA_INDEX_SYMBOL,
+    KOREA_SYMBOLS,
+    compute_korea_signal,
+    fetch_korea_daily_quotes,
+)
 
 # Symbols to fetch (US mega-cap/semis + Japan/Korea semis + benchmark ETFs)
 US_SYMBOLS = fetch_symbols()
@@ -78,6 +85,9 @@ class CrossMarketResult:
     mapping: list[dict] = field(default_factory=list)
     global_lead_lag: list[dict] = field(default_factory=list)
     commodity_mapping: list[dict] = field(default_factory=list)
+    korea_quotes: dict[str, dict] = field(default_factory=dict)
+    korea_preopen: dict = field(default_factory=dict)
+    korea_overnight: dict = field(default_factory=dict)
     errors: list[str] = field(default_factory=list)
 
     def to_dict(self) -> dict:
@@ -91,6 +101,9 @@ class CrossMarketResult:
             "concept_mapping": self.mapping,
             "global_lead_lag": self.global_lead_lag,
             "commodity_concept_mapping": self.commodity_mapping,
+            "korea_quotes": self.korea_quotes,
+            "korea_preopen": self.korea_preopen,
+            "korea_overnight": self.korea_overnight,
             "errors": self.errors,
         }
 
@@ -255,6 +268,28 @@ def _fetch_commodities() -> dict[str, Any]:
         return {"error": f"yfinance commodities failed: {e}"}
 
 
+def _fetch_korea_signals(trade_date: str) -> tuple[dict[str, dict], dict, dict]:
+    """Fetch keyless Korea daily data and expose two A-share warning windows.
+
+    The current free-provider fallback is daily, so both windows are explicitly
+    marked as ``daily-proxy``. A future intraday provider can feed the same
+    ``compute_korea_signal`` contract without changing report consumers.
+    """
+    target = _parse_yyyymmdd(trade_date) or date.today()
+    start = (target - timedelta(days=7)).isoformat()
+    end = target.isoformat()
+    quotes = fetch_korea_daily_quotes(
+        [*KOREA_SYMBOLS, KOREA_INDEX_SYMBOL],
+        start,
+        end,
+    )
+    return (
+        quotes,
+        compute_korea_signal(quotes, window="preopen"),
+        compute_korea_signal(quotes, window="overnight"),
+    )
+
+
 def _compute_commodity_mapping(
     commodities: dict[str, dict],
     mapping_table: dict[str, list[str]] = COMMODITY_TO_A_MAPPING,
@@ -393,9 +428,11 @@ def _find_snapshot_path(trade_date: str) -> tuple[Path, bool] | None:
     date_dash = f"{trade_date[:4]}-{trade_date[4:6]}-{trade_date[6:]}"
 
     # 1) Exact date snapshot
-    snapshot_root = Path(os.environ["CROSS_MARKET_SNAPSHOT_ROOT"]).expanduser() if os.environ.get(
-        "CROSS_MARKET_SNAPSHOT_ROOT"
-    ) else _DATA_SNAPSHOTS_ROOT
+    snapshot_root = (
+        Path(os.environ["CROSS_MARKET_SNAPSHOT_ROOT"]).expanduser()
+        if os.environ.get("CROSS_MARKET_SNAPSHOT_ROOT")
+        else _DATA_SNAPSHOTS_ROOT
+    )
     exact = snapshot_root / "cross-market" / f"{date_dash}.json"
     if exact.exists():
         return exact, True
@@ -580,6 +617,17 @@ def run(trade_date: str | None = None) -> dict[str, Any]:
     # Commodity → A concept mapping
     _map_commodities_into(result)
 
+    # Korea early-session and overnight warning proxies. This is optional and
+    # must never block the rest of the cross-market report.
+    try:
+        (
+            result.korea_quotes,
+            result.korea_preopen,
+            result.korea_overnight,
+        ) = _fetch_korea_signals(trade_date)
+    except Exception as e:
+        result.errors.append(f"korea: {e}")
+
     # Macro indicators (FRED + yfinance)
     try:
         result.macros = _fetch_macros()
@@ -589,124 +637,9 @@ def run(trade_date: str | None = None) -> dict[str, Any]:
     return _annotate_freshness(result.to_dict(), trade_date)
 
 
-def _src_note(source: str) -> str:
-    """Render the data-source annotation for macro/CBOE rows."""
-    if source == "fred":
-        return "（FRED）"
-    if source == "cboe_history":
-        return "（Cboe）"
-    return ""
-
-
-def _render_global_lead_lag_section(data: dict[str, Any]) -> list[str]:
-    """全球领先资产 → A 股概念映射段。"""
-    mapping = data.get("global_lead_lag") or data.get("concept_mapping", [])
-    if not mapping:
-        return []
-    lines = ["### 全球领先资产映射"]
-    significant = [m for m in mapping if abs(m.get("avg_pct_chg", 0)) > 1]
-    if significant:
-        for m in significant[:6]:
-            avg = m["avg_pct_chg"]
-            signal = m["signal"]
-            tag = "[OK]" if signal == "bullish" else "[WARN]"
-            drivers = ", ".join(m.get("drivers", [])[:3])
-            markets = "/".join(m.get("markets", []))
-            suffix = f" [{markets}]" if markets else ""
-            lines.append(f"- {tag} {m['concept']}（{avg:+.1f}%）{suffix}，驱动 {drivers}")
-    else:
-        lines.append("- 全球领先资产波动均<1%，无明显映射信号")
-    lines.append("")
-    return lines
-
-
-def _render_commodity_section(data: dict[str, Any]) -> list[str]:
-    """商品 → A 股概念映射段。"""
-    comm_map = data.get("commodity_concept_mapping", [])
-    if not comm_map:
-        return []
-    lines = ["### 商品映射"]
-    for m in comm_map[:4]:
-        avg = m["avg_pct_chg"]
-        signal = m["signal"]
-        tag = "[OK]" if signal == "bullish" else "[WARN]" if signal == "bearish" else ""
-        drivers = ", ".join(m.get("drivers", [])[:2])
-        lines.append(f"- {tag} {m['concept']}（{avg:+.1f}%），驱动 {drivers}")
-    lines.append("")
-    return lines
-
-
-def _render_macro_section(data: dict[str, Any]) -> list[str]:
-    """宏观指标段（DX-Y.NYB / VIX / VVIX / TNX）。"""
-    macros = data.get("macros", {})
-    if not macros or "error" in macros:
-        return []
-    lines = ["### 宏观环境"]
-    for sym in ["DX-Y.NYB", "^VIX", "^VVIX", "^TNX"]:
-        m = macros.get(sym, {})
-        if not m or "close" not in m:
-            continue
-        label = m.get("label", sym)
-        val = m["close"]
-        pct = m.get("pct_chg", 0)
-        src = m.get("source", "")
-        if sym == "^VIX":
-            level = "恐慌" if val > 25 else "偏高" if val > 20 else "正常"
-            tag = "[WARN]" if val > 25 else "[OK]"
-            lines.append(f"- {tag} {label}: {val}（{pct:+.1f}%），{level}{_src_note(src)}")
-        elif sym == "DX-Y.NYB":
-            direction = "偏强" if val > 102 else "偏弱" if val < 99 else "中性"
-            lines.append(f"- {label}: {val}（{pct:+.1f}%），{direction}")
-        else:
-            lines.append(f"- {label}: {val}（{pct:+.1f}%）{_src_note(src)}")
-    lines.append("")
-    return lines
-
-
-def _render_aaii_section(data: dict[str, Any]) -> list[str]:
-    """AAII 散户情绪段。"""
-    aaii = data.get("aaii_sentiment")
-    if not aaii or "bullish_pct" not in aaii:
-        return []
-    bull = aaii.get("bullish_pct", 0)
-    bear = aaii.get("bearish_pct", 0)
-    spread = bull - bear
-    tag = "[OK]" if spread > 10 else "[WARN]" if spread < -10 else ""
-    return [f"- AAII 散户情绪: 看多 {bull}% / 看空 {bear}% (多空差 {spread:+.0f}%) {tag}", ""]
-
-
-def _render_cboe_section(data: dict[str, Any]) -> list[str]:
-    """CBOE Put/Call 与 VIX 恐贪段。"""
-    cboe = data.get("cboe_putcall")
-    if not cboe:
-        return []
-    if "vix" in cboe:
-        vix = cboe["vix"]
-        level = "恐慌" if vix > 25 else "偏高" if vix > 20 else "正常"
-        tag = "[WARN]" if vix > 25 else "[OK]"
-        return [f"- VIX 恐贪指标（FRED）: {vix}，{level} {tag}"]
-    if "equity_ratio" in cboe:
-        eq = cboe.get("equity_ratio", 0)
-        defensive = isinstance(eq, (int, float)) and eq > 0.8
-        tag = "[WARN]" if defensive else "[OK]"
-        note = " >0.8 偏防御" if defensive else ""
-        return [f"- CBOE Put/Call 比率（equity）: {eq} {tag} {note}"]
-    return []
-
-
 def generate_summary(data: dict[str, Any]) -> str:
-    """Generate a readable cross-market summary markdown block.
-
-    Suitable for inclusion in pre-market or post-market reports.
-    Only includes concepts where the external move is significant (>1%).
-    """
-    lines: list[str] = []
-    lines.extend(_render_global_lead_lag_section(data))
-    lines.extend(_render_commodity_section(data))
-    lines.extend(_render_macro_section(data))
-    lines.extend(_render_aaii_section(data))
-    lines.extend(_render_cboe_section(data))
-    return "\n".join(lines)
+    """Render a markdown summary for a cross-market snapshot."""
+    return _generate_summary(data)
 
 
 def run_with_chart(trade_date: str | None = None, chart_out: str = "") -> dict[str, Any]:

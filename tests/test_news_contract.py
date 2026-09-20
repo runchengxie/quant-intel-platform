@@ -1,4 +1,5 @@
 import json
+import logging
 from datetime import UTC, datetime
 
 import requests
@@ -99,6 +100,55 @@ def test_ai_news_settings_chain_auto_adds_aliyun_top_level_key() -> None:
     assert [item.provider for item in settings] == ["glm", "aliyun"]
     assert settings[1].model == "qwen-test"
     assert settings[1].keys == [("alibaba_bailian", "aliyun-key")]
+
+
+def test_ai_news_runtime_manifest_exposes_resolved_provider_and_fallbacks() -> None:
+    settings = ai_news._resolve_ai_news_settings_chain(
+        {
+            "ai_news": {
+                "provider": "aliyun",
+                "aliyun_model": "qwen3.7-flash",
+                "fallback_providers": ["gemini"],
+                "keys": [
+                    {"provider": "aliyun", "value": "aliyun-key"},
+                    {"provider": "gemini", "value": "gemini-key"},
+                ],
+            }
+        }
+    )
+
+    assert ai_news._build_ai_news_runtime_manifest(settings) == {
+        "provider": "aliyun",
+        "model": "qwen3.7-flash",
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "fallback_order": ["gemini"],
+    }
+
+
+def test_ai_news_payload_logs_resolved_runtime_metadata(caplog) -> None:
+    logger = logging.getLogger("test_ai_news_runtime")
+
+    with caplog.at_level(logging.INFO, logger=logger.name):
+        result = ai_news.fetch_market_news_payload(
+            ["cn"],
+            api_keys={
+                "ai_news": {
+                    "provider": "aliyun",
+                    "aliyun_model": "qwen3.7-flash",
+                }
+            },
+            logger=logger,
+        )
+
+    assert result["provider"] == "aliyun"
+    runtime_records = [record for record in caplog.records if record.message == "ai_news_runtime"]
+    assert len(runtime_records) == 1
+    assert runtime_records[0].dm_extra == {
+        "provider": "aliyun",
+        "model": "qwen3.7-flash",
+        "base_url": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "fallback_order": [],
+    }
 
 
 def test_ai_news_payload_falls_back_to_aliyun(monkeypatch) -> None:

@@ -248,6 +248,34 @@ def test_generate_chart_matches_weekly_editorial_portrait(monkeypatch, tmp_path)
     assert image.shape[1] >= 1100
 
 
+def test_generate_chart_uses_compact_research_sections(monkeypatch, tmp_path):
+    import a_share_analysis.size_style_weekly as mod
+
+    dates = pd.bdate_range("2024-01-02", periods=300)
+    large, small = _price_frames(dates)
+    monkeypatch.setattr(mod, "_crowding_series", lambda *_args: _crowding_history(dates))
+    snapshot = compute_signal(large, small)
+    seen: list[str] = []
+
+    import matplotlib.axes
+
+    original = matplotlib.axes.Axes.set_title
+    monkeypatch.setattr(
+        matplotlib.axes.Axes,
+        "set_title",
+        lambda self, label, *args, **kwargs: (
+            seen.append(str(label)),
+            original(self, label, *args, **kwargs),
+        )[1],
+    )
+
+    generate_chart(snapshot, tmp_path / "size-style.png")
+
+    assert any("方向" in label for label in seen)
+    assert any("拥挤风险" in label for label in seen)
+    assert not any("看好" in label for label in seen)
+
+
 def test_chart_aligns_both_lines_as_small_cap_crowding_evidence(monkeypatch):
     import a_share_analysis.size_style_weekly as mod
 

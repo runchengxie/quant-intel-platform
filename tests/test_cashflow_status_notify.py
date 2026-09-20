@@ -161,4 +161,3 @@ def test_deliver_status_rejects_target_payload_and_missing_chat_ids(tmp_path: Pa
             lark_cli="lark-cli",
             dry_run=True,
         )
-

@@ -14,7 +14,7 @@ uv run pytest --cov-report=term-missing
 uv run python project_tools/update_cli_help.py --check
 ```
 
-`check_all.py` 只检查 `market-intel` 根仓及其脚本。历史三个 submodule 已退休，research-workspace 和各 owner 仓运行各自门禁。本仓不得再次通过相邻目录扫描替 owner 跑测试。
+`check_all.py` 只检查 `market-intel` 根仓及其脚本。历史三个 submodule 已退休，各 owner 仓运行各自门禁。本仓不得再次通过相邻目录扫描替 owner 跑测试。
 
 ## 本地提交前检查
 
@@ -53,13 +53,13 @@ GitHub 端运行轻量的 Ruff、ty、离线契约测试和构建检查。完整
 
 - ETL、主题评分、市场资讯与降级行为
 - 产物日期、结构、哈希的安全失败校验
-- DailyWatch20、D11-H5、style-factor 等 research-workspace 产物的消费
+- DailyWatch20、D11-H5、style-factor 等 owner 产物的消费
 - 报告渲染、图表、看板与受众隔离
 - 飞书幂等、投递回执和失败恢复
 - 调度与恢复逻辑不会安装或修复研究侧定时器
 - `refresh_daily_watch20.sh` 只通过 `strategy-pipeline` 公开 CLI 恢复正式 artifact。
 
-分钟因子研究、Hermite、滚动训练、OOS、消融、AI 排名和影子运行等算法测试归 research-workspace 负责，market-intel 不保留重复测试。
+分钟因子研究、Hermite、滚动训练、OOS、消融、AI 排名和影子运行等算法测试归 `quant-research` 负责，market-intel 不保留重复测试。
 
 ## Linux/Hermes 运维测试
 
@@ -119,6 +119,6 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\windows\test_sch
 - `pytest` 与 contract tests 通过
 - CLI help 与 `docs/cli-reference.md` 同步
 - shell、PowerShell、JS 脚本在可用工具下通过静态检查
-- 跨仓功能如果依赖 owner 改动，provider PR 和 research-workspace gitlink 必须先有可审计 commit。
+- 跨仓功能如果依赖 owner 改动，provider PR 和对应 owner commit 必须先有可审计记录。
 
 通过 GitHub connector 创建的 PR 无法替代本机 `uv`/systemd/live-provider 验证。因此这类大规模边界迁移在真实本地门禁和部署 smoke 完成前应保持 Draft。

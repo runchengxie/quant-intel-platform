@@ -46,7 +46,7 @@ def _write_bundle(root: Path, *, include_internal: bool = False) -> Path:
         )
     manifest = PlatformPublicationManifest(
         generated_at=datetime(2026, 9, 2, 5, 20, tzinfo=UTC),
-        producer_repository="runchengxie/research-workspace",
+        producer_repository="runchengxie/quant-research",
         producer_commit="abc123",
         run_id="run-1",
         artifacts=tuple(artifacts),
@@ -62,7 +62,7 @@ def test_market_intel_verifies_declared_artifacts(tmp_path: Path) -> None:
     receipt = verify_platform_publication(manifest_path, allow_internal=True)
 
     assert receipt.consumer == "market-intel"
-    assert receipt.producer_repository == "runchengxie/research-workspace"
+    assert receipt.producer_repository == "runchengxie/quant-research"
     assert [artifact.artifact_id for artifact in receipt.artifacts] == [
         "strategy.evidence",
         "operator.note",

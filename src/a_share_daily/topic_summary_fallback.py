@@ -102,7 +102,11 @@ def build_composite_topic_summary(
         },
         "source_status": source_status,
         "topics": rows,
-        "quality": {"status": "passed", "selected_count": sum(i["count"] for i in rows), "topic_count": len(rows)},
+        "quality": {
+            "status": "passed",
+            "selected_count": sum(i["count"] for i in rows),
+            "topic_count": len(rows),
+        },
     }
 
 
@@ -113,17 +117,26 @@ def _number(value: object) -> float:
         return 0.0
 
 
-def _counts_by_theme(members: pd.DataFrame, evidence: pd.DataFrame, column: str, value: str) -> dict[str, int]:
+def _counts_by_theme(
+    members: pd.DataFrame, evidence: pd.DataFrame, column: str, value: str
+) -> dict[str, int]:
     if evidence.empty or column not in evidence or "ts_code" not in evidence:
         return {}
     selected = evidence[evidence[column].astype(str).str.contains(value, na=False)]
-    return selected.merge(members[["theme_code", "ts_code"]].drop_duplicates(), on="ts_code").groupby("theme_code").size().to_dict()
+    return (
+        selected.merge(members[["theme_code", "ts_code"]].drop_duplicates(), on="ts_code")
+        .groupby("theme_code")
+        .size()
+        .to_dict()
+    )
 
 
 def _moneyflow_by_theme(members: pd.DataFrame, moneyflow: pd.DataFrame) -> dict[str, float]:
     if moneyflow.empty or "net_amount" not in moneyflow or "ts_code" not in moneyflow:
         return {}
-    joined = moneyflow[["ts_code", "net_amount"]].merge(members[["theme_code", "ts_code"]], on="ts_code")
+    joined = moneyflow[["ts_code", "net_amount"]].merge(
+        members[["theme_code", "ts_code"]], on="ts_code"
+    )
     joined["net_amount"] = pd.to_numeric(joined["net_amount"], errors="coerce").fillna(0.0)
     return joined.groupby("theme_code")["net_amount"].sum().to_dict()
 
@@ -133,7 +146,9 @@ def _breadth_by_theme(
 ) -> dict[str, tuple[float, float]]:
     if daily is None or daily.empty or "ts_code" not in daily:
         return {}
-    change_column = "pct_chg" if "pct_chg" in daily else "change_pct" if "change_pct" in daily else ""
+    change_column = (
+        "pct_chg" if "pct_chg" in daily else "change_pct" if "change_pct" in daily else ""
+    )
     if not change_column:
         return {}
     prices = daily[["ts_code", change_column]].copy()

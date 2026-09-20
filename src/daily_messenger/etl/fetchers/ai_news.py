@@ -67,6 +67,7 @@ __all__ = [
     "_call_glm_chat_completions",
     "_extract_glm_text",
     "_build_ai_news_update",
+    "_build_ai_news_runtime_manifest",
     "_call_ai_news_provider",
     "_fetch_ai_news_for_market",
     "_parse_market_news_response",
@@ -91,6 +92,7 @@ from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import Any
 
+from daily_messenger.common.logging import log
 from daily_messenger.common.market_news import (
     AI_NEWS_MARKET_SPECS,
 )
@@ -199,6 +201,7 @@ def fetch_market_news_payload(
     requested_set = set(requested)
     specs_by_market = {spec.market: spec for spec in AI_NEWS_MARKET_SPECS}
     settings_chain = _resolve_ai_news_settings_chain(api_keys)
+    _log_ai_news_runtime(logger, settings_chain)
     primary_settings = settings_chain[0] if settings_chain else None
     provider_label = primary_settings.provider if primary_settings else ""
     model = primary_settings.model if primary_settings else ""
@@ -268,6 +271,40 @@ def fetch_market_news_payload(
     if primary_settings is None:
         payload["error"] = "AI market news is not configured"
     return payload
+
+
+def _build_ai_news_runtime_manifest(
+    settings_chain: list[_AiNewsSettings],
+) -> dict[str, Any]:
+    """Return non-secret metadata for the resolved AI-news provider chain."""
+    if not settings_chain:
+        return {
+            "provider": "",
+            "model": "",
+            "base_url": "",
+            "fallback_order": [],
+        }
+
+    primary = settings_chain[0]
+    return {
+        "provider": primary.provider,
+        "model": primary.model,
+        "base_url": primary.base_url or "",
+        "fallback_order": [settings.provider for settings in settings_chain[1:]],
+    }
+
+
+def _log_ai_news_runtime(
+    logger: logging.Logger | None,
+    settings_chain: list[_AiNewsSettings],
+) -> None:
+    if logger:
+        log(
+            logger,
+            logging.INFO,
+            "ai_news_runtime",
+            **_build_ai_news_runtime_manifest(settings_chain),
+        )
 
 
 def _fetch_ai_market_news(

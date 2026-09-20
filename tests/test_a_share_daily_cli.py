@@ -17,6 +17,7 @@ from a_share_daily import cli
         (["review", "--help"], "--json"),
         (["doctor", "--help"], "--live"),
         (["cashflow-delivery", "--help"], "--selection"),
+        (["weekly-basket", "--help"], "--as-of-date"),
     ],
 )
 def test_a_share_daily_help_smoke(
@@ -51,4 +52,3 @@ def test_require_feishu_chat_id_fails_without_configuration(
 
     assert exc_info.value.code == 1
     assert "MARKET_INTEL_INTERNAL_CHAT_ID" in capsys.readouterr().err
-

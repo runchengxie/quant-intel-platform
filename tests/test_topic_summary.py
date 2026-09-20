@@ -47,7 +47,9 @@ def test_load_topic_summary_validates_contract_and_dates(tmp_path: Path) -> None
         {"topics": [{"topic": "主题", "count": 1, "weight": -1, "rank": 1}]},
     ],
 )
-def test_load_topic_summary_rejects_invalid_payload(tmp_path: Path, overrides: dict[str, object]) -> None:
+def test_load_topic_summary_rejects_invalid_payload(
+    tmp_path: Path, overrides: dict[str, object]
+) -> None:
     path = tmp_path / "topic_summary.json"
     _write(path, **overrides)
 
@@ -90,8 +92,55 @@ def test_generate_topic_reads_daily_watch20_summary(tmp_path: Path) -> None:
     assert output.is_file()
 
 
+def test_generate_topic_uses_percentages_dynamic_top_n_and_concentration(
+    tmp_path: Path, monkeypatch
+) -> None:
+    source = tmp_path / "topic_summary.json"
+    _write(
+        source,
+        topics=[
+            {"topic": "金融地产", "count": 5, "weight": 0.65, "rank": 1},
+            {"topic": "其他", "count": 2, "weight": 0.15, "rank": 2},
+            {"topic": "半导体电子", "count": 1, "weight": 0.10, "rank": 3},
+            {"topic": "通信计算", "count": 1, "weight": 0.05, "rank": 4},
+            {"topic": "高端制造", "count": 1, "weight": 0.05, "rank": 5},
+        ],
+        quality={"status": "passed", "selected_count": 10, "topic_count": 5},
+    )
+    rendered_text: list[str] = []
+    from matplotlib.axes import Axes
+    from matplotlib.figure import Figure
+
+    original_text = Axes.text
+    original_figure_text = Figure.text
+    original_set_title = Axes.set_title
+
+    def capture_text(self, x, y, text, *args, **kwargs):
+        rendered_text.append(str(text))
+        return original_text(self, x, y, text, *args, **kwargs)
+
+    def capture_figure_text(self, x, y, s, *args, **kwargs):
+        rendered_text.append(str(s))
+        return original_figure_text(self, x, y, s, *args, **kwargs)
+
+    def capture_set_title(self, label, *args, **kwargs):
+        rendered_text.append(str(label))
+        return original_set_title(self, label, *args, **kwargs)
+
+    monkeypatch.setattr(Axes, "text", capture_text)
+    monkeypatch.setattr(Figure, "text", capture_figure_text)
+    monkeypatch.setattr(Axes, "set_title", capture_set_title)
+    assert generate_topic(str(source), str(tmp_path / "topic.png"))
+
+    assert "65%" in rendered_text
+    assert any("Top 5" in text for text in rendered_text)
+    assert any("前三主题 90%" in text for text in rendered_text)
+
+
 def test_generate_topic_rejects_legacy_candidate_universe(tmp_path: Path) -> None:
     source = tmp_path / "candidate_universe.json"
-    source.write_text(json.dumps({"topics": [{"topic": "旧主题", "weight": 1.0}]}), encoding="utf-8")
+    source.write_text(
+        json.dumps({"topics": [{"topic": "旧主题", "weight": 1.0}]}), encoding="utf-8"
+    )
 
     assert generate_topic(str(source), str(tmp_path / "topic.png")) is None

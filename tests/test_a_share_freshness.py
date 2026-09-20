@@ -1,6 +1,14 @@
 from __future__ import annotations
 
-from a_share_daily.freshness import build_freshness_report, render_freshness_section
+import json
+
+import pytest
+
+from a_share_daily.freshness import (
+    build_freshness_report,
+    load_freshness_snapshot,
+    render_freshness_section,
+)
 
 
 def test_freshness_report_marks_expected_delay_and_stale_after_retries() -> None:
@@ -95,3 +103,28 @@ def test_freshness_report_can_skip_dataset_by_config() -> None:
     assert by_dataset["kpl_list"]["detail"] == "已按配置暂时关闭"
     assert "optional_degraded 0 项" in text
     assert "已跳过 开盘啦涨停池(kpl_list)：已按配置暂时关闭" in text
+
+
+def test_load_freshness_snapshot_requires_matching_schema_and_target_date(tmp_path) -> None:
+    snapshot = build_freshness_report(
+        latest_by_dataset={"daily": "20260907"},
+        target_date="20260907",
+        premium_enabled=True,
+    )
+    snapshot.update(
+        {
+            "schema_version": "a_share.freshness.snapshot.v1",
+            "snapshot_id": "mdp-20260907-test",
+        }
+    )
+    path = tmp_path / "freshness.json"
+    path.write_text(json.dumps(snapshot), encoding="utf-8")
+
+    loaded = load_freshness_snapshot(path, target_date="20260907")
+
+    assert loaded["snapshot_id"] == "mdp-20260907-test"
+    assert loaded["snapshot_source"] == "frozen_snapshot"
+    assert loaded["datasets"] == {"daily": "20260907"}
+
+    with pytest.raises(ValueError, match="target_date"):
+        load_freshness_snapshot(path, target_date="20260908")

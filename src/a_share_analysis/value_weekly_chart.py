@@ -14,7 +14,7 @@ import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
-from matplotlib.patches import FancyBboxPatch, Patch
+from matplotlib.patches import FancyBboxPatch
 
 from a_share_daily.charts.theme import (
     ACCENT,
@@ -31,13 +31,13 @@ INK = LIGHT.FG
 MUTED = LIGHT.MUTED
 GRID = LIGHT.LINE
 BLUE = ACCENT
-BLUE_LIGHT = "#dce5ff"
+BLUE_LIGHT = "#f0d8cf"
 GOLD = LIGHT.YELLOW
 GOLD_LIGHT = "#fff0c9"
 GREY_BAR = LIGHT.FLAT
 
 
-def _set_text(ax: plt.Axes, x: float, y: float, text: str, **kwargs: Any) -> None:
+def _set_text(ax: Any, x: float, y: float, text: str, **kwargs: Any) -> None:
     kwargs.setdefault("fontproperties", CJK)
     ax.text(x, y, text, **kwargs)
 
@@ -110,8 +110,8 @@ def _plot_nav(
 ) -> None:
     _style_panel(
         ax,
-        "近 104 周价值多空净值",
-        "蓝色＝基础 1/PB；金色＝价值簇复合；背景＝趋势延续区制",
+        "03 · 历史路径｜近 104 周价值因子净值",
+        "主线＝基础 1/PB；虚线＝综合价值口径；浅色区＝趋势延续",
     )
     normalized = recent["cum"] / recent["cum"].iloc[0] * 100
     _momentum_spans(ax, recent)
@@ -150,12 +150,20 @@ def _plot_nav(
 
 
 def _plot_signal(ax: plt.Axes, recent: pd.DataFrame) -> None:
-    _style_panel(ax, "12 周滚动复利收益", "虚线＝趋势阈值 +5%；灰线＝0%")
+    _style_panel(ax, "01 · 当前区制｜12 周滚动复利收益", "高于 +5% 时定义为趋势延续")
     values = recent["ret_12w"] * 100
     ax.axhline(0, color=GREY_BAR, linewidth=1)
     ax.axhline(5, color=GOLD, linewidth=1.2, linestyle="--")
     ax.plot(recent.index, values, color=BLUE, linewidth=1.8)
-    ax.fill_between(recent.index, 0, values, color=BLUE_LIGHT, alpha=0.55)
+    ax.fill_between(
+        recent.index,
+        5,
+        values,
+        where=values >= 5,
+        color=BLUE_LIGHT,
+        alpha=0.75,
+        interpolate=True,
+    )
     ax.scatter(recent.index[-1], values.iloc[-1], color=GOLD, s=28, zorder=3)
     ax.annotate(
         f"{values.iloc[-1]:+.1f}%",
@@ -186,12 +194,11 @@ def _plot_forward(
         f"中位数与 25%–75% 区间；{current['count']} 个周观察 / "
         f"{current['episode_count']} 段连续区制"
     )
-    _style_panel(ax, "前瞻收益分布", subtitle)
+    _style_panel(ax, "04 · 历史参考｜当前区制后的前瞻收益", subtitle)
 
     labels = ["4 周", "13 周", "26 周", "52 周"]
     keys = ["4w", "13w", "26w", "52w"]
-    x = np.arange(len(keys))
-    width = 0.26
+    y = np.arange(len(keys))
 
     def values(pattern: dict) -> tuple[np.ndarray, np.ndarray]:
         medians = np.array([pattern["fwd_returns"][key]["median"] for key in keys], dtype=float)
@@ -206,57 +213,69 @@ def _plot_forward(
         values(cluster_current) if cluster_current is not None else (None, None)
     )
     baseline_medians, baseline_errors = values(baseline)
-    ax.axhline(0, color=GREY_BAR, linewidth=1)
-    ax.bar(
-        x - width,
+    ax.axvline(0, color=GREY_BAR, linewidth=1)
+    ax.errorbar(
         current_medians,
-        width,
-        yerr=current_errors,
+        y,
+        xerr=current_errors,
+        fmt="o",
         color=GOLD,
-        alpha=0.92,
-        capsize=2,
-        error_kw={"ecolor": INK, "elinewidth": 0.8},
+        ecolor=INK,
+        elinewidth=1,
+        capsize=3,
+        markersize=5,
+        label=f"{regime_label}·基础",
     )
     if cluster_current is not None:
         assert cluster_medians is not None
         assert cluster_errors is not None
-        ax.bar(
-            x,
+        ax.errorbar(
             cluster_medians,
-            width,
-            yerr=cluster_errors,
+            y,
+            xerr=cluster_errors,
+            fmt="s",
             color=BLUE,
-            alpha=0.85,
-            capsize=2,
-            error_kw={"ecolor": INK, "elinewidth": 0.8},
+            ecolor=BLUE,
+            elinewidth=1,
+            capsize=3,
+            markersize=4,
+            label=f"{regime_label}·价值簇",
         )
-    ax.bar(
-        x + width,
+    ax.errorbar(
         baseline_medians,
-        width,
-        yerr=baseline_errors,
+        y,
+        xerr=baseline_errors,
+        fmt="o",
         color=GREY_BAR,
-        alpha=0.85,
-        capsize=2,
-        error_kw={"ecolor": MUTED, "elinewidth": 0.8},
+        ecolor=MUTED,
+        elinewidth=1,
+        capsize=3,
+        markersize=4,
+        label="全样本",
     )
-    for position, value in zip(x - width, current_medians, strict=True):
-        ax.text(position, value, f"{value:+.1f}", ha="center", va="bottom", fontsize=7, color=INK)
-    if cluster_current is not None:
-        assert cluster_medians is not None
-        for position, value in zip(x, cluster_medians, strict=True):
-            ax.text(
-                position, value, f"{value:+.1f}", ha="center", va="bottom", fontsize=7, color=BLUE
-            )
-    ax.set_xticks(x, labels, fontproperties=CJK)
-    ax.set_ylabel("收益率（%）", color=MUTED, fontsize=8, fontproperties=CJK)
-    handles = [
-        Patch(facecolor=GOLD, label=f"{regime_label}·基础"),
-        Patch(facecolor=GREY_BAR, label="全样本"),
-    ]
-    if cluster_current is not None:
-        handles.insert(1, Patch(facecolor=BLUE, label=f"{regime_label}·价值簇"))
-    ax.legend(handles=handles, frameon=False, loc="upper left", fontsize=7.5, prop=CJK)
+    ax.set_yticks(y, labels, fontproperties=CJK)
+    ax.set_xlabel("收益率（%）", color=MUTED, fontsize=8, fontproperties=CJK)
+    ax.legend(frameon=False, loc="lower right", fontsize=7.5, prop=CJK, ncol=3)
+
+
+def _add_metric_strip(
+    fig: plt.Figure,
+    *,
+    last: pd.Series,
+    percentile: float,
+    streak: int,
+) -> None:
+    metrics = (
+        ("12 周复利", f"{last['ret_12w'] * 100:+.1f}%"),
+        ("历史分位", f"{percentile:.0f}%"),
+        ("当前回撤", f"{last['drawdown']:.1f}%"),
+        ("12 周波动", f"{last['vol_12w'] * 100:.1f}%"),
+    )
+    for x, (label, value) in zip((0.055, 0.285, 0.515, 0.745), metrics, strict=True):
+        _set_text(fig, x, 0.835, label, fontsize=8, color=MUTED)
+        _set_text(fig, x, 0.795, value, fontsize=15, color=INK, fontweight="bold")
+    regime_label = "趋势延续" if str(last["regime"]) == "MOMENTUM" else "中性"
+    _set_text(fig, 0.055, 0.755, f"{regime_label} · 已持续 {streak} 周", fontsize=8.5, color=BLUE)
 
 
 def _add_header(
@@ -345,7 +364,6 @@ def generate_value_weekly_card(
     """
     last = df.iloc[-1]
     regime = str(last["regime"])
-    regime_label = "趋势延续" if regime == "MOMENTUM" else "中性"
     streak = _current_streak(df)
     percentile = float((df["ret_12w"] <= last["ret_12w"]).mean() * 100)
     recent = df.tail(104)
@@ -366,18 +384,10 @@ def generate_value_weekly_card(
     )
 
     _add_header(fig, grid, as_of_date=as_of_date, expected_through=expected_through)
-    _add_kpis(
-        fig,
-        grid,
-        last=last,
-        regime=regime,
-        regime_label=regime_label,
-        streak=streak,
-        percentile=percentile,
-    )
+    _add_metric_strip(fig, last=last, percentile=percentile, streak=streak)
 
-    _plot_nav(fig.add_subplot(grid[4:8, :]), recent, cluster_recent=cluster_recent)
-    _plot_signal(fig.add_subplot(grid[8:11, :]), recent)
+    _plot_signal(fig.add_subplot(grid[4:8, :]), recent)
+    _plot_nav(fig.add_subplot(grid[8:11, :]), recent, cluster_recent=cluster_recent)
     _plot_forward(fig.add_subplot(grid[11:15, :]), patterns, regime, cluster_patterns)
 
     footer_target = expected_through.strftime("%Y-%m-%d") if expected_through else "未指定"

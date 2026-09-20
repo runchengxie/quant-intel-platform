@@ -8,7 +8,7 @@
 
 ## 研究产物
 
-研究产物是研究仓生成的结果，例如 DailyWatch20 选股结果、因子结果和策略回执。平台读取这些结果，检查日期、字段和哈希，然后继续生成报告。
+研究产物是由 `quant-research`、`quant-platform` 或 `strategy-pipeline` 生成的结果，例如 DailyWatch20 选股结果、因子结果和策略回执。平台读取这些结果，检查日期、字段和哈希，然后继续生成报告。
 
 ## 报告平台
 
@@ -36,8 +36,8 @@
 market-data-platform
   提供数据
 
-research-workspace
-  生成研究产物
+quant-research / quant-platform / strategy-pipeline
+  生成并发布研究产物
 
 quant-intel-platform
   校验、渲染和投递
