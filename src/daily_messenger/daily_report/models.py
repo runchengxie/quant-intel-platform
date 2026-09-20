@@ -201,21 +201,16 @@ class DailyReport:
         values["claims"] = tuple(ResearchClaim.from_dict(item) for item in values.get("claims", ()))
         values["missing_sources"] = tuple(values.get("missing_sources", ()))
         return cls(
-            **{
-                field_name: values.get(field_name)
-                for field_name in (
-                    "schema_version",
-                    "as_of",
-                    "generated_at",
-                    "run_id",
-                    "sections",
-                    "facts",
-                    "events",
-                    "claims",
-                    "missing_sources",
-                    "quality_summary",
-                    "source_status",
-                    "content_hash",
-                )
-            }
+            schema_version=values["schema_version"],
+            as_of=values["as_of"],
+            generated_at=values["generated_at"],
+            run_id=values["run_id"],
+            sections=values["sections"],
+            facts=values["facts"],
+            events=values["events"],
+            claims=values["claims"],
+            missing_sources=values["missing_sources"],
+            quality_summary=values.get("quality_summary", {}),
+            source_status=values.get("source_status", {}),
+            content_hash=values.get("content_hash"),
         )

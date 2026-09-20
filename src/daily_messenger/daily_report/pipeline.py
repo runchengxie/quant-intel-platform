@@ -77,7 +77,7 @@ def run_daily_report(
     digest = hashlib.sha256(
         json.dumps(base, default=str, sort_keys=True, ensure_ascii=False).encode()
     ).hexdigest()
-    report = DailyReport(**{**report.__dict__, "content_hash": digest})
+    report = replace(report, content_hash=digest)
     write_json(output_path / "daily_report.json", report)
     return report
 
