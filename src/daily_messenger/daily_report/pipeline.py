@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from dataclasses import replace
+from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
@@ -12,6 +12,13 @@ from typing import Any
 from .facts import build_market_facts
 from .models import DailyReport, ReportSection
 from .serialization import write_json
+
+
+@dataclass(frozen=True)
+class ShadowRunResult:
+    artifact_path: str
+    source_coverage: float
+    degraded_sections: list[str]
 
 
 def _fixture_payloads(as_of: datetime) -> dict[str, Any]:
@@ -73,3 +80,21 @@ def run_daily_report(
     report = DailyReport(**{**report.__dict__, "content_hash": digest})
     write_json(output_path / "daily_report.json", report)
     return report
+
+
+def shadow_run(
+    date: str,
+    output_dir: str | Path,
+    *,
+    provider_config: dict[str, Any] | None = None,
+) -> ShadowRunResult:
+    cutoff = datetime.fromisoformat(date).replace(hour=1, tzinfo=UTC)
+    report = run_daily_report(cutoff, output_dir, provider_config=provider_config)
+    degraded = [
+        name for name, status in report.source_status.items() if status.get("quality") == "degraded"
+    ]
+    return ShadowRunResult(
+        artifact_path=str(Path(output_dir) / "daily_report.json"),
+        source_coverage=1.0 if report.facts else 0.0,
+        degraded_sections=degraded,
+    )
