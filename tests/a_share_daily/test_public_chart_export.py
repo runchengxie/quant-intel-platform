@@ -37,7 +37,10 @@ def manifest_fixture() -> dict:
             "degraded": ["moneyflow"],
             "failed": ["topic"],
             "skipped": [],
-            "errors": {"topic": "private /home/richard/raw.json", "moneyflow": "20260918 缺失"},
+            "errors": {
+                "topic": "private /home/richard/raw.json",
+                "moneyflow": "moneyflow_ths 20260918 暂缺，使用最新可用 20260917",
+            },
             "paths": {
                 "dashboard": "/home/richard/daily_dashboard.png",
                 "topic": "/home/richard/placeholder.png",
@@ -85,6 +88,45 @@ def test_evening_export_has_separate_identity(manifest_fixture: dict):
     assert evening["content_sha256"] != morning["content_sha256"]
     assert len(evening["charts"]) == 6
     assert evening["charts"][3]["title"] == "市场温度计"
+    assert evening["charts"][3]["status"] == "missing"
+    assert evening["charts"][3]["points"] == []
+
+
+def test_error_is_not_promoted_to_ok_even_with_retained_points(manifest_fixture: dict):
+    manifest_fixture["charts"]["ok"].append("topic")
+    manifest_fixture["charts"]["failed"].remove("topic")
+    manifest_fixture["charts"]["public_points"]["topic"] = [point()]
+    output = export_candidate(manifest_fixture, date="20260918", kind="morning")
+    topic = next(card for card in output["charts"] if card["key"] == "topic")
+    assert topic["status"] == "missing"
+    assert topic["points"] == []
+
+
+def test_arbitrary_moneyflow_error_is_not_treated_as_fallback(manifest_fixture: dict):
+    manifest_fixture["charts"]["errors"]["moneyflow"] = "render failed"
+    output = export_candidate(manifest_fixture, date="20260918", kind="morning")
+    moneyflow = next(card for card in output["charts"] if card["key"] == "moneyflow")
+    assert moneyflow["status"] == "missing"
+
+
+def test_stale_moneyflow_cannot_be_ok_even_with_wrong_upstream_status(
+    manifest_fixture: dict,
+):
+    manifest_fixture["charts"]["degraded"].remove("moneyflow")
+    manifest_fixture["charts"]["ok"].append("moneyflow")
+    manifest_fixture["charts"]["errors"].pop("moneyflow")
+    output = export_candidate(manifest_fixture, date="20260918", kind="morning")
+    moneyflow = next(card for card in output["charts"] if card["key"] == "moneyflow")
+    assert moneyflow["status"] == "degraded"
+    assert moneyflow["points"][0]["observation_date"] == "2026-09-17"
+
+
+def test_partial_us_points_are_marked_degraded(manifest_fixture: dict):
+    manifest_fixture["charts"]["ok"].append("us_overnight")
+    manifest_fixture["charts"]["public_points"]["us_overnight"] = [point("2026-09-17")]
+    output = export_candidate(manifest_fixture, date="20260918", kind="morning")
+    us = next(card for card in output["charts"] if card["key"] == "us_overnight")
+    assert us["status"] == "degraded"
 
 
 def test_export_rejects_wrong_date_kind_and_non_object(manifest_fixture: dict):
