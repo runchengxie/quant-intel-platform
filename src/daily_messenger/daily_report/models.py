@@ -21,6 +21,7 @@ class MarketFact:
     source_time: datetime
     retrieved_at: datetime
     quality: str
+    observation_date: str | None = None
 
     schema_version: ClassVar[str] = "1.0"
 
@@ -50,7 +51,9 @@ class MarketFact:
         for name in ("source_time", "retrieved_at"):
             if isinstance(values[name], str):
                 values[name] = datetime.fromisoformat(values[name])
-        return cls(**{name: values[name] for name in required})
+        result = {name: values[name] for name in required}
+        result["observation_date"] = values.get("observation_date")
+        return cls(**result)
 
 
 @dataclass(frozen=True)

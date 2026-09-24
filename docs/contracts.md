@@ -642,4 +642,4 @@ message id，消息内容 hash 必须等于对应 presentation，源 selection r
 3. 更新对应快照测试
 ## Evidence-linked market daily report
 
-`daily_report.json` is the public report artifact. It contains `schema_version`, `as_of`, `generated_at`, `run_id`, deterministic `facts`, source-backed `events`, research `claims`, `source_status` and `quality_summary`. Each claim must reference `evidence_ids` and `sources`. The report cutoff is authoritative, and sources after that cutoff are excluded.
+`daily_report.json` is the public report artifact. It contains `schema_version`, `as_of`, `generated_at`, `run_id`, deterministic `facts`, source-backed `events`, research `claims`, `source_status` and `quality_summary`. Each claim must reference `evidence_ids` and `sources`. The report cutoff is authoritative, and sources after that cutoff are excluded. FRED macro facts additionally include optional `observation_date` (the series observation date); `source_time` records when the source was read. A `fixture` quality status must never be published as live data.
