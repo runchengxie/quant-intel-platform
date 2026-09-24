@@ -47,6 +47,9 @@ def test_runner_requests_live_read_only_search_and_writes_review_draft(monkeypat
     assert "--output-schema" in command
     assert "--dangerously-bypass-approvals-and-sandbox" not in command
     assert "2026-09-18" in command[-1]
+    assert "company investor-relations releases" in command[-1]
+    assert "after-close market drivers" in command[-1]
+    assert "do not fill a quota" in command[-1]
     assert captured["kwargs"]["timeout"] == 480
     artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
     assert artifact["market_date"] == "2026-09-18"
