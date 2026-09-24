@@ -75,9 +75,11 @@ export MDP_DIR=/path/to/quant-market-data-platform
 - 晚报清单：`evening_manifest.json`
 - 晚报复盘：`evening_review.json`、`evening_review.md`，其中 `market_temperature` 是可审计的确定性解释层
 - 图表：`out/a_share_daily/*.png`
+- 网页图表候选：`market_intel.a_share_charts.v1` JSON，仅含经过字段白名单筛选的六图数值、原始观测日、来源和质量状态；候选本身不等于已批准公开
 - 日间验证归档：`out/a_share_daily/history/evening_review_YYYYMMDD.json` 及对应 Markdown/温度图
 
 这些产物通过契约和测试约束。投递层只消费这些文件，不向 LLM 请求新的事实判断。
+网页图表候选必须写在仓库外，不能把私有 manifest、图表 PNG 路径或原始明细直接复制到公开站。后续公开审核与发布由 Pages 和部署仓库各自负责。
 
 晨报入口：
 
