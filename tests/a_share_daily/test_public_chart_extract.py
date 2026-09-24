@@ -109,10 +109,41 @@ def test_dashboard_retains_mixed_units_and_component_dates():
     )
 
 
+def test_dashboard_margin_rows_keep_their_own_source():
+    inputs = {
+        "daily": pd.DataFrame([{"pct_chg": 1.0}]),
+        "limit_up_count": 1,
+        "max_board": 1,
+        "turnover": pd.DataFrame([{"date": "20260918", "amount": 2.0}]),
+        "margin": pd.DataFrame([{"date": "20260916", "rzye": 900.0}]),
+        "dashboard_margin_source_label": "两融数据",
+        "dashboard_margin_source_url": "https://example.test/margin",
+        **metadata("dashboard"),
+    }
+    points = extract_chart_points("dashboard", inputs, "2026-09-18")
+    margin = next(point for point in points if point["label"].startswith("融资余额"))
+    assert margin["source_url"] == "https://example.test/margin"
+
+
+def test_unobserved_limit_counts_are_not_exported_as_zero():
+    inputs = {
+        "daily": pd.DataFrame({"pct_chg": [1.0, -1.0]}),
+        "limit_up_count": 0,
+        "limit_up_observed": False,
+        **metadata("sentiment"),
+    }
+    labels = {p["label"] for p in extract_chart_points("sentiment", inputs, "2026-09-18")}
+    assert "涨停家数" not in labels
+
+
 def test_overnight_requires_each_symbols_actual_close_date():
     inputs = {
         "us_stocks": {
-            "SPY": {"pct_chg": 1.2, "as_of_date": "2026-09-17"},
+            "SPY": {
+                "pct_chg": 1.2,
+                "as_of_date": "2026-09-17",
+                "source_url": "https://finance.yahoo.com/quote/SPY/history/",
+            },
             "QQQ": {"pct_chg": -0.8},
         },
         **metadata("us_overnight"),
@@ -121,6 +152,7 @@ def test_overnight_requires_each_symbols_actual_close_date():
     assert [(p["label"], p["value"], p["observation_date"]) for p in points] == [
         ("标普500", 1.2, "2026-09-17")
     ]
+    assert points[0]["source_url"] == "https://finance.yahoo.com/quote/SPY/history/"
 
 
 def test_live_us_snapshot_captures_yfinance_close_row_date(monkeypatch):
@@ -131,4 +163,9 @@ def test_live_us_snapshot_captures_yfinance_close_row_date(monkeypatch):
         sys.modules, "yfinance", SimpleNamespace(download=lambda *args, **kwargs: frame)
     )
     quotes = _fetch_us_stocks()
-    assert quotes["SPY"] == {"close": 102.0, "pct_chg": 2.0, "as_of_date": "2026-09-17"}
+    assert quotes["SPY"] == {
+        "close": 102.0,
+        "pct_chg": 2.0,
+        "as_of_date": "2026-09-17",
+        "source_url": "https://finance.yahoo.com/quote/SPY/history/",
+    }

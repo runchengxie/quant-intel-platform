@@ -184,6 +184,7 @@ def _fetch_us_stocks() -> dict[str, Any]:
                         "close": round(latest, 2),
                         "pct_chg": round(pct, 2),
                         "as_of_date": cs.index[-1].date().isoformat(),
+                        "source_url": f"https://finance.yahoo.com/quote/{sym}/history/",
                     }
                 else:
                     result[sym] = {"error": "insufficient data"}

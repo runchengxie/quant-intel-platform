@@ -72,9 +72,21 @@ def _sentiment(inputs: Mapping[str, object], source: Mapping[str, str]) -> list[
         ("平盘家数", flat, "家"),
         ("个股总数", total, "家"),
         ("平均涨跌", average, "%"),
-        ("涨停家数", inputs["limit_up_count"], "家"),
     ]
-    return [_point(label, value, unit, day, source) for label, value, unit in rows]
+    points = [_point(label, value, unit, day, source) for label, value, unit in rows]
+    if inputs.get("limit_up_observed", True):
+        limit_source = _component_source(inputs, "limit_up", source)
+        points.append(_point("涨停家数", inputs["limit_up_count"], "家", day, limit_source))
+    return points
+
+
+def _component_source(
+    inputs: Mapping[str, object], component: str, default: Mapping[str, str]
+) -> dict[str, str]:
+    return {
+        "source_label": str(inputs.get(f"{component}_source_label", default["source_label"])),
+        "source_url": str(inputs.get(f"{component}_source_url", default["source_url"])),
+    }
 
 
 def _dashboard(inputs: Mapping[str, object], source: Mapping[str, str]) -> list[dict[str, object]]:
@@ -86,15 +98,37 @@ def _dashboard(inputs: Mapping[str, object], source: Mapping[str, str]) -> list[
         _point("下跌家数", down, "家", day, source),
         _point("平盘家数", flat, "家", day, source),
         _point("平均涨跌", average, "%", day, source),
-        _point("涨停家数", inputs["limit_up_count"], "家", day, source),
-        _point("最高连板", inputs["max_board"], "板", day, source),
     ]
+    if inputs.get("limit_up_observed", True):
+        rows.append(
+            _point(
+                "涨停家数",
+                inputs["limit_up_count"],
+                "家",
+                day,
+                _component_source(inputs, "limit_up", source),
+            )
+        )
+    if inputs.get("max_board_observed", True):
+        rows.append(
+            _point(
+                "最高连板",
+                inputs["max_board"],
+                "板",
+                day,
+                _component_source(inputs, "max_board", source),
+            )
+        )
     for row in _frame(inputs["turnover"], "turnover").to_dict("records"):
         observed = _iso(row["date"])
         rows.append(_point(f"成交额 {observed}", row["amount"], "亿", observed, source))
+    margin_source = {
+        "source_label": str(inputs.get("dashboard_margin_source_label", source["source_label"])),
+        "source_url": str(inputs.get("dashboard_margin_source_url", source["source_url"])),
+    }
     for row in _frame(inputs["margin"], "margin").to_dict("records"):
         observed = _iso(row["date"])
-        rows.append(_point(f"融资余额 {observed}", row["rzye"], "亿", observed, source))
+        rows.append(_point(f"融资余额 {observed}", row["rzye"], "亿", observed, margin_source))
     return rows
 
 
@@ -165,9 +199,13 @@ def _overnight(inputs: Mapping[str, object], source: Mapping[str, str]) -> list[
         if not isinstance(raw_quote, Mapping):
             continue
         quote = cast("Mapping[str, object]", raw_quote)
-        if "pct_chg" not in quote or not quote.get("as_of_date"):
+        if "pct_chg" not in quote or not quote.get("as_of_date") or not quote.get("source_url"):
             continue
-        rows.append(_point(label, quote["pct_chg"], "%", _iso(quote["as_of_date"]), source))
+        quote_source = {
+            "source_label": source["source_label"],
+            "source_url": str(quote["source_url"]),
+        }
+        rows.append(_point(label, quote["pct_chg"], "%", _iso(quote["as_of_date"]), quote_source))
     return rows
 
 

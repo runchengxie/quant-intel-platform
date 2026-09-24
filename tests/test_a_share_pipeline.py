@@ -268,6 +268,8 @@ def test_step_charts_skips_premium_charts_by_default(
     result = pipeline.step_charts("20260630", universe_json="")
 
     assert {"topic", "moneyflow"} == set(result["skipped"])
+    assert result["public_points"]["sentiment"][0]["observation_date"] == "2026-06-30"
+    assert result["public_points"]["sentiment"][0]["source_url"].startswith("https://")
     assert "topic" not in result["degraded"]
     assert "moneyflow" not in result["degraded"]
     assert "topic" not in result["failed"]
