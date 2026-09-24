@@ -27,7 +27,7 @@ FIELDS = (
 )
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 MODEL = "gpt-6-sol"
-CODEX_TIMEOUT_SECONDS = 240
+CODEX_TIMEOUT_SECONDS = 480
 
 
 class WebResearchError(RuntimeError):
