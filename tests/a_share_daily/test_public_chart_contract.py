@@ -56,6 +56,8 @@ def test_candidate_has_six_ordered_cards_and_a_stable_hash():
         ({"source_url": ""}, "source_url"),
         ({"observation_date": "2026-09-31"}, "observation_date"),
         ({"label": "/home/richard/private"}, "private"),
+        ({"source_label": "api_key=private-value"}, "secret"),
+        ({"source_url": "https://localhost/source"}, "public HTTPS"),
     ],
 )
 def test_candidate_rejects_unverified_points(change: dict, message: str):
@@ -94,3 +96,11 @@ def test_write_candidate_is_atomic_and_outside_repository(tmp_path: Path):
     assert json.loads(path.read_text(encoding="utf-8"))["report_id"] == "2026-09-18-morning"
     with pytest.raises(ValueError, match="repository"):
         write_candidate(Path(__file__).resolve().parents[2] / "candidate.json", candidate())
+
+
+def test_writer_refuses_modified_candidate_payload(tmp_path: Path):
+    payload = candidate()
+    payload["private_path"] = "/home/richard/secret.json"
+    with pytest.raises(ValueError, match="candidate"):
+        write_candidate(tmp_path / "bad.json", payload)
+    assert not (tmp_path / "bad.json").exists()

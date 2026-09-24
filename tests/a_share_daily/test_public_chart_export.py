@@ -96,6 +96,75 @@ def test_export_rejects_wrong_date_kind_and_non_object(manifest_fixture: dict):
         export_candidate([], date="20260918", kind="morning")
 
 
+def test_candidate_cli_is_deterministic_and_whitelisted(
+    tmp_path: Path, manifest_fixture: dict, monkeypatch: pytest.MonkeyPatch
+):
+    manifest_path = tmp_path / "manifest.json"
+    manifest_path.write_text(json.dumps(manifest_fixture), encoding="utf-8")
+    outputs = [tmp_path / "one.json", tmp_path / "two.json"]
+    for output in outputs:
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "a-share-daily",
+                "chart-candidate",
+                "--manifest",
+                str(manifest_path),
+                "--out",
+                str(output),
+                "--date",
+                "20260918",
+                "--kind",
+                "morning",
+            ],
+        )
+        cli.main()
+    assert outputs[0].read_bytes() == outputs[1].read_bytes()
+    candidate = json.loads(outputs[0].read_text(encoding="utf-8"))
+    assert set(candidate) == {
+        "schema_version",
+        "publication",
+        "report_id",
+        "date",
+        "kind",
+        "generated_at",
+        "charts",
+        "content_sha256",
+    }
+    assert "feishu_chat_id" not in outputs[0].read_text(encoding="utf-8")
+    assert "/home/" not in outputs[0].read_text(encoding="utf-8")
+
+
+def test_invalid_point_does_not_overwrite_existing_candidate(
+    tmp_path: Path, manifest_fixture: dict, monkeypatch: pytest.MonkeyPatch
+):
+    manifest_fixture["charts"]["public_points"]["dashboard"][0]["value"] = float("inf")
+    manifest_path = tmp_path / "bad.json"
+    output = tmp_path / "candidate.json"
+    output.write_text("previous reviewed candidate", encoding="utf-8")
+    manifest_path.write_text(json.dumps(manifest_fixture), encoding="utf-8")
+    monkeypatch.setattr(
+        sys,
+        "argv",
+        [
+            "a-share-daily",
+            "chart-candidate",
+            "--manifest",
+            str(manifest_path),
+            "--out",
+            str(output),
+            "--date",
+            "20260918",
+            "--kind",
+            "morning",
+        ],
+    )
+    with pytest.raises(SystemExit, match="1"):
+        cli.main()
+    assert output.read_text(encoding="utf-8") == "previous reviewed candidate"
+
+
 def test_chart_candidate_cli_writes_only_to_external_path(
     tmp_path: Path,
     manifest_fixture: dict,

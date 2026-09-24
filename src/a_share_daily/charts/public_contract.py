@@ -3,20 +3,25 @@
 from __future__ import annotations
 
 import hashlib
+import ipaddress
 import json
 import math
 import os
+import re
 from collections.abc import Mapping
 from datetime import date as date_type
 from datetime import datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-from typing import Any
+from typing import Any, cast
 from urllib.parse import urlsplit
 
 CHART_KEYS = ("dashboard", "moneyflow", "topic", "sentiment", "us_overnight", "weekly_chart")
 SCHEMA = "market_intel.a_share_charts.v1"
 _REPO_ROOT = Path(__file__).resolve().parents[3]
+_SECRET_PATTERN = re.compile(
+    r"(?i)(?:api[_-]?key|access[_-]?token|secret|password|bearer)\s*[:=]|\b(?:sk-|ghp_)[A-Za-z0-9_-]{8,}"
+)
 
 
 def _date(value: object, field: str) -> str:
@@ -37,6 +42,8 @@ def _text(value: object, field: str) -> str:
     cleaned = value.strip()
     if cleaned.startswith(("/", "file://", "\\")) or "/home/" in cleaned:
         raise ValueError(f"{field} contains a private path")
+    if _SECRET_PATTERN.search(cleaned):
+        raise ValueError(f"{field} contains a secret-like value")
     return cleaned
 
 
@@ -51,7 +58,19 @@ def _point(value: object) -> dict[str, object]:
         raise ValueError("point value must be finite")
     source_url = _text(value.get("source_url"), "source_url")
     parsed = urlsplit(source_url)
-    if parsed.scheme != "https" or not parsed.hostname or parsed.username or parsed.password:
+    hostname = parsed.hostname or ""
+    private_host = hostname in {"localhost"} or hostname.endswith((".local", ".internal"))
+    try:
+        private_host = private_host or not ipaddress.ip_address(hostname).is_global
+    except ValueError:
+        private_host = private_host or "." not in hostname
+    if (
+        parsed.scheme != "https"
+        or not hostname
+        or parsed.username
+        or parsed.password
+        or private_host
+    ):
         raise ValueError("source_url must be a public HTTPS URL")
     return {
         "label": _text(value.get("label"), "label"),
@@ -130,6 +149,42 @@ def build_candidate(
 
 def write_candidate(path: Path, payload: Mapping[str, object]) -> None:
     """Write a reviewed-shape *candidate* atomically outside the source repo."""
+    expected_keys = {
+        "schema_version",
+        "publication",
+        "report_id",
+        "date",
+        "kind",
+        "generated_at",
+        "charts",
+        "content_sha256",
+    }
+    if set(payload) != expected_keys or not isinstance(payload.get("charts"), list):
+        raise ValueError("candidate payload has unexpected fields")
+    raw_cards = cast("list[object]", payload["charts"])
+    if len(raw_cards) != len(CHART_KEYS) or any(
+        not isinstance(card, Mapping) for card in raw_cards
+    ):
+        raise ValueError("candidate payload has invalid charts")
+    cards = {
+        cast("str", cast("Mapping[str, object]", card).get("key")): cast(
+            "Mapping[str, object]", card
+        )
+        for card in raw_cards
+    }
+    if len(cards) != len(CHART_KEYS):
+        raise ValueError("candidate payload has duplicate charts")
+    try:
+        rebuilt = build_candidate(
+            cast("str", payload["date"]),
+            cast("str", payload["kind"]),
+            cards,
+            cast("str", payload["generated_at"]),
+        )
+    except (TypeError, ValueError) as exc:
+        raise ValueError("candidate payload is invalid") from exc
+    if rebuilt != payload:
+        raise ValueError("candidate payload differs from validated contract")
     destination = path.resolve()
     if destination.is_relative_to(_REPO_ROOT):
         raise ValueError("candidate output must be outside the repository")

@@ -89,6 +89,8 @@ Layer 3: Windows evening pipeline           19:00  → evening_pipeline.ps1 → 
 
 `evening_pipeline.sh` 会先运行数据刷新和图表生成。高权限 TuShare 数据默认关闭时，会跳过热点主题和 `moneyflow_ths` 图。设置 `A_SHARE_ENABLE_TUSHARE_PREMIUM=1` 后，缺少当日热点主题或 `moneyflow_ths` 时会生成中文占位图，避免发送上一交易日残留图片。晚报投递端优先读取 `evening_manifest.json` 中的图表路径，只发送本次运行产物。
 
+网页图表另走离线候选边界：晨报流水线在私有 `charts.public_points` 记录六图生成时用到的有限点集；`a-share-daily chart-candidate` 按显式日期和晨/晚身份导出仓库外 `market_intel.a_share_charts.v1` JSON。该命令不刷新数据、不读 PNG、不发送飞书，也不直接写 Pages。旧跨市场快照没有每只美股的 `as_of_date` 与行情来源 URL 时，美股点集保持缺项；新快照在下载时记录这两个字段。晚报借用同日图表数据，但 `report_id` 和候选文件名需分别使用 `evening`，不可覆盖晨报候选。
+
 ## 时间轴全景
 
 ```
