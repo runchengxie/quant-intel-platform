@@ -18,7 +18,7 @@ INDEX_IDS = {
     "nasdaq": "Nasdaq Composite",
     "russell2000": "Russell 2000",
 }
-INDEX_SOURCE_HOSTS = {"abcnews.com", "apnews.com"}
+INDEX_SOURCE_HOSTS = {"abcnews.com", "www-cdn.abcnews.com", "apnews.com"}
 SECTIONS = {"market", "drivers", "macro", "company_news", "gainers", "losers"}
 
 
