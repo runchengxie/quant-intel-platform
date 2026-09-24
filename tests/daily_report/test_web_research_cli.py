@@ -47,7 +47,7 @@ def test_runner_requests_live_read_only_search_and_writes_review_draft(monkeypat
     assert "--output-schema" in command
     assert "--dangerously-bypass-approvals-and-sandbox" not in command
     assert "2026-09-18" in command[-1]
-    assert captured["kwargs"]["timeout"] <= 300
+    assert captured["kwargs"]["timeout"] == 480
     artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
     assert artifact["market_date"] == "2026-09-18"
     assert artifact["candidates"][0]["review_status"] == "needs_review"
