@@ -53,6 +53,8 @@ def test_runner_requests_live_read_only_search_and_writes_review_draft(monkeypat
     assert "dollar, yen, gold, silver, crude oil, and bitcoin" in command[-1]
     assert "upcoming economic releases and Federal Reserve events" in command[-1]
     assert "company-specific catalyst" in command[-1]
+    assert "same accessible page supports both" in command[-1]
+    assert "separate single-source candidates" in command[-1]
     assert "published before the cutoff" in command[-1]
     assert "do not fill a quota" in command[-1]
     assert captured["kwargs"]["timeout"] == 480
