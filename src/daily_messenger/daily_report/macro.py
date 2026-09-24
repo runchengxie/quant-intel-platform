@@ -8,6 +8,8 @@ from zoneinfo import ZoneInfo
 from daily_messenger.etl.fetchers.fred import FredFetchError, FredObservation, fetch_observations
 
 from .models import MarketFact
+from .treasury import fetch_treasury_yield_changes
+from .treasury import source_url as treasury_source_url
 
 NEW_YORK = ZoneInfo("America/New_York")
 YIELD_SERIES = {"2y": "DGS2", "5y": "DGS5", "10y": "DGS10", "30y": "DGS30"}
@@ -72,10 +74,31 @@ def _fact(
     )
 
 
-def fetch_us_macro_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, dict[str, str]]]:
-    """Return sourced facts and per-group status; unavailable series stay absent."""
+def _rate_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, dict[str, str]]]:
     facts: list[MarketFact] = []
     status: dict[str, dict[str, str]] = {}
+    market_date = as_of.astimezone(NEW_YORK).date()
+    official_changes = fetch_treasury_yield_changes(market_date)
+    if official_changes is not None:
+        read_time = datetime.now(UTC)
+        return [
+            MarketFact(
+                id=f"treasury.{tenor}.change_bp",
+                metric="yield_change",
+                instrument=f"US_TREASURY_{tenor.upper()}",
+                value=official_changes[tenor],
+                previous=None,
+                change=official_changes[tenor],
+                unit="basis_points",
+                source="US Treasury",
+                source_url=treasury_source_url(market_date),
+                source_time=read_time,
+                retrieved_at=read_time,
+                quality="ok",
+                observation_date=market_date.isoformat(),
+            )
+            for tenor in YIELD_SERIES
+        ], status
     for tenor, series_id in YIELD_SERIES.items():
         try:
             rows = _available_observations(series_id, as_of, days=14, max_age_days=4)
@@ -97,6 +120,12 @@ def fetch_us_macro_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, d
             )
         except (FredFetchError, ValueError):
             status[series_id] = {"quality": "degraded", "reason": "unavailable"}
+    return facts, status
+
+
+def fetch_us_macro_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, dict[str, str]]]:
+    """Return sourced facts and per-group status; unavailable series stay absent."""
+    facts, status = _rate_facts(as_of)
     for name, series_id in MACRO_SERIES.items():
         try:
             rows = _available_observations(series_id, as_of, days=550, max_age_days=100)

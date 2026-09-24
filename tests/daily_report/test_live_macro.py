@@ -2,12 +2,22 @@ import json
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
+import pytest
+
 from daily_messenger.cli import main
 from daily_messenger.daily_report.macro import fetch_us_macro_facts
 from daily_messenger.daily_report.pipeline import run_daily_report
 from daily_messenger.etl.fetchers.fred import FredFetchError, FredObservation
 
 AS_OF = datetime(2026, 9, 24, 1, tzinfo=UTC)
+
+
+@pytest.fixture(autouse=True)
+def offline_treasury(monkeypatch):
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.macro.fetch_treasury_yield_changes",
+        lambda _market_date: None,
+    )
 
 
 def test_live_report_uses_fred_observations_and_never_fixture_values(monkeypatch, tmp_path):
@@ -77,6 +87,11 @@ def test_stale_yield_is_not_presented_as_current(monkeypatch):
 
 
 def test_previous_day_yield_is_marked_lagged(monkeypatch):
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.macro.fetch_treasury_yield_changes",
+        lambda _market_date: None,
+    )
+
     def fetch(_series_id, **_kwargs):
         return [
             FredObservation(date="2026-09-21", value=4.0),
@@ -88,6 +103,35 @@ def test_previous_day_yield_is_marked_lagged(monkeypatch):
 
     assert status["rates"]["quality"] == "lagged"
     assert next(fact for fact in facts if fact.id == "treasury.10y.change_bp").quality == "lagged"
+
+
+def test_official_treasury_same_day_overrides_lagged_fred(monkeypatch):
+    requested = []
+
+    def fetch(series_id, **_kwargs):
+        requested.append(series_id)
+        if series_id in {"DGS2", "DGS5", "DGS10", "DGS30"}:
+            return [
+                FredObservation(date="2026-09-21", value=4.0),
+                FredObservation(date="2026-09-22", value=4.1),
+            ]
+        raise FredFetchError("not available")
+
+    monkeypatch.setattr("daily_messenger.daily_report.macro.fetch_observations", fetch)
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.macro.fetch_treasury_yield_changes",
+        lambda _market_date: {"2y": 14.0, "5y": 16.0, "10y": 15.0, "30y": 11.0},
+    )
+    facts, status = fetch_us_macro_facts(AS_OF)
+    rates = {fact.id: fact for fact in facts if fact.id.startswith("treasury.")}
+
+    assert {
+        tenor: rates[f"treasury.{tenor}.change_bp"].value for tenor in ("2y", "5y", "10y", "30y")
+    } == {"2y": 14.0, "5y": 16.0, "10y": 15.0, "30y": 11.0}
+    assert all(fact.observation_date == "2026-09-23" for fact in rates.values())
+    assert all(fact.source == "US Treasury" for fact in rates.values())
+    assert status["rates"]["quality"] == "ok"
+    assert not set(requested) & {"DGS2", "DGS5", "DGS10", "DGS30"}
 
 
 def test_pce_yoy_uses_prior_year_when_latest_release_is_two_months_old(monkeypatch):
@@ -126,3 +170,37 @@ def test_cli_rejects_historical_live_date_without_vintage_sources(tmp_path):
 
     assert main(["daily-report", "--date", yesterday_ny.isoformat(), "--out", str(tmp_path)]) != 0
     assert not (tmp_path / "daily_report.json").exists()
+
+
+def test_cli_accepts_recent_reviewed_revision_without_overriding_date(monkeypatch, tmp_path):
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            fixed = datetime(2026, 9, 24, 8, tzinfo=UTC)
+            return fixed.astimezone(tz) if tz else fixed.replace(tzinfo=None)
+
+    monkeypatch.setattr("daily_messenger.cli.datetime", FixedDateTime)
+    previous_ny = datetime(2026, 9, 23, tzinfo=ZoneInfo("America/New_York")).date()
+    captured = {}
+
+    def run(cutoff, output, *, provider_config):
+        captured.update(cutoff=cutoff, output=output, config=provider_config)
+        return type("Report", (), {"run_id": f"daily-{previous_ny.isoformat()}"})()
+
+    monkeypatch.setattr("daily_messenger.daily_report.pipeline.run_daily_report", run)
+    result = main(
+        [
+            "daily-report",
+            "--date",
+            previous_ny.isoformat(),
+            "--out",
+            str(tmp_path),
+            "--reviewed-draft",
+            "/tmp/draft.json",
+            "--reviewed-decisions",
+            "/tmp/review.json",
+        ]
+    )
+    assert result == 0
+    assert captured["cutoff"].astimezone(ZoneInfo("America/New_York")).date() == previous_ny
+    assert captured["config"]["reviewed_draft"] == "/tmp/draft.json"
