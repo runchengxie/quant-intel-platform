@@ -9,6 +9,7 @@ from collections.abc import Iterator
 from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from daily_messenger.common.logging import log, setup_logger
 
@@ -428,10 +429,12 @@ def _dispatch_state_panel(args: argparse.Namespace, logger: logging.Logger) -> i
 def _dispatch_daily_report(args: argparse.Namespace, logger: logging.Logger) -> int:
     from daily_messenger.daily_report.pipeline import run_daily_report
 
-    cutoff = (
-        datetime.fromisoformat(args.date).replace(tzinfo=UTC) if args.date else datetime.now(UTC)
-    )
-    report = run_daily_report(cutoff, Path(args.out), provider_config={"mode": "fixture"})
+    cutoff = datetime.now(UTC)
+    ny_date = cutoff.astimezone(ZoneInfo("America/New_York")).date().isoformat()
+    if args.date and args.date != ny_date:
+        log(logger, logging.ERROR, "daily_report_date_requires_live_sources", requested=args.date)
+        return 2
+    report = run_daily_report(cutoff, Path(args.out), provider_config={"mode": "live"})
     log(logger, logging.INFO, "daily_report_written", run_id=report.run_id, output=args.out)
     return 0
 

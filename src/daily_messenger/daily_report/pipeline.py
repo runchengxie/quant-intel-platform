@@ -8,8 +8,10 @@ from dataclasses import dataclass, replace
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from .facts import build_market_facts
+from .macro import fetch_us_macro_facts
 from .models import DailyReport, ReportSection
 from .serialization import write_json
 
@@ -42,35 +44,70 @@ def run_daily_report(
     *,
     provider_config: dict[str, Any] | None = None,
 ) -> DailyReport:
-    config = provider_config or {"mode": "fixture"}
+    config = provider_config or {"mode": "live"}
+    mode = config.get("mode", "live")
+    if mode not in {"live", "fixture", "fail"}:
+        raise ValueError(f"unsupported daily report mode: {mode}")
     output_path = Path(output_dir)
     output_path.mkdir(parents=True, exist_ok=True)
-    run_id = f"daily-{as_of.astimezone(UTC).date().isoformat()}"
-    facts = tuple(
-        replace(fact, retrieved_at=as_of)
-        for fact in build_market_facts(_fixture_payloads(as_of), as_of=as_of)
+    run_date = (
+        as_of.astimezone(ZoneInfo("America/New_York")).date()
+        if mode == "live"
+        else as_of.astimezone(UTC).date()
     )
-    research_degraded = config.get("mode") == "fail"
-    source_status = {
-        "facts": {"quality": "ok"},
-        "research": {"quality": "degraded" if research_degraded else "ok"},
-    }
+    run_id = f"daily-{run_date.isoformat()}"
+    if mode == "live":
+        fetched_facts, source_status = fetch_us_macro_facts(as_of)
+        facts = tuple(fetched_facts)
+        source_status.update(
+            {
+                "quotes": {"quality": "degraded", "reason": "not_connected"},
+                "research": {"quality": "degraded", "reason": "not_connected"},
+            }
+        )
+        missing = ["quotes", "research"]
+        if source_status["rates"]["quality"] == "lagged":
+            missing.append("rates_lag")
+        if any(
+            value.get("quality") == "degraded"
+            for key, value in source_status.items()
+            if key not in {"quotes", "research"}
+        ):
+            missing.append("fred")
+        missing_sources = tuple(missing)
+        quality = "degraded" if missing_sources else "ok"
+    else:
+        facts = tuple(
+            replace(fact, retrieved_at=as_of)
+            for fact in build_market_facts(_fixture_payloads(as_of), as_of=as_of)
+        )
+        source_status = {
+            "facts": {"quality": "fixture"},
+            "research": {"quality": "degraded" if mode == "fail" else "fixture"},
+        }
+        missing_sources = ("research",) if mode == "fail" else ()
+        quality = "fixture"
+    report_cutoff = datetime.now(UTC) if mode == "live" else as_of
+    market_fact_ids = tuple(fact.id for fact in facts if fact.id.startswith("treasury."))
+    macro_fact_ids = tuple(fact.id for fact in facts if fact.id.startswith("macro."))
+    if mode != "live":
+        market_fact_ids = tuple(fact.id for fact in facts)
     report = DailyReport(
         schema_version="1.0",
-        as_of=as_of,
-        generated_at=as_of,
+        as_of=report_cutoff,
+        generated_at=report_cutoff,
         run_id=run_id,
         sections=(
-            ReportSection("market", "市场表现", facts=tuple(fact.id for fact in facts)),
+            ReportSection("market", "市场表现", facts=market_fact_ids),
             ReportSection("drivers", "市场驱动因素"),
-            ReportSection("macro", "经济数据与美联储动态"),
+            ReportSection("macro", "经济数据与美联储动态", facts=macro_fact_ids),
             ReportSection("company_news", "公司新闻"),
             ReportSection("movers", "主要上涨与下跌个股"),
         ),
         facts=facts,
-        quality_summary={"status": "degraded" if research_degraded else "ok"},
+        quality_summary={"status": quality},
         source_status=source_status,
-        missing_sources=("research",) if research_degraded else (),
+        missing_sources=missing_sources,
     )
     base = report.to_dict()
     base["content_hash"] = None
