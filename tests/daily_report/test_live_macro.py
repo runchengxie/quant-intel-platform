@@ -76,6 +76,39 @@ def test_stale_yield_is_not_presented_as_current(monkeypatch):
     assert status["rates"]["quality"] == "degraded"
 
 
+def test_previous_day_yield_is_marked_lagged(monkeypatch):
+    def fetch(_series_id, **_kwargs):
+        return [
+            FredObservation(date="2026-09-21", value=4.0),
+            FredObservation(date="2026-09-22", value=4.1),
+        ]
+
+    monkeypatch.setattr("daily_messenger.daily_report.macro.fetch_observations", fetch)
+    facts, status = fetch_us_macro_facts(AS_OF)
+
+    assert status["rates"]["quality"] == "lagged"
+    assert next(fact for fact in facts if fact.id == "treasury.10y.change_bp").quality == "lagged"
+
+
+def test_pce_yoy_uses_prior_year_when_latest_release_is_two_months_old(monkeypatch):
+    def fetch(series_id, *, start=None, **_kwargs):
+        if series_id != "PCEPI":
+            raise FredFetchError("not available")
+        return [
+            row
+            for row in (
+                FredObservation(date="2025-07-01", value=125.0),
+                FredObservation(date="2026-07-01", value=127.5),
+            )
+            if start is None or row.date >= start
+        ]
+
+    monkeypatch.setattr("daily_messenger.daily_report.macro.fetch_observations", fetch)
+    facts, _status = fetch_us_macro_facts(AS_OF)
+
+    assert next(fact for fact in facts if fact.id == "macro.pce_yoy").value == 2.0
+
+
 def test_cli_daily_report_does_not_publish_fixture_values(monkeypatch, tmp_path):
     monkeypatch.setattr(
         "daily_messenger.daily_report.pipeline.fetch_us_macro_facts",

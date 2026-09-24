@@ -52,6 +52,7 @@ def _fact(
     change: float | None,
     unit: str,
     observation_date: str,
+    quality: str = "ok",
 ) -> MarketFact:
     read_time = datetime.now(UTC)
     return MarketFact(
@@ -66,7 +67,7 @@ def _fact(
         source_url=f"https://fred.stlouisfed.org/series/{series_id}",
         source_time=read_time,
         retrieved_at=read_time,
-        quality="ok",
+        quality=quality,
         observation_date=observation_date,
     )
 
@@ -89,13 +90,16 @@ def fetch_us_macro_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, d
                     (current - previous) * 100,
                     "basis_points",
                     rows[-1].date,
+                    "ok"
+                    if rows[-1].date == as_of.astimezone(NEW_YORK).date().isoformat()
+                    else "lagged",
                 )
             )
         except (FredFetchError, ValueError):
             status[series_id] = {"quality": "degraded", "reason": "unavailable"}
     for name, series_id in MACRO_SERIES.items():
         try:
-            rows = _available_observations(series_id, as_of, days=440, max_age_days=70)
+            rows = _available_observations(series_id, as_of, days=550, max_age_days=100)
             current = rows[-1]
             if name in {"cpi_yoy", "pce_yoy"}:
                 value = (current.value / _year_ago_value(rows, current) - 1) * 100
@@ -123,14 +127,15 @@ def fetch_us_macro_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, d
             )
         except (FredFetchError, ValueError):
             status[series_id] = {"quality": "degraded", "reason": "unavailable"}
-    status["rates"] = {
-        "quality": "ok"
-        if all(f"treasury.{tenor}.change_bp" in {f.id for f in facts} for tenor in YIELD_SERIES)
-        else "degraded"
-    }
+    present = {fact.id: fact for fact in facts}
+    rate_ids = {f"treasury.{tenor}.change_bp" for tenor in YIELD_SERIES}
+    rate_quality = "degraded"
+    if rate_ids <= present.keys():
+        rate_quality = (
+            "lagged" if any(present[fact_id].quality == "lagged" for fact_id in rate_ids) else "ok"
+        )
+    status["rates"] = {"quality": rate_quality}
     status["macro"] = {
-        "quality": "ok"
-        if all(f"macro.{name}" in {f.id for f in facts} for name in MACRO_SERIES)
-        else "degraded"
+        "quality": "ok" if all(f"macro.{name}" in present for name in MACRO_SERIES) else "degraded"
     }
     return facts, status

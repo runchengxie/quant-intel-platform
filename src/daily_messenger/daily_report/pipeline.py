@@ -65,18 +65,16 @@ def run_daily_report(
                 "research": {"quality": "degraded", "reason": "not_connected"},
             }
         )
-        missing_sources = tuple(
-            ["quotes", "research"]
-            + (
-                ["fred"]
-                if any(
-                    value.get("quality") == "degraded"
-                    for key, value in source_status.items()
-                    if key not in {"quotes", "research"}
-                )
-                else []
-            )
-        )
+        missing = ["quotes", "research"]
+        if source_status["rates"]["quality"] == "lagged":
+            missing.append("rates_lag")
+        if any(
+            value.get("quality") == "degraded"
+            for key, value in source_status.items()
+            if key not in {"quotes", "research"}
+        ):
+            missing.append("fred")
+        missing_sources = tuple(missing)
         quality = "degraded" if missing_sources else "ok"
     else:
         facts = tuple(
