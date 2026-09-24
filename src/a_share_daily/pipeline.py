@@ -27,6 +27,7 @@ from .charts import (
     generate_weekly_chart,
     generate_weekly_text,
 )
+from .charts.public_extract import extract_chart_points
 from .charts.theme import save_unavailable_chart
 from .cross_market import generate_summary as _gen_cross_summary
 from .daily_watch20_validation._common import resolve_watchlist20_root
@@ -40,6 +41,11 @@ PROJECT_ROOT = Path(__file__).resolve().parents[2]
 _LEGACY_OUTPUT_DIR = PROJECT_ROOT / "out" / "a_share_daily"
 HOTSECTOR_INPUT_ENV = "A_SHARE_HOTSECTOR_INPUT"
 TOPIC_SUMMARY_INPUT_ENV = "A_SHARE_TOPIC_SUMMARY_INPUT"
+_DAILY_SOURCE = "https://tushare.pro/document/1?doc_id=27"
+_MARGIN_SOURCE = "https://tushare.pro/document/2?doc_id=58"
+_MONEYFLOW_SOURCE = "https://tushare.pro/document/2?doc_id=348"
+_LIMIT_LIST_SOURCE = "https://tushare.pro/document/2?doc_id=355"
+_LIMIT_STEP_SOURCE = "https://tushare.pro/document/2?doc_id=356"
 
 
 def _default_output_dir() -> Path:
@@ -97,6 +103,18 @@ class _ChartState:
     results: dict[str, str | None] = field(default_factory=dict)
     errors: dict[str, str] = field(default_factory=dict)
     skipped: list[str] = field(default_factory=list)
+    public_points: dict[str, list[dict[str, object]]] = field(default_factory=dict)
+
+    def record_points(self, name: str, inputs: dict[str, object]) -> None:
+        if self.results.get(name) is None:
+            return
+        try:
+            points = extract_chart_points(name, inputs, self.trade_date)
+            if points:
+                self.public_points[name] = points
+        except (KeyError, TypeError, ValueError, OverflowError):
+            # Public candidate extraction is optional and must not break Feishu PNGs.
+            return
 
     def try_chart(self, name: str, fn, *args, **kwargs) -> None:
         try:
@@ -113,6 +131,14 @@ class _ChartState:
             reason=reason,
             out_path=str(OUTPUT_DIR / filename),
         )
+
+
+def _source_inputs(key: str, date: str, label: str, url: str) -> dict[str, object]:
+    return {
+        f"{key}_observation_date": date,
+        f"{key}_source_label": label,
+        f"{key}_source_url": url,
+    }
 
 
 def premium_tushare_enabled() -> bool:
@@ -371,13 +397,15 @@ def _topic_unavailable_reason(universe_path: str) -> str:
     return "热点主题列表为空，无法生成本交易日主题排名。"
 
 
-def _load_daily_chart_inputs(trade_date: str) -> tuple[pd.DataFrame, int]:
+def _load_daily_chart_inputs(trade_date: str) -> tuple[pd.DataFrame, int, bool]:
     daily = D.read_daily(trade_date)
     limit_up = 0
+    limit_observed = False
     with contextlib.suppress(Exception):
         limit_list = D.read_limit_list(trade_date)
         limit_up = int(len(limit_list[limit_list["limit_type"].str.contains("涨停", na=False)]))
-    return daily, limit_up
+        limit_observed = True
+    return daily, limit_up, limit_observed
 
 
 def _daily_chart_failure(exc: Exception) -> dict[str, Any]:
@@ -445,6 +473,16 @@ def _run_moneyflow_chart(state: _ChartState, premium_enabled: bool) -> None:
                 "资金流向数据为空，无法生成本交易日主力净流入/流出排名。",
                 "daily_moneyflow_chart.png",
             )
+        else:
+            state.record_points(
+                "moneyflow",
+                {
+                    "moneyflow": moneyflow,
+                    **_source_inputs(
+                        "moneyflow", state.trade_date, "Tushare 同花顺资金流", _MONEYFLOW_SOURCE
+                    ),
+                },
+            )
     except FileNotFoundError:
         if _env_flag(MONEYFLOW_LATEST_ENV):
             latest = D._latest_date("moneyflow_ths", as_of_date=state.trade_date)
@@ -462,6 +500,15 @@ def _run_moneyflow_chart(state: _ChartState, premium_enabled: bool) -> None:
                         str(OUTPUT_DIR / "daily_moneyflow_chart.png"),
                     )
                     if state.results.get("moneyflow") is not None:
+                        state.record_points(
+                            "moneyflow",
+                            {
+                                "moneyflow": moneyflow,
+                                **_source_inputs(
+                                    "moneyflow", latest, "Tushare 同花顺资金流", _MONEYFLOW_SOURCE
+                                ),
+                            },
+                        )
                         return
                 except Exception as exc:
                     state.errors["moneyflow"] = str(exc)[:200]
@@ -510,25 +557,49 @@ def _recent_turnover_data(as_of_date: str | None = None) -> list[dict[str, Any]]
     return turnover_data
 
 
-def _max_board_count(trade_date: str) -> int:
+def _max_board_count(trade_date: str) -> tuple[int, bool]:
     with contextlib.suppress(Exception):
         step = D.read_limit_step(trade_date)
-        return int(step["nums"].max()) if not step.empty else 0
-    return 0
+        return (int(step["nums"].max()) if not step.empty else 0, True)
+    return 0, False
 
 
-def _run_dashboard_chart(state: _ChartState, daily: pd.DataFrame, limit_up: int) -> None:
+def _run_dashboard_chart(
+    state: _ChartState, daily: pd.DataFrame, limit_up: int, limit_observed: bool
+) -> None:
     try:
+        max_board, max_board_observed = _max_board_count(state.trade_date)
+        margin = pd.DataFrame(_recent_margin_data(state.trade_date))
+        turnover = pd.DataFrame(_recent_turnover_data(state.trade_date))
         state.try_chart(
             "dashboard",
             generate_dashboard,
             daily,
             limit_up,
-            _max_board_count(state.trade_date),
-            pd.DataFrame(_recent_margin_data(state.trade_date)),
-            pd.DataFrame(_recent_turnover_data(state.trade_date)),
+            max_board,
+            margin,
+            turnover,
             state.trade_date,
             str(OUTPUT_DIR / "daily_dashboard.png"),
+        )
+        state.record_points(
+            "dashboard",
+            {
+                "daily": daily,
+                "limit_up_count": limit_up,
+                "limit_up_observed": limit_observed,
+                "limit_up_source_label": "Tushare 涨跌停榜单",
+                "limit_up_source_url": _LIMIT_LIST_SOURCE,
+                "max_board": max_board,
+                "max_board_observed": max_board_observed,
+                "max_board_source_label": "Tushare 连板天梯",
+                "max_board_source_url": _LIMIT_STEP_SOURCE,
+                "margin": margin,
+                "turnover": turnover,
+                "dashboard_margin_source_label": "Tushare 融资融券交易汇总",
+                "dashboard_margin_source_url": _MARGIN_SOURCE,
+                **_source_inputs("dashboard", state.trade_date, "Tushare A 股日线", _DAILY_SOURCE),
+            },
         )
     except Exception as exc:
         state.errors["dashboard"] = str(exc)[:200]
@@ -555,6 +626,15 @@ def _run_weekly_chart(state: _ChartState) -> tuple[list[str], dict[str, pd.DataF
                 week_daily,
                 state.trade_date,
                 str(OUTPUT_DIR / "daily_weekly_chart.png"),
+            )
+            state.record_points(
+                "weekly_chart",
+                {
+                    "week_daily": week_daily,
+                    **_source_inputs(
+                        "weekly_chart", state.trade_date, "Tushare A 股日线", _DAILY_SOURCE
+                    ),
+                },
             )
         else:
             state.errors["weekly_chart"] = f"only {len(week_daily)} week days"
@@ -642,6 +722,7 @@ def _chart_manifest(state: _ChartState) -> dict[str, Any]:
         "skipped": state.skipped,
         "paths": state.results,
         "errors": state.errors,
+        "public_points": state.public_points,
     }
 
 
@@ -668,7 +749,7 @@ def step_charts(
     _ensure_output_dir()
     state = _ChartState(trade_date=trade_date)
     try:
-        daily, limit_up = _load_daily_chart_inputs(trade_date)
+        daily, limit_up, limit_observed = _load_daily_chart_inputs(trade_date)
     except Exception as exc:
         return _daily_chart_failure(exc)
 
@@ -683,7 +764,18 @@ def step_charts(
         trade_date,
         str(OUTPUT_DIR / "daily_sentiment_chart.png"),
     )
-    _run_dashboard_chart(state, daily, limit_up)
+    state.record_points(
+        "sentiment",
+        {
+            "daily": daily,
+            "limit_up_count": limit_up,
+            "limit_up_observed": limit_observed,
+            "limit_up_source_label": "Tushare 涨跌停榜单",
+            "limit_up_source_url": _LIMIT_LIST_SOURCE,
+            **_source_inputs("sentiment", trade_date, "Tushare A 股日线", _DAILY_SOURCE),
+        },
+    )
+    _run_dashboard_chart(state, daily, limit_up, limit_observed)
     week_dates, week_daily = _run_weekly_chart(state)
     _run_weekly_text(state, week_dates, week_daily)
     return _chart_manifest(state)
@@ -713,6 +805,7 @@ def run_morning(trade_date: str | None = None) -> dict[str, Any]:
         "report_kind": "morning",
         "date": trade_date,
         "date_dash": date_dash,
+        "generated_at": datetime.now().astimezone().isoformat(),
         "stray_cleaned": stray_cleaned,
         "freshness": step_data_freshness(trade_date),
         "hotsector": {},
@@ -743,6 +836,26 @@ def run_morning(trade_date: str | None = None) -> dict[str, Any]:
     if manifest["cross_market"].get("us_overnight_chart"):
         manifest["charts"]["paths"]["us_overnight"] = chart_path
         manifest["charts"]["ok"].append("us_overnight")
+        stocks = manifest["cross_market"].get("us_stocks")
+        if isinstance(stocks, dict):
+            try:
+                points = extract_chart_points(
+                    "us_overnight",
+                    {
+                        "us_stocks": stocks,
+                        **_source_inputs(
+                            "us_overnight",
+                            trade_date,
+                            "Yahoo Finance 历史行情",
+                            "https://finance.yahoo.com/",
+                        ),
+                    },
+                    trade_date,
+                )
+                if points:
+                    manifest["charts"].setdefault("public_points", {})["us_overnight"] = points
+            except (KeyError, TypeError, ValueError, OverflowError):
+                pass
 
     # Step 4: Cross-market summary
     print("[cross_market_summary] Generating ...", file=sys.stderr)

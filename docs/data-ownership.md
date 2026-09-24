@@ -75,9 +75,21 @@ export MDP_DIR=/path/to/quant-market-data-platform
 - 晚报清单：`evening_manifest.json`
 - 晚报复盘：`evening_review.json`、`evening_review.md`，其中 `market_temperature` 是可审计的确定性解释层
 - 图表：`out/a_share_daily/*.png`
+- 网页图表候选：`market_intel.a_share_charts.v1` JSON，仅含经过字段白名单筛选的六图数值、原始观测日、来源和质量状态；候选本身不等于已批准公开
 - 日间验证归档：`out/a_share_daily/history/evening_review_YYYYMMDD.json` 及对应 Markdown/温度图
 
 这些产物通过契约和测试约束。投递层只消费这些文件，不向 LLM 请求新的事实判断。
+网页图表候选必须写在仓库外，不能把私有 manifest、图表 PNG 路径或原始明细直接复制到公开站。后续公开审核与发布由 Pages 和部署仓库各自负责。
+
+离线导出命令（不抓取、不发送、不发布）：
+
+```bash
+uv run a-share-daily chart-candidate --manifest /external/reports/morning_manifest.json --out /external/candidates/2026-09-18-morning.json --date 20260918 --kind morning
+```
+
+候选顶层只有 `schema_version/publication/report_id/date/kind/generated_at/charts/content_sha256`；恰有六张卡。`publication` 固定为 `candidate`，须经过下游逐点来源、授权和日期审核后，才可产生独立的公开产物。相同输入（含固定 `generated_at`）会产生相同 SHA-256。原始 manifest 内的飞书目标、错误文字和 PNG 绝对路径永不导出。
+
+观测日取对应数据分区或美股收盘行，而非报告生成日。周图与仪表盘每个序列点保留自身日期；资金流使用较早分区、部分美股符号缺少可核实点时标记 `degraded`；无数据、无可信观测日或来源链接则标记 `missing`，占位 PNG 不算事实。当前 DailyWatch20 主题摘要缺少可公开核实的逐点 URL，故网页候选的主题卡保持缺项，不把内部 artifact 路径伪装成公开来源。晚报第四图实际是六维市场温度计，不能用晨报情绪指标的点冒充；在其独立点集可审核前，晚报候选将该卡标为缺项。既有晨晚报 PNG 与飞书投递不受该导出命令影响。
 
 晨报入口：
 

@@ -248,6 +248,16 @@ def _add_weekly_basket_command(sub: argparse._SubParsersAction) -> None:
 
 
 def _add_operational_commands(sub: argparse._SubParsersAction) -> None:
+    candidate = sub.add_parser(
+        "chart-candidate", help="Export an offline, source-dated six-chart candidate"
+    )
+    candidate.add_argument(
+        "--manifest", required=True, help="Private morning/evening manifest JSON"
+    )
+    candidate.add_argument("--out", required=True, help="External candidate JSON output path")
+    candidate.add_argument("--date", required=True, help="Trade date YYYYMMDD")
+    candidate.add_argument("--kind", required=True, choices=("morning", "evening"))
+
     doctor = sub.add_parser("doctor", help="Check A-share daily deployment")
     doctor.add_argument(
         "--live",
@@ -352,6 +362,22 @@ def _cmd_doctor(args: argparse.Namespace) -> int | None:
     from .deploy_check import run_cli
 
     return run_cli(strict=args.strict, live=args.live)
+
+
+def _cmd_chart_candidate(args: argparse.Namespace) -> int | None:
+    from .charts.public_contract import write_candidate
+    from .charts.public_export import export_candidate
+
+    try:
+        manifest = json.loads(Path(args.manifest).expanduser().read_text(encoding="utf-8"))
+        payload = export_candidate(manifest, date=args.date, kind=args.kind)
+        destination = Path(args.out).expanduser()
+        write_candidate(destination, payload)
+    except (OSError, json.JSONDecodeError, ValueError) as exc:
+        print(f"[FAIL] chart candidate: {exc}", file=sys.stderr)
+        return 1
+    print(destination)
+    return None
 
 
 def _cmd_cashflow_delivery(args: argparse.Namespace) -> int:
@@ -500,6 +526,9 @@ def _dispatch(args: argparse.Namespace) -> int | None:
 
     if args.command == "doctor":
         return _cmd_doctor(args)
+
+    if args.command == "chart-candidate":
+        return _cmd_chart_candidate(args)
 
     if args.command == "cashflow-delivery":
         return _cmd_cashflow_delivery(args)
