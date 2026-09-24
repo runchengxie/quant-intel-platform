@@ -1,5 +1,7 @@
 from datetime import UTC, date, datetime
 
+import pytest
+
 from daily_messenger.daily_report.web_research import validate_candidates
 
 MARKET_DATE = date(2026, 9, 18)
@@ -94,3 +96,22 @@ def test_malformed_container_is_rejected():
     accepted, rejected = validate_candidates([], market_date=MARKET_DATE, cutoff=CUTOFF)
     assert accepted == []
     assert rejected == ["invalid_payload"]
+
+
+@pytest.mark.parametrize(
+    ("broken", "reason"),
+    [
+        ({"section": []}, "invalid_section"),
+        ({"phase": {}}, "invalid_phase"),
+        ({"source_url": "https://[invalid"}, "invalid_source_url"),
+    ],
+)
+def test_malformed_candidate_does_not_discard_following_valid_candidate(broken, reason):
+    accepted, rejected = validate_candidates(
+        {"candidates": [candidate(**broken), candidate()]},
+        market_date=MARKET_DATE,
+        cutoff=CUTOFF,
+    )
+    assert rejected == [f"candidate[0]:{reason}"]
+    assert len(accepted) == 1
+    assert accepted[0]["review_status"] == "needs_review"

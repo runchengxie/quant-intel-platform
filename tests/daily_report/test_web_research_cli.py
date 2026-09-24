@@ -57,6 +57,9 @@ def test_runner_requests_live_read_only_search_and_writes_review_draft(monkeypat
     receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
     assert receipt["artifact"] == artifact_path.name
     assert receipt["accepted_count"] == 1
+    assert receipt["cutoff"] == CUTOFF.isoformat()
+    assert receipt["model"] == artifact["model"]
+    assert receipt["rejected"] == []
 
 
 def test_bad_output_does_not_overwrite_previous_draft(monkeypatch, tmp_path):
@@ -90,6 +93,24 @@ def test_nonzero_codex_exit_is_reported_without_artifact(monkeypatch, tmp_path):
     with pytest.raises(web_research.WebResearchError, match="exit code 7"):
         web_research.run_web_research(MARKET_DATE, tmp_path, cutoff=CUTOFF)
     assert list(tmp_path.glob("web-research-*.json")) == []
+
+
+def test_timeout_preserves_earlier_draft(monkeypatch, tmp_path):
+    def fake_run(command, **kwargs):
+        output_index = command.index("--output-last-message") + 1
+        Path(command[output_index]).write_text(json.dumps(VALID), encoding="utf-8")
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(web_research.subprocess, "run", fake_run)
+    first = web_research.run_web_research(MARKET_DATE, tmp_path, cutoff=CUTOFF)
+
+    def timed_out(command, **kwargs):
+        raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+
+    monkeypatch.setattr(web_research.subprocess, "run", timed_out)
+    with pytest.raises(web_research.WebResearchError, match="timed out"):
+        web_research.run_web_research(MARKET_DATE, tmp_path, cutoff=CUTOFF)
+    assert list(tmp_path.glob("web-research-*.json")) == [first]
 
 
 def test_output_must_be_outside_repository():

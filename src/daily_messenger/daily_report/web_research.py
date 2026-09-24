@@ -34,19 +34,27 @@ class WebResearchError(RuntimeError):
     """The private research draft could not be generated safely."""
 
 
+def _valid_source_url(source_url: object) -> bool:
+    if not isinstance(source_url, str):
+        return False
+    try:
+        parsed_url = urlsplit(source_url)
+        return parsed_url.scheme in {"http", "https"} and bool(parsed_url.hostname)
+    except ValueError:
+        return False
+
+
 def _source_reason(row: object, market_date: date, cutoff: datetime) -> str | None:
     if not isinstance(row, dict):
         return "invalid_candidate"
     values = cast("dict[str, object]", row)
-    if values.get("section") not in SECTIONS:
+    section = values.get("section")
+    if not isinstance(section, str) or section not in SECTIONS:
         return "invalid_section"
     if values.get("observation_date") != market_date.isoformat():
         return "observation_date_mismatch"
     source_url = values.get("source_url")
-    if not isinstance(source_url, str):
-        return "invalid_source_url"
-    parsed_url = urlsplit(source_url)
-    if parsed_url.scheme not in {"http", "https"} or not parsed_url.hostname:
+    if not _valid_source_url(source_url):
         return "invalid_source_url"
     published_at = values.get("published_at")
     if not isinstance(published_at, str):
@@ -59,7 +67,8 @@ def _source_reason(row: object, market_date: date, cutoff: datetime) -> str | No
         return "invalid_published_at"
     if source_time > cutoff:
         return "source_after_cutoff"
-    if values.get("phase") not in {"close", "intraday", "event"}:
+    phase = values.get("phase")
+    if not isinstance(phase, str) or phase not in {"close", "intraday", "event"}:
         return "invalid_phase"
     market_close = datetime.combine(market_date, time(16), tzinfo=NEW_YORK)
     if values.get("phase") == "close" and source_time < market_close:
@@ -264,9 +273,12 @@ def run_web_research(
     receipt = {
         "schema_version": "1.0",
         "artifact": artifact_path.name,
+        "cutoff": cutoff.isoformat(),
         "generated_at": generated_at,
+        "model": MODEL,
         "accepted_count": len(accepted),
         "rejected_count": len(rejected),
+        "rejected": rejected,
         "review_status": "needs_review",
     }
     _write_unique_json(artifact_path, artifact)
