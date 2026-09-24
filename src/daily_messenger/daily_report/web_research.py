@@ -2,9 +2,15 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime, time
-from typing import Any
+import json
+import os
+import subprocess
+from datetime import UTC, date, datetime, time
+from pathlib import Path
+from tempfile import TemporaryDirectory
+from typing import cast
 from urllib.parse import urlsplit
+from uuid import uuid4
 from zoneinfo import ZoneInfo
 
 SECTIONS = frozenset({"market", "drivers", "macro", "company_news", "gainers", "losers"})
@@ -19,24 +25,30 @@ FIELDS = (
     "supporting_passage",
     "phase",
 )
+PROJECT_ROOT = Path(__file__).resolve().parents[3]
+MODEL = "gpt-6-sol"
+CODEX_TIMEOUT_SECONDS = 240
 
 
-def _reason(row: object, market_date: date, cutoff: datetime) -> str | None:
+class WebResearchError(RuntimeError):
+    """The private research draft could not be generated safely."""
+
+
+def _source_reason(row: object, market_date: date, cutoff: datetime) -> str | None:
     if not isinstance(row, dict):
         return "invalid_candidate"
-    if row.get("section") not in SECTIONS:
+    values = cast("dict[str, object]", row)
+    if values.get("section") not in SECTIONS:
         return "invalid_section"
-    if not isinstance(row.get("observation_date"), str) or row["observation_date"] != (
-        market_date.isoformat()
-    ):
+    if values.get("observation_date") != market_date.isoformat():
         return "observation_date_mismatch"
-    source_url = row.get("source_url")
+    source_url = values.get("source_url")
     if not isinstance(source_url, str):
         return "invalid_source_url"
     parsed_url = urlsplit(source_url)
     if parsed_url.scheme not in {"http", "https"} or not parsed_url.hostname:
         return "invalid_source_url"
-    published_at = row.get("published_at")
+    published_at = values.get("published_at")
     if not isinstance(published_at, str):
         return "invalid_published_at"
     try:
@@ -47,19 +59,31 @@ def _reason(row: object, market_date: date, cutoff: datetime) -> str | None:
         return "invalid_published_at"
     if source_time > cutoff:
         return "source_after_cutoff"
-    if row.get("phase") not in {"close", "intraday", "event"}:
+    if values.get("phase") not in {"close", "intraday", "event"}:
         return "invalid_phase"
     market_close = datetime.combine(market_date, time(16), tzinfo=NEW_YORK)
-    if row["phase"] == "close" and source_time < market_close:
+    if values.get("phase") == "close" and source_time < market_close:
         return "preclose_source"
-    if not isinstance(row.get("title"), str) or not row["title"].strip():
+    return None
+
+
+def _reason(row: object, market_date: date, cutoff: datetime) -> str | None:
+    source_reason = _source_reason(row, market_date, cutoff)
+    if source_reason:
+        return source_reason
+    assert isinstance(row, dict)
+    values = cast("dict[str, object]", row)
+    title = values.get("title")
+    if not isinstance(title, str) or not title.strip():
         return "missing_title"
-    if not isinstance(row.get("summary"), str) or not row["summary"].strip():
+    summary = values.get("summary")
+    if not isinstance(summary, str) or not summary.strip():
         return "missing_summary"
-    if not isinstance(row.get("supporting_passage"), str) or not row[
-        "supporting_passage"
-    ].strip():
+    passage = values.get("supporting_passage")
+    if not isinstance(passage, str) or not passage.strip():
         return "missing_support"
+    if len(passage) > 160:
+        return "support_too_long"
     return None
 
 
@@ -69,17 +93,182 @@ def validate_candidates(
     """Check structural and point-in-time boundaries; accepted rows still need review."""
     if cutoff.tzinfo is None or cutoff.utcoffset() is None:
         raise ValueError("cutoff must be timezone-aware")
-    if not isinstance(payload, dict) or not isinstance(payload.get("candidates"), list):
+    if not isinstance(payload, dict):
+        return [], ["invalid_payload"]
+    rows = cast("dict[str, object]", payload).get("candidates")
+    if not isinstance(rows, list):
         return [], ["invalid_payload"]
     accepted: list[dict[str, str]] = []
     rejected: list[str] = []
-    for index, row in enumerate(payload["candidates"]):
+    for index, row in enumerate(rows):
         reason = _reason(row, market_date, cutoff)
         if reason:
             rejected.append(f"candidate[{index}]:{reason}")
             continue
         assert isinstance(row, dict)
-        candidate: dict[str, Any] = {field: row[field].strip() for field in FIELDS}
+        values = cast("dict[str, str]", row)
+        candidate: dict[str, str] = {field: values[field].strip() for field in FIELDS}
         candidate["review_status"] = "needs_review"
         accepted.append(candidate)
     return accepted, rejected
+
+
+def _output_schema() -> dict[str, object]:
+    properties = {field: {"type": "string"} for field in FIELDS}
+    return {
+        "type": "object",
+        "properties": {
+            "candidates": {
+                "type": "array",
+                "items": {
+                    "type": "object",
+                    "properties": properties,
+                    "required": list(FIELDS),
+                    "additionalProperties": False,
+                },
+            }
+        },
+        "required": ["candidates"],
+        "additionalProperties": False,
+    }
+
+
+def _prompt(market_date: date, cutoff: datetime) -> str:
+    return (
+        "Search the live public web for a private US market daily-report research draft. "
+        f"Target US trading/observation date: {market_date.isoformat()}. "
+        f"Source publication cutoff: {cutoff.isoformat()}. "
+        "Find original webpages, not only search snippets. Consider six sections: market, drivers, "
+        "macro, company_news, gainers, losers. Return JSON matching the provided schema only. "
+        "For each candidate, supply the original HTTP(S) source_url, source article title, "
+        "timezone-aware published_at, explicit observation_date, a short original paraphrase "
+        "in summary, and supporting_passage of at most 160 characters. "
+        "Set phase to close, intraday, or event. A close item needs an article published after "
+        "the 4 p.m. New York cash close for that observation date; never label a midday item as close. "
+        "Do not infer a market date from the publication date. Do not invent timestamps, numbers, "
+        "URLs, ratings, or causes. Attribute interpretations to their source. If provenance is "
+        "unclear, omit the candidate. Prefer 10-20 useful candidates, but an empty array is valid. "
+        "Do not give investment advice or copy whole article paragraphs."
+    )
+
+
+def _minimal_codex_env() -> dict[str, str]:
+    allowed = {
+        "PATH",
+        "HOME",
+        "USER",
+        "LOGNAME",
+        "LANG",
+        "LC_ALL",
+        "TERM",
+        "CODEX_HOME",
+        "XDG_CONFIG_HOME",
+        "XDG_CACHE_HOME",
+        "XDG_DATA_HOME",
+        "SSL_CERT_FILE",
+        "HTTPS_PROXY",
+        "HTTP_PROXY",
+        "NO_PROXY",
+    }
+    return {key: value for key, value in os.environ.items() if key in allowed}
+
+
+def _write_unique_json(path: Path, payload: object) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    temporary = path.with_name(f".{path.name}.{uuid4().hex}.tmp")
+    try:
+        temporary.write_text(
+            json.dumps(payload, ensure_ascii=False, sort_keys=True, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
+def run_web_research(
+    market_date: date,
+    output_dir: Path,
+    *,
+    cutoff: datetime,
+    codex_bin: str = "codex",
+) -> Path:
+    """Run live Codex search and write an immutable, review-required draft outside Git."""
+    if cutoff.tzinfo is None or cutoff.utcoffset() is None:
+        raise WebResearchError("cutoff must be timezone-aware")
+    output_path = output_dir.resolve()
+    if output_path == PROJECT_ROOT or PROJECT_ROOT in output_path.parents:
+        raise WebResearchError("research output must be outside the repository")
+    output_path.mkdir(parents=True, exist_ok=True)
+    with TemporaryDirectory(prefix=".web-research-", dir=output_path) as work_directory:
+        work_path = Path(work_directory)
+        schema_path = work_path / "schema.json"
+        raw_path = work_path / "codex-output.json"
+        schema_path.write_text(json.dumps(_output_schema()), encoding="utf-8")
+        command = [
+            codex_bin,
+            "--search",
+            "exec",
+            "--sandbox",
+            "read-only",
+            "--skip-git-repo-check",
+            "--ephemeral",
+            "--model",
+            MODEL,
+            "--output-schema",
+            str(schema_path),
+            "--output-last-message",
+            str(raw_path),
+            _prompt(market_date, cutoff),
+        ]
+        try:
+            # The argv shape is fixed, shell=False, and the CLI runs in a private scratch dir.
+            result = subprocess.run(  # noqa: S603
+                command,
+                cwd=work_path,
+                env=_minimal_codex_env(),
+                capture_output=True,
+                text=True,
+                timeout=CODEX_TIMEOUT_SECONDS,
+                check=False,
+            )
+        except FileNotFoundError as exc:
+            raise WebResearchError("Codex CLI not found") from exc
+        except subprocess.TimeoutExpired as exc:
+            raise WebResearchError("Codex search timed out") from exc
+        if result.returncode != 0:
+            raise WebResearchError(f"Codex search failed with exit code {result.returncode}")
+        try:
+            payload = json.loads(raw_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise WebResearchError("Codex returned invalid JSON") from exc
+    accepted, rejected = validate_candidates(payload, market_date=market_date, cutoff=cutoff)
+    if rejected == ["invalid_payload"]:
+        raise WebResearchError("Codex returned invalid candidate container")
+    run_id = uuid4().hex
+    artifact_path = output_path / f"web-research-{market_date.isoformat()}-{run_id}.json"
+    generated_at = datetime.now(UTC).isoformat()
+    artifact = {
+        "schema_version": "1.0",
+        "market_date": market_date.isoformat(),
+        "cutoff": cutoff.isoformat(),
+        "generated_at": generated_at,
+        "run_id": run_id,
+        "provider": "codex",
+        "model": MODEL,
+        "review_status": "needs_review",
+        "accepted_count": len(accepted),
+        "rejected": rejected,
+        "candidates": accepted,
+    }
+    receipt = {
+        "schema_version": "1.0",
+        "artifact": artifact_path.name,
+        "generated_at": generated_at,
+        "accepted_count": len(accepted),
+        "rejected_count": len(rejected),
+        "review_status": "needs_review",
+    }
+    _write_unique_json(artifact_path, artifact)
+    _write_unique_json(output_path / "receipts" / artifact_path.name, receipt)
+    return artifact_path

@@ -6,12 +6,12 @@
 ```text
 $ dm --help
 usage: dm [-h]
-          {run,fetch,score,digest,dashboard,state-panel,btc,style-replica,market-facts,market-events,research,daily-report} ...
+          {run,fetch,score,digest,dashboard,state-panel,btc,style-replica,market-facts,market-events,daily-report,research} ...
 
 Daily Messenger CLI
 
 positional arguments:
-  {run,fetch,score,digest,dashboard,state-panel,btc,style-replica,market-facts,market-events,research,daily-report}
+  {run,fetch,score,digest,dashboard,state-panel,btc,style-replica,market-facts,market-events,daily-report,research}
     run                 Run ETL, scoring, and digest sequentially
     fetch               Run ETL only
     score               Run scoring only
@@ -22,8 +22,8 @@ positional arguments:
     style-replica       Generate the internal-only legacy StyleReplica report
     market-facts        Build normalized market facts
     market-events       Build normalized market events
-    research            Run evidence-linked research jobs
     daily-report        Build validated market daily report
+    research            Create a private web research draft
 
 options:
   -h, --help            show this help message and exit

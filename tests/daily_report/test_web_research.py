@@ -2,7 +2,6 @@ from datetime import UTC, date, datetime
 
 from daily_messenger.daily_report.web_research import validate_candidates
 
-
 MARKET_DATE = date(2026, 9, 18)
 CUTOFF = datetime(2026, 9, 19, 1, tzinfo=UTC)
 
@@ -79,6 +78,16 @@ def test_preclose_article_cannot_be_close_evidence():
     )
     assert accepted == []
     assert rejected == ["candidate[0]:preclose_source"]
+
+
+def test_long_supporting_passage_is_rejected():
+    accepted, rejected = validate_candidates(
+        {"candidates": [candidate(supporting_passage="x" * 161)]},
+        market_date=MARKET_DATE,
+        cutoff=CUTOFF,
+    )
+    assert accepted == []
+    assert rejected == ["candidate[0]:support_too_long"]
 
 
 def test_malformed_container_is_rejected():
