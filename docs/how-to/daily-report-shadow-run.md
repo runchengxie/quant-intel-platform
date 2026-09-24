@@ -13,3 +13,15 @@ API_KEYS_PATH=/path/to/private/api_keys.json dm daily-report --date YYYY-MM-DD -
 检查 `daily_report.json` 的 `schema_version`、`as_of`、`content_hash`、`source_status`、`quality_summary`、各事实的 `source_url` 和 `observation_date`。发布端必须拒绝 `fixture` 状态或缺少核心宏观事实的产物，校验错误时保留上一份有效产物。
 
 后续再接市场行情、公布日程与预期值、证据化研究解释。Pages 只读取通过校验的公开 `daily_report.json`。
+
+## 联网研究草稿（内部待审）
+
+已登录 Codex CLI 的机器可以运行：
+
+```bash
+dm research --date YYYY-MM-DD --out /path/to/private/research
+```
+
+`--date` 是美东交易日，而不是文章发布日期。复盘特定信息截止点时加上带时区的 `--cutoff`，例如 `--cutoff 2026-09-19T01:00:00+00:00`；不传时取本次运行时间。Codex 会实时联网搜索并在仓库外生成唯一命名的 `web-research-*.json`，对应运行回执存于输出目录的 `receipts/`。生成失败或 JSON 无效时不覆盖旧草稿。
+
+草稿按市场表现、市场驱动、宏观、公司新闻、上涨个股和下跌个股归类，并过滤交易日不符、来源晚于截止时间、盘中报道冒充收盘、无效 URL 或缺少支持段落的候选。**通过这些机器检查不代表网页内容已核实**：所有候选均为 `needs_review`，时间戳、数据和解释仍需与原网页逐条核对。此命令不会修改 `daily_report.json`，不会触发 Pages 或消息发布。生产调度应在部署仓库配置，使用稳定发布目录和仓库外输出路径。

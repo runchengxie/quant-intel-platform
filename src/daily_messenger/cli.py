@@ -7,7 +7,7 @@ import sys
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -231,12 +231,19 @@ def _add_daily_report_parser(subparsers: argparse._SubParsersAction) -> None:
     for command, help_text in (
         ("market-facts", "Build normalized market facts"),
         ("market-events", "Build normalized market events"),
-        ("research", "Run evidence-linked research jobs"),
         ("daily-report", "Build validated market daily report"),
     ):
         parser = subparsers.add_parser(command, help=help_text)
         parser.add_argument("--date", help="Report cutoff date (YYYY-MM-DD)")
         parser.add_argument("--out", default="out/daily_report", help="Artifact output directory")
+    research_parser = subparsers.add_parser("research", help="Create a private web research draft")
+    research_parser.add_argument("--date", required=True, help="US trading date (YYYY-MM-DD)")
+    research_parser.add_argument(
+        "--out", required=True, help="Private output directory outside Git"
+    )
+    research_parser.add_argument(
+        "--cutoff", help="Latest source publication time (ISO 8601 with timezone; default now)"
+    )
 
 
 def _add_style_replica_parser(subparsers: argparse._SubParsersAction) -> None:
@@ -439,11 +446,28 @@ def _dispatch_daily_report(args: argparse.Namespace, logger: logging.Logger) -> 
     return 0
 
 
+def _dispatch_research(args: argparse.Namespace, logger: logging.Logger) -> int:
+    from daily_messenger.daily_report.web_research import WebResearchError, run_web_research
+
+    try:
+        market_date = date.fromisoformat(args.date)
+        cutoff = datetime.fromisoformat(args.cutoff) if args.cutoff else datetime.now(UTC)
+        artifact = run_web_research(market_date, Path(args.out), cutoff=cutoff)
+    except (ValueError, WebResearchError) as exc:
+        log(logger, logging.ERROR, "web_research_failed", reason=str(exc))
+        return 2
+    log(logger, logging.INFO, "web_research_draft_written", artifact=str(artifact))
+    return 0
+
+
 def _dispatch(args: argparse.Namespace, logger: logging.Logger) -> int:
     if getattr(args, "disable_throttle", False):
         os.environ["DM_DISABLE_THROTTLE"] = "1"
 
-    if args.command in {"market-facts", "market-events", "research", "daily-report"}:
+    if args.command == "research":
+        return _dispatch_research(args, logger)
+
+    if args.command in {"market-facts", "market-events", "daily-report"}:
         return _dispatch_daily_report(args, logger)
 
     if args.command == "style-replica":
