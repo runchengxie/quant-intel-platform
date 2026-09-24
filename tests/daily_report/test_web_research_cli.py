@@ -49,6 +49,11 @@ def test_runner_requests_live_read_only_search_and_writes_review_draft(monkeypat
     assert "2026-09-18" in command[-1]
     assert "company investor-relations releases" in command[-1]
     assert "after-close market drivers" in command[-1]
+    assert "sector leadership and market breadth" in command[-1]
+    assert "dollar, yen, gold, silver, crude oil, and bitcoin" in command[-1]
+    assert "upcoming economic releases and Federal Reserve events" in command[-1]
+    assert "company-specific catalyst" in command[-1]
+    assert "published before the cutoff" in command[-1]
     assert "do not fill a quota" in command[-1]
     assert captured["kwargs"]["timeout"] == 480
     artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
