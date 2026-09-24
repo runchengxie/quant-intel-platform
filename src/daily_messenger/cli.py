@@ -7,7 +7,7 @@ import sys
 import uuid
 from collections.abc import Iterator
 from contextlib import contextmanager
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
@@ -236,6 +236,9 @@ def _add_daily_report_parser(subparsers: argparse._SubParsersAction) -> None:
         parser = subparsers.add_parser(command, help=help_text)
         parser.add_argument("--date", help="Report cutoff date (YYYY-MM-DD)")
         parser.add_argument("--out", default="out/daily_report", help="Artifact output directory")
+        if command == "daily-report":
+            parser.add_argument("--reviewed-draft", help="Private original web-research draft")
+            parser.add_argument("--reviewed-decisions", help="Private source-audit decisions")
     research_parser = subparsers.add_parser("research", help="Create a private web research draft")
     research_parser.add_argument("--date", required=True, help="US trading date (YYYY-MM-DD)")
     research_parser.add_argument(
@@ -436,12 +439,41 @@ def _dispatch_state_panel(args: argparse.Namespace, logger: logging.Logger) -> i
 def _dispatch_daily_report(args: argparse.Namespace, logger: logging.Logger) -> int:
     from daily_messenger.daily_report.pipeline import run_daily_report
 
-    cutoff = datetime.now(UTC)
-    ny_date = cutoff.astimezone(ZoneInfo("America/New_York")).date().isoformat()
-    if args.date and args.date != ny_date:
-        log(logger, logging.ERROR, "daily_report_date_requires_live_sources", requested=args.date)
+    now = datetime.now(UTC)
+    ny_now = now.astimezone(ZoneInfo("America/New_York"))
+    ny_date = ny_now.date().isoformat()
+    reviewed_draft = getattr(args, "reviewed_draft", None)
+    reviewed_decisions = getattr(args, "reviewed_decisions", None)
+    if bool(reviewed_draft) != bool(reviewed_decisions):
+        log(logger, logging.ERROR, "daily_report_review_pair_required")
         return 2
-    report = run_daily_report(cutoff, Path(args.out), provider_config={"mode": "live"})
+    cutoff = now
+    if args.date and args.date != ny_date:
+        previous_date = ny_now.date() - timedelta(days=1)
+        if (
+            args.date != previous_date.isoformat()
+            or ny_now.time() >= time(9, 30)
+            or not reviewed_draft
+        ):
+            log(
+                logger,
+                logging.ERROR,
+                "daily_report_date_requires_live_sources",
+                requested=args.date,
+            )
+            return 2
+        cutoff = datetime.combine(
+            previous_date, time(23, 59, 59), tzinfo=ZoneInfo("America/New_York")
+        )
+    report = run_daily_report(
+        cutoff,
+        Path(args.out),
+        provider_config={
+            "mode": "live",
+            "reviewed_draft": reviewed_draft,
+            "reviewed_decisions": reviewed_decisions,
+        },
+    )
     log(logger, logging.INFO, "daily_report_written", run_id=report.run_id, output=args.out)
     return 0
 
