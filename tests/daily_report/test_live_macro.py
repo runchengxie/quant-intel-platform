@@ -22,6 +22,10 @@ def offline_treasury(monkeypatch):
         "daily_messenger.daily_report.pipeline.fetch_index_facts",
         lambda _market_date: ([], ("^GSPC", "^DJI", "^IXIC", "^RUT")),
     )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_cross_asset_facts",
+        lambda _market_date: ([], ("BZ=F", "GC=F", "SI=F", "BTC=F")),
+    )
 
 
 def test_live_report_uses_fred_observations_and_never_fixture_values(monkeypatch, tmp_path):
@@ -196,6 +200,61 @@ def test_cli_rejects_historical_live_date_without_vintage_sources(tmp_path):
 
     assert main(["daily-report", "--date", yesterday_ny.isoformat(), "--out", str(tmp_path)]) != 0
     assert not (tmp_path / "daily_report.json").exists()
+
+
+def test_cli_explicit_backfill_uses_requested_completed_market_day(monkeypatch, tmp_path):
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            fixed = datetime(2026, 9, 25, 15, tzinfo=UTC)
+            return fixed.astimezone(tz) if tz else fixed.replace(tzinfo=None)
+
+    monkeypatch.setattr("daily_messenger.cli.datetime", FixedDateTime)
+    captured = {}
+
+    def run(cutoff, output, *, provider_config):
+        captured.update(cutoff=cutoff, output=output, config=provider_config)
+        return type("Report", (), {"run_id": "daily-2026-09-24"})()
+
+    monkeypatch.setattr("daily_messenger.daily_report.pipeline.run_daily_report", run)
+
+    result = main(["daily-report", "--date", "2026-09-24", "--backfill", "--out", str(tmp_path)])
+
+    assert result == 0
+    assert (
+        captured["cutoff"].astimezone(ZoneInfo("America/New_York")).isoformat()
+        == "2026-09-24T23:59:59-04:00"
+    )
+    assert captured["config"]["mode"] == "live"
+
+
+def test_historical_report_marks_actual_generation_as_backfill(monkeypatch, tmp_path):
+    fixed = datetime(2026, 9, 25, 15, tzinfo=UTC)
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return fixed.astimezone(tz) if tz else fixed.replace(tzinfo=None)
+
+    monkeypatch.setattr("daily_messenger.daily_report.pipeline.datetime", FixedDateTime)
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_us_macro_facts",
+        lambda _as_of: ([], {"macro": {"quality": "ok"}, "rates": {"quality": "ok"}}),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_cross_asset_facts",
+        lambda _date: ([], ()),
+    )
+
+    report = run_daily_report(
+        datetime(2026, 9, 24, 23, 59, 59, tzinfo=ZoneInfo("America/New_York")),
+        tmp_path,
+        provider_config={"mode": "live"},
+    )
+
+    assert report.run_id == "daily-2026-09-24"
+    assert report.as_of == fixed
+    assert report.quality_summary["revision"] == "historical_backfill"
 
 
 def test_cli_accepts_recent_reviewed_revision_without_overriding_date(monkeypatch, tmp_path):

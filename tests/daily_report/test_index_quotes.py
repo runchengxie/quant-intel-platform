@@ -14,7 +14,9 @@ def test_index_quotes_require_all_four_completed_same_day_bars(monkeypatch):
     }
     monkeypatch.setattr(
         "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
-        lambda symbol: snapshots[symbol],
+        lambda symbol, *, target_date: (
+            snapshots[symbol] if target_date == date(2026, 9, 25) else None
+        ),
     )
 
     facts, missing = fetch_index_facts(date(2026, 9, 25))
@@ -36,7 +38,8 @@ def test_index_quotes_require_all_four_completed_same_day_bars(monkeypatch):
 def test_index_quotes_do_not_publish_partial_set(monkeypatch):
     from daily_messenger.daily_report.index_quotes import fetch_index_facts
 
-    def fetch(symbol):
+    def fetch(symbol, *, target_date):
+        assert target_date == date(2026, 9, 25)
         if symbol == "^IXIC":
             raise RuntimeError("provider unavailable")
         day = "2026-09-24" if symbol == "^RUT" else "2026-09-25"

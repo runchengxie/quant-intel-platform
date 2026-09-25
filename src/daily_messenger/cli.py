@@ -237,6 +237,9 @@ def _add_daily_report_parser(subparsers: argparse._SubParsersAction) -> None:
         parser.add_argument("--date", help="Report cutoff date (YYYY-MM-DD)")
         parser.add_argument("--out", default="out/daily_report", help="Artifact output directory")
         if command == "daily-report":
+            parser.add_argument(
+                "--backfill", action="store_true", help="Clearly marked historical replay"
+            )
             parser.add_argument("--reviewed-draft", help="Private original web-research draft")
             parser.add_argument("--reviewed-decisions", help="Private source-audit decisions")
     research_parser = subparsers.add_parser("research", help="Create a private web research draft")
@@ -448,7 +451,16 @@ def _dispatch_daily_report(args: argparse.Namespace, logger: logging.Logger) -> 
         log(logger, logging.ERROR, "daily_report_review_pair_required")
         return 2
     cutoff = now
-    if args.date and args.date != ny_date:
+    if getattr(args, "backfill", False):
+        try:
+            requested = date.fromisoformat(args.date) if args.date else None
+        except ValueError:
+            requested = None
+        if requested is None or not 0 < (ny_now.date() - requested).days <= 10:
+            log(logger, logging.ERROR, "daily_report_backfill_date_invalid")
+            return 2
+        cutoff = datetime.combine(requested, time(23, 59, 59), tzinfo=ZoneInfo("America/New_York"))
+    elif args.date and args.date != ny_date:
         previous_date = ny_now.date() - timedelta(days=1)
         if (
             args.date != previous_date.isoformat()

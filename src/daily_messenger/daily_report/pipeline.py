@@ -5,7 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 from dataclasses import dataclass, replace
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -113,10 +113,9 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
         missing.append("cross_asset")
     if source_status["rates"]["quality"] == "lagged":
         missing.append("rates_lag")
-    if any(
-        value.get("quality") == "degraded"
-        for key, value in source_status.items()
-        if key not in {"quotes", "research"}
+    if (
+        source_status["macro"]["quality"] == "degraded"
+        or source_status["rates"]["quality"] == "degraded"
     ):
         missing.append("fred")
     return LiveInputs(
@@ -126,6 +125,15 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
         quality="degraded" if missing else "ok",
         reviewed=reviewed,
     )
+
+
+def _live_revision(report_cutoff: datetime, run_date: date) -> str | None:
+    market_cutoff = report_cutoff.astimezone(ZoneInfo("America/New_York"))
+    if market_cutoff.date() == run_date:
+        return None
+    if market_cutoff.date() == run_date + timedelta(days=1) and market_cutoff.time() < time(9, 30):
+        return "next_morning_rechecked"
+    return "historical_backfill"
 
 
 def run_daily_report(
@@ -166,8 +174,10 @@ def run_daily_report(
     quality_summary = {"status": quality}
     if reviewed:
         quality_summary["reviewed_source_cutoff"] = as_of.isoformat()
-    if mode == "live" and report_cutoff.astimezone(ZoneInfo("America/New_York")).date() != run_date:
-        quality_summary["revision"] = "next_morning_rechecked"
+    if mode == "live":
+        revision = _live_revision(report_cutoff, run_date)
+        if revision:
+            quality_summary["revision"] = revision
     market_fact_ids = tuple(
         fact.id for fact in facts if fact.id.startswith(("treasury.", "index."))
     )
