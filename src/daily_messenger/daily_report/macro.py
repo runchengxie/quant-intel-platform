@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from daily_messenger.etl.fetchers.fred import FredFetchError, FredObservation, fetch_observations
 
 from .models import MarketFact
-from .treasury import fetch_treasury_yield_changes
+from .treasury import fetch_treasury_yield_observations
 from .treasury import source_url as treasury_source_url
 
 NEW_YORK = ZoneInfo("America/New_York")
@@ -78,31 +78,63 @@ def _rate_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, dict[str, 
     facts: list[MarketFact] = []
     status: dict[str, dict[str, str]] = {}
     market_date = as_of.astimezone(NEW_YORK).date()
-    official_changes = fetch_treasury_yield_changes(market_date)
-    if official_changes is not None:
+    official_observations = fetch_treasury_yield_observations(market_date)
+    if official_observations is not None:
         read_time = datetime.now(UTC)
-        return [
-            MarketFact(
-                id=f"treasury.{tenor}.change_bp",
-                metric="yield_change",
-                instrument=f"US_TREASURY_{tenor.upper()}",
-                value=official_changes[tenor],
-                previous=None,
-                change=official_changes[tenor],
-                unit="basis_points",
-                source="US Treasury",
-                source_url=treasury_source_url(market_date),
-                source_time=read_time,
-                retrieved_at=read_time,
-                quality="ok",
-                observation_date=market_date.isoformat(),
+        facts = []
+        for tenor in YIELD_SERIES:
+            observation = official_observations[tenor]
+            common = {
+                "instrument": f"US_TREASURY_{tenor.upper()}",
+                "source": "US Treasury",
+                "source_url": treasury_source_url(market_date),
+                "source_time": read_time,
+                "retrieved_at": read_time,
+                "quality": "ok",
+                "observation_date": market_date.isoformat(),
+            }
+            facts.extend(
+                (
+                    MarketFact(
+                        id=f"treasury.{tenor}.level_percent",
+                        metric="yield_level",
+                        value=observation["level_percent"],
+                        previous=observation["previous_level_percent"],
+                        change=None,
+                        unit="percent",
+                        **common,
+                    ),
+                    MarketFact(
+                        id=f"treasury.{tenor}.change_bp",
+                        metric="yield_change",
+                        value=observation["change_bp"],
+                        previous=None,
+                        change=observation["change_bp"],
+                        unit="basis_points",
+                        **common,
+                    ),
+                )
             )
-            for tenor in YIELD_SERIES
-        ], status
+        return facts, status
     for tenor, series_id in YIELD_SERIES.items():
         try:
             rows = _available_observations(series_id, as_of, days=14, max_age_days=4)
             current, previous = rows[-1].value, rows[-2].value
+            facts.append(
+                _fact(
+                    f"treasury.{tenor}.level_percent",
+                    "yield_level",
+                    series_id,
+                    current,
+                    previous,
+                    None,
+                    "percent",
+                    rows[-1].date,
+                    "ok"
+                    if rows[-1].date == as_of.astimezone(NEW_YORK).date().isoformat()
+                    else "lagged",
+                )
+            )
             facts.append(
                 _fact(
                     f"treasury.{tenor}.change_bp",
@@ -157,7 +189,11 @@ def fetch_us_macro_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, d
         except (FredFetchError, ValueError):
             status[series_id] = {"quality": "degraded", "reason": "unavailable"}
     present = {fact.id: fact for fact in facts}
-    rate_ids = {f"treasury.{tenor}.change_bp" for tenor in YIELD_SERIES}
+    rate_ids = {
+        f"treasury.{tenor}.{metric}"
+        for tenor in YIELD_SERIES
+        for metric in ("change_bp", "level_percent")
+    }
     rate_quality = "degraded"
     if rate_ids <= present.keys():
         rate_quality = (

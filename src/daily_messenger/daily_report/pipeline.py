@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from .cross_asset import fetch_cross_asset_facts
 from .facts import build_market_facts
 from .macro import fetch_us_macro_facts
 from .models import DailyReport, MarketFact, ReportSection
@@ -50,6 +51,9 @@ def _fixture_payloads(as_of: datetime) -> dict[str, Any]:
 
 def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> LiveInputs:
     fetched_facts, source_status = fetch_us_macro_facts(as_of)
+    cross_asset_facts, missing_contracts = fetch_cross_asset_facts(
+        datetime.fromisoformat(run_date).date()
+    )
     draft_path = config.get("reviewed_draft")
     decision_path = config.get("reviewed_decisions")
     if bool(draft_path) != bool(decision_path):
@@ -64,7 +68,13 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
         if draft_path and decision_path
         else None
     )
-    facts = tuple(fetched_facts) + (reviewed.facts if reviewed else ())
+    facts = tuple(fetched_facts) + tuple(cross_asset_facts) + (reviewed.facts if reviewed else ())
+    source_status["cross_asset"] = {
+        "quality": "degraded" if missing_contracts else "ok",
+        "reason": "one_or_more_contracts_unavailable"
+        if missing_contracts
+        else "all_contracts_fresh",
+    }
     source_status.update(
         {
             "quotes": {
@@ -80,6 +90,8 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
     missing = [
         name for name in ("quotes", "research") if source_status[name]["quality"] == "degraded"
     ]
+    if missing_contracts:
+        missing.append("cross_asset")
     if source_status["rates"]["quality"] == "lagged":
         missing.append("rates_lag")
     if any(
@@ -140,6 +152,7 @@ def run_daily_report(
     market_fact_ids = tuple(
         fact.id for fact in facts if fact.id.startswith(("treasury.", "index."))
     )
+    cross_asset_fact_ids = tuple(fact.id for fact in facts if fact.id.startswith("cross_asset."))
     macro_fact_ids = tuple(fact.id for fact in facts if fact.id.startswith("macro."))
     if mode != "live":
         market_fact_ids = tuple(fact.id for fact in facts)
@@ -155,6 +168,7 @@ def run_daily_report(
                 facts=market_fact_ids,
                 claims=reviewed.sections["market"] if reviewed else (),
             ),
+            ReportSection("cross_asset", "跨资产行情", facts=cross_asset_fact_ids),
             ReportSection(
                 "drivers", "市场驱动因素", claims=reviewed.sections["drivers"] if reviewed else ()
             ),

@@ -16,6 +16,7 @@ from collections.abc import Callable, Iterable
 from datetime import UTC, datetime
 from typing import Any
 from urllib.parse import quote
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import requests
 
@@ -155,6 +156,55 @@ def _extract_yahoo_change(chart: dict[str, Any]) -> tuple[str, float, float]:
     change_pct = (latest_close - prev_close) / prev_close * 100
     day = datetime.fromtimestamp(latest_ts, UTC).date().isoformat()
     return day, latest_close, change_pct
+
+
+def fetch_yahoo_daily_snapshot(symbol: str) -> _QuoteSnapshot:
+    """Return a Yahoo daily close mapped using the exchange timezone in chart metadata."""
+    chart = _fetch_yahoo_chart(symbol)
+    meta = chart.get("meta") or {}
+    timezone_name = meta.get("exchangeTimezoneName")
+    if not isinstance(timezone_name, str) or not timezone_name:
+        raise RuntimeError("Yahoo Finance 响应缺少交易所 timezone")
+    try:
+        exchange_timezone = ZoneInfo(timezone_name)
+    except ZoneInfoNotFoundError:
+        raise RuntimeError("Yahoo Finance 返回了无效的交易所 timezone") from None
+    timestamps = chart.get("timestamp") or []
+    quote_rows = (chart.get("indicators") or {}).get("quote") or []
+    closes = quote_rows[0].get("close") if quote_rows else None
+    if not isinstance(closes, list) or not timestamps:
+        raise RuntimeError("Yahoo Finance 响应缺少日线收盘数据")
+    pairs = sorted(
+        (timestamp, _safe_float(close))
+        for timestamp, close in zip(timestamps, closes, strict=False)
+        if _safe_float(close) is not None
+    )
+    if len(pairs) < 2:
+        raise RuntimeError("Yahoo Finance 未返回足够的有效日线收盘数据")
+    previous_timestamp, previous_close = pairs[-2]
+    latest_timestamp, latest_close = pairs[-1]
+    if previous_close is None or latest_close is None or previous_close <= 0 or latest_close <= 0:
+        raise RuntimeError("Yahoo Finance 日线收盘价无效")
+    close_change = (latest_close - previous_close) / previous_close * 100
+    observation_date = (
+        datetime.fromtimestamp(latest_timestamp, exchange_timezone).date().isoformat()
+    )
+    if latest_timestamp <= previous_timestamp:
+        raise RuntimeError("Yahoo Finance 日线时间戳无效")
+    current_date = datetime.now(exchange_timezone).date().isoformat()
+    if observation_date == current_date:
+        current_period = meta.get("currentTradingPeriod") or {}
+        regular_period = current_period.get("regular") or {}
+        session_end = _safe_float(regular_period.get("end"))
+        now_timestamp = datetime.now(UTC).timestamp()
+        if session_end is None or now_timestamp <= session_end:
+            raise RuntimeError("Yahoo Finance 最新日线尚未完成")
+    return _QuoteSnapshot(
+        day=observation_date,
+        close=round(latest_close, 4),
+        change_pct=round(close_change, 4),
+        source=f"yahoo:{symbol}",
+    )
 
 
 def _attempt_quote(
