@@ -8,7 +8,7 @@ API_KEYS_PATH=/path/to/private/api_keys.json dm daily-report --date YYYY-MM-DD -
 
 `--date` 通常为运行时的美东日期。次日美东 09:30 前可携带已审核草稿与决定重建前一交易日的日报；更早日期不支持实时回放，因为当前接口不能证明旧日报截止时点已发布哪些修订值。
 
-报告包含 2、5、10、30 年美债收益率最新日变动，以及 CPI 和 PCE 同比、失业率、非农就业月变动；收益率优先使用美国财政部每日数据，缺失时回退到 FRED。FRED 收益率可能比报告日期晚一个交易日更新：此时事实与 `rates` 来源状态标为 `lagged`，正文必须显示 `observation_date`，不得写成当日收盘收益率。`observation_date` 是序列观测日期，`source_time` 是本次读取来源的时间；这两个时间不能混用。指数行情及研究解释仅在审核通过的来源存在时补入，否则缺项写入 `missing_sources`。缺少数据时不填入示例数值。
+报告包含四大美股指数收盘涨跌、2、5、10、30 年美债收益率水平与日变动、布伦特和金银及比特币连续期货行情，以及 CPI、PCE 同比、失业率和非农就业月变动。四大指数取 Yahoo Finance 已完成的同日交易所日线；必须四项齐全才进入日报，否则整组标记缺项。收益率优先使用美国财政部每日数据，缺失时回退到 FRED。FRED 收益率可能比报告日期晚一个交易日更新：此时事实与 `rates` 来源状态标为 `lagged`，正文必须显示 `observation_date`，不得写成当日收盘收益率。`observation_date` 是序列观测日期，`source_time` 是本次读取来源的时间；这两个时间不能混用。新闻解释只在逐条审核通过后补入；缺少数据时不填入示例数值。
 
 检查 `daily_report.json` 的 `schema_version`、`as_of`、`content_hash`、`source_status`、`quality_summary`、各事实的 `source_url` 和 `observation_date`。发布端必须拒绝 `fixture` 状态或缺少核心宏观事实的产物，校验错误时保留上一份有效产物。
 

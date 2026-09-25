@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 from .cross_asset import fetch_cross_asset_facts
 from .facts import build_market_facts
+from .index_quotes import fetch_index_facts
 from .macro import fetch_us_macro_facts
 from .models import DailyReport, MarketFact, ReportSection
 from .reviewed_research import ReviewedResearch, load_reviewed_research
@@ -68,7 +69,17 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
         if draft_path and decision_path
         else None
     )
-    facts = tuple(fetched_facts) + tuple(cross_asset_facts) + (reviewed.facts if reviewed else ())
+    index_facts, missing_indices = (
+        ([], ())
+        if reviewed and reviewed.facts
+        else fetch_index_facts(datetime.fromisoformat(run_date).date())
+    )
+    facts = (
+        tuple(fetched_facts)
+        + tuple(index_facts)
+        + tuple(cross_asset_facts)
+        + (reviewed.facts if reviewed else ())
+    )
     source_status["cross_asset"] = {
         "quality": "degraded" if missing_contracts else "ok",
         "reason": "one_or_more_contracts_unavailable"
@@ -78,8 +89,16 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
     source_status.update(
         {
             "quotes": {
-                "quality": "reviewed" if reviewed and reviewed.facts else "degraded",
-                "reason": "source_audited" if reviewed and reviewed.facts else "not_connected",
+                "quality": "reviewed"
+                if reviewed and reviewed.facts
+                else "degraded"
+                if missing_indices
+                else "ok",
+                "reason": "source_audited"
+                if reviewed and reviewed.facts
+                else "one_or_more_indices_unavailable"
+                if missing_indices
+                else "all_indices_fresh",
             },
             "research": {
                 "quality": "reviewed" if reviewed and reviewed.claims else "degraded",
