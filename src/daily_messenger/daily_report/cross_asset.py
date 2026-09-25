@@ -27,7 +27,7 @@ def fetch_cross_asset_facts(report_date: date) -> tuple[list[MarketFact], tuple[
     missing: list[str] = []
     for symbol, key, instrument, unit in CONTRACTS:
         try:
-            snapshot = fetch_yahoo_daily_snapshot(symbol)
+            snapshot = fetch_yahoo_daily_snapshot(symbol, target_date=report_date)
             if snapshot.day != report_date.isoformat():
                 missing.append(symbol)
                 continue

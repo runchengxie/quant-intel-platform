@@ -23,7 +23,7 @@ def fetch_index_facts(report_date: date) -> tuple[list[MarketFact], tuple[str, .
     missing = []
     for symbol, key, instrument in INDICES:
         try:
-            snapshot = fetch_yahoo_daily_snapshot(symbol)
+            snapshot = fetch_yahoo_daily_snapshot(symbol, target_date=report_date)
             if snapshot.day != report_date.isoformat():
                 missing.append(symbol)
                 continue

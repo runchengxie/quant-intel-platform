@@ -130,6 +130,13 @@ def test_changed_draft_or_future_source_fails_closed(tmp_path):
 
 def test_live_pipeline_includes_only_reviewed_facts_and_claims(monkeypatch, tmp_path):
     draft, review = _files(tmp_path)
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return AS_OF.astimezone(tz) if tz else AS_OF.replace(tzinfo=None)
+
+    monkeypatch.setattr("daily_messenger.daily_report.pipeline.datetime", FixedDateTime)
     monkeypatch.setattr(
         "daily_messenger.daily_report.pipeline.fetch_us_macro_facts",
         lambda _as_of: ([], {"rates": {"quality": "degraded"}, "macro": {"quality": "degraded"}}),

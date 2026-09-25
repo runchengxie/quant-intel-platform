@@ -13,7 +13,7 @@ import logging
 import os
 import time
 from collections.abc import Callable, Iterable
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 from urllib.parse import quote
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -124,7 +124,7 @@ def _extract_latest_change(
 def _fetch_yahoo_chart(symbol: str) -> dict[str, Any]:
     encoded = quote(symbol, safe="")
     url = f"https://query2.finance.yahoo.com/v8/finance/chart/{encoded}"
-    params = {"interval": "1d", "range": "5d"}
+    params = {"interval": "1d", "range": "1mo"}
     headers = {
         "User-Agent": BROWSER_USER_AGENT,
         "Accept": "application/json",
@@ -158,8 +158,8 @@ def _extract_yahoo_change(chart: dict[str, Any]) -> tuple[str, float, float]:
     return day, latest_close, change_pct
 
 
-def fetch_yahoo_daily_snapshot(symbol: str) -> _QuoteSnapshot:
-    """Return a Yahoo daily close mapped using the exchange timezone in chart metadata."""
+def fetch_yahoo_daily_snapshot(symbol: str, *, target_date: date | None = None) -> _QuoteSnapshot:
+    """Return a completed Yahoo daily close, optionally for a specified market day."""
     chart = _fetch_yahoo_chart(symbol)
     meta = chart.get("meta") or {}
     timezone_name = meta.get("exchangeTimezoneName")
@@ -181,8 +181,22 @@ def fetch_yahoo_daily_snapshot(symbol: str) -> _QuoteSnapshot:
     )
     if len(pairs) < 2:
         raise RuntimeError("Yahoo Finance 未返回足够的有效日线收盘数据")
-    previous_timestamp, previous_close = pairs[-2]
-    latest_timestamp, latest_close = pairs[-1]
+    if target_date is not None:
+        dated_pairs = [
+            (timestamp, close)
+            for timestamp, close in pairs
+            if datetime.fromtimestamp(timestamp, exchange_timezone).date() == target_date
+        ]
+        if len(dated_pairs) != 1:
+            raise RuntimeError("Yahoo Finance 指定交易日日线不存在或重复")
+        position = pairs.index(dated_pairs[0])
+        if position == 0:
+            raise RuntimeError("Yahoo Finance 指定交易日缺少前收盘价")
+        previous_timestamp, previous_close = pairs[position - 1]
+        latest_timestamp, latest_close = dated_pairs[0]
+    else:
+        previous_timestamp, previous_close = pairs[-2]
+        latest_timestamp, latest_close = pairs[-1]
     if previous_close is None or latest_close is None or previous_close <= 0 or latest_close <= 0:
         raise RuntimeError("Yahoo Finance 日线收盘价无效")
     close_change = (latest_close - previous_close) / previous_close * 100

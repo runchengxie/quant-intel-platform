@@ -36,7 +36,9 @@ def test_pipeline_records_cross_asset_coverage(monkeypatch, tmp_path, missing, e
     )
     monkeypatch.setattr(
         "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
-        lambda _symbol: QuoteSnapshot("2026-09-18", 100.0, 0.2, "yahoo:test"),
+        lambda _symbol, *, target_date: QuoteSnapshot(
+            target_date.isoformat(), 100.0, 0.2, "yahoo:test"
+        ),
     )
 
     report = run_daily_report(AS_OF, tmp_path, provider_config={"mode": "live"})
@@ -45,6 +47,7 @@ def test_pipeline_records_cross_asset_coverage(monkeypatch, tmp_path, missing, e
     assert section.facts == ()
     assert report.source_status["cross_asset"]["quality"] == expected_quality
     assert ("cross_asset" in report.missing_sources) is bool(missing)
+    assert "fred" not in report.missing_sources
     assert report.quality_summary["status"] == "degraded"
 
 
@@ -59,7 +62,9 @@ def test_live_pipeline_publishes_complete_same_day_index_set(monkeypatch, tmp_pa
     )
     monkeypatch.setattr(
         "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
-        lambda _symbol: QuoteSnapshot("2026-09-18", 100.0, 0.2, "yahoo:test"),
+        lambda _symbol, *, target_date: QuoteSnapshot(
+            target_date.isoformat(), 100.0, 0.2, "yahoo:test"
+        ),
     )
 
     report = run_daily_report(AS_OF, tmp_path, provider_config={"mode": "live"})
