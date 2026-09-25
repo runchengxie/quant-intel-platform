@@ -18,6 +18,10 @@ def offline_treasury(monkeypatch):
         "daily_messenger.daily_report.macro.fetch_treasury_yield_observations",
         lambda _market_date: None,
     )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_index_facts",
+        lambda _market_date: ([], ("^GSPC", "^DJI", "^IXIC", "^RUT")),
+    )
 
 
 def test_live_report_uses_fred_observations_and_never_fixture_values(monkeypatch, tmp_path):
