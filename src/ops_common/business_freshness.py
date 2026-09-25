@@ -257,15 +257,32 @@ def _report_datasets_probe(context: FreshnessContext, target: str) -> FreshnessR
                 not missing,
             )
         )
-        if fresh:
-            return FreshnessResult(
-                fresh=True,
-                status="fresh",
-                target_date=target,
-                actual_date=target,
-                detail="owner evening receipt and required partitions are ready",
-                evidence=(str(owner_path),),
+        invalid_metadata = [
+            name
+            for name, valid in (
+                (
+                    "schema_version",
+                    owner.get("schema_version") == "market_data_platform.a_share_evening_data.v1",
+                ),
+                ("trade_date", owner.get("trade_date") == target),
+                ("premium_enabled", owner.get("premium_enabled") is True),
             )
+            if not valid
+        ]
+        return FreshnessResult(
+            fresh=fresh,
+            status="fresh" if fresh else "stale",
+            target_date=target,
+            actual_date=str(owner.get("trade_date") or "") or None,
+            detail="owner evening receipt and required partitions are ready"
+            if fresh
+            else "owner evening receipt or required partitions are stale",
+            evidence=(
+                str(owner_path),
+                *(f"invalid:{name}" for name in invalid_metadata),
+                *(f"{key}:{statuses.get(key, 'missing')}" for key in missing),
+            ),
+        )
 
     path = reports / f"a_share_report_dataset_refresh_{target}.json"
     payload = _read_json(path)
@@ -277,13 +294,11 @@ def _report_datasets_probe(context: FreshnessContext, target: str) -> FreshnessR
     missing = sorted(key for key in REQUIRED_REPORT_DATASETS if statuses.get(key) != "ready")
     fresh = payload.get("trade_date") == target and not missing
     evidence = (str(path), *(f"{key}:{statuses.get(key, 'missing')}" for key in missing))
-    if owner_path.is_file() and not fresh:
-        evidence = (str(owner_path), *evidence)
     return FreshnessResult(
         fresh=fresh,
         status="fresh" if fresh else "stale",
         target_date=target,
-        actual_date=str(payload.get("trade_date") or owner.get("trade_date") or "") or None,
+        actual_date=str(payload.get("trade_date") or "") or None,
         detail="required report datasets are ready"
         if fresh
         else "required report datasets are stale",

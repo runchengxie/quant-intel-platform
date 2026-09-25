@@ -171,6 +171,25 @@ def test_report_dataset_probe_accepts_owner_evening_receipt_only_with_partitions
         is False
     )
 
+    (reports / "a_share_report_dataset_refresh_20260810.json").write_text(
+        json.dumps(
+            {
+                "trade_date": "20260810",
+                "datasets": [
+                    {"dataset": key, "status": "ready"}
+                    for key in ("dc_concept", "kpl_concept_cons", "limit_list_ths")
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert (
+        probe_stage(
+            context, stage_key="report_datasets", target_date="20260810", signal_date="20260811"
+        ).fresh
+        is False
+    )
+
 
 def test_current_contract_probe_requires_daily_clean_sentinel_file(tmp_path: Path) -> None:
     context = FreshnessContext(tmp_path / "project", tmp_path / "data", OPEN_DATES)
