@@ -41,6 +41,23 @@ def _points(source: Mapping[str, object], key: str) -> list[object]:
     return cast("list[object]", value) if isinstance(value, list) else []
 
 
+def _dashboard_margin_stale(points: list[object], target: date_type) -> bool:
+    dates = {
+        str(item.get("observation_date"))
+        for item in points
+        if isinstance(item, Mapping) and str(item.get("label", "")).startswith("成交额 ")
+    }
+    previous = max((day for day in dates if day < target.isoformat()), default=None)
+    if previous is None:
+        return False
+    margin_dates = [
+        str(item.get("observation_date"))
+        for item in points
+        if isinstance(item, Mapping) and str(item.get("label", "")).startswith("融资余额 ")
+    ]
+    return not margin_dates or max(margin_dates) < previous
+
+
 def _chart_card(
     key: str,
     *,
@@ -74,6 +91,8 @@ def _chart_card(
         status, reason, points = "missing", "观测日晚于报告日", []
     elif key == "us_overnight" and len(points) < len(SYMBOLS):
         status, reason = "degraded", "部分美股行情缺少可核实收盘日或来源"
+    elif key == "dashboard" and _dashboard_margin_stale(points, target):
+        status, reason = "degraded", "融资余额最新观测日早于上一交易日，保留原始观测日"
     elif key in degraded or (
         key == "moneyflow" and moneyflow_day is not None and moneyflow_day < target
     ):
