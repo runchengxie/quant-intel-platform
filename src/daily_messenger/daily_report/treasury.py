@@ -34,8 +34,8 @@ def _rows(csv_text: str) -> dict[date, dict[str, float]]:
     return result
 
 
-def fetch_treasury_yield_changes(market_date: date) -> dict[str, float] | None:
-    """Return same-day basis-point moves, or None when observations are incomplete."""
+def fetch_treasury_yield_observations(market_date: date) -> dict[str, dict[str, float]] | None:
+    """Return same-day levels and prior-observation moves from one official curve fetch."""
     try:
         response = requests.get(source_url(market_date), timeout=45)
         response.raise_for_status()
@@ -54,4 +54,19 @@ def fetch_treasury_yield_changes(market_date: date) -> dict[str, float] | None:
         return None
     prior = observations[max(previous_days)]
     current = observations[market_date]
-    return {tenor: round((current[tenor] - prior[tenor]) * 100, 2) for tenor in TENORS}
+    return {
+        tenor: {
+            "level_percent": current[tenor],
+            "previous_level_percent": prior[tenor],
+            "change_bp": round((current[tenor] - prior[tenor]) * 100, 2),
+        }
+        for tenor in TENORS
+    }
+
+
+def fetch_treasury_yield_changes(market_date: date) -> dict[str, float] | None:
+    """Return same-day basis-point moves, or None when observations are incomplete."""
+    observations = fetch_treasury_yield_observations(market_date)
+    if observations is None:
+        return None
+    return {tenor: row["change_bp"] for tenor, row in observations.items()}

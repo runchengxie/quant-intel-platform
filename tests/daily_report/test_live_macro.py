@@ -15,7 +15,7 @@ AS_OF = datetime(2026, 9, 24, 1, tzinfo=UTC)
 @pytest.fixture(autouse=True)
 def offline_treasury(monkeypatch):
     monkeypatch.setattr(
-        "daily_messenger.daily_report.macro.fetch_treasury_yield_changes",
+        "daily_messenger.daily_report.macro.fetch_treasury_yield_observations",
         lambda _market_date: None,
     )
 
@@ -41,6 +41,8 @@ def test_live_report_uses_fred_observations_and_never_fixture_values(monkeypatch
 
     assert facts["treasury.2y.change_bp"].value == 4.0
     assert facts["treasury.10y.change_bp"].value == 3.0
+    assert facts["treasury.10y.level_percent"].value == 4.23
+    assert facts["treasury.10y.level_percent"].previous == 4.20
     assert facts["macro.cpi_yoy"].value == 4.0
     assert facts["macro.pce_yoy"].value == 2.0
     assert facts["macro.unemployment_rate"].value == 4.2
@@ -55,7 +57,9 @@ def test_live_report_uses_fred_observations_and_never_fixture_values(monkeypatch
     assert report.quality_summary["status"] == "degraded"
     assert "quotes" in report.missing_sources
     assert "treasury.2y.change_bp" in report.sections[0].facts
-    assert "macro.cpi_yoy" in report.sections[2].facts
+    assert "treasury.10y.level_percent" in report.sections[0].facts
+    macro_section = next(section for section in report.sections if section.key == "macro")
+    assert "macro.cpi_yoy" in macro_section.facts
     assert "index.spx.change_percent" not in facts
 
 
@@ -88,7 +92,7 @@ def test_stale_yield_is_not_presented_as_current(monkeypatch):
 
 def test_previous_day_yield_is_marked_lagged(monkeypatch):
     monkeypatch.setattr(
-        "daily_messenger.daily_report.macro.fetch_treasury_yield_changes",
+        "daily_messenger.daily_report.macro.fetch_treasury_yield_observations",
         lambda _market_date: None,
     )
 
@@ -119,8 +123,20 @@ def test_official_treasury_same_day_overrides_lagged_fred(monkeypatch):
 
     monkeypatch.setattr("daily_messenger.daily_report.macro.fetch_observations", fetch)
     monkeypatch.setattr(
-        "daily_messenger.daily_report.macro.fetch_treasury_yield_changes",
-        lambda _market_date: {"2y": 14.0, "5y": 16.0, "10y": 15.0, "30y": 11.0},
+        "daily_messenger.daily_report.macro.fetch_treasury_yield_observations",
+        lambda _market_date: {
+            tenor: {
+                "level_percent": current,
+                "previous_level_percent": current - change / 100,
+                "change_bp": change,
+            }
+            for tenor, current, change in (
+                ("2y", 4.85, 14.0),
+                ("5y", 4.99, 16.0),
+                ("10y", 5.11, 15.0),
+                ("30y", 5.40, 11.0),
+            )
+        },
     )
     facts, status = fetch_us_macro_facts(AS_OF)
     rates = {fact.id: fact for fact in facts if fact.id.startswith("treasury.")}
@@ -130,6 +146,8 @@ def test_official_treasury_same_day_overrides_lagged_fred(monkeypatch):
     } == {"2y": 14.0, "5y": 16.0, "10y": 15.0, "30y": 11.0}
     assert all(fact.observation_date == "2026-09-23" for fact in rates.values())
     assert all(fact.source == "US Treasury" for fact in rates.values())
+    assert rates["treasury.10y.level_percent"].value == 5.11
+    assert rates["treasury.10y.level_percent"].previous == 4.96
     assert status["rates"]["quality"] == "ok"
     assert not set(requested) & {"DGS2", "DGS5", "DGS10", "DGS30"}
 
@@ -157,6 +175,10 @@ def test_cli_daily_report_does_not_publish_fixture_values(monkeypatch, tmp_path)
     monkeypatch.setattr(
         "daily_messenger.daily_report.pipeline.fetch_us_macro_facts",
         lambda _as_of: ([], {"macro": {"quality": "degraded"}, "rates": {"quality": "degraded"}}),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_cross_asset_facts",
+        lambda _date: ([], ("BZ=F", "GC=F", "SI=F", "BTC=F")),
     )
 
     assert main(["daily-report", "--out", str(tmp_path)]) == 0
