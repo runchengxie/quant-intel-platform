@@ -129,6 +129,68 @@ def test_report_dataset_probe_still_blocks_missing_required_dataset(tmp_path: Pa
     assert "kpl_concept_cons:missing" in result.evidence
 
 
+def test_report_dataset_probe_accepts_owner_evening_receipt_only_with_partitions(
+    tmp_path: Path,
+) -> None:
+    context = FreshnessContext(tmp_path / "release", tmp_path / "data", OPEN_DATES)
+    reports = context.data_root / "reports"
+    reports.mkdir(parents=True)
+    receipt = reports / "a_share_evening_data_20260810.json"
+    receipt.write_text(
+        json.dumps(
+            {
+                "schema_version": "market_data_platform.a_share_evening_data.v1",
+                "trade_date": "20260810",
+                "premium_enabled": True,
+                "datasets": [
+                    {"dataset": key, "status": "ready"}
+                    for key in ("dc_concept", "kpl_concept_cons", "limit_list_ths")
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    root = context.data_root / "assets/tushare/a_share"
+    for key in ("dc_concept", "kpl_concept_cons", "limit_list_ths"):
+        part = root / key / f"a_share_all_{key}_latest/data/trade_date=20260810/part.parquet"
+        part.parent.mkdir(parents=True)
+        part.write_bytes(b"parquet")
+
+    result = probe_stage(
+        context, stage_key="report_datasets", target_date="20260810", signal_date="20260811"
+    )
+    assert result.fresh is True
+
+    (
+        root / "dc_concept/a_share_all_dc_concept_latest/data/trade_date=20260810/part.parquet"
+    ).unlink()
+    assert (
+        probe_stage(
+            context, stage_key="report_datasets", target_date="20260810", signal_date="20260811"
+        ).fresh
+        is False
+    )
+
+    (reports / "a_share_report_dataset_refresh_20260810.json").write_text(
+        json.dumps(
+            {
+                "trade_date": "20260810",
+                "datasets": [
+                    {"dataset": key, "status": "ready"}
+                    for key in ("dc_concept", "kpl_concept_cons", "limit_list_ths")
+                ],
+            }
+        ),
+        encoding="utf-8",
+    )
+    assert (
+        probe_stage(
+            context, stage_key="report_datasets", target_date="20260810", signal_date="20260811"
+        ).fresh
+        is False
+    )
+
+
 def test_current_contract_probe_requires_daily_clean_sentinel_file(tmp_path: Path) -> None:
     context = FreshnessContext(tmp_path / "project", tmp_path / "data", OPEN_DATES)
     reports = context.data_root / "reports"

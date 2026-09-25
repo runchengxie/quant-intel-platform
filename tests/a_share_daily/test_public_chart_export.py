@@ -129,6 +129,21 @@ def test_partial_us_points_are_marked_degraded(manifest_fixture: dict):
     assert us["status"] == "degraded"
 
 
+def test_dashboard_with_margin_older_than_previous_turnover_session_is_degraded(
+    manifest_fixture: dict,
+):
+    manifest_fixture["charts"]["public_points"]["dashboard"] = [
+        {**point("2026-09-18"), "label": "上涨家数"},
+        {**point("2026-09-17"), "label": "成交额 2026-09-17"},
+        {**point("2026-09-18"), "label": "成交额 2026-09-18"},
+        {**point("2026-09-14"), "label": "融资余额 2026-09-14"},
+    ]
+    output = export_candidate(manifest_fixture, date="20260918", kind="morning")
+    dashboard = next(card for card in output["charts"] if card["key"] == "dashboard")
+    assert dashboard["status"] == "degraded"
+    assert "融资余额" in dashboard["reason"]
+
+
 def test_export_rejects_wrong_date_kind_and_non_object(manifest_fixture: dict):
     with pytest.raises(ValueError, match="date"):
         export_candidate(manifest_fixture, date="20260919", kind="morning")

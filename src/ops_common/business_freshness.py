@@ -231,15 +231,69 @@ def _current_contract_probe(context: FreshnessContext, target: str) -> Freshness
 
 
 def _report_datasets_probe(context: FreshnessContext, target: str) -> FreshnessResult:
-    path = context.data_root / "reports" / f"a_share_report_dataset_refresh_{target}.json"
+    reports = context.data_root / "reports"
+    owner_path = reports / f"a_share_evening_data_{target}.json"
+    owner = _read_json(owner_path)
+    if owner_path.is_file():
+        raw_rows = owner.get("datasets")
+        rows = (
+            [row for row in raw_rows if isinstance(row, Mapping)]
+            if isinstance(raw_rows, list)
+            else []
+        )
+        statuses = {str(row.get("dataset")): str(row.get("status")) for row in rows}
+        assets = context.data_root / "assets/tushare/a_share"
+        missing = sorted(
+            key
+            for key in REQUIRED_REPORT_DATASETS
+            if statuses.get(key) != "ready"
+            or not _nonempty_partition(assets / key / f"a_share_all_{key}_latest", target)
+        )
+        fresh = all(
+            (
+                owner.get("schema_version") == "market_data_platform.a_share_evening_data.v1",
+                owner.get("trade_date") == target,
+                owner.get("premium_enabled") is True,
+                not missing,
+            )
+        )
+        invalid_metadata = [
+            name
+            for name, valid in (
+                (
+                    "schema_version",
+                    owner.get("schema_version") == "market_data_platform.a_share_evening_data.v1",
+                ),
+                ("trade_date", owner.get("trade_date") == target),
+                ("premium_enabled", owner.get("premium_enabled") is True),
+            )
+            if not valid
+        ]
+        return FreshnessResult(
+            fresh=fresh,
+            status="fresh" if fresh else "stale",
+            target_date=target,
+            actual_date=str(owner.get("trade_date") or "") or None,
+            detail="owner evening receipt and required partitions are ready"
+            if fresh
+            else "owner evening receipt or required partitions are stale",
+            evidence=(
+                str(owner_path),
+                *(f"invalid:{name}" for name in invalid_metadata),
+                *(f"{key}:{statuses.get(key, 'missing')}" for key in missing),
+            ),
+        )
+
+    path = reports / f"a_share_report_dataset_refresh_{target}.json"
     payload = _read_json(path)
     raw_rows = payload.get("datasets")
-    rows: list[Mapping[str, Any]] = (
+    rows = (
         [row for row in raw_rows if isinstance(row, Mapping)] if isinstance(raw_rows, list) else []
     )
     statuses = {str(row.get("dataset")): str(row.get("status")) for row in rows}
     missing = sorted(key for key in REQUIRED_REPORT_DATASETS if statuses.get(key) != "ready")
     fresh = payload.get("trade_date") == target and not missing
+    evidence = (str(path), *(f"{key}:{statuses.get(key, 'missing')}" for key in missing))
     return FreshnessResult(
         fresh=fresh,
         status="fresh" if fresh else "stale",
@@ -248,7 +302,7 @@ def _report_datasets_probe(context: FreshnessContext, target: str) -> FreshnessR
         detail="required report datasets are ready"
         if fresh
         else "required report datasets are stale",
-        evidence=(str(path), *(f"{key}:{statuses.get(key, 'missing')}" for key in missing)),
+        evidence=evidence,
     )
 
 

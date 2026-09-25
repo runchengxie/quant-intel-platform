@@ -93,6 +93,8 @@ Hermes 重启可能折叠错过的 recurring run。晨报和晚报脚本因此�
 
 每个 stage 的自动恢复次数有限，并写入 `state/scheduled_recovery/<YYYYMMDD>.json`。`latest.json` 与 heartbeat 记录最新状态，失败告警按 fingerprint 去重。
 
+`report_datasets` 可核验数据平台的 `a_share_evening_data_<YYYYMMDD>.json` 回执：必须为目标日、启用 premium、三项必需增强数据均为 `ready`，且对应分区文件实际存在。仅在 owner 回执不存在时才使用旧版 `a_share_report_dataset_refresh_<YYYYMMDD>.json` 兼容路径；owner 回执失败不能由旧回执掩盖。公开六图候选的综合仪表盘若融资余额落后于成交额序列的前一交易日，会标为 `degraded` 并保留每个点的原始观测日。
+
 ## 手动恢复
 
 报告数据异常时：
