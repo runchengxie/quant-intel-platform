@@ -26,7 +26,7 @@ def test_cross_asset_facts_include_price_and_percent_change_for_each_contract(mo
     assert by_id["cross_asset.brent.close"].value == 71.25
     assert by_id["cross_asset.brent.close"].unit == "USD/barrel"
     assert by_id["cross_asset.brent.change_percent"].value == 1.2
-    assert by_id["cross_asset.bitcoin.close"].unit == "USD/contract"
+    assert by_id["cross_asset.bitcoin.close"].unit == "USD/bitcoin"
     assert by_id["cross_asset.gold.close"].observation_date == "2026-09-24"
     assert by_id["cross_asset.silver.close"].source_url.endswith("SI%3DF/history/")
 
@@ -83,4 +83,32 @@ def test_yahoo_daily_snapshot_rejects_missing_exchange_timezone(monkeypatch):
     )
 
     with pytest.raises(RuntimeError, match="timezone"):
+        quotes.fetch_yahoo_daily_snapshot("BZ=F")
+
+
+def test_yahoo_daily_snapshot_rejects_active_daily_bar(monkeypatch):
+    from datetime import UTC, datetime
+
+    from daily_messenger.etl.fetchers import quotes
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            fixed = datetime(2026, 9, 24, 18, tzinfo=UTC)
+            return fixed.astimezone(tz) if tz else fixed.replace(tzinfo=None)
+
+    monkeypatch.setattr(quotes, "datetime", FixedDateTime)
+    monkeypatch.setattr(
+        "daily_messenger.etl.fetchers.quotes._fetch_yahoo_chart",
+        lambda _symbol: {
+            "meta": {
+                "exchangeTimezoneName": "America/New_York",
+                "currentTradingPeriod": {"regular": {"start": 1790265600, "end": 1790301600}},
+            },
+            "timestamp": [1790200800, 1790287200],
+            "indicators": {"quote": [{"close": [100.0, 102.0]}]},
+        },
+    )
+
+    with pytest.raises(RuntimeError, match="未完成"):
         quotes.fetch_yahoo_daily_snapshot("BZ=F")

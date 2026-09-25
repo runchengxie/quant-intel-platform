@@ -191,6 +191,14 @@ def fetch_yahoo_daily_snapshot(symbol: str) -> _QuoteSnapshot:
     )
     if latest_timestamp <= previous_timestamp:
         raise RuntimeError("Yahoo Finance 日线时间戳无效")
+    current_date = datetime.now(exchange_timezone).date().isoformat()
+    if observation_date == current_date:
+        current_period = meta.get("currentTradingPeriod") or {}
+        regular_period = current_period.get("regular") or {}
+        session_end = _safe_float(regular_period.get("end"))
+        now_timestamp = datetime.now(UTC).timestamp()
+        if session_end is None or now_timestamp < session_end:
+            raise RuntimeError("Yahoo Finance 最新日线尚未完成")
     return _QuoteSnapshot(
         day=observation_date,
         close=round(latest_close, 4),

@@ -13,7 +13,7 @@ CONTRACTS = (
     ("BZ=F", "brent", "Brent Last Day Financial Futures", "USD/barrel"),
     ("GC=F", "gold", "COMEX Gold continuous futures", "USD/troy_ounce"),
     ("SI=F", "silver", "COMEX Silver continuous futures", "USD/troy_ounce"),
-    ("BTC=F", "bitcoin", "CME Bitcoin continuous futures", "USD/contract"),
+    ("BTC=F", "bitcoin", "CME Bitcoin continuous futures", "USD/bitcoin"),
 )
 
 
