@@ -226,6 +226,7 @@ def test_cli_explicit_backfill_uses_requested_completed_market_day(monkeypatch, 
         == "2026-09-24T23:59:59-04:00"
     )
     assert captured["config"]["mode"] == "live"
+    assert captured["config"]["backfill"] is True
 
 
 def test_historical_report_marks_actual_generation_as_backfill(monkeypatch, tmp_path):

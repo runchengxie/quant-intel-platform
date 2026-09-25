@@ -175,7 +175,11 @@ def run_daily_report(
     if reviewed:
         quality_summary["reviewed_source_cutoff"] = as_of.isoformat()
     if mode == "live":
-        revision = _live_revision(report_cutoff, run_date)
+        revision = (
+            "historical_backfill"
+            if config.get("backfill")
+            else _live_revision(report_cutoff, run_date)
+        )
         if revision:
             quality_summary["revision"] = revision
     market_fact_ids = tuple(

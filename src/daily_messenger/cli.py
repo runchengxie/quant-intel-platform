@@ -482,6 +482,7 @@ def _dispatch_daily_report(args: argparse.Namespace, logger: logging.Logger) -> 
         Path(args.out),
         provider_config={
             "mode": "live",
+            "backfill": getattr(args, "backfill", False),
             "reviewed_draft": reviewed_draft,
             "reviewed_decisions": reviewed_decisions,
         },
