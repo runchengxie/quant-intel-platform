@@ -94,7 +94,7 @@ def test_yahoo_daily_snapshot_rejects_active_daily_bar(monkeypatch):
     class FixedDateTime(datetime):
         @classmethod
         def now(cls, tz=None):
-            fixed = datetime(2026, 9, 24, 18, tzinfo=UTC)
+            fixed = datetime(2026, 9, 25, 2, tzinfo=UTC)
             return fixed.astimezone(tz) if tz else fixed.replace(tzinfo=None)
 
     monkeypatch.setattr(quotes, "datetime", FixedDateTime)

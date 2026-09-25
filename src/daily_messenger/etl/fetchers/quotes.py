@@ -197,7 +197,7 @@ def fetch_yahoo_daily_snapshot(symbol: str) -> _QuoteSnapshot:
         regular_period = current_period.get("regular") or {}
         session_end = _safe_float(regular_period.get("end"))
         now_timestamp = datetime.now(UTC).timestamp()
-        if session_end is None or now_timestamp < session_end:
+        if session_end is None or now_timestamp <= session_end:
             raise RuntimeError("Yahoo Finance 最新日线尚未完成")
     return _QuoteSnapshot(
         day=observation_date,
