@@ -94,7 +94,7 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
         "missing_contracts": missing_contracts,
     }
     source_status["btc_spot"] = {
-        "quality": "ok" if btc_spot_status == "ok" else "degraded",
+        "quality": "ok" if btc_spot_facts else "degraded",
         "reason": btc_spot_status,
     }
     source_status.update(

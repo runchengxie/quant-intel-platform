@@ -76,6 +76,10 @@ def test_live_report_marks_failed_macro_source_degraded(monkeypatch, tmp_path):
         raise FredFetchError("offline")
 
     monkeypatch.setattr("daily_messenger.daily_report.macro.fetch_observations", fail)
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_btc_spot_facts",
+        lambda _date: ([], "all_spot_sources_unavailable"),
+    )
     report = run_daily_report(AS_OF, tmp_path, provider_config={"mode": "live"})
 
     assert report.facts == ()
