@@ -6,8 +6,35 @@ import hashlib
 import os
 from collections.abc import Mapping
 from copy import deepcopy
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
+
+
+@dataclass(frozen=True)
+class _PortfolioChartStyle:
+    accent: str
+    background: str
+    foreground: str
+    muted: str
+    warning: str
+    cjk: Any
+    style_plot_axes: Any
+
+
+@dataclass(frozen=True)
+class _CashflowChartStatus:
+    artifact: Mapping[str, Any]
+    targets: list[Mapping[str, Any]]
+    weights: list[float]
+
+
+@dataclass(frozen=True)
+class _ExecutableChartStatus:
+    targets: list[Mapping[str, Any]]
+    portfolio_value: float
+    invested_amount: float
+    cash_amount: float
 
 
 def _date_dash(value: Any) -> str:
@@ -214,9 +241,96 @@ def _render_executable_markdown(
     return "\n".join(lines) + "\n"
 
 
-def render_cashflow_portfolio_png(  # noqa: PLR0915
-    artifact: Mapping[str, Any], output_path: str | Path
-) -> Path:
+def _save_chart_png(fig: Any, output_path: str | Path, pyplot: Any) -> Path:
+    output = Path(output_path).expanduser().resolve()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    temporary = output.with_name(f".{output.stem}.{os.getpid()}.tmp{output.suffix}")
+    try:
+        fig.savefig(temporary, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
+        temporary.replace(output)
+    finally:
+        pyplot.close(fig)
+        temporary.unlink(missing_ok=True)
+    return output
+
+
+def _draw_cashflow_holdings(
+    ax: Any,
+    labels: list[str],
+    weights: list[float],
+    colors: list[str],
+    style: _PortfolioChartStyle,
+) -> None:
+    positions = list(range(len(labels)))[::-1]
+    ax.barh(positions, weights[::-1], color=colors[::-1], edgecolor="none")
+    ax.set_yticks(positions, labels[::-1], fontproperties=style.cjk)
+    ax.set_xlabel("Target weight (%)", fontproperties=style.cjk)
+    ax.set_xlim(0, max(weights) * 1.25 if weights else 1)
+    style.style_plot_axes(ax, grid_axis="x")
+    for position, weight in zip(positions, weights[::-1], strict=True):
+        ax.text(
+            weight + 0.5,
+            position,
+            f"{weight:.1f}%",
+            va="center",
+            fontsize=10,
+            fontproperties=style.cjk,
+        )
+
+
+def _draw_cashflow_industries(
+    ax: Any,
+    labels: list[str],
+    weights: list[float],
+    counts: list[int],
+    style: _PortfolioChartStyle,
+) -> None:
+    positions = list(range(len(labels)))
+    ax.barh(positions, weights, color="#7aa9e8", edgecolor="none")
+    ax.set_yticks(positions, labels, fontproperties=style.cjk)
+    ax.set_xlabel("Industry weight (%)", fontproperties=style.cjk)
+    ax.set_xlim(0, max(weights) * 1.3 if weights else 1)
+    style.style_plot_axes(ax, grid_axis="x")
+    for position, weight, count in zip(positions, weights, counts, strict=True):
+        ax.text(
+            weight + 0.25,
+            position,
+            f"{weight:.1f}% · {count}只",
+            va="center",
+            fontsize=9,
+            fontproperties=style.cjk,
+        )
+
+
+def _add_cashflow_status(
+    fig: Any,
+    grid: Any,
+    status: _CashflowChartStatus,
+    style: _PortfolioChartStyle,
+) -> None:
+    status_ax = fig.add_subplot(grid[1, :])
+    status_ax.axis("off")
+    status_ax.text(
+        0.0,
+        0.45,
+        "â RESEARCH ONLY",
+        color=style.warning,
+        fontsize=10,
+        fontproperties=style.cjk,
+        fontweight="bold",
+    )
+    status_ax.text(
+        0.20,
+        0.45,
+        f"åé {status.artifact.get('candidate_count', 'n/a')}  Â·  å¥é {len(status.targets)}  Â·  "
+        f"Top5 {sum(status.weights[:5]):.1f}%  Â·  Max {max(status.weights):.1f}%",
+        color=style.foreground,
+        fontsize=10,
+        fontproperties=style.cjk,
+    )
+
+
+def render_cashflow_portfolio_png(artifact: Mapping[str, Any], output_path: str | Path) -> Path:
     """Render a DailyWatch-style allocation chart from a passed selection artifact."""
     targets = _targets(artifact)
     if _is_executable(artifact):
@@ -237,6 +351,8 @@ def render_cashflow_portfolio_png(  # noqa: PLR0915
         cjk,
         style_plot_axes,
     )
+
+    style = _PortfolioChartStyle(ACCENT, BG, FG, MUTED, YELLOW, cjk, style_plot_axes)
 
     labels = [
         f"{row.get('name') or 'â'}\n{str(row.get('symbol', '')).split('.')[0]}" for row in targets
@@ -267,65 +383,28 @@ def render_cashflow_portfolio_png(  # noqa: PLR0915
             " Â· reconstructed PIT Â· ä»ä¾ç ç©¶è§å¯"
         ),
     )
-    status_ax = fig.add_subplot(grid[1, :])
-    status_ax.axis("off")
-    status_ax.text(
-        0.0,
-        0.45,
-        "â RESEARCH ONLY",
-        color=YELLOW,
-        fontsize=10,
-        fontproperties=cjk,
-        fontweight="bold",
-    )
-    status_ax.text(
-        0.20,
-        0.45,
-        f"åé {artifact.get('candidate_count', 'n/a')}  Â·  å¥é {len(targets)}  Â·  "
-        f"Top5 {sum(weights[:5]):.1f}%  Â·  Max {max(weights):.1f}%",
-        color=FG,
-        fontsize=10,
-        fontproperties=cjk,
-    )
+    _add_cashflow_status(fig, grid, _CashflowChartStatus(artifact, targets, weights), style)
     ax = fig.add_subplot(grid[2, 0])
     industry_ax = fig.add_subplot(grid[2, 1])
-    positions = list(range(len(labels)))[::-1]
-    ax.barh(positions, weights[::-1], color=colors[::-1], edgecolor="none")
-    ax.set_yticks(positions, labels[::-1], fontproperties=cjk)
-    ax.set_xlabel("Target weight (%)", fontproperties=cjk)
-    ax.set_xlim(0, max(weights) * 1.25 if weights else 1)
-    style_plot_axes(ax, grid_axis="x")
-    for position, weight in zip(positions, weights[::-1], strict=True):
-        ax.text(
-            weight + 0.5,
-            position,
-            f"{weight:.1f}%",
-            va="center",
-            fontsize=10,
-            fontproperties=cjk,
-        )
+    _draw_cashflow_holdings(
+        ax,
+        labels,
+        weights,
+        colors,
+        style,
+    )
     industry_rows = _industry_breakdown(targets)[:8]
     industry_labels = [row[0] for row in industry_rows][::-1]
     industry_weights = [row[1] * 100 for row in industry_rows][::-1]
     industry_counts = [row[2] for row in industry_rows][::-1]
-    industry_positions = list(range(len(industry_labels)))
-    industry_ax.barh(industry_positions, industry_weights, color="#7aa9e8", edgecolor="none")
-    industry_ax.set_yticks(industry_positions, industry_labels, fontproperties=cjk)
-    industry_ax.set_xlabel("Industry weight (%)", fontproperties=cjk)
     industry_ax.set_title("è¡ä¸åå¸ Â· Top 8", loc="left", fontproperties=cjk, color=FG)
-    industry_ax.set_xlim(0, max(industry_weights) * 1.3 if industry_weights else 1)
-    style_plot_axes(industry_ax, grid_axis="x")
-    for position, weight, count in zip(
-        industry_positions, industry_weights, industry_counts, strict=True
-    ):
-        industry_ax.text(
-            weight + 0.25,
-            position,
-            f"{weight:.1f}% Â· {count}åª",
-            va="center",
-            fontsize=9,
-            fontproperties=cjk,
-        )
+    _draw_cashflow_industries(
+        industry_ax,
+        industry_labels,
+        industry_weights,
+        industry_counts,
+        style,
+    )
     fig.text(
         0.06,
         0.025,
@@ -334,26 +413,13 @@ def render_cashflow_portfolio_png(  # noqa: PLR0915
         color=MUTED,
         fontproperties=cjk,
     )
-    output = Path(output_path).expanduser().resolve()
-    output.parent.mkdir(parents=True, exist_ok=True)
-    temporary = output.with_name(f".{output.stem}.{os.getpid()}.tmp{output.suffix}")
-    try:
-        fig.savefig(temporary, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
-        temporary.replace(output)
-    finally:
-        plt.close(fig)
-        temporary.unlink(missing_ok=True)
-    return output
+    return _save_chart_png(fig, output_path, plt)
 
 
 def _draw_executable_holdings(
     ax: Any,
     top_targets: list[Mapping[str, Any]],
-    *,
-    accent: str,
-    fg: str,
-    cjk: Any,
-    style_plot_axes: Any,
+    style: _PortfolioChartStyle,
 ) -> None:
     labels = [
         f"{row.get('name') or '—'}\n{str(row.get('symbol', '')).split('.')[0]}"
@@ -364,14 +430,14 @@ def _draw_executable_holdings(
     ax.barh(
         positions,
         weights,
-        color=[accent if i < 3 else "#7aa9e8" for i in positions],
+        color=[style.accent if i < 3 else "#7aa9e8" for i in positions],
         edgecolor="none",
     )
-    ax.set_yticks(positions, labels, fontproperties=cjk)
-    ax.set_xlabel("Actual weight (%)", fontproperties=cjk)
-    ax.set_title("Top 10 可执行持仓", loc="left", fontproperties=cjk, color=fg)
+    ax.set_yticks(positions, labels, fontproperties=style.cjk)
+    ax.set_xlabel("Actual weight (%)", fontproperties=style.cjk)
+    ax.set_title("Top 10 可执行持仓", loc="left", fontproperties=style.cjk, color=style.foreground)
     ax.set_xlim(0, max(weights) * 1.25 if weights else 1)
-    style_plot_axes(ax, grid_axis="x")
+    style.style_plot_axes(ax, grid_axis="x")
     for position, weight in zip(positions, weights, strict=True):
         ax.text(weight + 0.25, position, f"{weight:.1f}%", va="center", fontsize=9)
 
@@ -379,21 +445,20 @@ def _draw_executable_holdings(
 def _draw_executable_industries(
     ax: Any,
     industry_rows: list[tuple[str, float, int]],
-    *,
-    fg: str,
-    cjk: Any,
-    style_plot_axes: Any,
+    style: _PortfolioChartStyle,
 ) -> None:
     industry_labels = [row[0] for row in reversed(industry_rows)]
     industry_weights = [row[1] * 100 for row in reversed(industry_rows)]
     industry_counts = [row[2] for row in reversed(industry_rows)]
     industry_positions = list(range(len(industry_labels)))
     ax.barh(industry_positions, industry_weights, color="#7aa9e8", edgecolor="none")
-    ax.set_yticks(industry_positions, industry_labels, fontproperties=cjk)
-    ax.set_xlabel("Actual weight (%)", fontproperties=cjk)
-    ax.set_title("行业分布 · Top 8 + Other", loc="left", fontproperties=cjk, color=fg)
+    ax.set_yticks(industry_positions, industry_labels, fontproperties=style.cjk)
+    ax.set_xlabel("Actual weight (%)", fontproperties=style.cjk)
+    ax.set_title(
+        "行业分布 · Top 8 + Other", loc="left", fontproperties=style.cjk, color=style.foreground
+    )
     ax.set_xlim(0, max(industry_weights) * 1.3 if industry_weights else 1)
-    style_plot_axes(ax, grid_axis="x")
+    style.style_plot_axes(ax, grid_axis="x")
     for position, weight, count in zip(
         industry_positions, industry_weights, industry_counts, strict=True
     ):
@@ -403,7 +468,7 @@ def _draw_executable_industries(
             f"{weight:.1f}% · {count}只",
             va="center",
             fontsize=9,
-            fontproperties=cjk,
+            fontproperties=style.cjk,
         )
 
 
@@ -448,6 +513,34 @@ def _draw_executable_table(
             cell.set_facecolor("#e8eef7")
 
 
+def _add_executable_status(
+    fig: Any,
+    grid: Any,
+    status: _ExecutableChartStatus,
+    style: _PortfolioChartStyle,
+) -> None:
+    status_ax = fig.add_subplot(grid[1, :])
+    status_ax.axis("off")
+    status_ax.text(
+        0.0,
+        0.62,
+        "â RESEARCH ONLY",
+        color=style.warning,
+        fontsize=10,
+        fontproperties=style.cjk,
+        fontweight="bold",
+    )
+    status_ax.text(
+        0.18,
+        0.62,
+        f"æä» {len(status.targets)}  Â·  æå¥ {status.invested_amount / status.portfolio_value:.1%}  Â· ç°é {status.cash_amount / status.portfolio_value:.1%}  Â· "
+        f"Max {max(float(row.get('actual_weight', 0.0)) for row in status.targets):.1%}",
+        color=style.foreground,
+        fontsize=10,
+        fontproperties=style.cjk,
+    )
+
+
 def _render_executable_png(
     artifact: Mapping[str, Any], output_path: str | Path, targets: list[Mapping[str, Any]]
 ) -> Path:
@@ -467,6 +560,8 @@ def _render_executable_png(
         cjk,
         style_plot_axes,
     )
+
+    style = _PortfolioChartStyle(ACCENT, BG, FG, MUTED, YELLOW, cjk, style_plot_axes)
 
     policy_value = artifact.get("policy")
     policy: Mapping[str, Any] = (
@@ -508,40 +603,21 @@ def _render_executable_png(
             f" Â· ä»·æ ¼ {_date_dash(artifact.get('price_date', artifact['source_date']))} Â· reconstructed PIT"
         ),
     )
-    status_ax = fig.add_subplot(grid[1, :])
-    status_ax.axis("off")
-    status_ax.text(
-        0.0,
-        0.62,
-        "â RESEARCH ONLY",
-        color=YELLOW,
-        fontsize=10,
-        fontproperties=cjk,
-        fontweight="bold",
-    )
-    status_ax.text(
-        0.18,
-        0.62,
-        f"æä» {len(targets)}  Â·  æå¥ {invested_amount / portfolio_value:.1%}  Â· ç°é {cash_amount / portfolio_value:.1%}  Â· "
-        f"Max {max(float(row.get('actual_weight', 0.0)) for row in targets):.1%}",
-        color=FG,
-        fontsize=10,
-        fontproperties=cjk,
+    _add_executable_status(
+        fig,
+        grid,
+        _ExecutableChartStatus(targets, portfolio_value, invested_amount, cash_amount),
+        style,
     )
     _draw_executable_holdings(
         fig.add_subplot(grid[2, 0]),
         top_targets,
-        accent=ACCENT,
-        fg=FG,
-        cjk=cjk,
-        style_plot_axes=style_plot_axes,
+        style,
     )
     _draw_executable_industries(
         fig.add_subplot(grid[2, 1]),
         industry_rows,
-        fg=FG,
-        cjk=cjk,
-        style_plot_axes=style_plot_axes,
+        style,
     )
     _draw_executable_table(
         fig.add_subplot(grid[3, :]),
@@ -559,16 +635,7 @@ def _render_executable_png(
         color=MUTED,
         fontproperties=cjk,
     )
-    output = Path(output_path).expanduser().resolve()
-    output.parent.mkdir(parents=True, exist_ok=True)
-    temporary = output.with_name(f".{output.stem}.{os.getpid()}.tmp{output.suffix}")
-    try:
-        fig.savefig(temporary, dpi=150, bbox_inches="tight", facecolor=fig.get_facecolor())
-        temporary.replace(output)
-    finally:
-        plt.close(fig)
-        temporary.unlink(missing_ok=True)
-    return output
+    return _save_chart_png(fig, output_path, plt)
 
 
 __all__ = [
