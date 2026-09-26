@@ -6,6 +6,7 @@
     "finnhub": "FINNHUB_TOKEN",
     "fred": "YOUR_FRED_API_KEY",
     "sosovalue": "YOUR_SOSOVALUE_API_KEY",
+    "coingecko": "YOUR_COINGECKO_API_KEY",
     "coinglass": "YOUR_COINGLASS_API_KEY",
     "oanda": "YOUR_OANDA_PRACTICE_TOKEN",
     "alpaca_key_id": "YOUR_KEY_ID",
