@@ -88,6 +88,29 @@ def test_kraken_fallback_rejects_missing_prior_cutoff(monkeypatch):
         btc_spot.fetch_kraken_spot_snapshot(date(2026, 9, 24))
 
 
+def test_kraken_rejects_cutoff_bar_when_it_is_last_uncommitted_bar(monkeypatch):
+    from daily_messenger.daily_report import btc_spot
+
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return {
+                "error": [],
+                "result": {
+                    "XXBTZUSD": [
+                        [1790190000, "100", "103", "99", "100", "100", "1", 10],
+                        [1790276400, "100", "105", "99", "104", "102", "1", 10],
+                    ],
+                    "last": 1790276400,
+                },
+            }
+
+    monkeypatch.setattr(btc_spot.requests, "get", lambda *args, **kwargs: Response())
+    with pytest.raises(RuntimeError, match="target cutoff"):
+        btc_spot.fetch_kraken_spot_snapshot(date(2026, 9, 24))
+
+
 def test_kraken_fallback_becomes_public_spot_fact(monkeypatch):
     from daily_messenger.daily_report import btc_spot
 
@@ -154,6 +177,34 @@ def test_coingecko_fallback_rejects_missing_prior_cutoff(monkeypatch):
     monkeypatch.setattr(btc_spot.requests, "get", lambda *args, **kwargs: Response())
     with pytest.raises(RuntimeError, match="previous cutoff"):
         btc_spot.fetch_coingecko_spot_snapshot(date(2026, 9, 25), "secret")
+
+
+def test_coingecko_rejects_malformed_duplicate_cutoff(monkeypatch):
+    from daily_messenger.daily_report import btc_spot
+
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return {
+                "prices": [
+                    [1790280000000, 100.0],
+                    [1790366400000, 104.0],
+                    [1790366400000],
+                ]
+            }
+
+    monkeypatch.setattr(btc_spot.requests, "get", lambda *args, **kwargs: Response())
+    with pytest.raises(RuntimeError, match="invalid"):
+        btc_spot.fetch_coingecko_spot_snapshot(date(2026, 9, 25), "secret")
+
+
+def test_kraken_parser_rejects_malformed_duplicate_cutoff():
+    from daily_messenger.daily_report.btc_spot import _parse_kraken_closes
+
+    cutoff = 1790276400
+    with pytest.raises(RuntimeError, match="invalid"):
+        _parse_kraken_closes([[cutoff, "1", "2", "1", "104"], [cutoff]], {cutoff})
 
 
 def test_fmp_failure_uses_coingecko_before_kraken(monkeypatch):

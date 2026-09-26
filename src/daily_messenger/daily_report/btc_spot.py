@@ -34,6 +34,26 @@ def _cutoff_milliseconds(day: date) -> int:
     return int(datetime.combine(day, time(16), NEW_YORK).timestamp() * 1000)
 
 
+def _parse_coingecko_closes(prices: list[object], wanted: set[int]) -> dict[int, float]:
+    closes: dict[int, float] = {}
+    for point in prices:
+        if not isinstance(point, list) or not point or type(point[0]) is not int:
+            continue
+        timestamp = point[0]
+        if timestamp not in wanted:
+            continue
+        if len(point) != 2:
+            raise RuntimeError("CoinGecko cutoff price invalid")
+        raw_close = point[1]
+        if isinstance(raw_close, bool) or not isinstance(raw_close, (int, float)):
+            raise RuntimeError("CoinGecko cutoff price invalid")
+        close = float(raw_close)
+        if not math.isfinite(close) or close <= 0 or timestamp in closes:
+            raise RuntimeError("CoinGecko cutoff price invalid or duplicated")
+        closes[timestamp] = close
+    return closes
+
+
 def fetch_coingecko_spot_snapshot(target_date: date, api_key: str) -> QuoteSnapshot:
     """Use the two hourly CoinGecko USD points ending at 16:00 New York time."""
     cutoff = datetime.combine(target_date, time(16), NEW_YORK)
@@ -65,19 +85,7 @@ def fetch_coingecko_spot_snapshot(target_date: date, api_key: str) -> QuoteSnaps
         raise RuntimeError("CoinGecko prices unavailable")
     previous = _cutoff_milliseconds(target_date - timedelta(days=1))
     target = _cutoff_milliseconds(target_date)
-    closes: dict[int, float] = {}
-    for point in prices:
-        if not isinstance(point, list) or len(point) != 2 or type(point[0]) is not int:
-            continue
-        timestamp, raw_close = point
-        if timestamp not in {previous, target}:
-            continue
-        if isinstance(raw_close, bool) or not isinstance(raw_close, (int, float)):
-            raise RuntimeError("CoinGecko cutoff price invalid")
-        close = float(raw_close)
-        if not math.isfinite(close) or close <= 0 or timestamp in closes:
-            raise RuntimeError("CoinGecko cutoff price invalid or duplicated")
-        closes[timestamp] = close
+    closes = _parse_coingecko_closes(prices, {previous, target})
     if previous not in closes:
         raise RuntimeError("CoinGecko previous cutoff unavailable")
     if target not in closes:
@@ -93,18 +101,20 @@ def fetch_coingecko_spot_snapshot(target_date: date, api_key: str) -> QuoteSnaps
 def _parse_kraken_closes(bars: list[object], wanted: set[int]) -> dict[int, float]:
     closes: dict[int, float] = {}
     for bar in bars:
-        if not isinstance(bar, list) or len(bar) < 5 or type(bar[0]) is not int:
+        if not isinstance(bar, list) or not bar or type(bar[0]) is not int:
             continue
         start = bar[0]
         if start not in wanted:
             continue
+        if len(bar) < 5:
+            raise RuntimeError("Kraken cutoff bar invalid")
         raw_close = bar[4]
         if not isinstance(raw_close, (str, int, float)) or isinstance(raw_close, bool):
-            continue
+            raise RuntimeError("Kraken cutoff bar invalid")
         try:
             close = float(raw_close)
-        except (TypeError, ValueError):
-            continue
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError("Kraken cutoff bar invalid") from exc
         if not math.isfinite(close) or close <= 0 or start in closes:
             raise RuntimeError("Kraken cutoff bar invalid or duplicated")
         closes[start] = close
@@ -134,8 +144,11 @@ def fetch_kraken_spot_snapshot(target_date: date) -> QuoteSnapshot:
     bars = result.get("XXBTZUSD") if isinstance(result, dict) else None
     if not isinstance(bars, list):
         raise RuntimeError("Kraken BTC/USD bars unavailable")
+    # Kraken documents the final OHLC row as the current, uncommitted interval.
+    # A delayed response may still end with the 15:00-16:00 ET row after 16:00.
+    completed_bars = bars[:-1]
     wanted = {_cutoff_start(target_date - timedelta(days=1)), _cutoff_start(target_date)}
-    closes = _parse_kraken_closes(bars, wanted)
+    closes = _parse_kraken_closes(completed_bars, wanted)
     target = _cutoff_start(target_date)
     previous = _cutoff_start(target_date - timedelta(days=1))
     if previous not in closes:
