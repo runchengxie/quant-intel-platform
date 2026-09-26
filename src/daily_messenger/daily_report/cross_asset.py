@@ -5,8 +5,10 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, time
 from urllib.parse import quote
 
+from daily_messenger.etl.config import resolve_api_key
 from daily_messenger.etl.fetchers.quotes import fetch_yahoo_daily_snapshot
 
+from .fmp_prices import fetch_fmp_daily_snapshot
 from .models import MarketFact
 
 CONTRACTS = (
@@ -20,6 +22,8 @@ CONTRACTS = (
 # exchange sessions finish. These conservative cutoffs are for Yahoo daily
 # bars, not a claim that Yahoo's close equals an exchange settlement price.
 COMPLETED_AFTER = {"BZ=F": time(18, 15), "GC=F": time(17, 15), "SI=F": time(17, 15)}
+FMP_COMMODITIES = {"BZ=F": "BZUSD", "GC=F": "GCUSD", "SI=F": "SIUSD"}
+FMP_SOURCE_URL = "https://site.financialmodelingprep.com/developer/docs/stable/commodities-historical-price-eod-full"
 
 
 def _source_url(symbol: str) -> str:
@@ -30,19 +34,44 @@ def fetch_cross_asset_facts(report_date: date) -> tuple[list[MarketFact], dict[s
     """Fetch each continuous future independently; omit failures and nonmatching dates."""
     facts: list[MarketFact] = []
     missing: dict[str, str] = {}
+    fmp_key = resolve_api_key("financial_modeling_prep")
     for symbol, key, instrument, unit in CONTRACTS:
         try:
-            snapshot = fetch_yahoo_daily_snapshot(
-                symbol, target_date=report_date, completed_after=COMPLETED_AFTER.get(symbol)
-            )
+            source = "Yahoo Finance"
+            source_url = _source_url(symbol)
+            fact_instrument = f"{instrument} ({symbol})"
+            try:
+                snapshot = fetch_yahoo_daily_snapshot(
+                    symbol, target_date=report_date, completed_after=COMPLETED_AFTER.get(symbol)
+                )
+            except Exception:
+                if not fmp_key or symbol not in FMP_COMMODITIES:
+                    raise
+                snapshot = None
+            if (snapshot is None or snapshot.day != report_date.isoformat()) and (
+                fmp_key and symbol in FMP_COMMODITIES
+            ):
+                fmp_symbol = FMP_COMMODITIES[symbol]
+                snapshot = fetch_fmp_daily_snapshot(
+                    fmp_symbol,
+                    target_date=report_date,
+                    api_key=fmp_key,
+                    completed_after=COMPLETED_AFTER.get(symbol),
+                )
+                source = "Financial Modeling Prep"
+                source_url = FMP_SOURCE_URL
+                fact_instrument = f"{instrument} (FMP {fmp_symbol}, continuous)"
+            if snapshot is None:
+                missing[symbol] = "provider_unavailable"
+                continue
             if snapshot.day != report_date.isoformat():
                 missing[symbol] = "observation_date_mismatch"
                 continue
             retrieved = datetime.now(UTC)
             common = {
-                "instrument": f"{instrument} ({symbol})",
-                "source": "Yahoo Finance",
-                "source_url": _source_url(symbol),
+                "instrument": fact_instrument,
+                "source": source,
+                "source_url": source_url,
                 "source_time": retrieved,
                 "retrieved_at": retrieved,
                 "quality": "ok",
