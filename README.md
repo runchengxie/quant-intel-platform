@@ -1,154 +1,34 @@
-# Market Intel
+# quant-intel-platform（Market Intel）
 
-[打开网页版说明书](https://runchengxie.github.io/quant-intel-platform/)
+[在线文档](https://runchengxie.github.io/quant-intel-platform/)
 
-面向用户的自动化市场情报与投递系统。它抓取全球市场和新闻，消费 `quant-research` 发布的 A 股策略与研究产物，把市场事实和版本化产物渲染成日报、晚报、周报、网页看板与飞书消息，并处理投递窗口、幂等、新鲜度和故障恢复。`strategy-pipeline` 是由 `quant-platform` 提供的兼容 CLI 名称，不是独立 owner。
+`quant-intel-platform` 为市场研究提供自动化报告、网页看板和信息投递。它汇总市场与新闻信息，读取其他项目发布的版本化研究结果，再负责校验、整理、展示和投递。
 
-策略计算、因子研究、回测、消融和模型生产由 `quant-research` 与 `quant-platform` 按职责负责。跨仓协作只使用公开 CLI 和版本化文件契约。本仓通过公开 owner 入口进行当日恢复，但不维护研究逻辑。
-
-## 它能产出什么
-
-- 全球市场日报（`dm run`）：海外市场、主题评分、跨市场上下文与新闻事实
-- A 股晨报与晚报：消费 DailyWatch20、D11-H5 等已发布策略产物，并组合市场温度、新闻与图表
-- 价值/风格周报与决策卡：消费 owner 发布的版本化研究产物
-- 静态网页看板（`dm dashboard`）：分数、动作、快照与可选状态面板
-- 飞书投递：按受众分群发送，并记录回执、幂等键与恢复状态
-
-## 系统边界
-
-```text
-quant-research / quant-platform / quant-market-data-platform
-                  │
-                  │ public CLI + versioned artifacts
-                  ▼
-quant-intel-platform
-  market context → validation → report/render → delivery → operations
-```
-
-历史上本仓曾内嵌 `a-share-factor-core`、`hot-sector-screener`、`ai-stock-picker` 三个 submodule。它们已退休并从仓库移除，相关研究能力已经由 `quant-research` 和 `quant-platform` 接管。
+本项目属于 Quant Research 项目系列，与同系列的数据平台、研究项目和生产部署项目各自独立维护、按接口协作。策略研究和回测由各自的 owner 项目负责，本项目不复制这些实现。
 
 ## 快速开始
 
+需要 Python 3.11 至 3.13，以及 `uv`。安装项目依赖后，先查看可用命令：
+
 ```bash
 uv sync --locked --no-dev
-
-# 全球市场日报（缺密钥时按配置降级）
-API_KEYS='{}' uv run dm run --force-score
-
-# 静态网页看板
-uv run dm dashboard
-
-# 查看命令
 uv run dm --help
-uv run marketops --help
-uv run a-share-daily --help
 ```
 
-涉及 A 股正式策略产物、数据湖或恢复入口时，部署方需要显式提供各 owner 路径：
+从[入门指南](docs/getting-started.md)了解本地报告流程。全球市场报告可以独立试用。需要 A 股正式研究产物、数据湖或生产调度时，还需配置对应的 owner 项目和权限，详见[跨项目边界](docs/boundary-contract.md)。
 
-```bash
-export DATA_PLATFORM_ROOT=/path/to/data/quant-market-data-platform
-export MDP_DIR=/path/to/quant-market-data-platform
-export QUANT_RESEARCH_ROOT=/path/to/quant-research
-```
+## 你可以在这里做什么
 
-这些路径只用于调用公开 CLI，不作为源码导入路径使用。详见[跨仓边界契约](docs/boundary-contract.md)。
+- 生成市场日报、A 股晨报晚报和风格周报
+- 查看静态网页看板
+- 按配置向指定受众投递报告并记录回执
 
-开发和质量检查：
+## 文档
 
-```bash
-uv sync --locked --group dev
-uv run ruff check .
-uv run ruff format --check .
-uv run ty check
-uv run pytest
-uv run python scripts/dev/install_git_hooks.py
-```
+- [入门指南](docs/getting-started.md)：准备环境并运行报告
+- [新机器配置](docs/new-machine-setup.md)：了解本地环境和配置
+- [系统架构](docs/architecture.md)：查看报告生成和投递流程
+- [运维手册](docs/operations.md)：查看运行、恢复与排障
+- [文档索引](docs/index.md)：按主题查找其他技术说明
 
-`market-intel` 的质量门只检查本仓。各 owner 仓库使用各自的质量门，本仓不会跨目录代跑测试。
-
-## 仓库里有什么
-
-```text
-src/
-  daily_messenger/       # 全球市场情报、主题评分、日报与 dashboard
-  a_share_daily/         # A 股报告组装、正式 artifact 校验、渲染与投递
-  a_share_analysis/      # 报告侧分析与已发布研究产物消费
-  tushare_jobs/          # 报告专用的轻量数据任务，权威数据由 MDP 负责
-  style_replica_bridge/  # 将回测产物转换为报告图表
-  ops_common/            # 投递窗口、freshness、恢复、环境与通知
-config/                  # 报告、评分与 TA 配置
-data-snapshots/          # 跨市场与报告兜底快照
-docs/                    # 架构、运维、契约与方法说明
-scripts/                 # 报告/投递/部署与 owner CLI 桥接入口
-```
-
-## 常用命令
-
-```bash
-# 全球市场日报
-dm run
-dm fetch
-dm score --force
-dm digest
-dm dashboard
-dm btc report
-
-# A 股报告与部署
-uv run a-share-daily doctor --live
-uv run a-share-daily morning
-
-# DailyWatch20 正式产物：由 quant-research 通过 strategy-pipeline CLI 生成，本仓校验并投递
-bash scripts/refresh_daily_watch20.sh
-uv run python scripts/send_daily_watch20.py --help
-```
-
-`refresh_daily_watch20.sh` 是恢复桥接脚本。它检查数据和分钟级新鲜度，再调用 `quant-research` 提供的公开 `strategy watchlist20 ...` 入口。模型、候选池、消融和研究实现由 `quant-research` 负责，通用编排由 `quant-platform` 提供。
-
-## 文档导航
-
-- [网页版说明书](https://runchengxie.github.io/quant-intel-platform/)：在线阅读完整文档
-- [系统架构](docs/architecture.md)：报告、数据源与运行链路
-- [跨仓边界契约](docs/boundary-contract.md)：market-intel 与各 owner 的职责和调用规则
-- [日内调度](docs/daily-schedule.md)：报告与数据任务时间表
-- [运维手册](docs/operations.md)：降级、幂等、恢复与排障
-- [数据 owner](docs/data-ownership.md)：MDP 与报告侧数据边界
-- [报告分发](docs/report-distribution.md)：受众、消息与回执
-- [报告结构](docs/report-structure.md)：Markdown/图片/卡片结构
-- [产物契约](docs/contracts.md)：跨模块和跨仓 artifact 契约
-- [网页看板](docs/web-dashboard.md)：dashboard 输入与生成
-- [测试](docs/testing.md)：本仓测试和质量门
-- [主题评分](docs/scoring.md) / [TA 方法](docs/ta-methodology.md)：market-intel 自有分析方法
-
-## 开发与测试
-
-```bash
-uv run python project_tools/check_all.py --scope all
-uv run pytest
-uv run pytest -k contract
-uv run ruff check .
-uv run ruff format --check .
-uv run ty check
-uv run python project_tools/update_cli_help.py --check
-```
-
-Public CI 在不读取密钥和生产数据的前提下运行仓库质量检查。
-生产调度和部署继续由 `quant-intel-deploy` 管理。本地提交前检查只管理 `market-intel` 根仓：
-
-```bash
-uv run python scripts/dev/install_git_hooks.py
-uv run python scripts/dev/install_git_hooks.py --check
-```
-
-已合并分支的删除使用 `project_tools/cleanup_merged_branches.py`。它会先通过 `gh` 确认
-只有确认 PR 已合并后才会删除分支。提供 `--yes` 才会真正执行删除，`main`、tag 和未合并分支会被拒绝。
-
-## 新手须知
-
-- 报告产物写入 `out/`，运行状态与投递回执写入 `state/`。
-- 缺少可选资讯源时按配置降级。正式策略产物的日期或契约不满足时，系统会停止后续处理。
-- `market-intel` 不复制研究模型。缺少研究产物时，应修复对应 owner 的生产入口，或通过公开 CLI 恢复。
-- 报告和技术分析仅用于研究与信息整理，不构成投资建议。
-## Evidence-linked market daily report
-
-The platform can generate a versioned `daily_report.json` artifact with market facts, events, evidence-linked commentary and source quality status. Use `dm daily-report --date YYYY-MM-DD --out out/daily_report` for a local shadow run.
+报告和分析用于市场信息整理，不构成投资建议。
