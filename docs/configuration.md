@@ -24,9 +24,11 @@ CROSS_MARKET_SNAPSHOT_ROOT=/path/to/cross-market/snapshots
 
 ## 凭据
 
-凭据应通过环境变量、本地且已被 Git 忽略的配置文件，或对应服务商要求的凭据机制提供。
+本地开发优先使用仓库根目录下 Git 忽略的 `api_keys.json`。可从
+`api_keys.json.example` 复制结构，再填入本机凭证。CI 和部署环境应使用对应平台的
+secret 管理功能。运行时仍兼容部分服务商要求的环境变量，但不再提供 `.env` 模板。
 
-请勿提交真实凭据、本地 `.env` 文件或服务商返回的真实数据快照。
+请勿提交真实凭据或服务商返回的真实数据快照。
 
 韩国早盘和盘后代理路径不要求 API key，依次回退到 FinanceDataReader、pykrx
 和 yfinance。快照会记录实际 `source` 与 `degraded`，这不代表已获得

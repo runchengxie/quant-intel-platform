@@ -118,7 +118,7 @@ bash scripts/setup_cron.sh --layer3
 
 ## 配置与密钥
 
-凭证只放环境变量、`.env.local` 或对应 owner 规定的私有位置。不要提交真实密钥。跨仓代码路径必须由部署环境显式提供，例如：
+第三方 API 凭证优先放在 Git 忽略的本地 `api_keys.json` 或对应 owner 规定的私有凭证库中。CI 和部署环境按其凭证管理机制注入变量。不要提交真实密钥，也不要通过 `.env` 示例文件分发密钥配置。跨仓代码路径必须由部署环境显式提供，例如：
 
 ```bash
 DATA_PLATFORM_ROOT=/path/to/data/market-data-platform
