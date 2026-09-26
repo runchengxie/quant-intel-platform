@@ -14,6 +14,7 @@ import os
 import time
 from collections.abc import Callable, Iterable
 from datetime import UTC, date, datetime
+from datetime import time as daytime
 from typing import Any
 from urllib.parse import quote
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
@@ -158,7 +159,31 @@ def _extract_yahoo_change(chart: dict[str, Any]) -> tuple[str, float, float]:
     return day, latest_close, change_pct
 
 
-def fetch_yahoo_daily_snapshot(symbol: str, *, target_date: date | None = None) -> _QuoteSnapshot:
+def _require_yahoo_bar_complete(
+    meta: dict[str, Any],
+    observation_date: str,
+    exchange_timezone: ZoneInfo,
+    completed_after: daytime | None,
+) -> None:
+    now_exchange = datetime.now(exchange_timezone)
+    if observation_date != now_exchange.date().isoformat():
+        return
+    if completed_after is not None:
+        if now_exchange.time() < completed_after:
+            raise RuntimeError("Yahoo Finance 指定交易日日线尚未到完成时点")
+        return
+    regular_period = (meta.get("currentTradingPeriod") or {}).get("regular") or {}
+    session_end = _safe_float(regular_period.get("end"))
+    if session_end is None or datetime.now(UTC).timestamp() <= session_end:
+        raise RuntimeError("Yahoo Finance 最新日线尚未完成")
+
+
+def fetch_yahoo_daily_snapshot(
+    symbol: str,
+    *,
+    target_date: date | None = None,
+    completed_after: daytime | None = None,
+) -> _QuoteSnapshot:
     """Return a completed Yahoo daily close, optionally for a specified market day."""
     chart = _fetch_yahoo_chart(symbol)
     meta = chart.get("meta") or {}
@@ -205,14 +230,7 @@ def fetch_yahoo_daily_snapshot(symbol: str, *, target_date: date | None = None) 
     )
     if latest_timestamp <= previous_timestamp:
         raise RuntimeError("Yahoo Finance 日线时间戳无效")
-    current_date = datetime.now(exchange_timezone).date().isoformat()
-    if observation_date == current_date:
-        current_period = meta.get("currentTradingPeriod") or {}
-        regular_period = current_period.get("regular") or {}
-        session_end = _safe_float(regular_period.get("end"))
-        now_timestamp = datetime.now(UTC).timestamp()
-        if session_end is None or now_timestamp <= session_end:
-            raise RuntimeError("Yahoo Finance 最新日线尚未完成")
+    _require_yahoo_bar_complete(meta, observation_date, exchange_timezone, completed_after)
     return _QuoteSnapshot(
         day=observation_date,
         close=round(latest_close, 4),

@@ -105,6 +105,26 @@ def test_nonzero_codex_exit_is_reported_without_artifact(monkeypatch, tmp_path):
     assert list(tmp_path.glob("web-research-*.json")) == []
 
 
+def test_codex_failure_reports_sanitized_stderr_tail(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        web_research.subprocess,
+        "run",
+        lambda command, **kwargs: subprocess.CompletedProcess(
+            command,
+            1,
+            "",
+            "ERROR upstream denied api_key=do-not-log-this\nconnection refused",
+        ),
+    )
+
+    with pytest.raises(web_research.WebResearchError) as error:
+        web_research.run_web_research(MARKET_DATE, tmp_path, cutoff=CUTOFF)
+
+    assert "exit code 1" in str(error.value)
+    assert "connection refused" in str(error.value)
+    assert "do-not-log-this" not in str(error.value)
+
+
 def test_timeout_preserves_earlier_draft(monkeypatch, tmp_path):
     def fake_run(command, **kwargs):
         output_index = command.index("--output-last-message") + 1

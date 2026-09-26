@@ -23,7 +23,7 @@ def test_second_run_reuses_same_artifact_hash(tmp_path):
 
 @pytest.mark.parametrize(
     ("missing", "expected_quality"),
-    [((), "ok"), (("GC=F",), "degraded")],
+    [({}, "ok"), ({"GC=F": "RuntimeError: provider unavailable"}, "degraded")],
 )
 def test_pipeline_records_cross_asset_coverage(monkeypatch, tmp_path, missing, expected_quality):
     monkeypatch.setattr(
@@ -46,6 +46,7 @@ def test_pipeline_records_cross_asset_coverage(monkeypatch, tmp_path, missing, e
 
     assert section.facts == ()
     assert report.source_status["cross_asset"]["quality"] == expected_quality
+    assert report.source_status["cross_asset"]["missing_contracts"] == missing
     assert ("cross_asset" in report.missing_sources) is bool(missing)
     assert "fred" not in report.missing_sources
     assert report.quality_summary["status"] == "degraded"
@@ -58,7 +59,7 @@ def test_live_pipeline_publishes_complete_same_day_index_set(monkeypatch, tmp_pa
     )
     monkeypatch.setattr(
         "daily_messenger.daily_report.pipeline.fetch_cross_asset_facts",
-        lambda _date: ([], ()),
+        lambda _date: ([], {}),
     )
     monkeypatch.setattr(
         "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
