@@ -86,23 +86,25 @@ from a_share_daily.delivery._render import (
     build_evening_summary,
 )
 
+delivery_routes = routes
+
 
 def _deliver_via_lark(**kwargs: Any) -> tuple[bool, bool]:
     """Compatibility wrapper for the Lark route implementation."""
     kwargs["routes_payload"] = kwargs.pop("routes")
-    return routes.deliver_via_lark(**kwargs)
+    return delivery_routes.deliver_via_lark(**kwargs)
 
 
 def _deliver_via_hermes(**kwargs: Any) -> tuple[bool, bool]:
     """Compatibility wrapper for the Hermes route implementation."""
     kwargs["routes_payload"] = kwargs.pop("routes")
-    return routes.deliver_via_hermes(**kwargs)
+    return delivery_routes.deliver_via_hermes(**kwargs)
 
 
 def _deliver_via_webhook(**kwargs: Any) -> bool:
     """Compatibility wrapper for the webhook route implementation."""
     kwargs["routes_payload"] = kwargs.pop("routes")
-    return routes.deliver_via_webhook(**kwargs)
+    return delivery_routes.deliver_via_webhook(**kwargs)
 
 
 def _send_morning_charts(
@@ -311,91 +313,38 @@ def _deliver_morning_routes(
             kind="morning", trade_date=trade_date, context=context, artifacts=artifacts
         )
         return 0
+    route_delivery = delivery_routes.MorningDeliveryContext(
+        context=context,
+        trade_date=trade_date,
+        signal_date=signal_date,
+        mode=mode,
+        text=text,
+        report_path=Path(args.report).expanduser(),
+        chart_paths=chart_paths,
+        artifacts=artifacts,
+        routes_payload=routes,
+        message_ids=message_ids,
+    )
     lark_ok = False
     if should_lark:
-        lark_preflight = senders._ensure_lark_ready(
-            lark_cli=context.lark_cli, has_targets=bool(context.lark_targets)
-        )
-        routes["lark_preflight"] = lark_preflight
-        if lark_preflight.get("ok"):
-            lark_text_ok = senders._send_lark_markdown(
-                text,
-                chat_id=context.chat_id,
-                user_id=context.user_id,
-                lark_cli=context.lark_cli,
-                message_ids=message_ids.setdefault("lark_text", []),
-                idempotency_scope=("morning", trade_date, "morning_report"),
-            )
-            lark_image_results = [
-                senders._send_lark_image(
-                    image,
-                    chat_id=context.chat_id,
-                    user_id=context.user_id,
-                    lark_cli=context.lark_cli,
-                    message_ids=message_ids.setdefault("lark_images", []),
-                )
-                for image in chart_paths
-            ]
-            lark_images_ok = all(lark_image_results) if lark_image_results else True
-        else:
-            lark_text_ok = False
-            lark_images_ok = False
-        routes["lark_text"] = lark_text_ok
-        routes["lark_images"] = lark_images_ok
+        lark_text_ok, lark_images_ok = delivery_routes.deliver_morning_via_lark(route_delivery)
         lark_ok = lark_text_ok and lark_images_ok
         if lark_ok:
             print("[report_delivery] morning lark-cli delivery completed", file=sys.stderr)
         elif mode == "lark":
-            state._write_delivery_status(
-                kind="morning",
-                trade_date=trade_date,
-                signal_date=signal_date,
-                mode=mode,
-                success=False,
-                routes=routes,
-                artifacts=artifacts,
-                lark_targets=context.lark_targets,
-                hermes_targets=context.hermes_targets,
-                message_ids=message_ids,
-            )
+            delivery_routes.write_morning_delivery_status(route_delivery, success=False)
             return 1
     hermes_ok = False
     if should_hermes and (mode == "both" or not lark_ok):
-        hermes_ok = senders._send_hermes_file(
-            Path(args.report).expanduser(),
-            subject="亚洲市场盘前 / 美股市场盘后",
-            chat_id=context.chat_id,
-            target=context.hermes_target,
-            hermes_cli=context.hermes_cli,
+        hermes_text_ok, hermes_images_ok = delivery_routes.deliver_morning_via_hermes(
+            route_delivery
         )
-        hermes_image_results = [
-            senders._send_hermes_image(
-                image,
-                chat_id=context.chat_id,
-                target=context.hermes_target,
-                hermes_cli=context.hermes_cli,
-            )
-            for image in chart_paths
-        ]
-        hermes_images_ok = all(hermes_image_results) if hermes_image_results else True
-        routes["hermes_text"] = hermes_ok
-        routes["hermes_images"] = hermes_images_ok
+        hermes_ok = hermes_text_ok
         hermes_ok = hermes_ok and hermes_images_ok
         if hermes_ok:
             print("[report_delivery] morning hermes delivery completed", file=sys.stderr)
         elif mode == "hermes":
-            state._write_delivery_status(
-                kind="morning",
-                trade_date=trade_date,
-                signal_date=signal_date,
-                mode=mode,
-                success=False,
-                routes=routes,
-                artifacts=artifacts,
-                lark_targets=context.lark_targets,
-                hermes_targets=context.hermes_targets,
-                message_ids=message_ids,
-            )
+            delivery_routes.write_morning_delivery_status(route_delivery, success=False)
             return 1
     webhook_ok = False
     if should_webhook and (mode in {"webhook", "both"} or (not hermes_ok and (not lark_ok))):
@@ -407,18 +356,7 @@ def _deliver_morning_routes(
         routes["webhook_text"] = webhook_ok
     webhook_text_only_ok = webhook_ok and (not chart_paths)
     success = lark_ok or hermes_ok or (mode == "webhook" and webhook_ok) or webhook_text_only_ok
-    state._write_delivery_status(
-        kind="morning",
-        trade_date=trade_date,
-        signal_date=signal_date,
-        mode=mode,
-        success=success,
-        routes=routes,
-        artifacts=artifacts,
-        lark_targets=context.lark_targets,
-        hermes_targets=context.hermes_targets,
-        message_ids=message_ids,
-    )
+    delivery_routes.write_morning_delivery_status(route_delivery, success=success)
     return 0 if success else 1
 
 

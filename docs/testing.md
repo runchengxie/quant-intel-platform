@@ -10,11 +10,22 @@ uv run pytest -k contract
 uv run ruff check .
 uv run ruff format --check .
 uv run ty check
-uv run pytest --cov-report=term-missing
+uv run pytest --cov --cov-report=term-missing
+uv run python project_tools/package_coverage.py
 uv run python project_tools/update_cli_help.py --check
 ```
 
 `check_all.py` 只检查 `market-intel` 根仓及其脚本。历史三个 submodule 已退休，各 owner 仓运行各自门禁。本仓不得再次通过相邻目录扫描替 owner 跑测试。
+
+`check_all.py` 在全量测试中采集覆盖率，并在测试通过后检查每个生产包的最低行覆盖率。当前起始门槛以本地全量测试测得的覆盖率为基准，逐包留出回归空间：
+
+| 生产包 | 当前基线 | 最低门槛 |
+| --- | ---: | ---: |
+| `a_share_analysis` | 81.14% | 70% |
+| `a_share_daily` | 75.82% | 65% |
+| `daily_messenger` | 76.90% | 65% |
+| `ops_common` | 58.47% | 50% |
+| `tushare_jobs` | 44.51% | 35% |
 
 ## 本地提交前检查
 

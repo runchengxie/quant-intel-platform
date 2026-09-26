@@ -23,7 +23,9 @@ ROOT_COMMANDS: tuple[tuple[str, ...], ...] = (
     ("uv", "run", "python", "project_tools/update_cli_help.py", "--check"),
     ("uv", "run", "ty", "check"),
     ("uv", "run", "python", "scripts/dev/maintainability_metrics.py", "--ratchet"),
-    ("uv", "run", "pytest", "--cov-report=term-missing"),
+    ("uv", "run", "python", "scripts/dev/ruff_plr_ratchet.py", "--check-baseline"),
+    ("uv", "run", "pytest", "--cov", "--cov-report=term-missing"),
+    ("uv", "run", "python", "project_tools/package_coverage.py"),
 )
 
 

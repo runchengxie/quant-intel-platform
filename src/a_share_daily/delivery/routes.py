@@ -3,11 +3,112 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from a_share_daily.delivery import senders, state
 from a_share_daily.delivery._format import _read_text
+
+
+@dataclass(frozen=True)
+class MorningDeliveryContext:
+    context: senders._DeliveryContext
+    trade_date: str
+    signal_date: str
+    mode: str
+    text: str
+    report_path: Path
+    chart_paths: Sequence[Path]
+    artifacts: Sequence[dict[str, Any]]
+    routes_payload: dict[str, Any]
+    message_ids: dict[str, list[str]]
+
+
+def write_morning_delivery_status(
+    delivery: MorningDeliveryContext,
+    *,
+    success: bool,
+) -> dict[str, Any]:
+    """Persist the morning receipt with its signal, artifact, route, and message data."""
+    context = delivery.context
+    return state._write_delivery_status(
+        kind="morning",
+        trade_date=delivery.trade_date,
+        signal_date=delivery.signal_date,
+        mode=delivery.mode,
+        success=success,
+        routes=delivery.routes_payload,
+        artifacts=delivery.artifacts,
+        lark_targets=context.lark_targets,
+        hermes_targets=context.hermes_targets,
+        message_ids=delivery.message_ids,
+    )
+
+
+def deliver_morning_via_lark(
+    delivery: MorningDeliveryContext,
+) -> tuple[bool, bool]:
+    """Send the morning report and charts through Lark, recording route state."""
+    context = delivery.context
+    preflight = senders._ensure_lark_ready(
+        lark_cli=context.lark_cli, has_targets=bool(context.lark_targets)
+    )
+    delivery.routes_payload["lark_preflight"] = preflight
+    if not preflight.get("ok"):
+        delivery.routes_payload["lark_text"] = False
+        delivery.routes_payload["lark_images"] = False
+        return (False, False)
+
+    text_ok = senders._send_lark_markdown(
+        delivery.text,
+        chat_id=context.chat_id,
+        user_id=context.user_id,
+        lark_cli=context.lark_cli,
+        message_ids=delivery.message_ids.setdefault("lark_text", []),
+        idempotency_scope=("morning", delivery.trade_date, "morning_report"),
+    )
+    image_results = [
+        senders._send_lark_image(
+            image,
+            chat_id=context.chat_id,
+            user_id=context.user_id,
+            lark_cli=context.lark_cli,
+            message_ids=delivery.message_ids.setdefault("lark_images", []),
+        )
+        for image in delivery.chart_paths
+    ]
+    images_ok = all(image_results) if image_results else True
+    delivery.routes_payload["lark_text"] = text_ok
+    delivery.routes_payload["lark_images"] = images_ok
+    return (text_ok, images_ok)
+
+
+def deliver_morning_via_hermes(
+    delivery: MorningDeliveryContext,
+) -> tuple[bool, bool]:
+    """Send the morning report and charts through Hermes."""
+    context = delivery.context
+    text_ok = senders._send_hermes_file(
+        delivery.report_path,
+        subject="亚洲市场盘前 / 美股市场盘后",
+        chat_id=context.chat_id,
+        target=context.hermes_target,
+        hermes_cli=context.hermes_cli,
+    )
+    image_results = [
+        senders._send_hermes_image(
+            image,
+            chat_id=context.chat_id,
+            target=context.hermes_target,
+            hermes_cli=context.hermes_cli,
+        )
+        for image in delivery.chart_paths
+    ]
+    images_ok = all(image_results) if image_results else True
+    delivery.routes_payload["hermes_text"] = text_ok
+    delivery.routes_payload["hermes_images"] = images_ok
+    return (text_ok, images_ok)
 
 
 def deliver_via_lark(
