@@ -29,7 +29,7 @@ class ShadowRunResult:
 @dataclass(frozen=True)
 class LiveInputs:
     facts: tuple[MarketFact, ...]
-    source_status: dict[str, dict[str, str]]
+    source_status: dict[str, dict[str, Any]]
     missing_sources: tuple[str, ...]
     quality: str
     reviewed: ReviewedResearch | None
@@ -51,7 +51,10 @@ def _fixture_payloads(as_of: datetime) -> dict[str, Any]:
 
 
 def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> LiveInputs:
-    fetched_facts, source_status = fetch_us_macro_facts(as_of)
+    fetched_facts, macro_status = fetch_us_macro_facts(as_of)
+    source_status: dict[str, dict[str, Any]] = {
+        key: dict(value) for key, value in macro_status.items()
+    }
     cross_asset_facts, missing_contracts = fetch_cross_asset_facts(
         datetime.fromisoformat(run_date).date()
     )
@@ -85,6 +88,7 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
         "reason": "one_or_more_contracts_unavailable"
         if missing_contracts
         else "all_contracts_fresh",
+        "missing_contracts": missing_contracts,
     }
     source_status.update(
         {
@@ -136,6 +140,44 @@ def _live_revision(report_cutoff: datetime, run_date: date) -> str | None:
     return "historical_backfill"
 
 
+def _sections_for(
+    facts: tuple[MarketFact, ...], reviewed: ReviewedResearch | None, *, live: bool
+) -> tuple[ReportSection, ...]:
+    market_ids = tuple(fact.id for fact in facts if fact.id.startswith(("treasury.", "index.")))
+    if not live:
+        market_ids = tuple(fact.id for fact in facts)
+    cross_asset_ids = tuple(fact.id for fact in facts if fact.id.startswith("cross_asset."))
+    macro_ids = tuple(fact.id for fact in facts if fact.id.startswith("macro."))
+    return (
+        ReportSection(
+            "market",
+            "市场表现",
+            facts=market_ids,
+            claims=reviewed.sections["market"] if reviewed else (),
+        ),
+        ReportSection("cross_asset", "跨资产行情", facts=cross_asset_ids),
+        ReportSection(
+            "drivers", "市场驱动因素", claims=reviewed.sections["drivers"] if reviewed else ()
+        ),
+        ReportSection(
+            "macro",
+            "经济数据与美联储动态",
+            facts=macro_ids,
+            claims=reviewed.sections["macro"] if reviewed else (),
+        ),
+        ReportSection(
+            "company_news",
+            "公司新闻",
+            claims=reviewed.sections["company_news"] if reviewed else (),
+        ),
+        ReportSection(
+            "movers",
+            "主要上涨与下跌个股",
+            claims=(reviewed.sections["gainers"] + reviewed.sections["losers"]) if reviewed else (),
+        ),
+    )
+
+
 def run_daily_report(
     as_of: datetime,
     output_dir: str | Path,
@@ -182,48 +224,12 @@ def run_daily_report(
         )
         if revision:
             quality_summary["revision"] = revision
-    market_fact_ids = tuple(
-        fact.id for fact in facts if fact.id.startswith(("treasury.", "index."))
-    )
-    cross_asset_fact_ids = tuple(fact.id for fact in facts if fact.id.startswith("cross_asset."))
-    macro_fact_ids = tuple(fact.id for fact in facts if fact.id.startswith("macro."))
-    if mode != "live":
-        market_fact_ids = tuple(fact.id for fact in facts)
     report = DailyReport(
         schema_version="1.0",
         as_of=report_cutoff,
         generated_at=report_cutoff,
         run_id=run_id,
-        sections=(
-            ReportSection(
-                "market",
-                "市场表现",
-                facts=market_fact_ids,
-                claims=reviewed.sections["market"] if reviewed else (),
-            ),
-            ReportSection("cross_asset", "跨资产行情", facts=cross_asset_fact_ids),
-            ReportSection(
-                "drivers", "市场驱动因素", claims=reviewed.sections["drivers"] if reviewed else ()
-            ),
-            ReportSection(
-                "macro",
-                "经济数据与美联储动态",
-                facts=macro_fact_ids,
-                claims=reviewed.sections["macro"] if reviewed else (),
-            ),
-            ReportSection(
-                "company_news",
-                "公司新闻",
-                claims=reviewed.sections["company_news"] if reviewed else (),
-            ),
-            ReportSection(
-                "movers",
-                "主要上涨与下跌个股",
-                claims=(reviewed.sections["gainers"] + reviewed.sections["losers"])
-                if reviewed
-                else (),
-            ),
-        ),
+        sections=_sections_for(facts, reviewed, live=mode == "live"),
         facts=facts,
         events=reviewed.events if reviewed else (),
         claims=reviewed.claims if reviewed else (),

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 from datetime import UTC, date, datetime, time
 from pathlib import Path
@@ -28,10 +29,20 @@ FIELDS = (
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 MODEL = "gpt-6-sol"
 CODEX_TIMEOUT_SECONDS = 480
+_SECRET_ASSIGNMENT = re.compile(
+    r"(?i)\b(token|api[_-]?key|password|secret|authorization)\s*[:=]\s*\S+"
+)
 
 
 class WebResearchError(RuntimeError):
     """The private research draft could not be generated safely."""
+
+
+def _safe_codex_stderr_tail(stderr: str) -> str:
+    lines = stderr.strip().splitlines()
+    if not lines:
+        return "stderr unavailable"
+    return _SECRET_ASSIGNMENT.sub(r"\1=<redacted>", lines[-1])[:400]
 
 
 def _valid_source_url(source_url: object) -> bool:
@@ -265,7 +276,10 @@ def run_web_research(
         except subprocess.TimeoutExpired as exc:
             raise WebResearchError("Codex search timed out") from exc
         if result.returncode != 0:
-            raise WebResearchError(f"Codex search failed with exit code {result.returncode}")
+            detail = _safe_codex_stderr_tail(result.stderr)
+            raise WebResearchError(
+                f"Codex search failed with exit code {result.returncode}; stderr tail: {detail}"
+            )
         try:
             payload = json.loads(raw_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:

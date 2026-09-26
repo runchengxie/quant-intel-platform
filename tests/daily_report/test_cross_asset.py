@@ -15,7 +15,7 @@ def test_cross_asset_facts_include_price_and_percent_change_for_each_contract(mo
     }
     monkeypatch.setattr(
         "daily_messenger.daily_report.cross_asset.fetch_yahoo_daily_snapshot",
-        lambda symbol, *, target_date: (
+        lambda symbol, *, target_date, completed_after=None: (
             snapshots[symbol] if target_date == date(2026, 9, 24) else None
         ),
     )
@@ -36,7 +36,7 @@ def test_cross_asset_facts_include_price_and_percent_change_for_each_contract(mo
 def test_cross_asset_wrong_date_and_one_failed_contract_are_missing_without_dropping_others(
     monkeypatch,
 ):
-    def fetch(symbol, *, target_date):
+    def fetch(symbol, *, target_date, completed_after=None):
         assert target_date == date(2026, 9, 24)
         if symbol == "GC=F":
             raise RuntimeError("provider unavailable")
@@ -49,7 +49,10 @@ def test_cross_asset_wrong_date_and_one_failed_contract_are_missing_without_drop
     facts, missing = fetch_cross_asset_facts(date(2026, 9, 24))
 
     assert len(facts) == 4
-    assert missing == ("GC=F", "BTC=F")
+    assert missing == {
+        "GC=F": "RuntimeError: provider unavailable",
+        "BTC=F": "observation_date_mismatch",
+    }
     assert not any(fact.id.startswith("cross_asset.gold.") for fact in facts)
     assert not any(fact.id.startswith("cross_asset.bitcoin.") for fact in facts)
 
@@ -115,6 +118,42 @@ def test_yahoo_daily_snapshot_rejects_active_daily_bar(monkeypatch):
 
     with pytest.raises(RuntimeError, match="未完成"):
         quotes.fetch_yahoo_daily_snapshot("BZ=F")
+
+
+def test_yahoo_future_accepts_dated_bar_after_independent_close_cutoff(monkeypatch):
+    from datetime import UTC, datetime, time
+
+    from daily_messenger.etl.fetchers import quotes
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            fixed = datetime(2026, 9, 25, 22, 45, tzinfo=UTC)
+            return fixed.astimezone(tz) if tz else fixed.replace(tzinfo=None)
+
+    monkeypatch.setattr(quotes, "datetime", FixedDateTime)
+    monkeypatch.setattr(
+        quotes,
+        "_fetch_yahoo_chart",
+        lambda _symbol: {
+            "meta": {
+                "exchangeTimezoneName": "America/New_York",
+                "currentTradingPeriod": {
+                    "regular": {"end": int(datetime(2026, 9, 26, 3, 59, tzinfo=UTC).timestamp())}
+                },
+            },
+            "timestamp": [1790287200, 1790373600],
+            "indicators": {"quote": [{"close": [100.0, 102.0]}]},
+        },
+    )
+
+    snapshot = quotes.fetch_yahoo_daily_snapshot(
+        "BZ=F", target_date=date(2026, 9, 25), completed_after=time(18)
+    )
+
+    assert snapshot.day == "2026-09-25"
+    assert snapshot.close == 102.0
+    assert snapshot.change_pct == 2.0
 
 
 def test_yahoo_daily_snapshot_selects_completed_requested_day_behind_active_bar(monkeypatch):
