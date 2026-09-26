@@ -321,7 +321,7 @@ files:
     classification: split
     action: sanitize
     reason: describe public framework and link to private deployment boundary
-  - path: api_keys.json.example
+  - path: config/api_keys.json.example
     classification: public
     action: retain
     reason: placeholder-only credential schema
