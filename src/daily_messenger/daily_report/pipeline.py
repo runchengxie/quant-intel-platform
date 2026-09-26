@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from .btc_spot import fetch_btc_spot_facts
 from .cross_asset import fetch_cross_asset_facts
 from .facts import build_market_facts
 from .index_quotes import fetch_index_facts
@@ -58,6 +59,7 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
     cross_asset_facts, missing_contracts = fetch_cross_asset_facts(
         datetime.fromisoformat(run_date).date()
     )
+    btc_spot_facts, btc_spot_status = fetch_btc_spot_facts(datetime.fromisoformat(run_date).date())
     draft_path = config.get("reviewed_draft")
     decision_path = config.get("reviewed_decisions")
     if bool(draft_path) != bool(decision_path):
@@ -81,6 +83,7 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
         tuple(fetched_facts)
         + tuple(index_facts)
         + tuple(cross_asset_facts)
+        + tuple(btc_spot_facts)
         + (reviewed.facts if reviewed else ())
     )
     source_status["cross_asset"] = {
@@ -89,6 +92,10 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
         if missing_contracts
         else "all_contracts_fresh",
         "missing_contracts": missing_contracts,
+    }
+    source_status["btc_spot"] = {
+        "quality": "ok" if btc_spot_status == "ok" else "degraded",
+        "reason": btc_spot_status,
     }
     source_status.update(
         {

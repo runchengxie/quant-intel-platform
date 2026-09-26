@@ -51,4 +51,6 @@ uv run dm digest
 
 美股日报优先读取 Yahoo 的连续期货日线。布伦特、黄金、白银任一项缺失时，若 `API_KEYS_PATH` 指向的私有配置包含 `financial_modeling_prep`，才尝试 FMP 的 `BZUSD`、`GCUSD`、`SIUSD` 日线。FMP 必须返回报告日与前一有效交易日的正数收盘价，且报告日已过对应完成时点；两日涨跌幅在同一来源内计算。BTC 仍使用 Yahoo 的 CME 连续期货，SoSoValue 的 ETF 资金流不能替代币价。
 
+另有独立的 `BTC/USD` 加密货币日线：使用同一 FMP 凭据读取 `BTCUSD` 的报告日及前一日 EOD，输出 `cross_asset.bitcoin_spot.*`，不覆盖 `cross_asset.bitcoin.*` 的 CME 期货口径。FMP 不可用时可用 Kraken BTC/USD 16:00 美东已完成的两根小时 K 线作私有回退核对；由于公开展示许可尚未确认，Kraken 候选不会进入公开事实。`coingecko` 可预留在私有 `api_keys.json` 顶层，空值不会启用请求；目前日报尚未调用 CoinGecko。
+
 来源、代码和原始观测日随事实输出；FMP 提供的是其连续期货日线，不宣称等于交易所官方结算价。FMP 文档链接仅说明 API 来源，单条原始记录需要服务商授权访问。公开展示权以用户于 2026-09-26 的确认为依据，远程环境未取得授权文件。运营方仍需保存授权记录并核对具体许可范围。
