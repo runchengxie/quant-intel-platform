@@ -39,6 +39,12 @@ jobs:
       - name: Boundary check
         run: uv run python scripts/public_release/check_boundary.py
 
+      - name: Maintainability ratchet
+        run: uv run python scripts/dev/maintainability_metrics.py --ratchet
+
+      - name: PLR complexity debt ratchet
+        run: uv run python scripts/dev/ruff_plr_ratchet.py --check-baseline
+
       - name: Format changed Python files
         shell: bash
         run: |
