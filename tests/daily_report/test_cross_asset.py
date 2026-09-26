@@ -57,6 +57,70 @@ def test_cross_asset_wrong_date_and_one_failed_contract_are_missing_without_drop
     assert not any(fact.id.startswith("cross_asset.bitcoin.") for fact in facts)
 
 
+def test_fmp_fills_only_failed_yahoo_commodity_with_its_own_provenance(monkeypatch):
+    from daily_messenger.daily_report import cross_asset
+
+    monkeypatch.setattr(cross_asset, "resolve_api_key", lambda _name: "secret", raising=False)
+
+    def yahoo(symbol, *, target_date, completed_after=None):
+        if symbol == "BZ=F":
+            raise RuntimeError("Yahoo unavailable")
+        return QuoteSnapshot(target_date.isoformat(), 100.0, 1.0, f"yahoo:{symbol}")
+
+    monkeypatch.setattr(cross_asset, "fetch_yahoo_daily_snapshot", yahoo)
+    monkeypatch.setattr(
+        cross_asset,
+        "fetch_fmp_daily_snapshot",
+        lambda symbol, *, target_date, api_key, completed_after=None: QuoteSnapshot(
+            target_date.isoformat(), 75.0, -2.0, f"fmp:{symbol}"
+        ),
+        raising=False,
+    )
+
+    facts, missing = cross_asset.fetch_cross_asset_facts(date(2026, 9, 24))
+    by_id = {fact.id: fact for fact in facts}
+
+    assert not missing
+    assert by_id["cross_asset.brent.close"].value == 75.0
+    assert by_id["cross_asset.brent.close"].source == "Financial Modeling Prep"
+    assert "BZUSD" in by_id["cross_asset.brent.close"].instrument
+    assert by_id["cross_asset.gold.close"].source == "Yahoo Finance"
+    assert by_id["cross_asset.bitcoin.close"].source == "Yahoo Finance"
+
+
+def test_fmp_eod_requires_target_and_previous_daily_closes(monkeypatch):
+    from daily_messenger.daily_report.fmp_prices import fetch_fmp_daily_snapshot
+
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return [
+                {"symbol": "BZUSD", "date": "2026-09-24", "close": 102.0},
+                {"symbol": "BZUSD", "date": "2026-09-23", "close": 100.0},
+            ]
+
+    monkeypatch.setattr("requests.get", lambda *args, **kwargs: Response())
+    snapshot = fetch_fmp_daily_snapshot("BZUSD", target_date=date(2026, 9, 24), api_key="key")
+    assert snapshot.day == "2026-09-24"
+    assert snapshot.close == 102.0
+    assert snapshot.change_pct == pytest.approx(2.0)
+
+
+def test_fmp_eod_rejects_missing_target_day(monkeypatch):
+    from daily_messenger.daily_report.fmp_prices import fetch_fmp_daily_snapshot
+
+    class Response:
+        status_code = 200
+
+        def json(self):
+            return [{"symbol": "BZUSD", "date": "2026-09-23", "close": 100.0}]
+
+    monkeypatch.setattr("requests.get", lambda *args, **kwargs: Response())
+    with pytest.raises(RuntimeError, match="target date"):
+        fetch_fmp_daily_snapshot("BZUSD", target_date=date(2026, 9, 24), api_key="key")
+
+
 def test_yahoo_daily_snapshot_uses_exchange_timezone_for_observation_date(monkeypatch):
     from daily_messenger.etl.fetchers import quotes
 
