@@ -36,6 +36,10 @@ def test_pipeline_records_cross_asset_coverage(monkeypatch, tmp_path, missing, e
         lambda _date: ([], missing),
     )
     monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_btc_spot_facts",
+        lambda _date: ([], "all_spot_sources_unavailable"),
+    )
+    monkeypatch.setattr(
         "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
         lambda _symbol, *, target_date: QuoteSnapshot(
             target_date.isoformat(), 100.0, 0.2, "yahoo:test"
