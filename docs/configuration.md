@@ -24,8 +24,8 @@ CROSS_MARKET_SNAPSHOT_ROOT=/path/to/cross-market/snapshots
 
 ## 凭据
 
-本地开发优先使用仓库根目录下 Git 忽略的 `api_keys.json`。可从
-`api_keys.json.example` 复制结构，再填入本机凭证。CI 和部署环境应使用对应平台的
+本地开发优先使用仓库根目录下 Git 忽略的 `api_keys.json`。首次配置时，可运行
+`cp config/api_keys.json.example api_keys.json`，再填入本机凭证。CI 和部署环境应使用对应平台的
 secret 管理功能。运行时仍兼容部分服务商要求的环境变量，但不再提供 `.env` 模板。
 
 请勿提交真实凭据或服务商返回的真实数据快照。
