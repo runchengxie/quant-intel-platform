@@ -5,16 +5,14 @@ from __future__ import annotations
 from datetime import UTC, date, datetime, time
 from urllib.parse import quote
 
-from daily_messenger.etl.config import resolve_api_key
 from daily_messenger.etl.fetchers.quotes import fetch_yahoo_daily_snapshot
 
-from .fmp_prices import fetch_fmp_daily_snapshot
 from .models import MarketFact
 
 CONTRACTS = (
     ("BZ=F", "brent", "Brent Last Day Financial Futures", "USD/barrel"),
-    ("GC=F", "gold", "COMEX Gold continuous futures", "USD/troy_ounce"),
-    ("SI=F", "silver", "COMEX Silver continuous futures", "USD/troy_ounce"),
+    ("GC=F", "gold", "COMEX Gold futures", "USD/troy_ounce"),
+    ("SI=F", "silver", "COMEX Silver futures", "USD/troy_ounce"),
     ("BTC=F", "bitcoin", "CME Bitcoin continuous futures", "USD/bitcoin"),
 )
 
@@ -22,8 +20,30 @@ CONTRACTS = (
 # exchange sessions finish. These conservative cutoffs are for Yahoo daily
 # bars, not a claim that Yahoo's close equals an exchange settlement price.
 COMPLETED_AFTER = {"BZ=F": time(18, 15), "GC=F": time(17, 15), "SI=F": time(17, 15)}
-FMP_COMMODITIES = {"BZ=F": "BZUSD", "GC=F": "GCUSD", "SI=F": "SIUSD"}
-FMP_SOURCE_URL = "https://site.financialmodelingprep.com/developer/docs/stable/commodities-historical-price-eod-full"
+MONTH_CODES = "FGHJKMNQUVXZ"
+# Selected liquid benchmark months, not all listed months. CME added October
+# to active GC months in 2026; December was the liquid benchmark in September.
+DELIVERY_MONTHS = {"GC=F": (2, 4, 6, 8, 12), "SI=F": (3, 5, 7, 9, 12)}
+
+
+def dated_contract_symbol(symbol: str, report_date: date) -> str:
+    """Use a single delivery contract for both daily closes, never a rolled alias."""
+    if symbol == "BZ=F":
+        offset = 2  # Last-day financial Brent expires two calendar months ahead.
+        root, exchange = "BZ", "NYM"
+    elif symbol in DELIVERY_MONTHS:
+        offset = next(
+            step
+            for step in range(1, 13)
+            if (report_date.month - 1 + step) % 12 + 1 in DELIVERY_MONTHS[symbol]
+        )
+        root, exchange = symbol.split("=")[0], "CMX"
+    else:
+        return symbol
+    absolute_month = report_date.month - 1 + offset
+    month = absolute_month % 12 + 1
+    year = report_date.year + absolute_month // 12
+    return f"{root}{MONTH_CODES[month - 1]}{year % 100:02d}.{exchange}"
 
 
 def _source_url(symbol: str) -> str:
@@ -31,36 +51,20 @@ def _source_url(symbol: str) -> str:
 
 
 def fetch_cross_asset_facts(report_date: date) -> tuple[list[MarketFact], dict[str, str]]:
-    """Fetch each continuous future independently; omit failures and nonmatching dates."""
+    """Fetch dated commodity contracts; omit failures and nonmatching dates."""
     facts: list[MarketFact] = []
     missing: dict[str, str] = {}
-    fmp_key = resolve_api_key("financial_modeling_prep")
     for symbol, key, instrument, unit in CONTRACTS:
         try:
+            quote_symbol = dated_contract_symbol(symbol, report_date)
             source = "Yahoo Finance"
-            source_url = _source_url(symbol)
-            fact_instrument = f"{instrument} ({symbol})"
-            try:
-                snapshot = fetch_yahoo_daily_snapshot(
-                    symbol, target_date=report_date, completed_after=COMPLETED_AFTER.get(symbol)
-                )
-            except Exception:
-                if not fmp_key or symbol not in FMP_COMMODITIES:
-                    raise
-                snapshot = None
-            if (snapshot is None or snapshot.day != report_date.isoformat()) and (
-                fmp_key and symbol in FMP_COMMODITIES
-            ):
-                fmp_symbol = FMP_COMMODITIES[symbol]
-                snapshot = fetch_fmp_daily_snapshot(
-                    fmp_symbol,
-                    target_date=report_date,
-                    api_key=fmp_key,
-                    completed_after=COMPLETED_AFTER.get(symbol),
-                )
-                source = "Financial Modeling Prep"
-                source_url = FMP_SOURCE_URL
-                fact_instrument = f"{instrument} (FMP {fmp_symbol}, continuous)"
+            source_url = _source_url(quote_symbol)
+            fact_instrument = f"{instrument} ({quote_symbol})"
+            snapshot = fetch_yahoo_daily_snapshot(
+                quote_symbol,
+                target_date=report_date,
+                completed_after=COMPLETED_AFTER.get(symbol),
+            )
             if snapshot is None:
                 missing[symbol] = "provider_unavailable"
                 continue
