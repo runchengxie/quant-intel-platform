@@ -2,15 +2,15 @@ from datetime import date
 
 import pytest
 
-from daily_messenger.daily_report.cross_asset import fetch_cross_asset_facts
+from daily_messenger.daily_report.cross_asset import dated_contract_symbol, fetch_cross_asset_facts
 from daily_messenger.etl.types import QuoteSnapshot
 
 
 def test_cross_asset_facts_include_price_and_percent_change_for_each_contract(monkeypatch):
     snapshots = {
-        "BZ=F": QuoteSnapshot("2026-09-24", 71.25, 1.2, "yahoo:BZ=F"),
-        "GC=F": QuoteSnapshot("2026-09-24", 3980.5, -0.3, "yahoo:GC=F"),
-        "SI=F": QuoteSnapshot("2026-09-24", 47.12, 0.8, "yahoo:SI=F"),
+        "BZX26.NYM": QuoteSnapshot("2026-09-24", 71.25, 1.2, "yahoo:BZX26.NYM"),
+        "GCZ26.CMX": QuoteSnapshot("2026-09-24", 3980.5, -0.3, "yahoo:GCZ26.CMX"),
+        "SIZ26.CMX": QuoteSnapshot("2026-09-24", 47.12, 0.8, "yahoo:SIZ26.CMX"),
         "BTC=F": QuoteSnapshot("2026-09-24", 108500.0, 2.4, "yahoo:BTC=F"),
     }
     monkeypatch.setattr(
@@ -30,7 +30,37 @@ def test_cross_asset_facts_include_price_and_percent_change_for_each_contract(mo
     assert by_id["cross_asset.brent.change_percent"].value == 1.2
     assert by_id["cross_asset.bitcoin.close"].unit == "USD/bitcoin"
     assert by_id["cross_asset.gold.close"].observation_date == "2026-09-24"
-    assert by_id["cross_asset.silver.close"].source_url.endswith("SI%3DF/history/")
+    assert by_id["cross_asset.silver.close"].source_url.endswith("SIZ26.CMX/history/")
+
+
+def test_dated_contracts_use_one_delivery_month_on_both_sides_of_roll():
+    assert dated_contract_symbol("BZ=F", date(2026, 9, 25)) == "BZX26.NYM"
+    assert dated_contract_symbol("BZ=F", date(2026, 10, 1)) == "BZZ26.NYM"
+    assert dated_contract_symbol("BZ=F", date(2026, 12, 1)) == "BZG27.NYM"
+    assert dated_contract_symbol("GC=F", date(2026, 9, 25)) == "GCZ26.CMX"
+    assert dated_contract_symbol("SI=F", date(2026, 9, 25)) == "SIZ26.CMX"
+
+
+def test_brent_report_does_not_use_rolled_continuous_return(monkeypatch):
+    from daily_messenger.daily_report import cross_asset
+
+    requested = []
+
+    def fetch(symbol, *, target_date, completed_after=None):
+        requested.append(symbol)
+        if symbol == "BZX26.NYM":
+            return QuoteSnapshot("2026-09-25", 104.32, -2.1388, f"yahoo:{symbol}")
+        if symbol == "BZ=F":
+            return QuoteSnapshot("2026-09-25", 97.44, -8.5929, f"yahoo:{symbol}")
+        return QuoteSnapshot("2026-09-25", 100.0, 1.0, f"yahoo:{symbol}")
+
+    monkeypatch.setattr(cross_asset, "fetch_yahoo_daily_snapshot", fetch)
+    facts, missing = cross_asset.fetch_cross_asset_facts(date(2026, 9, 25))
+    brent = next(fact for fact in facts if fact.id == "cross_asset.brent.change_percent")
+    assert not missing
+    assert brent.value == -2.1388
+    assert "BZX26.NYM" in brent.source_url
+    assert "BZ=F" not in requested
 
 
 def test_cross_asset_wrong_date_and_one_failed_contract_are_missing_without_dropping_others(
@@ -38,7 +68,7 @@ def test_cross_asset_wrong_date_and_one_failed_contract_are_missing_without_drop
 ):
     def fetch(symbol, *, target_date, completed_after=None):
         assert target_date == date(2026, 9, 24)
-        if symbol == "GC=F":
+        if symbol == "GCZ26.CMX":
             raise RuntimeError("provider unavailable")
         day = "2026-09-23" if symbol == "BTC=F" else "2026-09-24"
         return QuoteSnapshot(day, 100.0, 1.0, f"yahoo:{symbol}")
@@ -57,13 +87,11 @@ def test_cross_asset_wrong_date_and_one_failed_contract_are_missing_without_drop
     assert not any(fact.id.startswith("cross_asset.bitcoin.") for fact in facts)
 
 
-def test_fmp_fills_only_failed_yahoo_commodity_with_its_own_provenance(monkeypatch):
+def test_missing_dated_contract_does_not_substitute_continuous_fmp(monkeypatch):
     from daily_messenger.daily_report import cross_asset
 
-    monkeypatch.setattr(cross_asset, "resolve_api_key", lambda _name: "secret", raising=False)
-
     def yahoo(symbol, *, target_date, completed_after=None):
-        if symbol == "BZ=F":
+        if symbol == "BZX26.NYM":
             raise RuntimeError("Yahoo unavailable")
         return QuoteSnapshot(target_date.isoformat(), 100.0, 1.0, f"yahoo:{symbol}")
 
@@ -71,19 +99,15 @@ def test_fmp_fills_only_failed_yahoo_commodity_with_its_own_provenance(monkeypat
     monkeypatch.setattr(
         cross_asset,
         "fetch_fmp_daily_snapshot",
-        lambda symbol, *, target_date, api_key, completed_after=None: QuoteSnapshot(
-            target_date.isoformat(), 75.0, -2.0, f"fmp:{symbol}"
-        ),
+        lambda *args, **kwargs: pytest.fail("continuous fallback must not be used"),
         raising=False,
     )
 
     facts, missing = cross_asset.fetch_cross_asset_facts(date(2026, 9, 24))
     by_id = {fact.id: fact for fact in facts}
 
-    assert not missing
-    assert by_id["cross_asset.brent.close"].value == 75.0
-    assert by_id["cross_asset.brent.close"].source == "Financial Modeling Prep"
-    assert "BZUSD" in by_id["cross_asset.brent.close"].instrument
+    assert missing == {"BZ=F": "RuntimeError: Yahoo unavailable"}
+    assert "cross_asset.brent.close" not in by_id
     assert by_id["cross_asset.gold.close"].source == "Yahoo Finance"
     assert by_id["cross_asset.bitcoin.close"].source == "Yahoo Finance"
 
