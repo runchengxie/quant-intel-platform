@@ -4,7 +4,7 @@
 
 ## 当前状态说明
 
-本文中的整体评价和问题清单主要反映 2026-07-31 的历史状态，不能直接当作当前门禁结果。当前仓库已启用 `pr-light.yml` 和 `public-quality.yml`，两者都会运行部分 pytest，`pytest.yml.disabled`、`cross-market.yml.disabled` 和 `tushare-daily.yml.disabled` 仍处于停用状态。`.gitignore` 已包含 `.coverage`、`.coverage.*` 和 `*.cover`。
+本文中的整体评价和问题清单主要反映 2026-07-31 的历史状态，不能直接当作当前门禁结果。当前完整质量门禁由 `public-quality.yml` 在 PR 和 `main` 推送时运行，`pr-light.yml` 已移除；`.githooks/pre-push` 及其安装器已删除。`pytest.yml.disabled`、`cross-market.yml.disabled` 和 `tushare-daily.yml.disabled` 仍处于停用状态。`.gitignore` 已包含 `.coverage`、`.coverage.*` 和 `*.cover`。
 
 截至 2026-09-08，`scripts/dev/maintainability_metrics.py --json --ratchet` 报告 106 个超过 100 列的长行、9 个超过 100 行的函数、2 个超过 800 行的文件和 0 个行内 `C901` 忽略项。当前 ratchet 已通过，后续治理应以这组指标和实际 CI 配置为准。
 
@@ -16,15 +16,17 @@
 
 ## 二、测试与门禁（高优先级）
 
-### 2.1 完整自动化测试尚未纳入远程门禁
+### 2.1 完整自动化测试尚未纳入远程门禁（历史问题，已解决）
 
-以下原始问题描述来自 2026-07-31，保留用于说明当时的审计依据。当前启用的 `pr-light.yml` 和 `public-quality.yml` 已运行部分离线 pytest，但完整测试工作流仍处于停用状态。
+以下原始问题描述来自 2026-07-31，保留用于说明当时的审计依据。当前 `public-quality.yml` 在 PR 和 `main` 推送时运行完整仓库门禁，并构建 Python 包。仓库级 pre-push hook 及安装器已移除。
 
 两个 GitHub Actions 工作流（cross-market.yml、tushare-daily.yml）只做数据快照提交，不跑 pytest。本地 `.githooks/pre-push` 当前是空操作（exit 0）。
 
-方案：
+当时的方案：
 - 在 cross-market.yml、tushare-daily.yml 增加 `uv run pytest` 步骤，或把 pre-push 钩子接回 `project_tools/pre_push_guard.py`（该脚本已有 `tests/test_pre_push_guard.py` 覆盖）。
 - 给三个子模块各自补 CI 配置，或至少在 root 提供一个统一入口编排四仓测试。
+
+当前由 `public-quality.yml` 调用 `project_tools/check_all.py --scope all --strict-tools`；跨仓 owner 仍由各自仓库负责检查。
 
 ### 2.2 覆盖率配置盲区
 `pyproject.toml` 的 `coverage.source` 只列 `daily_messenger` 一个包，a_share_daily、a_share_analysis、tushare_jobs、ops_common 四个包（占 src 主体）脱离 `fail_under=70` 门禁。

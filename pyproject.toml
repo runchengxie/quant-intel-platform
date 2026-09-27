@@ -122,7 +122,6 @@ quote-style = "double"
 exclude = [
   "tests/",
   "project_tools/check_all.py",
-  "project_tools/pre_push_guard.py",
   "project_tools/update_cli_help.py",
 ]
 
