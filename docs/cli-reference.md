@@ -5,8 +5,7 @@
 <!-- cli-help:start -->
 ```text
 $ dm --help
-usage: dm [-h]
-          {run,fetch,score,digest,dashboard,state-panel,btc,style-replica,market-facts,market-events,daily-report,research} ...
+usage: dm [-h] {run,fetch,score,digest,dashboard,state-panel,btc,style-replica,market-facts,market-events,daily-report,research} ...
 
 Daily Messenger CLI
 
@@ -29,8 +28,7 @@ options:
   -h, --help            show this help message and exit
 
 $ dm run --help
-usage: dm run [-h] [--date DATE] [--force-fetch] [--force-score] [--degraded]
-              [--strict] [--disable-throttle]
+usage: dm run [-h] [--date DATE] [--force-fetch] [--force-score] [--degraded] [--strict] [--disable-throttle]
 
 options:
   -h, --help          show this help message and exit
@@ -68,8 +66,7 @@ options:
   --degraded   Render in degraded mode
 
 $ dm dashboard --help
-usage: dm dashboard [-h] [--out OUT] [--state-panel STATE_PANEL]
-                    [--snapshot-dir SNAPSHOT_DIR] [--no-payload-json]
+usage: dm dashboard [-h] [--out OUT] [--state-panel STATE_PANEL] [--snapshot-dir SNAPSHOT_DIR] [--no-payload-json]
 
 options:
   -h, --help            show this help message and exit
@@ -82,9 +79,7 @@ options:
                         HTML file
 
 $ dm state-panel --help
-usage: dm state-panel [-h] [--out OUT] [--period PERIOD] [--start START]
-                      [--include-breadth] [--breadth-mode {sample,full}]
-                      [--timeout TIMEOUT] [--min-rows MIN_ROWS]
+usage: dm state-panel [-h] [--out OUT] [--period PERIOD] [--start START] [--include-breadth] [--breadth-mode {sample,full}] [--timeout TIMEOUT] [--min-rows MIN_ROWS]
 
 options:
   -h, --help            show this help message and exit
@@ -113,8 +108,7 @@ options:
   -h, --help            show this help message and exit
 
 $ dm style-replica --help
-usage: dm style-replica [-h] [--positions POSITIONS] [--date DATE]
-                        [--user-id USER_ID] [--dry-run] [--internal-only]
+usage: dm style-replica [-h] [--positions POSITIONS] [--date DATE] [--user-id USER_ID] [--dry-run] [--internal-only]
 
 options:
   -h, --help            show this help message and exit
