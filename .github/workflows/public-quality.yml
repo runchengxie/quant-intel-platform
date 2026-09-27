@@ -18,8 +18,6 @@ jobs:
     name: Python ${{ matrix.python-version }} full gate
     runs-on: ubuntu-24.04
     timeout-minutes: 45
-    env:
-      DATA_PLATFORM_ROOT: ${{ runner.temp }}/data-platform
     strategy:
       fail-fast: false
       matrix:
@@ -45,6 +43,8 @@ jobs:
           sudo apt-get install --no-install-recommends shellcheck
 
       - name: Run the complete repository gate
+        env:
+          DATA_PLATFORM_ROOT: ${{ runner.temp }}/data-platform
         run: uv run python project_tools/check_all.py --scope all --strict-tools
 
       - name: Check public boundary
