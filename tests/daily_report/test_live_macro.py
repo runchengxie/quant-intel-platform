@@ -80,9 +80,13 @@ def test_live_report_marks_failed_macro_source_degraded(monkeypatch, tmp_path):
         "daily_messenger.daily_report.pipeline.fetch_btc_spot_facts",
         lambda _date: ([], "all_spot_sources_unavailable"),
     )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_equity_facts",
+        lambda _date, _movers: ([], ("MSFT",)),
+    )
     report = run_daily_report(AS_OF, tmp_path, provider_config={"mode": "live"})
 
-    assert report.facts == ()
+    assert not any(fact.id.startswith(("macro.", "treasury.")) for fact in report.facts)
     assert report.source_status["macro"]["quality"] == "degraded"
     assert report.quality_summary["status"] == "degraded"
     assert "fred" in report.missing_sources

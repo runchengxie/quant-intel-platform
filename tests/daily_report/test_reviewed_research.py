@@ -82,6 +82,25 @@ def test_deferred_candidates_do_not_enter_report(tmp_path):
     assert result.facts == ()
 
 
+def test_only_explicitly_reviewed_mover_tickers_are_selected(tmp_path):
+    draft, review = _files(tmp_path)
+    artifact = json.loads(draft.read_text())
+    artifact["candidates"][0]["section"] = "gainers"
+    draft.write_text(json.dumps(artifact))
+    decisions = json.loads(review.read_text())
+    decisions["draft_sha256"] = hashlib.sha256(draft.read_bytes()).hexdigest()
+    decisions["decisions"][0].pop("index_returns")
+    decisions["decisions"][0].pop("index_evidence")
+    decisions["decisions"][0]["ticker"] = "AKAM"
+    review.write_text(json.dumps(decisions))
+    result = load_reviewed_research(draft, review, market_date="2026-09-23", as_of=AS_OF)
+    assert result.mover_tickers == ("AKAM",)
+    decisions["decisions"][0]["ticker"] = "../../wrong"
+    review.write_text(json.dumps(decisions))
+    with pytest.raises(ValueError, match="ticker"):
+        load_reviewed_research(draft, review, market_date="2026-09-23", as_of=AS_OF)
+
+
 def test_abcnews_cdn_ap_close_source_is_eligible_for_reviewed_index_facts(tmp_path):
     draft, review = _files(tmp_path)
     artifact = json.loads(draft.read_text())

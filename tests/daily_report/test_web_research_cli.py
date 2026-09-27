@@ -44,6 +44,7 @@ def test_runner_requests_live_read_only_search_and_writes_review_draft(monkeypat
     command = captured["command"]
     assert command[:3] == ["codex-test", "--search", "exec"]
     assert command[command.index("--sandbox") + 1] == "read-only"
+    assert command[command.index("-c") + 1] == "model_reasoning_effort=medium"
     assert "--output-schema" in command
     assert "--dangerously-bypass-approvals-and-sandbox" not in command
     assert "2026-09-18" in command[-1]
@@ -57,6 +58,8 @@ def test_runner_requests_live_read_only_search_and_writes_review_draft(monkeypat
     assert "separate single-source candidates" in command[-1]
     assert "published before the cutoff" in command[-1]
     assert "do not fill a quota" in command[-1]
+    assert "at least three distinct company-news candidates" in command[-1]
+    assert "natural Chinese" in command[-1]
     assert captured["kwargs"]["timeout"] == 480
     artifact = json.loads(artifact_path.read_text(encoding="utf-8"))
     assert artifact["market_date"] == "2026-09-18"
@@ -69,6 +72,7 @@ def test_runner_requests_live_read_only_search_and_writes_review_draft(monkeypat
     assert receipt["accepted_count"] == 1
     assert receipt["cutoff"] == CUTOFF.isoformat()
     assert receipt["model"] == artifact["model"]
+    assert receipt["reasoning_effort"] == artifact["reasoning_effort"] == "medium"
     assert receipt["rejected"] == []
 
 
