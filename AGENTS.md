@@ -111,6 +111,8 @@ bash scripts/setup_cron.sh --layer3
 
 - 从 `origin/main` 建独立 worktree，分支仅使用 `feat/*`、`fix/*`、`hotfix/*`、`release/*`。
 - `main` 只接受合并后的 PR，不直接修改或 push。
+- 每个任务在自己的 worktree 中完成修改和相关验证，再提交、推送任务分支并创建目标为 `main` 的 PR。完成 review、必需检查和冲突处理后再合并。
+- 确认 PR 已合并且 worktree 没有唯一未保存内容后，只清理本任务资源。先移除 worktree，再删除本地分支；核实远端分支归属后再删除。未合并或状态不明时保留现场并报告。
 - Commit 聚焦单一目的，标题尽量控制在 72 字符以内。
 - 跨仓 owner 变更按 provider → consumer → superproject gitlink 的顺序合并；不得让 market-intel 临时依赖未合并的本地源码路径。
 - 涉及报告版面、卡片或权重时附代表性产物；涉及契约时同步文档和 contract tests。
