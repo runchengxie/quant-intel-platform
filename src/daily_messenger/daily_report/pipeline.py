@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 
 from .btc_spot import fetch_btc_spot_facts
 from .cross_asset import fetch_cross_asset_facts
+from .equity_quotes import CORE_SYMBOLS, fetch_equity_facts
 from .facts import build_market_facts
 from .index_quotes import fetch_index_facts
 from .macro import fetch_us_macro_facts
@@ -79,9 +80,13 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
         if reviewed and reviewed.facts
         else fetch_index_facts(datetime.fromisoformat(run_date).date())
     )
+    equity_facts, missing_equities = fetch_equity_facts(
+        datetime.fromisoformat(run_date).date(), reviewed.mover_tickers if reviewed else ()
+    )
     facts = (
         tuple(fetched_facts)
         + tuple(index_facts)
+        + tuple(equity_facts)
         + tuple(cross_asset_facts)
         + tuple(btc_spot_facts)
         + (reviewed.facts if reviewed else ())
@@ -96,6 +101,15 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
     source_status["btc_spot"] = {
         "quality": "ok" if btc_spot_facts else "degraded",
         "reason": btc_spot_status,
+    }
+    source_status["equities"] = {
+        "quality": "degraded" if missing_equities else "ok",
+        "reason": "one_or_more_equities_unavailable" if missing_equities else "all_equities_fresh",
+        "missing_symbols": missing_equities,
+        "reviewed_movers": [
+            {"ticker": ticker, "evidence_id": evidence_id}
+            for ticker, evidence_id in (reviewed.mover_evidence if reviewed else ())
+        ],
     }
     source_status.update(
         {
@@ -122,6 +136,8 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
     ]
     if missing_contracts:
         missing.append("cross_asset")
+    if any(symbol in CORE_SYMBOLS for symbol in missing_equities):
+        missing.append("equities")
     if source_status["rates"]["quality"] == "lagged":
         missing.append("rates_lag")
     if (
@@ -154,6 +170,7 @@ def _sections_for(
     if not live:
         market_ids = tuple(fact.id for fact in facts)
     cross_asset_ids = tuple(fact.id for fact in facts if fact.id.startswith("cross_asset."))
+    equity_ids = tuple(fact.id for fact in facts if fact.id.startswith("equity."))
     macro_ids = tuple(fact.id for fact in facts if fact.id.startswith("macro."))
     return (
         ReportSection(
@@ -162,6 +179,7 @@ def _sections_for(
             facts=market_ids,
             claims=reviewed.sections["market"] if reviewed else (),
         ),
+        ReportSection("equities", "美股核心观察与重点个股行情", facts=equity_ids),
         ReportSection("cross_asset", "跨资产行情", facts=cross_asset_ids),
         ReportSection(
             "drivers", "市场驱动因素", claims=reviewed.sections["drivers"] if reviewed else ()

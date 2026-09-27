@@ -28,6 +28,7 @@ FIELDS = (
 )
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 MODEL = "gpt-6-sol"
+REASONING_EFFORT = "medium"
 CODEX_TIMEOUT_SECONDS = 480
 _SECRET_ASSIGNMENT = re.compile(
     r"(?i)\b(token|api[_-]?key|password|secret|authorization)\s*[:=]\s*\S+"
@@ -160,8 +161,10 @@ def _prompt(market_date: date, cutoff: datetime) -> str:
         f"Source publication cutoff: {cutoff.isoformat()}. "
         "Find and open original webpages, not only search snippets. Consider six sections: market, "
         "drivers, macro, company_news, gainers, losers. Prioritize company investor-relations releases, "
-        "regulatory filings, and accessible original reporting for company_news; seek several distinct "
-        "companies, not several rewrites of one event. For after-close market drivers, prefer full "
+        "regulatory filings, and accessible original reporting for company_news; seek at least three distinct company-news candidates when three separately verifiable events exist, "
+        "not several rewrites of one event. Never pad the list with unverified items. Write summaries in natural Chinese, "
+        "using Chinese punctuation and plain words; avoid translationese, unnecessary English, stock phrases, "
+        "forced contrasts, and unsupported wrap-up comments. For after-close market drivers, prefer full "
         "closing-wrap reports; separate observed moves from a source's attributed interpretation. "
         "Search independently for sector leadership and market breadth, including equal-weight versus "
         "capitalization-weighted performance when a dated source provides both figures. Check the "
@@ -254,6 +257,8 @@ def run_web_research(
             "--ephemeral",
             "--model",
             MODEL,
+            "-c",
+            f"model_reasoning_effort={REASONING_EFFORT}",
             "--output-schema",
             str(schema_path),
             "--output-last-message",
@@ -298,6 +303,7 @@ def run_web_research(
         "run_id": run_id,
         "provider": "codex",
         "model": MODEL,
+        "reasoning_effort": REASONING_EFFORT,
         "review_status": "needs_review",
         "accepted_count": len(accepted),
         "rejected": rejected,
@@ -309,6 +315,7 @@ def run_web_research(
         "cutoff": cutoff.isoformat(),
         "generated_at": generated_at,
         "model": MODEL,
+        "reasoning_effort": REASONING_EFFORT,
         "accepted_count": len(accepted),
         "rejected_count": len(rejected),
         "rejected": rejected,

@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
@@ -28,6 +29,8 @@ class ReviewedResearch:
     events: tuple[MarketEvent, ...]
     claims: tuple[ResearchClaim, ...]
     sections: dict[str, tuple[str, ...]]
+    mover_tickers: tuple[str, ...] = ()
+    mover_evidence: tuple[tuple[str, str], ...] = ()
 
 
 def _index_facts(
@@ -177,6 +180,8 @@ def load_reviewed_research(
     events: list[MarketEvent] = []
     claims: list[ResearchClaim] = []
     by_section: dict[str, list[str]] = {section: [] for section in SECTIONS}
+    mover_tickers: list[str] = []
+    mover_evidence: list[tuple[str, str]] = []
     for decision in decisions:
         status = decision.get("status")
         if status not in {"approved", "deferred", "rejected"} or not decision.get("reason"):
@@ -192,6 +197,16 @@ def load_reviewed_research(
             market_date=market_date,
             as_of=as_of,
         )
+        ticker = decision.get("ticker")
+        if ticker is not None:
+            if (
+                candidate["section"] not in {"gainers", "losers"}
+                or not isinstance(ticker, str)
+                or not re.fullmatch(r"[A-Z]{1,5}", ticker)
+            ):
+                raise ValueError("reviewed mover ticker is invalid")
+            mover_tickers.append(ticker)
+            mover_evidence.append((ticker, event.id))
         events.append(event)
         claims.append(claim)
         facts.extend(item_facts)
@@ -201,4 +216,6 @@ def load_reviewed_research(
         events=tuple(events),
         claims=tuple(claims),
         sections={section: tuple(ids) for section, ids in by_section.items()},
+        mover_tickers=tuple(dict.fromkeys(mover_tickers)),
+        mover_evidence=tuple(mover_evidence),
     )
