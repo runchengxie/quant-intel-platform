@@ -27,18 +27,7 @@ uv run python project_tools/update_cli_help.py --check
 | `ops_common` | 58.47% | 50% |
 | `tushare_jobs` | 44.51% | 35% |
 
-## 本地提交前检查
-
-```bash
-uv run python scripts/dev/install_git_hooks.py
-uv run python scripts/dev/install_git_hooks.py --check
-```
-
-钩子只安装到 `market-intel` 根仓：
-
-- 推送 `main` 或 tag：运行 `check_all.py --scope all`。
-- 推送 `feat/*`、`fix/*`、`hotfix/*`、`chore/*`、`release/*`：运行根仓检查和非 Python 脚本检查。
-- 其他远端分支名、删除 `main` 或删除 tag：拒绝。
+PR 和 `main` 推送会运行 `check_all.py --scope all --strict-tools`，并构建 Python 包、检查公开边界。完整质量结果由 GitHub Actions 提供；本地可运行同一门禁提前验证。
 
 删除已合并分支时，先用独立清理命令确认 PR 状态。它默认只检查，提供 `--yes` 才执行
 删除：
@@ -54,9 +43,7 @@ uv run python project_tools/cleanup_merged_branches.py \
   --yes
 ```
 
-钩子要求工作树 clean，且被推送 commit 等于当前 `HEAD`。紧急绕过可显式设置 `SKIP_LOCAL_CHECKS=1`，但仍会检查分支目标。绕过后应立即补跑完整门禁。
-
-GitHub 端运行轻量的 Ruff、ty、离线契约测试和构建检查。完整 pytest、真实数据访问和部署验证仍由本地门禁或手动流程负责。纯数据工作流不受该策略影响。
+GitHub Actions 在 PR 和 `main` 推送时运行完整代码质量门禁，不访问真实市场数据、不调用飞书或券商。生产数据访问和部署验证仍须按对应手册单独执行。纯数据工作流不受该策略影响。
 
 ## 负责方边界测试
 

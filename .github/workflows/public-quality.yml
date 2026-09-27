@@ -1,4 +1,4 @@
-name: Public framework quality
+name: Complete quality gate
 
 on:
   pull_request:
@@ -15,9 +15,9 @@ concurrency:
 
 jobs:
   quality:
-    name: Python ${{ matrix.python-version }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
+    name: Python ${{ matrix.python-version }} full gate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     strategy:
       fail-fast: false
       matrix:
@@ -37,37 +37,11 @@ jobs:
       - name: Install public dependencies
         run: uv sync --locked --group dev
 
+      - name: Run the complete repository gate
+        run: uv run python project_tools/check_all.py --scope all --strict-tools
+
       - name: Check public boundary
         run: uv run python scripts/public_release/check_boundary.py
-
-      - name: Lint
-        run: uv run ruff check src tests project_tools
-
-      - name: Format changed Python files
-        shell: bash
-        run: |
-          set -euo pipefail
-          base_sha="${{ github.event.pull_request.base.sha || github.event.before || 'HEAD^' }}"
-          mapfile -t files < <(git diff --name-only "$base_sha" "$GITHUB_SHA" -- '*.py')
-          if ((${#files[@]} == 0)); then
-            echo "No changed Python files."
-          else
-            uv run ruff format --check "${files[@]}"
-          fi
-
-      - name: Type check
-        run: uv run ty check
-
-      - name: Offline contract and regression tests
-        run: >-
-          uv run pytest -q
-          tests/public_release
-          tests/test_contracts.py
-          tests/test_boundary_contract.py
-          tests/test_news_contract.py
-          tests/test_digest_snapshot.py
-          tests/test_report_delivery_smoke.py
-          tests/test_style_replica_delivery_guard.py
 
       - name: Build package
         run: uv build

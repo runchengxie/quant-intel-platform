@@ -1,6 +1,6 @@
 # CLI 参考
 
-本文件由 `project_tools/update_cli_help.py` 自动生成，只覆盖 `dm` 命令。本地 pre-push 质量门会校验本文件是否与 `dm --help` 的输出保持一致。`marketops` 与 `a-share-daily` 的子命令结构请以各自 `--help` 为准（例如 `marketops tushare --help`、`a-share-daily --help`）。
+本文件由 `project_tools/update_cli_help.py` 自动生成，只覆盖 `dm` 命令。完整 CI 门禁会校验本文件是否与 `dm --help` 的输出保持一致。`marketops` 与 `a-share-daily` 的子命令结构请以各自 `--help` 为准（例如 `marketops tushare --help`、`a-share-daily --help`）。
 
 <!-- cli-help:start -->
 ```text

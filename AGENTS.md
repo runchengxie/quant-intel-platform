@@ -44,14 +44,7 @@ uv run python project_tools/update_cli_help.py --check
 uv run python project_tools/check_all.py --scope all
 ```
 
-首次克隆或质量工具更新后：
-
-```bash
-uv run python scripts/dev/install_git_hooks.py
-uv run python scripts/dev/install_git_hooks.py --check
-```
-
-pre-push hook 只管理 `market-intel` 根仓。各 owner 仓运行它们自己的门禁。本仓禁止重新增加“遍历相邻 repo 代跑检查”的逻辑。
+PR 和 `main` 推送会运行完整本仓门禁。各 owner 仓运行各自的门禁。本仓禁止重新增加“遍历相邻 repo 代跑检查”的逻辑。
 
 ## 生产与恢复入口
 
@@ -132,7 +125,7 @@ QUANT_RESEARCH_ROOT=/path/to/quant-research
 
 ## GitHub Actions 策略
 
-本仓在 PR 和 `main` 推送时运行轻量 GitHub Actions 质量门禁，不读取真实市场数据、不调用飞书或券商。完整生产检查仍由本地 pre-push 和手动运行负责。历史快照 workflow 保留为 `.disabled` 文件，不得在 CI 中重新启用真实数据抓取和自动提交。
+本仓在 PR 和 `main` 推送时运行完整代码质量门禁，包括全量测试与覆盖率、Ruff、ty、维护性指标、CLI 帮助、package coverage、脚本语法和公开边界检查。CI 不读取真实市场数据、不调用飞书或券商。历史快照 workflow 保留为 `.disabled` 文件，不得在 CI 中重新启用真实数据抓取和自动提交。
 
 public framework 的 lint、类型检查、离线测试和构建应优先放在本仓运行。私有部署仓库的 GitHub Actions 默认关闭，以避免消耗有限的 private-repository minutes；private 部署变更必须先通过本地 `uv sync --locked`、部署 smoke tests 和调度模板检查。只有在 production shadow/canary 或正式切换前确实需要时，才临时启用 private workflow，并在任务完成后关闭。
 
