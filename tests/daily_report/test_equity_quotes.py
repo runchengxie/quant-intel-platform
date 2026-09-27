@@ -69,6 +69,29 @@ def test_equity_quotes_do_not_publish_stale_or_partial_symbol(monkeypatch):
     assert not any(fact.id.startswith("equity.msft.") for fact in facts)
 
 
+def test_invalid_yahoo_numbers_fall_back_to_alpaca_sip(monkeypatch):
+    from daily_messenger.daily_report import equity_quotes
+
+    monkeypatch.setattr(
+        equity_quotes,
+        "fetch_yahoo_daily_snapshot",
+        lambda symbol, *, target_date: QuoteSnapshot(
+            target_date.isoformat(), float("nan") if symbol == "MSFT" else 100.0, 1.0, "yahoo:test"
+        ),
+    )
+    monkeypatch.setattr(equity_quotes, "resolve_api_key", lambda key: "test-key")
+    monkeypatch.setattr(
+        equity_quotes,
+        "_fetch_alpaca_sip_snapshot",
+        lambda symbol, report_date, key, secret: QuoteSnapshot(
+            report_date.isoformat(), 200.0, -2.5, "alpaca:sip"
+        ),
+    )
+    facts, missing = equity_quotes.fetch_equity_facts(date(2026, 9, 25))
+    assert missing == ()
+    assert {fact.source for fact in facts if fact.id.startswith("equity.msft.")} == {"Alpaca SIP"}
+
+
 def test_alpaca_sip_snapshot_rejects_iex_and_stale_daily_bars(monkeypatch):
     from daily_messenger.daily_report import equity_quotes
 

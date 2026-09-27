@@ -89,7 +89,13 @@ def fetch_equity_facts(
         url = f"https://finance.yahoo.com/quote/{quote(symbol, safe='')}/history/"
         try:
             snapshot = fetch_yahoo_daily_snapshot(symbol, target_date=report_date)
-            if snapshot.day != report_date.isoformat():
+            if (
+                snapshot.day != report_date.isoformat()
+                or not math.isfinite(snapshot.close)
+                or snapshot.close <= 0
+                or not math.isfinite(snapshot.change_pct)
+                or abs(snapshot.change_pct) > 100
+            ):
                 snapshot = None
         except Exception:  # noqa: BLE001 - optional source fallback, no stale publication
             logger.warning("Yahoo stock daily bar unavailable for %s", symbol)
@@ -106,6 +112,7 @@ def fetch_equity_facts(
             or not math.isfinite(snapshot.close)
             or snapshot.close <= 0
             or not math.isfinite(snapshot.change_pct)
+            or abs(snapshot.change_pct) > 100
         ):
             missing.append(symbol)
             continue

@@ -95,6 +95,7 @@ def test_only_explicitly_reviewed_mover_tickers_are_selected(tmp_path):
     review.write_text(json.dumps(decisions))
     result = load_reviewed_research(draft, review, market_date="2026-09-23", as_of=AS_OF)
     assert result.mover_tickers == ("AKAM",)
+    assert result.mover_evidence == (("AKAM", "reviewed.0"),)
     decisions["decisions"][0]["ticker"] = "../../wrong"
     review.write_text(json.dumps(decisions))
     with pytest.raises(ValueError, match="ticker"):

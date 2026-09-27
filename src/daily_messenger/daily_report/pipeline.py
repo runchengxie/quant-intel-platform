@@ -106,6 +106,10 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
         "quality": "degraded" if missing_equities else "ok",
         "reason": "one_or_more_equities_unavailable" if missing_equities else "all_equities_fresh",
         "missing_symbols": missing_equities,
+        "reviewed_movers": [
+            {"ticker": ticker, "evidence_id": evidence_id}
+            for ticker, evidence_id in (reviewed.mover_evidence if reviewed else ())
+        ],
     }
     source_status.update(
         {
