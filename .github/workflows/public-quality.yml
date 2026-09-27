@@ -18,6 +18,8 @@ jobs:
     name: Python ${{ matrix.python-version }} full gate
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    env:
+      DATA_PLATFORM_ROOT: ${{ runner.temp }}/data-platform
     strategy:
       fail-fast: false
       matrix:
@@ -36,6 +38,11 @@ jobs:
 
       - name: Install public dependencies
         run: uv sync --locked --group dev
+
+      - name: Install shell quality tool
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends shellcheck
 
       - name: Run the complete repository gate
         run: uv run python project_tools/check_all.py --scope all --strict-tools
