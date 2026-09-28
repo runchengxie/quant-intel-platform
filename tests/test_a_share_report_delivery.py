@@ -48,6 +48,18 @@ def test_build_evening_summary_uses_structured_facts(monkeypatch: pytest.MonkeyP
     }
     news = {
         "markets": {
+            "cn": {
+                "items": [
+                    {
+                        "title": "Asia close",
+                        "summary": "亚洲市场收盘新闻。",
+                        "source": "Reuters",
+                        "url": "https://example.com/asia",
+                        "published_at": "2026-06-30",
+                        "category": "macro",
+                    }
+                ]
+            },
             "us": {
                 "items": [
                     {
@@ -59,7 +71,7 @@ def test_build_evening_summary_uses_structured_facts(monkeypatch: pytest.MonkeyP
                         "category": "macro",
                     }
                 ]
-            }
+            },
         }
     }
     manifest = {
@@ -91,24 +103,24 @@ def test_build_evening_summary_uses_structured_facts(monkeypatch: pytest.MonkeyP
         generated_at=datetime(2026, 6, 30, 18, 0),
     )
 
-    assert "美股市场盘前 / 亚洲市场盘后（2026-06-30）" in text
+    assert "亚洲市场收盘复盘（2026-06-30）" in text
     expected_headings = (
         "## 1. 市场温度",
         "## 2. 今日要闻",
         "## 3. 亚洲市场盘后复盘",
-        "## 4. 美股盘前预览",
-        "## 5. 跨市场传导",
-        "## 6. 宏观环境",
-        "## 7. 次日验证",
-        "## 8. 数据质量",
+        "## 4. 跨市场传导",
+        "## 5. 宏观环境",
+        "## 6. 次日验证",
+        "## 7. 数据质量",
     )
     positions = [text.index(heading) for heading in expected_headings]
     assert positions == sorted(positions)
     assert "市场温度数据不足；第 3 节仍保留原始市场事实" in text
     assert "Reuters" in text
+    assert "美联储官员释放降息观察信号" not in text
     assert "A股中位数 +0.20%" in text
     assert "跌停（近似） 3 家" in text
-    assert "SPY" in text
+    assert "美股盘前预览" not in text
     assert "[OK] 半导体" in text
     assert "VIX 恐慌指数" in text
     assert "因子技术观察" not in text
@@ -355,7 +367,7 @@ def test_deliver_evening_segmented_targets_split_content(
     assert targets == ["oc_client", "oc_internal", "oc_internal"]
     assert "亚洲盘后复盘" in markdowns[0]
     assert "Reuters" not in markdowns[0]
-    assert "Reuters" in markdowns[1]
+    assert "美股盘前新闻" not in markdowns[1]
     assert "亚洲盘后复盘" in markdowns[2]
 
 

@@ -43,6 +43,8 @@ test('Astro emits a readable five-session static site with six chart states', ()
   assert.match(index, /<th>5 年<\/th><td>4\.980%/);
   assert.match(index, /<th>30 年<\/th><td>5\.490%/);
   assert.match(index, /Markdown 原文/);
+  assert.ok(index.indexOf('aria-label="下载这份美股报告"') < index.indexOf('id="us-indexes"'));
+  assert.equal((index.match(/aria-label="下载这份美股报告"/g) || []).length, 1);
   assert.match(index, /id="market-daily-chart"/);
   assert.match(index, /<details class="market-chart"/);
   assert.match(index, /id="download-market-chart"/);
@@ -52,7 +54,7 @@ test('Astro emits a readable five-session static site with six chart states', ()
   assert.match(chart, /观测日 2026-09-25/);
   assert.doesNotMatch(chart, /home\.treasury\.gov|来源/);
   assert.match(chart, /BTC\/USD 现货/);
-  assert.match(chart, /2026-08-01|2026-07-01/);
+  assert.doesNotMatch(chart, /经济数据|市场驱动因素/);
   assert.doesNotMatch(index, /美国财政部<\/a><a[^>]*>美国财政部/);
   assert.doesNotMatch(index, /Yahoo Finance<\/a><a[^>]*>Yahoo Finance/);
   assert.doesNotMatch(index, /FMP<\/a><a[^>]*>FMP/);

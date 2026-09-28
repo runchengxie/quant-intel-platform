@@ -29,7 +29,6 @@ __all__ = [
     "_manifest_chart_paths",
     "_news_error_lines",
     "_news_items",
-    "_quote_line",
     "_read_text",
     "_render_evening_asia",
     "_render_evening_macro",
@@ -37,7 +36,6 @@ __all__ = [
     "_render_evening_news",
     "_render_evening_next_watch",
     "_render_evening_transmission",
-    "_render_evening_us_preview",
     "_send_morning_charts",
     "_write_text",
     "build_evening_summary",
@@ -75,14 +73,12 @@ from a_share_daily.delivery._render import (
     _fmt_score,
     _news_error_lines,
     _news_items,
-    _quote_line,
     _render_evening_asia,
     _render_evening_macro,
     _render_evening_market_temperature,
     _render_evening_news,
     _render_evening_next_watch,
     _render_evening_transmission,
-    _render_evening_us_preview,
     build_evening_summary,
 )
 
@@ -559,8 +555,8 @@ def deliver_evening(args: argparse.Namespace) -> int:
                     text_files=[
                         (
                             summary_path,
-                            "美股市场盘前 / 亚洲市场盘后",
-                            "美股市场盘前 / 亚洲市场盘后",
+                            "亚洲市场收盘复盘",
+                            "亚洲市场收盘复盘",
                         ),
                         (review_path, "完整盘后数据", "完整盘后数据"),
                     ],
@@ -597,7 +593,7 @@ def deliver_evening(args: argparse.Namespace) -> int:
         trade_date=args.date,
         context=context,
         text_files=[
-            (summary_path, "美股市场盘前 / 亚洲市场盘后", "美股市场盘前 / 亚洲市场盘后"),
+            (summary_path, "亚洲市场收盘复盘", "亚洲市场收盘复盘"),
             (review_path, "完整盘后数据", "完整盘后数据"),
         ],
         image_paths=chart_paths,
