@@ -361,29 +361,22 @@ def _coverage(
         tushare_doc=tushare_doc,
         panel_doc=panel_doc,
     )
+    return [
+        *_coverage_source_rows(flags, actions_doc=actions_doc, raw_market_doc=raw_market_doc),
+        *_coverage_cross_market_rows(flags),
+        *_coverage_state_rows(flags),
+        _coverage_similarity_row(neighbors=neighbors, neighbor_summary=neighbor_summary),
+    ]
+
+
+def _coverage_source_rows(
+    flags: Mapping[str, object],
+    *,
+    actions_doc: JsonDocument,
+    raw_market_doc: JsonDocument,
+) -> list[dict[str, str]]:
     themes = flags["themes"]
     sources = flags["sources"]
-    cross_markets = flags["cross_markets"]
-    tushare_breadth = flags["tushare_breadth"]
-    has_panel_state = flags["has_panel_state"]
-    has_participation = flags["has_participation"]
-    has_valuation = flags["has_valuation"]
-    derived_panel = flags["derived_panel"]
-    risk_detail = (
-        "未提供状态面板时，已从 Cboe/FRED VIX、Cboe Put/Call 和 AAII 自动派生代理指标。"
-        if derived_panel
-        else "可选状态面板代理指标，用于替代授权恐惧贪婪序列。"
-    )
-    participation_detail = (
-        "未提供状态面板时，已用 RSP/SPY 或 SPY/QQQ ETF 相对表现自动派生参与度代理。"
-        if derived_panel
-        else "可选 RSP/SPY 参与度代理指标，用于观察宽度变化。"
-    )
-    valuation_detail = (
-        "未提供状态面板时，已用主题估值因子和 10Y 美债收益率自动派生估值利率代理。"
-        if derived_panel
-        else "可选估值利率差代理指标，用于替代授权 NTM P/E 历史序列。"
-    )
     return [
         _coverage_row(
             "daily_scores",
@@ -409,43 +402,76 @@ def _coverage(
             "available" if sources else "missing",
             "来自 out/etl_status.json 的各抓取器状态。",
         ),
+    ]
+
+
+def _coverage_cross_market_rows(flags: Mapping[str, object]) -> list[dict[str, str]]:
+    return [
         _coverage_row(
             "cross_market",
             "跨市场领先信号",
-            "available" if cross_markets else "missing",
+            "available" if flags["cross_markets"] else "missing",
             "美股、商品、宏观指标和 A 股概念映射。",
         ),
         _coverage_row(
             "a_share_snapshot",
             "A 股轻量快照",
-            "available" if tushare_breadth else "missing",
+            "available" if flags["tushare_breadth"] else "missing",
             "TuShare 涨跌家数、资金流、指数和涨跌停摘要。",
         ),
+    ]
+
+
+def _coverage_state_rows(flags: Mapping[str, object]) -> list[dict[str, str]]:
+    derived_panel = flags["derived_panel"]
+    risk_detail = (
+        "未提供状态面板时，已从 Cboe/FRED VIX、Cboe Put/Call 和 AAII 自动派生代理指标。"
+        if derived_panel
+        else "可选状态面板代理指标，用于替代授权恐惧贪婪序列。"
+    )
+    participation_detail = (
+        "未提供状态面板时，已用 RSP/SPY 或 SPY/QQQ ETF 相对表现自动派生参与度代理。"
+        if derived_panel
+        else "可选 RSP/SPY 参与度代理指标，用于观察宽度变化。"
+    )
+    valuation_detail = (
+        "未提供状态面板时，已用主题估值因子和 10Y 美债收益率自动派生估值利率代理。"
+        if derived_panel
+        else "可选估值利率差代理指标，用于替代授权 NTM P/E 历史序列。"
+    )
+    return [
         _coverage_row(
             "risk_state",
             "风险偏好状态",
-            "proxy" if has_panel_state else "missing",
+            "proxy" if flags["has_panel_state"] else "missing",
             risk_detail,
         ),
         _coverage_row(
             "participation",
             "市场参与度",
-            "proxy" if has_participation else "missing",
+            "proxy" if flags["has_participation"] else "missing",
             participation_detail,
         ),
         _coverage_row(
             "valuation_state",
             "估值利率状态",
-            "proxy" if has_valuation else "missing",
+            "proxy" if flags["has_valuation"] else "missing",
             valuation_detail,
         ),
-        _coverage_row(
-            "similar_states",
-            "相似状态后续收益",
-            "available" if neighbors and neighbor_summary else "missing",
-            "状态面板存在后续收益字段时本地计算。",
-        ),
     ]
+
+
+def _coverage_similarity_row(
+    *,
+    neighbors: Sequence[Mapping[str, object]],
+    neighbor_summary: Sequence[Mapping[str, object]],
+) -> dict[str, str]:
+    return _coverage_row(
+        "similar_states",
+        "相似状态后续收益",
+        "available" if neighbors and neighbor_summary else "missing",
+        "状态面板存在后续收益字段时本地计算。",
+    )
 
 
 def _source_manifest(

@@ -1,0 +1,2938 @@
+{
+  "schema_version": "market_intel_pages.us_daily_history.v1",
+  "reports": [
+    {
+      "schema_version": "1.0",
+      "publication": "public",
+      "report_formats": [
+        "md",
+        "txt"
+      ],
+      "as_of": "2026-09-27T10:55:57.629068+00:00",
+      "generated_at": "2026-09-27T10:55:57.629068+00:00",
+      "run_id": "daily-2026-09-25",
+      "sections": [
+        {
+          "key": "market",
+          "title": "市场表现",
+          "facts": [
+            "treasury.2y.level_percent",
+            "treasury.2y.change_bp",
+            "treasury.5y.level_percent",
+            "treasury.5y.change_bp",
+            "treasury.10y.level_percent",
+            "treasury.10y.change_bp",
+            "treasury.30y.level_percent",
+            "treasury.30y.change_bp",
+            "index.spx.change_percent",
+            "index.dow.change_percent",
+            "index.nasdaq.change_percent",
+            "index.russell2000.change_percent"
+          ],
+          "claims": [
+            "reviewed.0"
+          ]
+        },
+        {
+          "key": "equities",
+          "title": "美股核心观察与重点个股行情",
+          "facts": [
+            "equity.msft.close",
+            "equity.msft.change_percent",
+            "equity.aapl.close",
+            "equity.aapl.change_percent",
+            "equity.nvda.close",
+            "equity.nvda.change_percent",
+            "equity.amzn.close",
+            "equity.amzn.change_percent",
+            "equity.googl.close",
+            "equity.googl.change_percent",
+            "equity.meta.close",
+            "equity.meta.change_percent",
+            "equity.akam.close",
+            "equity.akam.change_percent"
+          ],
+          "claims": []
+        },
+        {
+          "key": "cross_asset",
+          "title": "跨资产行情",
+          "facts": [
+            "cross_asset.brent.close",
+            "cross_asset.brent.change_percent",
+            "cross_asset.gold.close",
+            "cross_asset.gold.change_percent",
+            "cross_asset.silver.close",
+            "cross_asset.silver.change_percent",
+            "cross_asset.bitcoin.close",
+            "cross_asset.bitcoin.change_percent",
+            "cross_asset.bitcoin_spot.close",
+            "cross_asset.bitcoin_spot.change_percent"
+          ],
+          "claims": []
+        },
+        {
+          "key": "drivers",
+          "title": "市场驱动因素",
+          "facts": [],
+          "claims": [
+            "reviewed.1"
+          ]
+        },
+        {
+          "key": "macro",
+          "title": "经济数据与美联储动态",
+          "facts": [
+            "macro.cpi_yoy",
+            "macro.pce_yoy",
+            "macro.unemployment_rate",
+            "macro.payroll_change_thousands"
+          ],
+          "claims": []
+        },
+        {
+          "key": "company_news",
+          "title": "公司新闻",
+          "facts": [],
+          "claims": [
+            "reviewed.7",
+            "reviewed.8",
+            "reviewed.9"
+          ]
+        },
+        {
+          "key": "movers",
+          "title": "主要上涨与下跌个股",
+          "facts": [],
+          "claims": [
+            "reviewed.11",
+            "reviewed.12"
+          ]
+        }
+      ],
+      "facts": [
+        {
+          "id": "treasury.2y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_2Y",
+          "value": 4.81,
+          "previous": 4.87,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-27T10:55:10.033860+00:00",
+          "retrieved_at": "2026-09-27T10:55:10.033860+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "treasury.2y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_2Y",
+          "value": -6.0,
+          "previous": null,
+          "change": -6.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-27T10:55:10.033860+00:00",
+          "retrieved_at": "2026-09-27T10:55:10.033860+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "treasury.5y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_5Y",
+          "value": 4.98,
+          "previous": 5.03,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-27T10:55:10.033860+00:00",
+          "retrieved_at": "2026-09-27T10:55:10.033860+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "treasury.5y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_5Y",
+          "value": -5.0,
+          "previous": null,
+          "change": -5.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-27T10:55:10.033860+00:00",
+          "retrieved_at": "2026-09-27T10:55:10.033860+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "treasury.10y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_10Y",
+          "value": 5.17,
+          "previous": 5.18,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-27T10:55:10.033860+00:00",
+          "retrieved_at": "2026-09-27T10:55:10.033860+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "treasury.10y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_10Y",
+          "value": -1.0,
+          "previous": null,
+          "change": -1.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-27T10:55:10.033860+00:00",
+          "retrieved_at": "2026-09-27T10:55:10.033860+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "treasury.30y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_30Y",
+          "value": 5.49,
+          "previous": 5.47,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-27T10:55:10.033860+00:00",
+          "retrieved_at": "2026-09-27T10:55:10.033860+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "treasury.30y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_30Y",
+          "value": 2.0,
+          "previous": null,
+          "change": 2.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-27T10:55:10.033860+00:00",
+          "retrieved_at": "2026-09-27T10:55:10.033860+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "macro.cpi_yoy",
+          "metric": "cpi_yoy",
+          "instrument": "CPIAUCNS",
+          "value": 3.4,
+          "previous": null,
+          "change": null,
+          "unit": "percent_yoy",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/CPIAUCNS",
+          "source_time": "2026-09-27T10:55:10.515887+00:00",
+          "retrieved_at": "2026-09-27T10:55:10.515887+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "macro.pce_yoy",
+          "metric": "pce_yoy",
+          "instrument": "PCEPI",
+          "value": 3.7,
+          "previous": null,
+          "change": null,
+          "unit": "percent_yoy",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/PCEPI",
+          "source_time": "2026-09-27T10:55:11.899033+00:00",
+          "retrieved_at": "2026-09-27T10:55:11.899033+00:00",
+          "quality": "ok",
+          "observation_date": "2026-07-01"
+        },
+        {
+          "id": "macro.unemployment_rate",
+          "metric": "unemployment_rate",
+          "instrument": "UNRATE",
+          "value": 4.1,
+          "previous": 4.1,
+          "change": null,
+          "unit": "percent",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/UNRATE",
+          "source_time": "2026-09-27T10:55:13.269482+00:00",
+          "retrieved_at": "2026-09-27T10:55:13.269482+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "macro.payroll_change_thousands",
+          "metric": "payroll_change_thousands",
+          "instrument": "PAYEMS",
+          "value": 162.0,
+          "previous": null,
+          "change": null,
+          "unit": "thousand_persons",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/PAYEMS",
+          "source_time": "2026-09-27T10:55:15.094340+00:00",
+          "retrieved_at": "2026-09-27T10:55:15.094340+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "index.spx.change_percent",
+          "metric": "daily_return",
+          "instrument": "S&P 500",
+          "value": 0.5099,
+          "previous": null,
+          "change": 0.5099,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5EGSPC/history/",
+          "source_time": "2026-09-27T10:55:42.462296+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462296+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "index.dow.change_percent",
+          "metric": "daily_return",
+          "instrument": "Dow Jones Industrial Average",
+          "value": 0.9321,
+          "previous": null,
+          "change": 0.9321,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5EDJI/history/",
+          "source_time": "2026-09-27T10:55:42.462296+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462296+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "index.nasdaq.change_percent",
+          "metric": "daily_return",
+          "instrument": "Nasdaq Composite",
+          "value": 0.4802,
+          "previous": null,
+          "change": 0.4802,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5EIXIC/history/",
+          "source_time": "2026-09-27T10:55:42.462296+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462296+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "index.russell2000.change_percent",
+          "metric": "daily_return",
+          "instrument": "Russell 2000",
+          "value": 0.0698,
+          "previous": null,
+          "change": 0.0698,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5ERUT/history/",
+          "source_time": "2026-09-27T10:55:42.462296+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462296+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "equity.msft.close",
+          "metric": "stock_close",
+          "instrument": "MSFT",
+          "value": 516.17,
+          "previous": null,
+          "change": null,
+          "unit": "USD/share",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/MSFT/history/",
+          "source_time": "2026-09-27T10:55:42.462949+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462949+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "equity.msft.change_percent",
+          "metric": "daily_return",
+          "instrument": "MSFT",
+          "value": 3.6632,
+          "previous": null,
+          "change": 3.6632,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/MSFT/history/",
+          "source_time": "2026-09-27T10:55:42.462949+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462949+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "equity.aapl.close",
+          "metric": "stock_close",
+          "instrument": "AAPL",
+          "value": 341.07,
+          "previous": null,
+          "change": null,
+          "unit": "USD/share",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/AAPL/history/",
+          "source_time": "2026-09-27T10:55:42.462949+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462949+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "equity.aapl.change_percent",
+          "metric": "daily_return",
+          "instrument": "AAPL",
+          "value": 1.5331,
+          "previous": null,
+          "change": 1.5331,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/AAPL/history/",
+          "source_time": "2026-09-27T10:55:42.462949+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462949+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "equity.nvda.close",
+          "metric": "stock_close",
+          "instrument": "NVDA",
+          "value": 225.07,
+          "previous": null,
+          "change": null,
+          "unit": "USD/share",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/NVDA/history/",
+          "source_time": "2026-09-27T10:55:42.462949+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462949+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "equity.nvda.change_percent",
+          "metric": "daily_return",
+          "instrument": "NVDA",
+          "value": 0.2182,
+          "previous": null,
+          "change": 0.2182,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/NVDA/history/",
+          "source_time": "2026-09-27T10:55:42.462949+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462949+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "equity.amzn.close",
+          "metric": "stock_close",
+          "instrument": "AMZN",
+          "value": 249.67,
+          "previous": null,
+          "change": null,
+          "unit": "USD/share",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/AMZN/history/",
+          "source_time": "2026-09-27T10:55:42.462949+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462949+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "equity.amzn.change_percent",
+          "metric": "daily_return",
+          "instrument": "AMZN",
+          "value": 0.1163,
+          "previous": null,
+          "change": 0.1163,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/AMZN/history/",
+          "source_time": "2026-09-27T10:55:42.462949+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462949+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "equity.googl.close",
+          "metric": "stock_close",
+          "instrument": "GOOGL",
+          "value": 343.92,
+          "previous": null,
+          "change": null,
+          "unit": "USD/share",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/GOOGL/history/",
+          "source_time": "2026-09-27T10:55:42.462949+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462949+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "equity.googl.change_percent",
+          "metric": "daily_return",
+          "instrument": "GOOGL",
+          "value": 0.4557,
+          "previous": null,
+          "change": 0.4557,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/GOOGL/history/",
+          "source_time": "2026-09-27T10:55:42.462949+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462949+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "equity.meta.close",
+          "metric": "stock_close",
+          "instrument": "META",
+          "value": 751.66,
+          "previous": null,
+          "change": null,
+          "unit": "USD/share",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/META/history/",
+          "source_time": "2026-09-27T10:55:42.462949+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462949+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "equity.meta.change_percent",
+          "metric": "daily_return",
+          "instrument": "META",
+          "value": -3.3347,
+          "previous": null,
+          "change": -3.3347,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/META/history/",
+          "source_time": "2026-09-27T10:55:42.462949+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462949+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "equity.akam.close",
+          "metric": "stock_close",
+          "instrument": "AKAM",
+          "value": 113.94,
+          "previous": null,
+          "change": null,
+          "unit": "USD/share",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/AKAM/history/",
+          "source_time": "2026-09-27T10:55:42.462949+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462949+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "equity.akam.change_percent",
+          "metric": "daily_return",
+          "instrument": "AKAM",
+          "value": 3.1972,
+          "previous": null,
+          "change": 3.1972,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/AKAM/history/",
+          "source_time": "2026-09-27T10:55:42.462949+00:00",
+          "retrieved_at": "2026-09-27T10:55:42.462949+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "cross_asset.brent.close",
+          "metric": "commodity_close",
+          "instrument": "Brent Last Day Financial Futures (BZX26.NYM)",
+          "value": 104.32,
+          "previous": null,
+          "change": null,
+          "unit": "USD/barrel",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BZX26.NYM/history/",
+          "source_time": "2026-09-27T10:55:16.112422+00:00",
+          "retrieved_at": "2026-09-27T10:55:16.112422+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "cross_asset.brent.change_percent",
+          "metric": "daily_return",
+          "instrument": "Brent Last Day Financial Futures (BZX26.NYM)",
+          "value": -2.1388,
+          "previous": null,
+          "change": -2.1388,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BZX26.NYM/history/",
+          "source_time": "2026-09-27T10:55:16.112422+00:00",
+          "retrieved_at": "2026-09-27T10:55:16.112422+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "cross_asset.gold.close",
+          "metric": "commodity_close",
+          "instrument": "COMEX Gold futures (GCZ26.CMX)",
+          "value": 4321.2002,
+          "previous": null,
+          "change": null,
+          "unit": "USD/troy_ounce",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/GCZ26.CMX/history/",
+          "source_time": "2026-09-27T10:55:17.125717+00:00",
+          "retrieved_at": "2026-09-27T10:55:17.125717+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "cross_asset.gold.change_percent",
+          "metric": "daily_return",
+          "instrument": "COMEX Gold futures (GCZ26.CMX)",
+          "value": 0.5398,
+          "previous": null,
+          "change": 0.5398,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/GCZ26.CMX/history/",
+          "source_time": "2026-09-27T10:55:17.125717+00:00",
+          "retrieved_at": "2026-09-27T10:55:17.125717+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "cross_asset.silver.close",
+          "metric": "commodity_close",
+          "instrument": "COMEX Silver futures (SIZ26.CMX)",
+          "value": 64.801,
+          "previous": null,
+          "change": null,
+          "unit": "USD/troy_ounce",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/SIZ26.CMX/history/",
+          "source_time": "2026-09-27T10:55:18.426099+00:00",
+          "retrieved_at": "2026-09-27T10:55:18.426099+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "cross_asset.silver.change_percent",
+          "metric": "daily_return",
+          "instrument": "COMEX Silver futures (SIZ26.CMX)",
+          "value": 1.2484,
+          "previous": null,
+          "change": 1.2484,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/SIZ26.CMX/history/",
+          "source_time": "2026-09-27T10:55:18.426099+00:00",
+          "retrieved_at": "2026-09-27T10:55:18.426099+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "cross_asset.bitcoin.close",
+          "metric": "crypto_futures_close",
+          "instrument": "CME Bitcoin continuous futures (BTC=F)",
+          "value": 83672.0,
+          "previous": null,
+          "change": null,
+          "unit": "USD/bitcoin",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BTC%3DF/history/",
+          "source_time": "2026-09-27T10:55:20.429115+00:00",
+          "retrieved_at": "2026-09-27T10:55:20.429115+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "cross_asset.bitcoin.change_percent",
+          "metric": "daily_return",
+          "instrument": "CME Bitcoin continuous futures (BTC=F)",
+          "value": -0.8156,
+          "previous": null,
+          "change": -0.8156,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BTC%3DF/history/",
+          "source_time": "2026-09-27T10:55:20.429115+00:00",
+          "retrieved_at": "2026-09-27T10:55:20.429115+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "cross_asset.bitcoin_spot.close",
+          "metric": "crypto_spot_close",
+          "instrument": "BTC/USD spot at 16:00 ET (Kraken XBT/USD)",
+          "value": 84008.8,
+          "previous": null,
+          "change": null,
+          "unit": "USD/bitcoin",
+          "source": "Kraken",
+          "source_url": "https://www.kraken.com/prices/bitcoin",
+          "source_time": "2026-09-25T20:00:00+00:00",
+          "retrieved_at": "2026-09-27T10:55:24.035138+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        },
+        {
+          "id": "cross_asset.bitcoin_spot.change_percent",
+          "metric": "daily_return",
+          "instrument": "BTC/USD spot at 16:00 ET (Kraken XBT/USD)",
+          "value": -0.45076858176164025,
+          "previous": null,
+          "change": -0.45076858176164025,
+          "unit": "percent",
+          "source": "Kraken",
+          "source_url": "https://www.kraken.com/prices/bitcoin",
+          "source_time": "2026-09-25T20:00:00+00:00",
+          "retrieved_at": "2026-09-27T10:55:24.035138+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-25"
+        }
+      ],
+      "events": [
+        {
+          "id": "reviewed.0"
+        },
+        {
+          "id": "reviewed.1"
+        },
+        {
+          "id": "reviewed.7"
+        },
+        {
+          "id": "reviewed.8"
+        },
+        {
+          "id": "reviewed.9"
+        },
+        {
+          "id": "reviewed.11",
+          "event_type": "web_gainers_close",
+          "actual": "据路透社 9 月 25 日收盘报道，微软上涨约 3.7%。报道提到，微软发布了 Copilot 新功能，包括代码工具和持续运行的人工智能助手。",
+          "source_url": "https://www.schwab.wallst.com/schwab/Prospect/research/stocks/news.asp?doc=3200-nL6N45H11B-4&symbol=MSFT",
+          "quality": "reviewed"
+        },
+        {
+          "id": "reviewed.12",
+          "event_type": "web_gainers_close",
+          "actual": "据路透社 9 月 25 日收盘报道，Akamai 上涨约 3.2%。报道将涨势与公司此前宣布的 Anthropic 云服务协议联系起来。",
+          "source_url": "https://www.schwab.wallst.com/schwab/Prospect/research/stocks/news.asp?doc=3200-nL6N45H11B-4&symbol=MSFT",
+          "quality": "reviewed"
+        }
+      ],
+      "claims": [
+        {
+          "claim": "据路透社 9 月 25 日收盘报道，标普 500 涨 0.51%，纳指涨 0.48%，道指涨 0.93%。标普 500 的 11 个板块中有 7 个上涨，上涨与下跌成分股数量约为 1.9:1。",
+          "evidence_ids": [
+            "reviewed.0"
+          ],
+          "sources": [
+            "https://www.schwab.wallst.com/schwab/Prospect/research/stocks/news.asp?doc=3200-nL6N45H11B-4&symbol=MSFT"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "据路透社报道，微软等人工智能相关股票支撑了当天的上涨。美伊继续磋商的消息也提振了市场情绪。",
+          "evidence_ids": [
+            "reviewed.1"
+          ],
+          "sources": [
+            "https://www.schwab.wallst.com/schwab/Prospect/research/stocks/news.asp?doc=3200-nL6N45H11B-4&symbol=MSFT"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "Akamai 9 月 24 日公告，与 Anthropic 达成七年期、116 亿美元的云服务协议，合作规模可能再扩大 90 亿美元。公司还披露了与合作扩展挂钩的认股权证。",
+          "evidence_ids": [
+            "reviewed.7"
+          ],
+          "sources": [
+            "https://www.ir.akamai.com/news-releases/news-release-details/akamai-announces-116-billion-multi-year-agreement-anthropic"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "Costco 9 月 24 日公布财报，第四财季净销售额为 939 亿美元，同比增长 11.2%，摊薄每股收益为 6.75 美元。其中关税退款带来每股 0.15 美元的一次性收益。",
+          "evidence_ids": [
+            "reviewed.8"
+          ],
+          "sources": [
+            "https://investor.costco.com/news/news-details/2026/Costco-Wholesale-Corporation-Reports-Fourth-Quarter-and-Fiscal-Year-2026-Operating-Results/default.aspx"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "Zscaler 9 月 24 日宣布任命 Ross Tackett 为首席营收官，10 月 1 日生效。卸任的 Mike Rich 将担任战略顾问至年底。",
+          "evidence_ids": [
+            "reviewed.9"
+          ],
+          "sources": [
+            "https://ir.zscaler.com/news-releases/news-release-details/zscaler-appoints-ross-tackett-chief-revenue-officer"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "据路透社 9 月 25 日收盘报道，微软上涨约 3.7%。报道提到，微软发布了 Copilot 新功能，包括代码工具和持续运行的人工智能助手。",
+          "evidence_ids": [
+            "reviewed.11"
+          ],
+          "sources": [
+            "https://www.schwab.wallst.com/schwab/Prospect/research/stocks/news.asp?doc=3200-nL6N45H11B-4&symbol=MSFT"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "据路透社 9 月 25 日收盘报道，Akamai 上涨约 3.2%。报道将涨势与公司此前宣布的 Anthropic 云服务协议联系起来。",
+          "evidence_ids": [
+            "reviewed.12"
+          ],
+          "sources": [
+            "https://www.schwab.wallst.com/schwab/Prospect/research/stocks/news.asp?doc=3200-nL6N45H11B-4&symbol=MSFT"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        }
+      ],
+      "missing_sources": [],
+      "quality_summary": {
+        "status": "ok",
+        "revision": "historical_backfill",
+        "reviewed_source_cutoff": "2026-09-25T23:59:59-04:00"
+      },
+      "source_status": {
+        "rates": {
+          "quality": "ok"
+        },
+        "macro": {
+          "quality": "ok"
+        },
+        "quotes": {
+          "quality": "ok",
+          "reason": "all_indices_fresh"
+        },
+        "research": {
+          "quality": "reviewed",
+          "reason": "source_audited"
+        },
+        "cross_asset": {
+          "quality": "ok",
+          "reason": "all_contracts_fresh"
+        },
+        "btc_spot": {
+          "quality": "ok",
+          "reason": "kraken_fallback"
+        },
+        "equities": {
+          "quality": "ok",
+          "reason": "all_equities_fresh",
+          "reviewed_movers": [
+            {
+              "evidence_id": "reviewed.11",
+              "ticker": "MSFT"
+            },
+            {
+              "evidence_id": "reviewed.12",
+              "ticker": "AKAM"
+            }
+          ]
+        }
+      },
+      "content_hash": "f3079d4cb865cfaaf7bbecc388b6a204c616cabae0bc9f762a7fe3e8f8b7b34e",
+      "source_report_sha256": "b83d42bd25c45fc3ccce6eace2073bcfd75074765f8cd6788534471a52e8348f"
+    },
+    {
+      "schema_version": "1.0",
+      "publication": "public",
+      "report_formats": [
+        "md",
+        "txt"
+      ],
+      "as_of": "2026-09-25T15:41:10.029725+00:00",
+      "generated_at": "2026-09-25T15:41:10.029725+00:00",
+      "run_id": "daily-2026-09-24",
+      "sections": [
+        {
+          "key": "market",
+          "title": "市场表现",
+          "facts": [
+            "treasury.2y.level_percent",
+            "treasury.2y.change_bp",
+            "treasury.5y.level_percent",
+            "treasury.5y.change_bp",
+            "treasury.10y.level_percent",
+            "treasury.10y.change_bp",
+            "treasury.30y.level_percent",
+            "treasury.30y.change_bp",
+            "index.spx.change_percent",
+            "index.dow.change_percent",
+            "index.nasdaq.change_percent",
+            "index.russell2000.change_percent"
+          ],
+          "claims": []
+        },
+        {
+          "key": "cross_asset",
+          "title": "跨资产行情",
+          "facts": [
+            "cross_asset.brent.close",
+            "cross_asset.brent.change_percent",
+            "cross_asset.gold.close",
+            "cross_asset.gold.change_percent",
+            "cross_asset.silver.close",
+            "cross_asset.silver.change_percent",
+            "cross_asset.bitcoin.close",
+            "cross_asset.bitcoin.change_percent"
+          ],
+          "claims": []
+        },
+        {
+          "key": "drivers",
+          "title": "市场驱动因素",
+          "facts": [],
+          "claims": []
+        },
+        {
+          "key": "macro",
+          "title": "经济数据与美联储动态",
+          "facts": [
+            "macro.cpi_yoy",
+            "macro.pce_yoy",
+            "macro.unemployment_rate",
+            "macro.payroll_change_thousands"
+          ],
+          "claims": []
+        },
+        {
+          "key": "company_news",
+          "title": "公司新闻",
+          "facts": [],
+          "claims": []
+        },
+        {
+          "key": "movers",
+          "title": "主要上涨与下跌个股",
+          "facts": [],
+          "claims": []
+        }
+      ],
+      "facts": [
+        {
+          "id": "treasury.2y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_2Y",
+          "value": 4.87,
+          "previous": 4.85,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:40:47.640026+00:00",
+          "retrieved_at": "2026-09-25T15:40:47.640026+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "treasury.2y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_2Y",
+          "value": 2.0,
+          "previous": null,
+          "change": 2.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:40:47.640026+00:00",
+          "retrieved_at": "2026-09-25T15:40:47.640026+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "treasury.5y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_5Y",
+          "value": 5.03,
+          "previous": 4.99,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:40:47.640026+00:00",
+          "retrieved_at": "2026-09-25T15:40:47.640026+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "treasury.5y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_5Y",
+          "value": 4.0,
+          "previous": null,
+          "change": 4.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:40:47.640026+00:00",
+          "retrieved_at": "2026-09-25T15:40:47.640026+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "treasury.10y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_10Y",
+          "value": 5.18,
+          "previous": 5.11,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:40:47.640026+00:00",
+          "retrieved_at": "2026-09-25T15:40:47.640026+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "treasury.10y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_10Y",
+          "value": 7.0,
+          "previous": null,
+          "change": 7.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:40:47.640026+00:00",
+          "retrieved_at": "2026-09-25T15:40:47.640026+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "treasury.30y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_30Y",
+          "value": 5.47,
+          "previous": 5.4,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:40:47.640026+00:00",
+          "retrieved_at": "2026-09-25T15:40:47.640026+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "treasury.30y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_30Y",
+          "value": 7.0,
+          "previous": null,
+          "change": 7.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:40:47.640026+00:00",
+          "retrieved_at": "2026-09-25T15:40:47.640026+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "macro.cpi_yoy",
+          "metric": "cpi_yoy",
+          "instrument": "CPIAUCNS",
+          "value": 3.4,
+          "previous": null,
+          "change": null,
+          "unit": "percent_yoy",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/CPIAUCNS",
+          "source_time": "2026-09-25T15:40:48.324762+00:00",
+          "retrieved_at": "2026-09-25T15:40:48.324762+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "macro.pce_yoy",
+          "metric": "pce_yoy",
+          "instrument": "PCEPI",
+          "value": 3.7,
+          "previous": null,
+          "change": null,
+          "unit": "percent_yoy",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/PCEPI",
+          "source_time": "2026-09-25T15:40:48.949017+00:00",
+          "retrieved_at": "2026-09-25T15:40:48.949017+00:00",
+          "quality": "ok",
+          "observation_date": "2026-07-01"
+        },
+        {
+          "id": "macro.unemployment_rate",
+          "metric": "unemployment_rate",
+          "instrument": "UNRATE",
+          "value": 4.1,
+          "previous": 4.1,
+          "change": null,
+          "unit": "percent",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/UNRATE",
+          "source_time": "2026-09-25T15:40:49.490439+00:00",
+          "retrieved_at": "2026-09-25T15:40:49.490439+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "macro.payroll_change_thousands",
+          "metric": "payroll_change_thousands",
+          "instrument": "PAYEMS",
+          "value": 162.0,
+          "previous": null,
+          "change": null,
+          "unit": "thousand_persons",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/PAYEMS",
+          "source_time": "2026-09-25T15:40:50.007953+00:00",
+          "retrieved_at": "2026-09-25T15:40:50.007953+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "index.spx.change_percent",
+          "metric": "daily_return",
+          "instrument": "S&P 500",
+          "value": -0.0247,
+          "previous": null,
+          "change": -0.0247,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5EGSPC/history/",
+          "source_time": "2026-09-25T15:41:10.029564+00:00",
+          "retrieved_at": "2026-09-25T15:41:10.029564+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "index.dow.change_percent",
+          "metric": "daily_return",
+          "instrument": "Dow Jones Industrial Average",
+          "value": -0.3137,
+          "previous": null,
+          "change": -0.3137,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5EDJI/history/",
+          "source_time": "2026-09-25T15:41:10.029564+00:00",
+          "retrieved_at": "2026-09-25T15:41:10.029564+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "index.nasdaq.change_percent",
+          "metric": "daily_return",
+          "instrument": "Nasdaq Composite",
+          "value": 0.0124,
+          "previous": null,
+          "change": 0.0124,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5EIXIC/history/",
+          "source_time": "2026-09-25T15:41:10.029564+00:00",
+          "retrieved_at": "2026-09-25T15:41:10.029564+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "index.russell2000.change_percent",
+          "metric": "daily_return",
+          "instrument": "Russell 2000",
+          "value": -0.1088,
+          "previous": null,
+          "change": -0.1088,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5ERUT/history/",
+          "source_time": "2026-09-25T15:41:10.029564+00:00",
+          "retrieved_at": "2026-09-25T15:41:10.029564+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "cross_asset.brent.close",
+          "metric": "commodity_close",
+          "instrument": "Brent Last Day Financial Futures (BZ=F)",
+          "value": 106.6,
+          "previous": null,
+          "change": null,
+          "unit": "USD/barrel",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BZ%3DF/history/",
+          "source_time": "2026-09-25T15:40:54.411349+00:00",
+          "retrieved_at": "2026-09-25T15:40:54.411349+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "cross_asset.brent.change_percent",
+          "metric": "daily_return",
+          "instrument": "Brent Last Day Financial Futures (BZ=F)",
+          "value": 3.4148,
+          "previous": null,
+          "change": 3.4148,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BZ%3DF/history/",
+          "source_time": "2026-09-25T15:40:54.411349+00:00",
+          "retrieved_at": "2026-09-25T15:40:54.411349+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "cross_asset.gold.close",
+          "metric": "commodity_close",
+          "instrument": "COMEX Gold continuous futures (GC=F)",
+          "value": 4298.0,
+          "previous": null,
+          "change": null,
+          "unit": "USD/troy_ounce",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/GC%3DF/history/",
+          "source_time": "2026-09-25T15:40:56.455173+00:00",
+          "retrieved_at": "2026-09-25T15:40:56.455173+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "cross_asset.gold.change_percent",
+          "metric": "daily_return",
+          "instrument": "COMEX Gold continuous futures (GC=F)",
+          "value": -0.4724,
+          "previous": null,
+          "change": -0.4724,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/GC%3DF/history/",
+          "source_time": "2026-09-25T15:40:56.455173+00:00",
+          "retrieved_at": "2026-09-25T15:40:56.455173+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "cross_asset.silver.close",
+          "metric": "commodity_close",
+          "instrument": "COMEX Silver continuous futures (SI=F)",
+          "value": 63.457,
+          "previous": null,
+          "change": null,
+          "unit": "USD/troy_ounce",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/SI%3DF/history/",
+          "source_time": "2026-09-25T15:40:57.888524+00:00",
+          "retrieved_at": "2026-09-25T15:40:57.888524+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "cross_asset.silver.change_percent",
+          "metric": "daily_return",
+          "instrument": "COMEX Silver continuous futures (SI=F)",
+          "value": -1.4367,
+          "previous": null,
+          "change": -1.4367,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/SI%3DF/history/",
+          "source_time": "2026-09-25T15:40:57.888524+00:00",
+          "retrieved_at": "2026-09-25T15:40:57.888524+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "cross_asset.bitcoin.close",
+          "metric": "crypto_futures_close",
+          "instrument": "CME Bitcoin continuous futures (BTC=F)",
+          "value": 84360.0,
+          "previous": null,
+          "change": null,
+          "unit": "USD/bitcoin",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BTC%3DF/history/",
+          "source_time": "2026-09-25T15:40:59.247025+00:00",
+          "retrieved_at": "2026-09-25T15:40:59.247025+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        },
+        {
+          "id": "cross_asset.bitcoin.change_percent",
+          "metric": "daily_return",
+          "instrument": "CME Bitcoin continuous futures (BTC=F)",
+          "value": -0.1598,
+          "previous": null,
+          "change": -0.1598,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BTC%3DF/history/",
+          "source_time": "2026-09-25T15:40:59.247025+00:00",
+          "retrieved_at": "2026-09-25T15:40:59.247025+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-24"
+        }
+      ],
+      "events": [],
+      "claims": [],
+      "missing_sources": [
+        "research"
+      ],
+      "quality_summary": {
+        "status": "degraded",
+        "revision": "historical_backfill"
+      },
+      "source_status": {
+        "rates": {
+          "quality": "ok"
+        },
+        "macro": {
+          "quality": "ok"
+        },
+        "quotes": {
+          "quality": "ok",
+          "reason": "all_indices_fresh"
+        },
+        "research": {
+          "quality": "degraded",
+          "reason": "not_connected"
+        },
+        "cross_asset": {
+          "quality": "ok",
+          "reason": "all_contracts_fresh"
+        }
+      },
+      "content_hash": "00da3162a5d88b44fa609c5db86592917935d20f75bffecd679b2b42427f5fc1",
+      "source_report_sha256": "822c964ccbce2806552814e078feb0cc95920d73cc2113c573c9e7418ea39240"
+    },
+    {
+      "schema_version": "1.0",
+      "publication": "public",
+      "report_formats": [
+        "md",
+        "txt"
+      ],
+      "as_of": "2026-09-25T16:00:08.665455+00:00",
+      "generated_at": "2026-09-25T16:00:08.665455+00:00",
+      "run_id": "daily-2026-09-23",
+      "sections": [
+        {
+          "key": "market",
+          "title": "市场表现",
+          "facts": [
+            "treasury.2y.level_percent",
+            "treasury.2y.change_bp",
+            "treasury.5y.level_percent",
+            "treasury.5y.change_bp",
+            "treasury.10y.level_percent",
+            "treasury.10y.change_bp",
+            "treasury.30y.level_percent",
+            "treasury.30y.change_bp",
+            "index.spx.change_percent",
+            "index.dow.change_percent",
+            "index.nasdaq.change_percent",
+            "index.russell2000.change_percent"
+          ],
+          "claims": [
+            "reviewed.0"
+          ]
+        },
+        {
+          "key": "cross_asset",
+          "title": "跨资产行情",
+          "facts": [
+            "cross_asset.brent.close",
+            "cross_asset.brent.change_percent",
+            "cross_asset.gold.close",
+            "cross_asset.gold.change_percent",
+            "cross_asset.silver.close",
+            "cross_asset.silver.change_percent",
+            "cross_asset.bitcoin.close",
+            "cross_asset.bitcoin.change_percent"
+          ],
+          "claims": []
+        },
+        {
+          "key": "drivers",
+          "title": "市场驱动因素",
+          "facts": [],
+          "claims": [
+            "reviewed.1"
+          ]
+        },
+        {
+          "key": "macro",
+          "title": "经济数据与美联储动态",
+          "facts": [
+            "macro.cpi_yoy",
+            "macro.pce_yoy",
+            "macro.unemployment_rate",
+            "macro.payroll_change_thousands"
+          ],
+          "claims": [
+            "reviewed.2",
+            "reviewed.3"
+          ]
+        },
+        {
+          "key": "company_news",
+          "title": "公司新闻",
+          "facts": [],
+          "claims": [
+            "reviewed.4",
+            "reviewed.5",
+            "reviewed.6",
+            "reviewed.7"
+          ]
+        },
+        {
+          "key": "movers",
+          "title": "主要上涨与下跌个股",
+          "facts": [],
+          "claims": [
+            "reviewed.10",
+            "reviewed.11",
+            "reviewed.12"
+          ]
+        }
+      ],
+      "facts": [
+        {
+          "id": "treasury.2y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_2Y",
+          "value": 4.85,
+          "previous": 4.71,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:59:57.016070+00:00",
+          "retrieved_at": "2026-09-25T15:59:57.016070+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "treasury.2y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_2Y",
+          "value": 14.0,
+          "previous": null,
+          "change": 14.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:59:57.016070+00:00",
+          "retrieved_at": "2026-09-25T15:59:57.016070+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "treasury.5y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_5Y",
+          "value": 4.99,
+          "previous": 4.83,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:59:57.016070+00:00",
+          "retrieved_at": "2026-09-25T15:59:57.016070+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "treasury.5y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_5Y",
+          "value": 16.0,
+          "previous": null,
+          "change": 16.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:59:57.016070+00:00",
+          "retrieved_at": "2026-09-25T15:59:57.016070+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "treasury.10y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_10Y",
+          "value": 5.11,
+          "previous": 4.96,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:59:57.016070+00:00",
+          "retrieved_at": "2026-09-25T15:59:57.016070+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "treasury.10y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_10Y",
+          "value": 15.0,
+          "previous": null,
+          "change": 15.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:59:57.016070+00:00",
+          "retrieved_at": "2026-09-25T15:59:57.016070+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "treasury.30y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_30Y",
+          "value": 5.4,
+          "previous": 5.29,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:59:57.016070+00:00",
+          "retrieved_at": "2026-09-25T15:59:57.016070+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "treasury.30y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_30Y",
+          "value": 11.0,
+          "previous": null,
+          "change": 11.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:59:57.016070+00:00",
+          "retrieved_at": "2026-09-25T15:59:57.016070+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "macro.cpi_yoy",
+          "metric": "cpi_yoy",
+          "instrument": "CPIAUCNS",
+          "value": 3.4,
+          "previous": null,
+          "change": null,
+          "unit": "percent_yoy",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/CPIAUCNS",
+          "source_time": "2026-09-25T15:59:57.530472+00:00",
+          "retrieved_at": "2026-09-25T15:59:57.530472+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "macro.pce_yoy",
+          "metric": "pce_yoy",
+          "instrument": "PCEPI",
+          "value": 3.7,
+          "previous": null,
+          "change": null,
+          "unit": "percent_yoy",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/PCEPI",
+          "source_time": "2026-09-25T15:59:58.917916+00:00",
+          "retrieved_at": "2026-09-25T15:59:58.917916+00:00",
+          "quality": "ok",
+          "observation_date": "2026-07-01"
+        },
+        {
+          "id": "macro.unemployment_rate",
+          "metric": "unemployment_rate",
+          "instrument": "UNRATE",
+          "value": 4.1,
+          "previous": 4.1,
+          "change": null,
+          "unit": "percent",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/UNRATE",
+          "source_time": "2026-09-25T16:00:00.174681+00:00",
+          "retrieved_at": "2026-09-25T16:00:00.174681+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "macro.payroll_change_thousands",
+          "metric": "payroll_change_thousands",
+          "instrument": "PAYEMS",
+          "value": 162.0,
+          "previous": null,
+          "change": null,
+          "unit": "thousand_persons",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/PAYEMS",
+          "source_time": "2026-09-25T16:00:04.610395+00:00",
+          "retrieved_at": "2026-09-25T16:00:04.610395+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "cross_asset.brent.close",
+          "metric": "commodity_close",
+          "instrument": "Brent Last Day Financial Futures (BZ=F)",
+          "value": 103.08,
+          "previous": null,
+          "change": null,
+          "unit": "USD/barrel",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BZ%3DF/history/",
+          "source_time": "2026-09-25T16:00:05.677948+00:00",
+          "retrieved_at": "2026-09-25T16:00:05.677948+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "cross_asset.brent.change_percent",
+          "metric": "daily_return",
+          "instrument": "Brent Last Day Financial Futures (BZ=F)",
+          "value": 3.8589,
+          "previous": null,
+          "change": 3.8589,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BZ%3DF/history/",
+          "source_time": "2026-09-25T16:00:05.677948+00:00",
+          "retrieved_at": "2026-09-25T16:00:05.677948+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "cross_asset.gold.close",
+          "metric": "commodity_close",
+          "instrument": "COMEX Gold continuous futures (GC=F)",
+          "value": 4318.3999,
+          "previous": null,
+          "change": null,
+          "unit": "USD/troy_ounce",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/GC%3DF/history/",
+          "source_time": "2026-09-25T16:00:06.679397+00:00",
+          "retrieved_at": "2026-09-25T16:00:06.679397+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "cross_asset.gold.change_percent",
+          "metric": "daily_return",
+          "instrument": "COMEX Gold continuous futures (GC=F)",
+          "value": -1.3253,
+          "previous": null,
+          "change": -1.3253,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/GC%3DF/history/",
+          "source_time": "2026-09-25T16:00:06.679397+00:00",
+          "retrieved_at": "2026-09-25T16:00:06.679397+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "cross_asset.silver.close",
+          "metric": "commodity_close",
+          "instrument": "COMEX Silver continuous futures (SI=F)",
+          "value": 64.382,
+          "previous": null,
+          "change": null,
+          "unit": "USD/troy_ounce",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/SI%3DF/history/",
+          "source_time": "2026-09-25T16:00:07.671219+00:00",
+          "retrieved_at": "2026-09-25T16:00:07.671219+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "cross_asset.silver.change_percent",
+          "metric": "daily_return",
+          "instrument": "COMEX Silver continuous futures (SI=F)",
+          "value": -2.3509,
+          "previous": null,
+          "change": -2.3509,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/SI%3DF/history/",
+          "source_time": "2026-09-25T16:00:07.671219+00:00",
+          "retrieved_at": "2026-09-25T16:00:07.671219+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "cross_asset.bitcoin.close",
+          "metric": "crypto_futures_close",
+          "instrument": "CME Bitcoin continuous futures (BTC=F)",
+          "value": 84495.0,
+          "previous": null,
+          "change": null,
+          "unit": "USD/bitcoin",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BTC%3DF/history/",
+          "source_time": "2026-09-25T16:00:08.664858+00:00",
+          "retrieved_at": "2026-09-25T16:00:08.664858+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "cross_asset.bitcoin.change_percent",
+          "metric": "daily_return",
+          "instrument": "CME Bitcoin continuous futures (BTC=F)",
+          "value": -2.0802,
+          "previous": null,
+          "change": -2.0802,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BTC%3DF/history/",
+          "source_time": "2026-09-25T16:00:08.664858+00:00",
+          "retrieved_at": "2026-09-25T16:00:08.664858+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "index.spx.change_percent",
+          "metric": "daily_return",
+          "instrument": "S&P 500",
+          "value": -0.8,
+          "previous": null,
+          "change": -0.8,
+          "unit": "percent",
+          "source": "www-cdn.abcnews.com",
+          "source_url": "https://www-cdn.abcnews.com/Business/wireStory/major-us-stock-indexes-fared-wednesday-9232026-136697299",
+          "source_time": "2026-09-23T16:12:00-04:00",
+          "retrieved_at": "2026-09-23T23:59:59-04:00",
+          "quality": "reviewed",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "index.dow.change_percent",
+          "metric": "daily_return",
+          "instrument": "Dow Jones Industrial Average",
+          "value": -0.7,
+          "previous": null,
+          "change": -0.7,
+          "unit": "percent",
+          "source": "www-cdn.abcnews.com",
+          "source_url": "https://www-cdn.abcnews.com/Business/wireStory/major-us-stock-indexes-fared-wednesday-9232026-136697299",
+          "source_time": "2026-09-23T16:12:00-04:00",
+          "retrieved_at": "2026-09-23T23:59:59-04:00",
+          "quality": "reviewed",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "index.nasdaq.change_percent",
+          "metric": "daily_return",
+          "instrument": "Nasdaq Composite",
+          "value": -1.1,
+          "previous": null,
+          "change": -1.1,
+          "unit": "percent",
+          "source": "www-cdn.abcnews.com",
+          "source_url": "https://www-cdn.abcnews.com/Business/wireStory/major-us-stock-indexes-fared-wednesday-9232026-136697299",
+          "source_time": "2026-09-23T16:12:00-04:00",
+          "retrieved_at": "2026-09-23T23:59:59-04:00",
+          "quality": "reviewed",
+          "observation_date": "2026-09-23"
+        },
+        {
+          "id": "index.russell2000.change_percent",
+          "metric": "daily_return",
+          "instrument": "Russell 2000",
+          "value": -1.8,
+          "previous": null,
+          "change": -1.8,
+          "unit": "percent",
+          "source": "www-cdn.abcnews.com",
+          "source_url": "https://www-cdn.abcnews.com/Business/wireStory/major-us-stock-indexes-fared-wednesday-9232026-136697299",
+          "source_time": "2026-09-23T16:12:00-04:00",
+          "retrieved_at": "2026-09-23T23:59:59-04:00",
+          "quality": "reviewed",
+          "observation_date": "2026-09-23"
+        }
+      ],
+      "events": [
+        {
+          "id": "reviewed.0"
+        },
+        {
+          "id": "reviewed.1"
+        },
+        {
+          "id": "reviewed.2"
+        },
+        {
+          "id": "reviewed.3"
+        },
+        {
+          "id": "reviewed.4"
+        },
+        {
+          "id": "reviewed.5"
+        },
+        {
+          "id": "reviewed.6"
+        },
+        {
+          "id": "reviewed.7"
+        },
+        {
+          "id": "reviewed.10"
+        },
+        {
+          "id": "reviewed.11"
+        },
+        {
+          "id": "reviewed.12"
+        }
+      ],
+      "claims": [
+        {
+          "claim": "据美联社 9 月 23 日收盘报道，标普 500 跌 0.8%，道指跌 0.7%，纳指跌 1.1%，罗素 2000 跌 1.8%。",
+          "evidence_ids": [
+            "reviewed.0"
+          ],
+          "sources": [
+            "https://www-cdn.abcnews.com/Business/wireStory/major-us-stock-indexes-fared-wednesday-9232026-136697299"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "据路透社收盘报道，美股下跌当天油价和美债收益率上行；报道援引策略师观点称，美伊紧张言论加重市场顾虑，并称强劲的美国商业活动数据推高了市场对加息的预期。",
+          "evidence_ids": [
+            "reviewed.1"
+          ],
+          "sources": [
+            "https://www.marketscreener.com/news/wall-street-ends-down-as-oil-prices-treasury-yields-rise-ce785aded98ff222"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "据路透社援引标普全球数据，美国 9 月综合 PMI 初值升至 58.4，前月为 56.0；报道同时指出供应约束和价格压力有所加重。",
+          "evidence_ids": [
+            "reviewed.2"
+          ],
+          "sources": [
+            "https://www.investing.com/news/economy-news/us-business-activity-at-more-than-fiveyear-high-inflation-pressures-building-4913336"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "据路透社报道，美联储理事 Barr 表示，在其基准情景下，可能仍需进一步调整政策，才能及时推动通胀回到目标；他没有给出具体次数或时点。",
+          "evidence_ids": [
+            "reviewed.3"
+          ],
+          "sources": [
+            "https://www.investing.com/news/economy-news/feds-barr-says-further-rate-hikes-will-likely-be-needed-4913382"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "Paychex 公布 2027 财年第一财季收入 16.305 亿美元，同比增长 6%；GAAP 摊薄每股收益 1.21 美元。",
+          "evidence_ids": [
+            "reviewed.4"
+          ],
+          "sources": [
+            "https://investor.paychex.com/news-events/press-releases/detail/850/paychex-reports-first-quarter-fiscal-2027-results"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "Cintas 公布 2027 财年第一财季收入 30.1 亿美元，同比增长 10.9%；公司上调全年收入及调整后每股收益指引。",
+          "evidence_ids": [
+            "reviewed.5"
+          ],
+          "sources": [
+            "https://www.cintas.com/about/newsroom/details/news/2026/09/22/cintas-corporation-announces-fiscal-2027-first-quarter-results/"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "麦当劳宣布 NEXT 战略，并提出到 2030 年把营业利润率提升至 50% 出头至中段区间的目标；这是公司目标而非已实现业绩。",
+          "evidence_ids": [
+            "reviewed.6"
+          ],
+          "sources": [
+            "https://www.prnewswire.com/news-releases/mcdonalds-advances-next-strategy-to-become-first-choice-for-more-customers-more-often-302886893.html"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "Cracker Barrel 公布 2026 财年第四财季收入 8.493 亿美元，同比下降 2.2%，并给出 2027 财年业绩展望。",
+          "evidence_ids": [
+            "reviewed.7"
+          ],
+          "sources": [
+            "https://investor.crackerbarrel.com/news-releases/news-release-details/cracker-barrel-reports-fourth-quarter-and-full-year-fiscal-2026"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "据路透社收盘报道，Cracker Barrel 当日上涨约 4.5%；报道将涨势与其第四财季销售额高于预期联系起来。",
+          "evidence_ids": [
+            "reviewed.10"
+          ],
+          "sources": [
+            "https://www.marketscreener.com/news/wall-street-ends-down-as-oil-prices-treasury-yields-rise-ce785aded98ff222"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "据路透社收盘报道，Paychex 当日跌近 9%；报道指出，其最大业务部门第一财季收入低于市场预期。",
+          "evidence_ids": [
+            "reviewed.11"
+          ],
+          "sources": [
+            "https://www.marketscreener.com/news/wall-street-ends-down-as-oil-prices-treasury-yields-rise-ce785aded98ff222"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        },
+        {
+          "claim": "据路透社收盘报道，Alphabet 当日跌近 4%，Amazon 跌逾 2%；报道同时讨论了市场对 Meta Muse 助手的反应，但未证明其为两只股票下跌的唯一原因。",
+          "evidence_ids": [
+            "reviewed.12"
+          ],
+          "sources": [
+            "https://www.marketscreener.com/news/wall-street-ends-down-as-oil-prices-treasury-yields-rise-ce785aded98ff222"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        }
+      ],
+      "missing_sources": [],
+      "quality_summary": {
+        "status": "ok",
+        "revision": "historical_backfill",
+        "reviewed_source_cutoff": "2026-09-23T23:59:59-04:00"
+      },
+      "source_status": {
+        "rates": {
+          "quality": "ok"
+        },
+        "macro": {
+          "quality": "ok"
+        },
+        "quotes": {
+          "quality": "reviewed",
+          "reason": "source_audited"
+        },
+        "research": {
+          "quality": "reviewed",
+          "reason": "source_audited"
+        },
+        "cross_asset": {
+          "quality": "ok",
+          "reason": "all_contracts_fresh"
+        }
+      },
+      "content_hash": "5755808414425d11c9311934063ccc020059043a717067974ea756e90da498bf",
+      "source_report_sha256": "d978dd2a387644798b646f2b5fc238034f316c80c7642fabc92234e55f96c763"
+    },
+    {
+      "schema_version": "1.0",
+      "publication": "public",
+      "report_formats": [
+        "md",
+        "txt"
+      ],
+      "as_of": "2026-09-25T15:43:25.658238+00:00",
+      "generated_at": "2026-09-25T15:43:25.658238+00:00",
+      "run_id": "daily-2026-09-22",
+      "sections": [
+        {
+          "key": "market",
+          "title": "市场表现",
+          "facts": [
+            "treasury.2y.level_percent",
+            "treasury.2y.change_bp",
+            "treasury.5y.level_percent",
+            "treasury.5y.change_bp",
+            "treasury.10y.level_percent",
+            "treasury.10y.change_bp",
+            "treasury.30y.level_percent",
+            "treasury.30y.change_bp",
+            "index.spx.change_percent",
+            "index.dow.change_percent",
+            "index.nasdaq.change_percent",
+            "index.russell2000.change_percent"
+          ],
+          "claims": []
+        },
+        {
+          "key": "cross_asset",
+          "title": "跨资产行情",
+          "facts": [
+            "cross_asset.brent.close",
+            "cross_asset.brent.change_percent",
+            "cross_asset.gold.close",
+            "cross_asset.gold.change_percent",
+            "cross_asset.silver.close",
+            "cross_asset.silver.change_percent",
+            "cross_asset.bitcoin.close",
+            "cross_asset.bitcoin.change_percent"
+          ],
+          "claims": []
+        },
+        {
+          "key": "drivers",
+          "title": "市场驱动因素",
+          "facts": [],
+          "claims": []
+        },
+        {
+          "key": "macro",
+          "title": "经济数据与美联储动态",
+          "facts": [
+            "macro.cpi_yoy",
+            "macro.pce_yoy",
+            "macro.unemployment_rate",
+            "macro.payroll_change_thousands"
+          ],
+          "claims": []
+        },
+        {
+          "key": "company_news",
+          "title": "公司新闻",
+          "facts": [],
+          "claims": []
+        },
+        {
+          "key": "movers",
+          "title": "主要上涨与下跌个股",
+          "facts": [],
+          "claims": []
+        }
+      ],
+      "facts": [
+        {
+          "id": "treasury.2y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_2Y",
+          "value": 4.71,
+          "previous": 4.76,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:43:11.257332+00:00",
+          "retrieved_at": "2026-09-25T15:43:11.257332+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "treasury.2y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_2Y",
+          "value": -5.0,
+          "previous": null,
+          "change": -5.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:43:11.257332+00:00",
+          "retrieved_at": "2026-09-25T15:43:11.257332+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "treasury.5y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_5Y",
+          "value": 4.83,
+          "previous": 4.83,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:43:11.257332+00:00",
+          "retrieved_at": "2026-09-25T15:43:11.257332+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "treasury.5y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_5Y",
+          "value": 0.0,
+          "previous": null,
+          "change": 0.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:43:11.257332+00:00",
+          "retrieved_at": "2026-09-25T15:43:11.257332+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "treasury.10y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_10Y",
+          "value": 4.96,
+          "previous": 4.96,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:43:11.257332+00:00",
+          "retrieved_at": "2026-09-25T15:43:11.257332+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "treasury.10y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_10Y",
+          "value": 0.0,
+          "previous": null,
+          "change": 0.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:43:11.257332+00:00",
+          "retrieved_at": "2026-09-25T15:43:11.257332+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "treasury.30y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_30Y",
+          "value": 5.29,
+          "previous": 5.29,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:43:11.257332+00:00",
+          "retrieved_at": "2026-09-25T15:43:11.257332+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "treasury.30y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_30Y",
+          "value": 0.0,
+          "previous": null,
+          "change": 0.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:43:11.257332+00:00",
+          "retrieved_at": "2026-09-25T15:43:11.257332+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "macro.cpi_yoy",
+          "metric": "cpi_yoy",
+          "instrument": "CPIAUCNS",
+          "value": 3.4,
+          "previous": null,
+          "change": null,
+          "unit": "percent_yoy",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/CPIAUCNS",
+          "source_time": "2026-09-25T15:43:12.021388+00:00",
+          "retrieved_at": "2026-09-25T15:43:12.021388+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "macro.pce_yoy",
+          "metric": "pce_yoy",
+          "instrument": "PCEPI",
+          "value": 3.7,
+          "previous": null,
+          "change": null,
+          "unit": "percent_yoy",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/PCEPI",
+          "source_time": "2026-09-25T15:43:12.751534+00:00",
+          "retrieved_at": "2026-09-25T15:43:12.751534+00:00",
+          "quality": "ok",
+          "observation_date": "2026-07-01"
+        },
+        {
+          "id": "macro.unemployment_rate",
+          "metric": "unemployment_rate",
+          "instrument": "UNRATE",
+          "value": 4.1,
+          "previous": 4.1,
+          "change": null,
+          "unit": "percent",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/UNRATE",
+          "source_time": "2026-09-25T15:43:13.461304+00:00",
+          "retrieved_at": "2026-09-25T15:43:13.461304+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "macro.payroll_change_thousands",
+          "metric": "payroll_change_thousands",
+          "instrument": "PAYEMS",
+          "value": 162.0,
+          "previous": null,
+          "change": null,
+          "unit": "thousand_persons",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/PAYEMS",
+          "source_time": "2026-09-25T15:43:14.208486+00:00",
+          "retrieved_at": "2026-09-25T15:43:14.208486+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "index.spx.change_percent",
+          "metric": "daily_return",
+          "instrument": "S&P 500",
+          "value": -0.0008,
+          "previous": null,
+          "change": -0.0008,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5EGSPC/history/",
+          "source_time": "2026-09-25T15:43:25.658189+00:00",
+          "retrieved_at": "2026-09-25T15:43:25.658189+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "index.dow.change_percent",
+          "metric": "daily_return",
+          "instrument": "Dow Jones Industrial Average",
+          "value": -0.3557,
+          "previous": null,
+          "change": -0.3557,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5EDJI/history/",
+          "source_time": "2026-09-25T15:43:25.658189+00:00",
+          "retrieved_at": "2026-09-25T15:43:25.658189+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "index.nasdaq.change_percent",
+          "metric": "daily_return",
+          "instrument": "Nasdaq Composite",
+          "value": 0.4505,
+          "previous": null,
+          "change": 0.4505,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5EIXIC/history/",
+          "source_time": "2026-09-25T15:43:25.658189+00:00",
+          "retrieved_at": "2026-09-25T15:43:25.658189+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "index.russell2000.change_percent",
+          "metric": "daily_return",
+          "instrument": "Russell 2000",
+          "value": 0.5064,
+          "previous": null,
+          "change": 0.5064,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5ERUT/history/",
+          "source_time": "2026-09-25T15:43:25.658189+00:00",
+          "retrieved_at": "2026-09-25T15:43:25.658189+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "cross_asset.brent.close",
+          "metric": "commodity_close",
+          "instrument": "Brent Last Day Financial Futures (BZ=F)",
+          "value": 99.25,
+          "previous": null,
+          "change": null,
+          "unit": "USD/barrel",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BZ%3DF/history/",
+          "source_time": "2026-09-25T15:43:15.610943+00:00",
+          "retrieved_at": "2026-09-25T15:43:15.610943+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "cross_asset.brent.change_percent",
+          "metric": "daily_return",
+          "instrument": "Brent Last Day Financial Futures (BZ=F)",
+          "value": -1.0863,
+          "previous": null,
+          "change": -1.0863,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BZ%3DF/history/",
+          "source_time": "2026-09-25T15:43:15.610943+00:00",
+          "retrieved_at": "2026-09-25T15:43:15.610943+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "cross_asset.gold.close",
+          "metric": "commodity_close",
+          "instrument": "COMEX Gold continuous futures (GC=F)",
+          "value": 4376.3999,
+          "previous": null,
+          "change": null,
+          "unit": "USD/troy_ounce",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/GC%3DF/history/",
+          "source_time": "2026-09-25T15:43:16.974553+00:00",
+          "retrieved_at": "2026-09-25T15:43:16.974553+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "cross_asset.gold.change_percent",
+          "metric": "daily_return",
+          "instrument": "COMEX Gold continuous futures (GC=F)",
+          "value": -0.1711,
+          "previous": null,
+          "change": -0.1711,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/GC%3DF/history/",
+          "source_time": "2026-09-25T15:43:16.974553+00:00",
+          "retrieved_at": "2026-09-25T15:43:16.974553+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "cross_asset.silver.close",
+          "metric": "commodity_close",
+          "instrument": "COMEX Silver continuous futures (SI=F)",
+          "value": 65.932,
+          "previous": null,
+          "change": null,
+          "unit": "USD/troy_ounce",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/SI%3DF/history/",
+          "source_time": "2026-09-25T15:43:18.978228+00:00",
+          "retrieved_at": "2026-09-25T15:43:18.978228+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "cross_asset.silver.change_percent",
+          "metric": "daily_return",
+          "instrument": "COMEX Silver continuous futures (SI=F)",
+          "value": 0.1626,
+          "previous": null,
+          "change": 0.1626,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/SI%3DF/history/",
+          "source_time": "2026-09-25T15:43:18.978228+00:00",
+          "retrieved_at": "2026-09-25T15:43:18.978228+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "cross_asset.bitcoin.close",
+          "metric": "crypto_futures_close",
+          "instrument": "CME Bitcoin continuous futures (BTC=F)",
+          "value": 86290.0,
+          "previous": null,
+          "change": null,
+          "unit": "USD/bitcoin",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BTC%3DF/history/",
+          "source_time": "2026-09-25T15:43:20.301107+00:00",
+          "retrieved_at": "2026-09-25T15:43:20.301107+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        },
+        {
+          "id": "cross_asset.bitcoin.change_percent",
+          "metric": "daily_return",
+          "instrument": "CME Bitcoin continuous futures (BTC=F)",
+          "value": -0.3465,
+          "previous": null,
+          "change": -0.3465,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BTC%3DF/history/",
+          "source_time": "2026-09-25T15:43:20.301107+00:00",
+          "retrieved_at": "2026-09-25T15:43:20.301107+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-22"
+        }
+      ],
+      "events": [],
+      "claims": [],
+      "missing_sources": [
+        "research"
+      ],
+      "quality_summary": {
+        "status": "degraded",
+        "revision": "historical_backfill"
+      },
+      "source_status": {
+        "rates": {
+          "quality": "ok"
+        },
+        "macro": {
+          "quality": "ok"
+        },
+        "quotes": {
+          "quality": "ok",
+          "reason": "all_indices_fresh"
+        },
+        "research": {
+          "quality": "degraded",
+          "reason": "not_connected"
+        },
+        "cross_asset": {
+          "quality": "ok",
+          "reason": "all_contracts_fresh"
+        }
+      },
+      "content_hash": "c4d01be60beab841c320ec1a3c09640e9e2ec2848364283b017e980c2bf06150",
+      "source_report_sha256": "b7b88f03c05b5ab83ad2099ee76115205853f9c4e743069853cc563cfb834711"
+    },
+    {
+      "schema_version": "1.0",
+      "publication": "public",
+      "report_formats": [
+        "md",
+        "txt"
+      ],
+      "as_of": "2026-09-25T15:42:51.635082+00:00",
+      "generated_at": "2026-09-25T15:42:51.635082+00:00",
+      "run_id": "daily-2026-09-21",
+      "sections": [
+        {
+          "key": "market",
+          "title": "市场表现",
+          "facts": [
+            "treasury.2y.level_percent",
+            "treasury.2y.change_bp",
+            "treasury.5y.level_percent",
+            "treasury.5y.change_bp",
+            "treasury.10y.level_percent",
+            "treasury.10y.change_bp",
+            "treasury.30y.level_percent",
+            "treasury.30y.change_bp",
+            "index.spx.change_percent",
+            "index.dow.change_percent",
+            "index.nasdaq.change_percent",
+            "index.russell2000.change_percent"
+          ],
+          "claims": []
+        },
+        {
+          "key": "cross_asset",
+          "title": "跨资产行情",
+          "facts": [
+            "cross_asset.brent.close",
+            "cross_asset.brent.change_percent",
+            "cross_asset.gold.close",
+            "cross_asset.gold.change_percent",
+            "cross_asset.silver.close",
+            "cross_asset.silver.change_percent",
+            "cross_asset.bitcoin.close",
+            "cross_asset.bitcoin.change_percent"
+          ],
+          "claims": []
+        },
+        {
+          "key": "drivers",
+          "title": "市场驱动因素",
+          "facts": [],
+          "claims": []
+        },
+        {
+          "key": "macro",
+          "title": "经济数据与美联储动态",
+          "facts": [
+            "macro.cpi_yoy",
+            "macro.pce_yoy",
+            "macro.unemployment_rate",
+            "macro.payroll_change_thousands"
+          ],
+          "claims": []
+        },
+        {
+          "key": "company_news",
+          "title": "公司新闻",
+          "facts": [],
+          "claims": []
+        },
+        {
+          "key": "movers",
+          "title": "主要上涨与下跌个股",
+          "facts": [],
+          "claims": []
+        }
+      ],
+      "facts": [
+        {
+          "id": "treasury.2y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_2Y",
+          "value": 4.76,
+          "previous": 4.76,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:42:29.013382+00:00",
+          "retrieved_at": "2026-09-25T15:42:29.013382+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "treasury.2y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_2Y",
+          "value": 0.0,
+          "previous": null,
+          "change": 0.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:42:29.013382+00:00",
+          "retrieved_at": "2026-09-25T15:42:29.013382+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "treasury.5y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_5Y",
+          "value": 4.83,
+          "previous": 4.86,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:42:29.013382+00:00",
+          "retrieved_at": "2026-09-25T15:42:29.013382+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "treasury.5y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_5Y",
+          "value": -3.0,
+          "previous": null,
+          "change": -3.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:42:29.013382+00:00",
+          "retrieved_at": "2026-09-25T15:42:29.013382+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "treasury.10y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_10Y",
+          "value": 4.96,
+          "previous": 5.01,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:42:29.013382+00:00",
+          "retrieved_at": "2026-09-25T15:42:29.013382+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "treasury.10y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_10Y",
+          "value": -5.0,
+          "previous": null,
+          "change": -5.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:42:29.013382+00:00",
+          "retrieved_at": "2026-09-25T15:42:29.013382+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "treasury.30y.level_percent",
+          "metric": "yield_level",
+          "instrument": "US_TREASURY_30Y",
+          "value": 5.29,
+          "previous": 5.34,
+          "change": null,
+          "unit": "percent",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:42:29.013382+00:00",
+          "retrieved_at": "2026-09-25T15:42:29.013382+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "treasury.30y.change_bp",
+          "metric": "yield_change",
+          "instrument": "US_TREASURY_30Y",
+          "value": -5.0,
+          "previous": null,
+          "change": -5.0,
+          "unit": "basis_points",
+          "source": "US Treasury",
+          "source_url": "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve",
+          "source_time": "2026-09-25T15:42:29.013382+00:00",
+          "retrieved_at": "2026-09-25T15:42:29.013382+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "macro.cpi_yoy",
+          "metric": "cpi_yoy",
+          "instrument": "CPIAUCNS",
+          "value": 3.4,
+          "previous": null,
+          "change": null,
+          "unit": "percent_yoy",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/CPIAUCNS",
+          "source_time": "2026-09-25T15:42:30.968197+00:00",
+          "retrieved_at": "2026-09-25T15:42:30.968197+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "macro.pce_yoy",
+          "metric": "pce_yoy",
+          "instrument": "PCEPI",
+          "value": 3.7,
+          "previous": null,
+          "change": null,
+          "unit": "percent_yoy",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/PCEPI",
+          "source_time": "2026-09-25T15:42:31.658553+00:00",
+          "retrieved_at": "2026-09-25T15:42:31.658553+00:00",
+          "quality": "ok",
+          "observation_date": "2026-07-01"
+        },
+        {
+          "id": "macro.unemployment_rate",
+          "metric": "unemployment_rate",
+          "instrument": "UNRATE",
+          "value": 4.1,
+          "previous": 4.1,
+          "change": null,
+          "unit": "percent",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/UNRATE",
+          "source_time": "2026-09-25T15:42:32.734477+00:00",
+          "retrieved_at": "2026-09-25T15:42:32.734477+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "macro.payroll_change_thousands",
+          "metric": "payroll_change_thousands",
+          "instrument": "PAYEMS",
+          "value": 162.0,
+          "previous": null,
+          "change": null,
+          "unit": "thousand_persons",
+          "source": "FRED",
+          "source_url": "https://fred.stlouisfed.org/series/PAYEMS",
+          "source_time": "2026-09-25T15:42:33.429918+00:00",
+          "retrieved_at": "2026-09-25T15:42:33.429918+00:00",
+          "quality": "ok",
+          "observation_date": "2026-08-01"
+        },
+        {
+          "id": "index.spx.change_percent",
+          "metric": "daily_return",
+          "instrument": "S&P 500",
+          "value": 1.4927,
+          "previous": null,
+          "change": 1.4927,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5EGSPC/history/",
+          "source_time": "2026-09-25T15:42:51.635033+00:00",
+          "retrieved_at": "2026-09-25T15:42:51.635033+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "index.dow.change_percent",
+          "metric": "daily_return",
+          "instrument": "Dow Jones Industrial Average",
+          "value": 0.7085,
+          "previous": null,
+          "change": 0.7085,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5EDJI/history/",
+          "source_time": "2026-09-25T15:42:51.635033+00:00",
+          "retrieved_at": "2026-09-25T15:42:51.635033+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "index.nasdaq.change_percent",
+          "metric": "daily_return",
+          "instrument": "Nasdaq Composite",
+          "value": 2.2605,
+          "previous": null,
+          "change": 2.2605,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5EIXIC/history/",
+          "source_time": "2026-09-25T15:42:51.635033+00:00",
+          "retrieved_at": "2026-09-25T15:42:51.635033+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "index.russell2000.change_percent",
+          "metric": "daily_return",
+          "instrument": "Russell 2000",
+          "value": 0.523,
+          "previous": null,
+          "change": 0.523,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/%5ERUT/history/",
+          "source_time": "2026-09-25T15:42:51.635033+00:00",
+          "retrieved_at": "2026-09-25T15:42:51.635033+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "cross_asset.brent.close",
+          "metric": "commodity_close",
+          "instrument": "Brent Last Day Financial Futures (BZ=F)",
+          "value": 100.34,
+          "previous": null,
+          "change": null,
+          "unit": "USD/barrel",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BZ%3DF/history/",
+          "source_time": "2026-09-25T15:42:36.458431+00:00",
+          "retrieved_at": "2026-09-25T15:42:36.458431+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "cross_asset.brent.change_percent",
+          "metric": "daily_return",
+          "instrument": "Brent Last Day Financial Futures (BZ=F)",
+          "value": -3.3985,
+          "previous": null,
+          "change": -3.3985,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BZ%3DF/history/",
+          "source_time": "2026-09-25T15:42:36.458431+00:00",
+          "retrieved_at": "2026-09-25T15:42:36.458431+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "cross_asset.gold.close",
+          "metric": "commodity_close",
+          "instrument": "COMEX Gold continuous futures (GC=F)",
+          "value": 4383.8999,
+          "previous": null,
+          "change": null,
+          "unit": "USD/troy_ounce",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/GC%3DF/history/",
+          "source_time": "2026-09-25T15:42:39.855357+00:00",
+          "retrieved_at": "2026-09-25T15:42:39.855357+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "cross_asset.gold.change_percent",
+          "metric": "daily_return",
+          "instrument": "COMEX Gold continuous futures (GC=F)",
+          "value": -0.9266,
+          "previous": null,
+          "change": -0.9266,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/GC%3DF/history/",
+          "source_time": "2026-09-25T15:42:39.855357+00:00",
+          "retrieved_at": "2026-09-25T15:42:39.855357+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "cross_asset.silver.close",
+          "metric": "commodity_close",
+          "instrument": "COMEX Silver continuous futures (SI=F)",
+          "value": 65.825,
+          "previous": null,
+          "change": null,
+          "unit": "USD/troy_ounce",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/SI%3DF/history/",
+          "source_time": "2026-09-25T15:42:42.800506+00:00",
+          "retrieved_at": "2026-09-25T15:42:42.800506+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "cross_asset.silver.change_percent",
+          "metric": "daily_return",
+          "instrument": "COMEX Silver continuous futures (SI=F)",
+          "value": -1.0983,
+          "previous": null,
+          "change": -1.0983,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/SI%3DF/history/",
+          "source_time": "2026-09-25T15:42:42.800506+00:00",
+          "retrieved_at": "2026-09-25T15:42:42.800506+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "cross_asset.bitcoin.close",
+          "metric": "crypto_futures_close",
+          "instrument": "CME Bitcoin continuous futures (BTC=F)",
+          "value": 86590.0,
+          "previous": null,
+          "change": null,
+          "unit": "USD/bitcoin",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BTC%3DF/history/",
+          "source_time": "2026-09-25T15:42:45.144702+00:00",
+          "retrieved_at": "2026-09-25T15:42:45.144702+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        },
+        {
+          "id": "cross_asset.bitcoin.change_percent",
+          "metric": "daily_return",
+          "instrument": "CME Bitcoin continuous futures (BTC=F)",
+          "value": 6.4675,
+          "previous": null,
+          "change": 6.4675,
+          "unit": "percent",
+          "source": "Yahoo Finance",
+          "source_url": "https://finance.yahoo.com/quote/BTC%3DF/history/",
+          "source_time": "2026-09-25T15:42:45.144702+00:00",
+          "retrieved_at": "2026-09-25T15:42:45.144702+00:00",
+          "quality": "ok",
+          "observation_date": "2026-09-21"
+        }
+      ],
+      "events": [],
+      "claims": [],
+      "missing_sources": [
+        "research"
+      ],
+      "quality_summary": {
+        "status": "degraded",
+        "revision": "historical_backfill"
+      },
+      "source_status": {
+        "rates": {
+          "quality": "ok"
+        },
+        "macro": {
+          "quality": "ok"
+        },
+        "quotes": {
+          "quality": "ok",
+          "reason": "all_indices_fresh"
+        },
+        "research": {
+          "quality": "degraded",
+          "reason": "not_connected"
+        },
+        "cross_asset": {
+          "quality": "ok",
+          "reason": "all_contracts_fresh"
+        }
+      },
+      "content_hash": "41cf3c97e9e782e8edab53e76e5e5b0ee031cb562e299f60302ebf6c38978df0",
+      "source_report_sha256": "b2887c200b60f5812e014fd3c140e80e37addd71da230a7b0195d332c85753bd"
+    }
+  ]
+}

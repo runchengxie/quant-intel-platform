@@ -76,9 +76,17 @@ def test_live_report_marks_failed_macro_source_degraded(monkeypatch, tmp_path):
         raise FredFetchError("offline")
 
     monkeypatch.setattr("daily_messenger.daily_report.macro.fetch_observations", fail)
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_btc_spot_facts",
+        lambda _date: ([], "all_spot_sources_unavailable"),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_equity_facts",
+        lambda _date, _movers: ([], ("MSFT",)),
+    )
     report = run_daily_report(AS_OF, tmp_path, provider_config={"mode": "live"})
 
-    assert report.facts == ()
+    assert not any(fact.id.startswith(("macro.", "treasury.")) for fact in report.facts)
     assert report.source_status["macro"]["quality"] == "degraded"
     assert report.quality_summary["status"] == "degraded"
     assert "fred" in report.missing_sources
@@ -187,6 +195,18 @@ def test_cli_daily_report_does_not_publish_fixture_values(monkeypatch, tmp_path)
     monkeypatch.setattr(
         "daily_messenger.daily_report.pipeline.fetch_cross_asset_facts",
         lambda _date: ([], ("BZ=F", "GC=F", "SI=F", "BTC=F")),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_btc_spot_facts",
+        lambda _date: ([], "source_unavailable"),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_index_facts",
+        lambda _date: ([], ("^GSPC", "^DJI", "^IXIC", "^RUT")),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_equity_facts",
+        lambda _date, _movers: ([], ("MSFT", "AAPL", "NVDA", "AMZN", "GOOGL", "META")),
     )
 
     assert main(["daily-report", "--out", str(tmp_path)]) == 0

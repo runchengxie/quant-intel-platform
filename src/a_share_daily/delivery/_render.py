@@ -57,6 +57,8 @@ def _news_error_lines(news: Mapping[str, Any], limit: int = 4) -> list[str]:
         errors.append(top_error)
     markets = _dict(news.get("markets"))
     for market in NEWS_MARKET_ORDER:
+        if market == "us":
+            continue
         entry = _dict(markets.get(market))
         error = str(entry.get("error") or "").strip()
         if not error:
@@ -86,6 +88,8 @@ def _render_evening_news(news: Mapping[str, Any]) -> list[str]:
     lines = ["## 2. 今日要闻"]
     added = 0
     for market in NEWS_MARKET_ORDER:
+        if market == "us":
+            continue
         label = NEWS_MARKET_LABELS.get(market, market.upper())
         for item in _news_items(news, market, limit=2):
             category = CATEGORY_LABELS.get(str(item.get("category", "")), "新闻")
@@ -226,45 +230,8 @@ def _render_evening_market_temperature(review: Mapping[str, Any]) -> list[str]:
     return lines
 
 
-def _quote_line(symbol: str, quotes: Mapping[str, Any], label: str | None = None) -> str | None:
-    raw = _dict(quotes.get(symbol))
-    if not raw:
-        return None
-    name = label or symbol
-    return f"{name} {symbol} {_fmt_pct(raw.get('pct_chg'))}，收 {_fmt_close(raw.get('close'))}"
-
-
-def _render_evening_us_preview(manifest: Mapping[str, Any]) -> list[str]:
-    lines = ["## 4. 美股盘前预览"]
-    cross = _dict(manifest.get("cross_market"))
-    quotes = _dict(cross.get("us_stocks"))
-    parts = []
-    for symbol, label in (("SPY", "标普500 ETF"), ("QQQ", "纳指100 ETF"), ("SMH", "半导体 ETF")):
-        line = _quote_line(symbol, quotes, label)
-        if line:
-            parts.append(line)
-    if parts:
-        lines.append("- [fetch] 最新可用美股/ETF快照: " + "；".join(parts))
-    else:
-        lines.append("- [WARN] 缺少 SPY/QQQ/SMH 最新可用快照，盘前预览降级。")
-
-    core = []
-    for symbol in ("NVDA", "AMD", "AVGO", "TSLA", "AAPL", "MSFT", "META"):
-        raw = _dict(quotes.get(symbol))
-        if raw and "pct_chg" in raw:
-            core.append((float(raw.get("pct_chg", 0) or 0), symbol))
-    if core:
-        core.sort(reverse=True)
-        lines.append(
-            "- [fetch] 核心股相对强弱: "
-            + "，".join(f"{symbol} {pct:+.2f}%" for pct, symbol in core[:5])
-            + "。"
-        )
-    return lines
-
-
 def _render_evening_transmission(manifest: Mapping[str, Any]) -> list[str]:
-    lines = ["## 5. 跨市场传导"]
+    lines = ["## 4. 跨市场传导"]
     cross = _dict(manifest.get("cross_market"))
     mappings = _list(cross.get("global_lead_lag") or cross.get("concept_mapping"))
     significant = [
@@ -295,7 +262,7 @@ def _render_evening_transmission(manifest: Mapping[str, Any]) -> list[str]:
 
 
 def _render_evening_macro(manifest: Mapping[str, Any]) -> list[str]:
-    lines = ["## 6. 宏观环境"]
+    lines = ["## 5. 宏观环境"]
     cross = _dict(manifest.get("cross_market"))
     macros = _dict(cross.get("macros"))
     freshness_warnings = _list(cross.get("_freshness_warnings"))
@@ -327,8 +294,8 @@ def _render_evening_macro(manifest: Mapping[str, Any]) -> list[str]:
     return lines
 
 
-def _render_evening_next_watch(review: Mapping[str, Any], manifest: Mapping[str, Any]) -> list[str]:
-    lines = ["## 7. 次日验证"]
+def _render_evening_next_watch(review: Mapping[str, Any]) -> list[str]:
+    lines = ["## 6. 次日验证"]
     temperature = _dict(review.get("market_temperature"))
     validation_descriptions = [
         str(item.get("description", "")).strip()
@@ -345,17 +312,6 @@ def _render_evening_next_watch(review: Mapping[str, Any], manifest: Mapping[str,
         direction = "风险偏好修复延续性" if median >= 0 else "弱势扩散是否收敛"
         lines.append(f"- [fetch] A股内部结构: 关注{direction}，以及成交额能否维持。")
 
-    cross = _dict(manifest.get("cross_market"))
-    quotes = _dict(cross.get("us_stocks"))
-    smh = _dict(quotes.get("SMH"))
-    qqq = _dict(quotes.get("QQQ"))
-    if smh and qqq:
-        try:
-            spread = float(smh.get("pct_chg", 0) or 0) - float(qqq.get("pct_chg", 0) or 0)
-        except (TypeError, ValueError):
-            spread = 0.0
-        tag = "[OK]" if spread >= 0 else "[WARN]"
-        lines.append(f"- {tag} 美股半导体相对纳指差 {spread:+.2f}pp，影响次日科技成长映射。")
     lines.append("- [fetch] 次日开盘前复核: 美股收盘、美元/美债/VIX、日韩半导体链表现。")
     return lines
 
@@ -370,10 +326,10 @@ def build_evening_summary(
 ) -> str:
     """Build the deterministic evening summary message."""
     generated = generated_at or datetime.now()
-    freshness_title = "8. 数据质量"
+    freshness_title = "7. 数据质量"
     sections = [
         [
-            f"# 美股市场盘前 / 亚洲市场盘后（{_date_dash(trade_date)}）",
+            f"# 亚洲市场收盘复盘（{_date_dash(trade_date)}）",
             "",
             f"生成时间: {generated.strftime('%Y-%m-%d %H:%M')}",
             "生成方式: market-intel 结构化事实 + 规则模板；未使用自由写作流程。",
@@ -381,10 +337,9 @@ def build_evening_summary(
         _render_evening_market_temperature(review_payload),
         _render_evening_news(news_payload),
         _render_evening_asia(review_payload),
-        _render_evening_us_preview(manifest_payload),
         _render_evening_transmission(manifest_payload),
         _render_evening_macro(manifest_payload),
-        _render_evening_next_watch(review_payload, manifest_payload),
+        _render_evening_next_watch(review_payload),
     ]
     sections.append(render_freshness_section(manifest_payload, news_payload, title=freshness_title))
 

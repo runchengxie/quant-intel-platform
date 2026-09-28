@@ -8,7 +8,7 @@
 
 ## 高优先级
 
-### 1. 建立自动化测试门禁 ⬜（部分完成）
+### 1. 建立自动化测试门禁 ✅
 原问题：两个 GitHub Actions 工作流（cross-market.yml、tushare-daily.yml）只做数据快照提交，不跑 pytest。本地 `.githooks/pre-push` 是空操作（exit 0），测试结果不阻塞任何合并或部署。
 
 历史进展（PR #54，2026-07-31，已回退）：
@@ -17,9 +17,8 @@
 - 注意：门禁合入后会暴露现有预存在测试失败（如 `test_ai_stock_picker_presentation`、`test_submodule_contracts`），需先修掉才能真正生效。见第 12 项。
 
 当前状态：
-- 原有完整测试工作流 `pytest.yml` 仍以 `pytest.yml.disabled` 形式停用。当前启用的 `pr-light.yml` 和 `public-quality.yml` 会在 PR 及 `main` 推送时运行边界检查、静态检查、类型检查、离线契约测试和构建。
-- 远程门禁覆盖的是公开框架和关键离线测试，并未替代本地完整测试与部署 smoke。私有部署仓库仍以本地验证为主，具体策略见 `AGENTS.md`。
-- 本地钩子可用 `SKIP_LOCAL_CHECKS=1 git push` 显式绕过。绕过后应立即补跑完整门禁。
+- PR 和 `main` 推送由 `public-quality.yml` 运行完整 `project_tools/check_all.py --scope all --strict-tools`，并执行公开边界检查和包构建。
+- `.githooks/pre-push`、本地安装器和分支拦截逻辑已删除。生产数据访问和部署验证仍按手册单独运行。
 
 ### 2. 覆盖率盲区 ✅
 原问题：`pyproject.toml` 的 `coverage.source` 只列 `daily_messenger` 一个包，其余四个包脱离门禁。
@@ -104,7 +103,7 @@
 
 | 项 | 标题 | 状态 | 合并 PR |
 |----|------|------|---------|
-| 1 | 自动化测试门禁 | 部分完成：启用轻量 PR/main 质量门禁，完整 pytest 工作流仍停用 | #54 |
+| 1 | 自动化测试门禁 | 已完成：PR/main CI 执行完整代码质量门禁，仓库 pre-push hook 已移除 | 当前任务 PR |
 | 2 | 覆盖率盲区 | 已完成 | #47 |
 | 3 | 跨仓契约检查不跳过 | 已完成（随 #54 子模块 checkout 解决） | #54 |
 | 4 | value_regime 单元测试 | 已完成 | #48 |

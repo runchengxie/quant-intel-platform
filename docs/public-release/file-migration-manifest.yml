@@ -12,6 +12,10 @@ files:
     classification: public
     action: retain
     reason: public documentation site configuration without production settings
+  - path: web/
+    classification: public
+    action: retain
+    reason: public market website, reviewed snapshots, and isolated website checks
   - path: src/
     classification: public
     action: retain
@@ -298,13 +302,13 @@ files:
     action: replace
     reason: replace real provider snapshots with synthetic public fixtures
   - path: .env.example
-    classification: split
-    action: sanitize
-    reason: keep generic placeholders and remove customer-specific variable names
+    classification: remove
+    action: remove
+    reason: retired in favor of ignored local api_keys.json and deployment secret stores
   - path: .envrc.example
-    classification: public
-    action: sanitize
-    reason: document explicit public-safe environment setup only
+    classification: remove
+    action: remove
+    reason: local environment setup uses the documented uv commands
   - path: .gitattributes
     classification: public
     action: retain
@@ -321,7 +325,7 @@ files:
     classification: split
     action: sanitize
     reason: describe public framework and link to private deployment boundary
-  - path: api_keys.json.example
+  - path: config/api_keys.json.example
     classification: public
     action: retain
     reason: placeholder-only credential schema

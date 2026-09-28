@@ -1,31 +1,30 @@
-<div class="mi-home" markdown>
+<div class="mi-home" markdown="1">
 
-<p class="mi-eyebrow">MARKET INTELLIGENCE · RESEARCH · SYSTEMS</p>
+<p class="mi-eyebrow">QUANT MARKET INTEL / 文档</p>
 
-# Market Intel
+# 使用与方法
 
-一个面向市场情报、报告、网页看板和数据契约的公开框架。
+从公开日报开始，逐步了解报告如何生成、数据如何核对，以及各模块负责什么。
 
-平台把市场事实、研究产物和确定性规则组合起来，生成可复现、可检查的报告产品。生产凭据、定时任务和真实运行数据由私有部署仓库管理。
+生产凭据、定时任务和真实运行数据由私有部署仓库管理。
 
-<p class="mi-home__links" markdown>
+<p class="mi-home__links" markdown="1">
 
 [五分钟开始](getting-started.md){ .md-button .md-button--primary }
-[系统架构](architecture.md){ .md-button }
+[阅读最新日报](https://runchengxie.github.io/quant-intel-platform/){ .md-button }
 
 </p>
 </div>
 
-## 从这里开始
+## 按需要阅读
 
-如果你第一次接触这个项目，建议按下面的顺序阅读：
+初次使用，先从快速开始进入；需要核对报告或维护系统时，直接看对应路径。
 
-1. [五分钟开始](getting-started.md)：先把代码跑起来
-2. [核心概念](concepts.md)：了解数据、研究产物和报告平台的关系
-3. [常见任务](how-to/run-daily-report.md)：按任务查找操作步骤
-4. [系统架构](architecture.md)：进一步了解平台由哪些部分组成
+1. **运行日报**：从[五分钟开始](getting-started.md)和[运行市场日报](how-to/run-daily-report.md)进入。
+2. **理解与核对**：阅读[核心概念](concepts.md)、[数据契约](contracts.md)和[来源说明](public-release/data-provenance.md)。
+3. **维护平台**：查看[系统架构](architecture.md)、[运维说明](operations.md)和[测试](testing.md)。
 
-## 平台包含什么
+## 文档范围
 
 | 模块 | 作用 |
 | --- | --- |

@@ -31,7 +31,15 @@ def _collect_help(argv: Sequence[str]) -> str:
         capture_output=True,
         text=True,
     )
-    return result.stdout.strip()
+    output = result.stdout.strip()
+    # argparse can wrap the usage synopsis differently across Python versions.
+    # Keep the generated reference stable by joining only continuation lines
+    # within each usage block.
+    return re.sub(
+        r"(?m)^(usage: [^\n]*(?:\n[ \t]+[^\n]*)*)",
+        lambda match: " ".join(match.group(0).split()),
+        output,
+    )
 
 
 def _render_sections(sections: Iterable[tuple[str, str]]) -> str:

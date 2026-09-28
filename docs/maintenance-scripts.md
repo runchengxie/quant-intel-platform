@@ -6,8 +6,8 @@
 
 | 入口 | 用途 | 本地调度/质量门 | 质量要求 |
 |------|------|---------|----------|
-| `dm` | 日报 ETL、评分、渲染、BTC 辅助命令 | 本机报告任务，pre-push root 门禁 | Ruff、ruff format、ty、pytest 加 coverage、契约测试 |
-| `marketops` | TuShare 数据任务 | Windows Task Scheduler / Linux systemd，pre-push root 门禁 | Ruff、ruff format、ty、TuShare 单元测试 |
+| `dm` | 日报 ETL、评分、渲染、BTC 辅助命令 | 本机报告任务，PR/main CI 门禁 | Ruff、ruff format、ty、pytest 加 coverage、契约测试 |
+| `marketops` | TuShare 数据任务 | Windows Task Scheduler / Linux systemd，PR/main CI 门禁 | Ruff、ruff format、ty、TuShare 单元测试 |
 | `a-share-daily` | A 股晨报、晚报、图表和飞书事实层投递 | `scripts/morning_pipeline.sh`、`scripts/evening_pipeline.sh`、`scripts/windows/*.ps1`、Hermes 定时任务 | Ruff、ty、pytest 重点测试，ty 覆盖全部 `src/` 源码 |
 
 ## 低频运维命令
@@ -51,16 +51,14 @@
 
 ## `project_tools/`
 
-| 脚本 | 使用者 | 是否 pre-push 使用 | 作用 |
+| 脚本 | 使用者 | 是否由 CI 调用 | 作用 |
 |------|--------|--------------|------|
-| `check_all.py` | 开发者、本地钩子 | 是，唯一质量命令源 | 只检查 market-intel 根仓，并覆盖 Python、shell/PowerShell 脚本 |
-| `pre_push_guard.py` | 本地钩子 | 是 | 只保护 market-intel 根仓的分支、clean HEAD 和本地质量门，失败阻止 push |
-| `update_cli_help.py` | 开发者、本地钩子 | 是，root 质量门调用 | 防止 CLI 文档漂移 |
-| `scripts/dev/install_git_hooks.py` | 开发者 | 否，负责安装钩子 | 幂等安装、检查或卸载 market-intel 根仓 managed pre-push 钩子 |
+| `check_all.py` | 开发者、GitHub Actions | 是，完整门禁入口 | 运行 Python、shell、PowerShell 和 JavaScript 检查 |
+| `update_cli_help.py` | 开发者、GitHub Actions | 是，由完整质量门禁调用 | 防止 CLI 文档漂移 |
 
 新增脚本应在上表登记，并明确：
 
-- 是否被本地 pre-push 钩子或生产调度调用
+- 是否被 CI 或生产调度调用
 - 需要哪些环境变量或 secret
 - 是否会访问网络、消耗配额或写入大文件
 - 失败是否应阻塞发布

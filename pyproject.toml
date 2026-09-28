@@ -42,7 +42,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["daily_messenger*", "tushare_jobs*", "ops_common*", "a_share_daily*", "a_share_analysis*", "market_intel_config*", "research_contracts*"]
+include = ["daily_messenger*", "tushare_jobs*", "ops_common*", "a_share_daily*", "a_share_analysis*", "market_intel_config*", "market_intel_commentary*", "market_intel_publication*", "research_contracts*"]
 
 [tool.setuptools.package-dir]
 "" = "src"
@@ -50,15 +50,22 @@ include = ["daily_messenger*", "tushare_jobs*", "ops_common*", "a_share_daily*",
 [tool.setuptools.package-data]
 "daily_messenger.digest" = ["templates/*.j2"]
 "daily_messenger.dashboard" = ["templates/*.html"]
+"market_intel_commentary" = ["prompts/*.md"]
 
 [project.scripts]
 dm = "daily_messenger.cli:main"
 marketops = "tushare_jobs.cli:main"
 a-share-daily = "a_share_daily.cli:main"
+market-public-refresh = "a_share_daily.public_report_refresh:main"
+market-commentary = "market_intel_commentary.generate_commentary:main"
+market-import-reports = "market_intel_publication.import_reports:main"
+market-import-daily-report = "market_intel_publication.import_market_daily_report:main"
+market-sync-public-snapshot = "market_intel_publication.sync_public_snapshot:main"
 
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+extend-exclude = ["web"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RET", "RUF059", "C90", "PLR", "TRY", "EM", "S", "DTZ", "N"]
@@ -121,10 +128,13 @@ quote-style = "double"
 [tool.ty.src]
 exclude = [
   "tests/",
+  "web/",
   "project_tools/check_all.py",
-  "project_tools/pre_push_guard.py",
   "project_tools/update_cli_help.py",
 ]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
 
 [tool.ty.analysis]
 allowed-unresolved-imports = ["market_data_platform.**"]

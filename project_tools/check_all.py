@@ -138,19 +138,16 @@ def parse_args(argv: Sequence[str] | None = None) -> argparse.Namespace:
         default="all",
     )
     parser.add_argument("--strict-tools", action="store_true")
-    parser.add_argument("--include-non-python", action="store_true")
-    # Compatibility with the old root/submodule interface. Only root is valid now.
-    parser.add_argument("--project", action="append", choices=("root",))
     return parser.parse_args(argv)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
     args = parse_args(argv)
-    if args.scope in {"all", "root", "python"} or args.project:
+    if args.scope in {"all", "root", "python"}:
         code = _run_root()
         if code != 0:
             return code
-    if args.include_non_python or (not args.project and args.scope in {"all", "non-python"}):
+    if args.scope in {"all", "non-python"}:
         return _run_non_python(strict_tools=args.strict_tools)
     return 0
 

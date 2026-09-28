@@ -23,8 +23,9 @@
 - `tushare_jobs/`：报告专用轻量任务与兼容导出；权威 A 股数据 owner 为 `market-data-platform`。
 - `style_replica_bridge/`：将 owner 回测产物转换为报告 tearsheet。
 - `ops_common/`：环境、投递窗口、freshness、恢复和通知。
+- `web/`：公开日报网站、近期公开快照、下载、来源展示和网站专属测试。根路径发布日报，平台文档发布到 `/docs/`。`web/` 是本仓目录，不是 submodule。
 
-配置在 `config/`，运行状态在 `state/`，报告产物在 `out/`，文档在 `docs/`，本地质量工具在 `project_tools/`。
+配置在 `config/`，运行状态在 `state/`，报告产物在 `out/`，文档在 `docs/`，本地质量工具在 `project_tools/`。网站的 Node 和 Python 开发依赖留在 `web/`，不加入平台运行包。
 
 ## 开发命令
 
@@ -44,14 +45,7 @@ uv run python project_tools/update_cli_help.py --check
 uv run python project_tools/check_all.py --scope all
 ```
 
-首次克隆或质量工具更新后：
-
-```bash
-uv run python scripts/dev/install_git_hooks.py
-uv run python scripts/dev/install_git_hooks.py --check
-```
-
-pre-push hook 只管理 `market-intel` 根仓。各 owner 仓运行它们自己的门禁。本仓禁止重新增加“遍历相邻 repo 代跑检查”的逻辑。
+PR 和 `main` 推送会运行完整本仓门禁。各 owner 仓运行各自的门禁。本仓禁止重新增加“遍历相邻 repo 代跑检查”的逻辑。
 
 ## 生产与恢复入口
 
@@ -111,6 +105,8 @@ bash scripts/setup_cron.sh --layer3
 
 - 从 `origin/main` 建独立 worktree，分支仅使用 `feat/*`、`fix/*`、`hotfix/*`、`release/*`。
 - `main` 只接受合并后的 PR，不直接修改或 push。
+- 每个任务在自己的 worktree 中完成修改和相关验证，再提交、推送任务分支并创建目标为 `main` 的 PR。完成 review、必需检查和冲突处理后再合并。
+- 确认 PR 已合并且 worktree 没有唯一未保存内容后，只清理本任务资源。先移除 worktree，再删除本地分支；核实远端分支归属后再删除。未合并或状态不明时保留现场并报告。
 - Commit 聚焦单一目的，标题尽量控制在 72 字符以内。
 - 跨仓 owner 变更按 provider → consumer → superproject gitlink 的顺序合并；不得让 market-intel 临时依赖未合并的本地源码路径。
 - 涉及报告版面、卡片或权重时附代表性产物；涉及契约时同步文档和 contract tests。
@@ -118,7 +114,7 @@ bash scripts/setup_cron.sh --layer3
 
 ## 配置与密钥
 
-凭证只放环境变量、`.env.local` 或对应 owner 规定的私有位置。不要提交真实密钥。跨仓代码路径必须由部署环境显式提供，例如：
+第三方 API 凭证优先放在 Git 忽略的本地 `api_keys.json` 或对应 owner 规定的私有凭证库中。CI 和部署环境按其凭证管理机制注入变量。不要提交真实密钥，也不要通过 `.env` 示例文件分发密钥配置。跨仓代码路径必须由部署环境显式提供，例如：
 
 ```bash
 DATA_PLATFORM_ROOT=/path/to/data/market-data-platform
@@ -130,9 +126,11 @@ QUANT_RESEARCH_ROOT=/path/to/quant-research
 
 ## GitHub Actions 策略
 
-本仓在 PR 和 `main` 推送时运行轻量 GitHub Actions 质量门禁，不读取真实市场数据、不调用飞书或券商。完整生产检查仍由本地 pre-push 和手动运行负责。历史快照 workflow 保留为 `.disabled` 文件，不得在 CI 中重新启用真实数据抓取和自动提交。
+本仓在 PR 和 `main` 推送时运行完整代码质量门禁，包括全量测试与覆盖率、Ruff、ty、维护性指标、CLI 帮助、package coverage、脚本语法和公开边界检查。CI 不读取真实市场数据、不调用飞书或券商。历史快照 workflow 保留为 `.disabled` 文件，不得在 CI 中重新启用真实数据抓取和自动提交。
 
 public framework 的 lint、类型检查、离线测试和构建应优先放在本仓运行。私有部署仓库的 GitHub Actions 默认关闭，以避免消耗有限的 private-repository minutes；private 部署变更必须先通过本地 `uv sync --locked`、部署 smoke tests 和调度模板检查。只有在 production shadow/canary 或正式切换前确实需要时，才临时启用 private workflow，并在任务完成后关闭。
+
+统一网站 workflow 先构建 `web/` 的 Astro 日报，再把 MkDocs 文档构建进同一产物的 `/docs/`，只部署一次。公开 workflow 不读取模型密钥。需要凭据的新闻研究和模型回退由受控发布链路完成；网页只展示已审核公开产物。
 
 ## Worktree-first 目录规范
 
@@ -159,8 +157,8 @@ worktree 和任务分支，明确文件与仓库责任范围，不得共用检�
    推送时正常执行现有 hooks，不使用 `--no-verify` 或其他方式绕过门禁。
 3. 提交并推送任务分支，通过 PR 合并到 `main`。PR 记录变更范围、实际运行的检查、
    结果和未验证项。只有本地适用门禁和远端 required checks 通过、无合并冲突、
-   满足仓库评审要求且获得合并授权后，才可合并。检查失败或无法执行时保留任务状态，
-   明确报告阻塞，不直接提交或推送 `main`，不绕过保护规则。
+   满足仓库评审要求后，可酌情自行合并，无需另行请求合并授权。检查失败或无法执行时
+   保留任务状态，明确报告阻塞，不直接提交或推送 `main`，不绕过保护规则。
 4. 清理前确认 PR 已合并到 `main`，重新获取 `origin/main`，核对合并 SHA 与
    任务分支提交。确认任务分支无尚未进入 main 的独有改动，worktree 无未提交、
    未跟踪或需要保留的忽略文件。squash 或 rebase 合并须核对补丁等价性，不能仅凭

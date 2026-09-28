@@ -2,10 +2,21 @@ from datetime import UTC, datetime
 
 import pytest
 
+from daily_messenger.daily_report.models import MarketFact
 from daily_messenger.daily_report.pipeline import run_daily_report
 from daily_messenger.etl.types import QuoteSnapshot
 
 AS_OF = datetime(2026, 9, 19, 1, tzinfo=UTC)
+
+
+@pytest.fixture(autouse=True)
+def _stub_equity_daily_quotes(monkeypatch):
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.equity_quotes.fetch_yahoo_daily_snapshot",
+        lambda _symbol, *, target_date: QuoteSnapshot(
+            target_date.isoformat(), 200.0, -1.1, "yahoo:test"
+        ),
+    )
 
 
 def test_pipeline_keeps_facts_when_research_provider_fails(tmp_path):
@@ -33,6 +44,10 @@ def test_pipeline_records_cross_asset_coverage(monkeypatch, tmp_path, missing, e
     monkeypatch.setattr(
         "daily_messenger.daily_report.pipeline.fetch_cross_asset_facts",
         lambda _date: ([], missing),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_btc_spot_facts",
+        lambda _date: ([], "all_spot_sources_unavailable"),
     )
     monkeypatch.setattr(
         "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
@@ -80,3 +95,81 @@ def test_live_pipeline_publishes_complete_same_day_index_set(monkeypatch, tmp_pa
     assert report.source_status["quotes"]["quality"] == "ok"
     assert "quotes" not in report.missing_sources
     assert index_ids <= set(report.sections[0].facts)
+
+
+def test_live_pipeline_keeps_equity_quotes_in_their_own_section(monkeypatch, tmp_path):
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_us_macro_facts",
+        lambda _as_of: ([], {"macro": {"quality": "ok"}, "rates": {"quality": "ok"}}),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_cross_asset_facts",
+        lambda _date: ([], {}),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_btc_spot_facts",
+        lambda _date: ([], "unavailable"),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
+        lambda _symbol, *, target_date: QuoteSnapshot(
+            target_date.isoformat(), 100.0, 0.2, "yahoo:test"
+        ),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.equity_quotes.fetch_yahoo_daily_snapshot",
+        lambda _symbol, *, target_date: QuoteSnapshot(
+            target_date.isoformat(), 200.0, -1.1, "yahoo:test"
+        ),
+    )
+    report = run_daily_report(AS_OF, tmp_path, provider_config={"mode": "live"})
+    equity = next(section for section in report.sections if section.key == "equities")
+    assert "equity.msft.close" in equity.facts
+    assert "equity.msft.change_percent" in equity.facts
+    assert report.source_status["equities"]["quality"] == "ok"
+
+
+def test_live_pipeline_keeps_btc_spot_separate_from_futures(monkeypatch, tmp_path):
+    spot = MarketFact(
+        id="cross_asset.bitcoin_spot.close",
+        metric="crypto_spot_close",
+        instrument="BTC/USD cryptocurrency EOD (FMP BTCUSD)",
+        value=84093.13,
+        previous=None,
+        change=None,
+        unit="USD/bitcoin",
+        source="Financial Modeling Prep",
+        source_url="https://site.financialmodelingprep.com/developer/docs/stable/cryptocurrency-historical-price-eod-full",
+        source_time=AS_OF,
+        retrieved_at=AS_OF,
+        quality="ok",
+        observation_date="2026-09-18",
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_us_macro_facts",
+        lambda _as_of: ([], {"macro": {"quality": "ok"}, "rates": {"quality": "ok"}}),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_cross_asset_facts",
+        lambda _date: ([], {}),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_btc_spot_facts",
+        lambda _date: ([spot], "ok"),
+        raising=False,
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
+        lambda _symbol, *, target_date: QuoteSnapshot(
+            target_date.isoformat(), 100.0, 0.2, "yahoo:test"
+        ),
+    )
+
+    report = run_daily_report(AS_OF, tmp_path, provider_config={"mode": "live"})
+
+    assert spot.id in {fact.id for fact in report.facts}
+    assert (
+        spot.id
+        in next(section for section in report.sections if section.key == "cross_asset").facts
+    )
+    assert report.source_status["btc_spot"]["quality"] == "ok"
