@@ -132,6 +132,22 @@ function rankedBars(draw, rows, title, color, width = 400, x = 54) {
   draw.y += 9;
 }
 
+function fallbackRows(draw, points) {
+  if (!points.length) return;
+  draw.parts.push(textNode(54, draw.y, '已核实数据', { size: 15, weight: '600' }));
+  draw.y += 22;
+  const max = Math.max(...points.map((point) => Math.abs(point.value)), 1);
+  for (const point of points) {
+    const color = point.value < 0 ? DOWN : UP;
+    draw.parts.push(textNode(54, draw.y, point.label, { size: 12 }));
+    draw.parts.push(textNode(906, draw.y, `${formatNumber(point.value, 2)} ${point.unit}`, { size: 12, color, anchor: 'end' }));
+    draw.parts.push(`<rect x="54" y="${draw.y + 7}" width="852" height="8" fill="${TRACK}"/>`);
+    draw.parts.push(`<rect x="54" y="${draw.y + 7}" width="${Math.max(2, 852 * Math.abs(point.value) / max)}" height="8" fill="${color}"/>`);
+    draw.y += 38;
+  }
+  draw.y += 9;
+}
+
 function weekly(draw, points) {
   const byDate = new Map();
   for (const point of points) {
@@ -226,6 +242,7 @@ export function buildAsiaReportSvg(report, charts, markdown) {
       if (!chart.reason) addText('暂无通过审核的公开数据。', MUTED, 13);
       continue;
     }
+    const chartStart = draw.y;
     if (key === 'dashboard') {
       breadth(draw, points);
       metricCards(draw, points, ['平均涨跌', '涨停家数', '最高连板']);
@@ -245,6 +262,7 @@ export function buildAsiaReportSvg(report, charts, markdown) {
     } else if (key === 'weekly_chart') {
       weekly(draw, points);
     }
+    if (draw.y === chartStart) fallbackRows(draw, points);
     sourceNote(draw, points);
     validPoints.push(...points);
   }
