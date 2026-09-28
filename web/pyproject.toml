@@ -28,6 +28,7 @@ max-complexity = 10
 
 [tool.ty.environment]
 python-version = "3.11"
+extra-paths = ["../src"]
 
 [tool.ty.src]
 include = ["scripts", "tools"]

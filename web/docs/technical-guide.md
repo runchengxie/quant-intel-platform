@@ -49,7 +49,7 @@ python3 scripts/sync_public_snapshot.py --archive-dir /path/to/private-archive
 
 ## 模型生成
 
-生产发布器在本机导入新报告后，优先调用已登录的 Codex CLI 生成带证据的结构化解读和简评。CLI 在只读沙盒运行，登录态不上传到 GitHub。无效输出不会写入公开索引，也不会阻止原报告发布。
+生产发布器在本机导入新报告后，通过平台包 `market_intel_commentary` 优先调用已登录的 Codex CLI 生成带证据的结构化解读和简评。CLI 在只读沙盒运行，登录态不上传到 GitHub。无效输出不会写入公开索引，也不会阻止原报告发布。旧 `web/scripts/generate_*.py` 暂作兼容入口，新调用方使用平台的 `market-commentary` 命令。
 
 平台公开网站 workflow 只校验并展示已发布材料，不读取模型密钥。Codex 和备用模型的调用需在受控发布链路完成。当前本机发布器优先使用 Codex，Gemini、DeepSeek、MiniMax 的新链路尚待切换验证。模型输出通过格式校验不等于新闻事实已独立核实，不能补造缺少来源的公司新闻或市场归因。
 
@@ -81,7 +81,7 @@ python3 scripts/generate_insights.py \
 | `src/legacy/` | 旧页面回退材料，只发布到 `/legacy/` |
 | `artifacts/public/data/`、`artifacts/public/reports/` | 已审核的五日期公开输入，构建后仍输出到网站的 `/data/`、`/reports/` |
 | `configs/.env.example` | 空白配置样例，不保存真实密钥 |
-| `prompts/`、`scripts/`、`tests/`、`tools/` | 提示词、流水线、测试和结构审计工具 |
+| `scripts/`、`tests/`、`tools/` | 网站导入、构建、兼容入口、测试和结构审计工具；提示词位于平台 `src/market_intel_commentary/prompts/` |
 
 报告索引使用 `market_intel_pages.reports.v1`。每条记录有 `id`、`date`、`kind`、`title`、`summary`、`sections` 和 `source_url`。`kind` 为 `morning` 或 `evening`，`source_url` 保持 `reports/<id>.md`。简评使用 `market_intel_pages.daily_summaries.v1`，记录目标日期、正文、晨晚报 ID、生成时间、模型和提示词版本。解读使用 `market_intel_pages.insights.v1`，记录材料截止时间、内容哈希、证据、观察条件和核验结果。
 

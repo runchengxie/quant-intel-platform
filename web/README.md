@@ -31,12 +31,12 @@ python3 -m http.server 8000 --directory "$preview_root"
 |---|---|
 | `src/` | 正式 Astro 网站和 `/legacy/` 旧版回退页面 |
 | `artifacts/public/` | 已审核、可公开的近期报告与数据，构建后仍以 `/data/`、`/reports/` 提供下载 |
-| `scripts/`、`prompts/` | 导入、生成、校验与构建脚本；模型提示词 |
+| `scripts/` | 导入、校验、构建脚本及模型生成兼容入口；模型实现与提示词位于平台 `src/market_intel_commentary/` |
 | `configs/` | 无密钥的配置样例，真实凭据放在仓库外 |
 | `tests/`、`tools/` | 测试与结构审计工具 |
 | `docs/` | 维护方法、数据契约和历史设计记录 |
 
-`web/` 是 `quant-intel-platform` 的公开日报应用，不是独立仓库。报告刷新由平台的 `market-public-refresh` 命令负责，`web/scripts/refresh_reports.py` 仅为旧调用方保留兼容入口。导入、快照和模型解读脚本仍在 `web/`，后续按职责迁移。生产发布与定时任务仍由独立的 `quant-intel-deploy` 管理。具体边界见[开发与数据维护](docs/technical-guide.md#项目边界)。
+`web/` 是 `quant-intel-platform` 的公开日报应用，不是独立仓库。报告刷新由 `market-public-refresh` 负责，模型解读由平台包的 `market-commentary` 负责。网页中的同名脚本暂作兼容入口。导入和快照脚本仍在 `web/`，后续按职责整理。生产发布与定时任务仍由独立的 `quant-intel-deploy` 管理。具体边界见[开发与数据维护](docs/technical-guide.md#项目边界)。
 
 ## 常见问题
 
