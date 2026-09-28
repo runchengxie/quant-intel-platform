@@ -84,4 +84,4 @@
 
 - [x] Run the Web checks required by `web/AGENTS.md` that are available locally: `npm run check`, `npm run build`, `npm test`, and `git diff --check`.
 - [x] Record any unavailable Python or dependency audit checks without claiming them as passing.
-- [ ] Push the task branch and open a PR targeting `main`; do not merge or change production configuration in this task.
+- [x] Push the task branch and open a PR targeting `main`; do not merge or change production configuration in this task. Draft PR: #104.
