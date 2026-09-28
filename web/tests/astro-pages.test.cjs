@@ -44,7 +44,13 @@ test('Astro emits a readable five-session static site with six chart states', ()
   assert.ok(index.indexOf('aria-label="下载这份美股报告"') < index.indexOf('id="market-daily-chart"'));
   const usSection = index.slice(index.indexOf('id="us-session"'), index.indexOf('id="asia-session"'));
   const currentUs = usSection.slice(0, usSection.indexOf('class="market-history"'));
-  assert.doesNotMatch(currentUs, /Markdown 原文|纯文本报告|class="index-grid"|class="market-table"/);
+  assert.match(currentUs, /reports\/2026-09-25-market-daily\.md">Markdown 原文/);
+  assert.match(currentUs, /reports\/2026-09-25-market-daily-no-citations\.md">Markdown 阅读版/);
+  assert.match(currentUs, /reports\/2026-09-25-market-daily\.txt">纯文本报告/);
+  assert.ok(currentUs.indexOf('Markdown 原文') < currentUs.indexOf('id="market-daily-chart"'));
+  assert.ok(currentUs.indexOf('Markdown 阅读版') < currentUs.indexOf('id="market-daily-chart"'));
+  assert.ok(currentUs.indexOf('纯文本报告') < currentUs.indexOf('id="market-daily-chart"'));
+  assert.doesNotMatch(currentUs, /class="index-grid"|class="market-table"/);
   const chart = index.match(/<div class="market-chart-graphic market-report-graphic" id="market-daily-chart">([\s\S]*?)<\/div>/)?.[1];
   assert.ok(chart);
   assert.match(chart, /市场驱动因素/);
