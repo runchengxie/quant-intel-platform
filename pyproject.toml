@@ -55,6 +55,7 @@ include = ["daily_messenger*", "tushare_jobs*", "ops_common*", "a_share_daily*",
 dm = "daily_messenger.cli:main"
 marketops = "tushare_jobs.cli:main"
 a-share-daily = "a_share_daily.cli:main"
+market-public-refresh = "a_share_daily.public_report_refresh:main"
 
 [tool.ruff]
 line-length = 100
