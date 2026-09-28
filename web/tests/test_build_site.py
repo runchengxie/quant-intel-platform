@@ -16,6 +16,17 @@ REPORT_SCHEMA = "market_intel_pages.reports.v1"
 SUMMARY_SCHEMA = "market_intel_pages.daily_summaries.v1"
 
 
+def test_evening_only_summary_is_validated_by_report_date() -> None:
+    rows = [
+        {"id": "old", "kind": "evening", "date": "2026-09-23"},
+        {"id": "new", "kind": "evening", "date": "2026-09-24"},
+    ]
+    summary = {"date": "2026-09-24", "morning_report_id": "new", "evening_report_id": "old"}
+    build_site_module._validate(rows, [summary])
+    with pytest.raises(ValueError, match="baseline"):
+        build_site_module._validate(rows, [{**summary, "evening_report_id": "new"}])
+
+
 def test_new_public_copy_cannot_reuse_legacy_continuous_commodity_exception(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

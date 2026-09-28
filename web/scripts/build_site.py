@@ -124,10 +124,14 @@ def _validate(reports: list[dict], summaries: list[dict]) -> None:
         evening = by_id.get(summary.get("evening_report_id"))
         if not morning or not evening:
             raise ValueError("summary source report is missing")
-        if morning.get("kind") != "morning" or evening.get("kind") != "evening":
+        if morning.get("kind") not in {"morning", "evening"} or evening.get("kind") != "evening":
             raise ValueError("summary source report kind is invalid")
         if summary.get("date") != morning.get("date"):
-            raise ValueError("summary date must match its morning report")
+            raise ValueError("summary date must match its current report")
+        if evening.get("date") > morning.get("date") or (
+            morning.get("kind") == "evening" and evening.get("date") == morning.get("date")
+        ):
+            raise ValueError("summary baseline must precede its current report")
 
     sessions = {report.get("date") for report in reports}
     if len(sessions) > PUBLIC_SESSION_COUNT:

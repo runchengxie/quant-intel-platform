@@ -23,6 +23,22 @@ def report(report_id, date, kind, generated_at):
 
 
 class SourcePairTests(unittest.TestCase):
+    def test_pairs_latest_evening_with_prior_evening_after_morning_stops(self):
+        old = report("old", "2026-09-23", "evening", "2026-09-23 19:02")
+        current = report("current", "2026-09-24", "evening", "2026-09-24 19:03")
+        archived_morning = report("archived", "2026-09-23", "morning", "2026-09-23 07:02")
+        self.assertEqual((current, old), select_source_pair([old, current, archived_morning]))
+
+    def test_evening_only_pair_requires_prior_date(self):
+        current = report("current", "2026-09-24", "evening", "2026-09-24 19:03")
+        self.assertIsNone(select_source_pair([current]))
+
+    def test_prior_evening_uses_market_date_before_backfill_timestamp(self):
+        older = report("older", "2026-09-22", "evening", "2026-09-24 22:24")
+        previous = report("previous", "2026-09-23", "evening", "2026-09-24 22:18")
+        current = report("current", "2026-09-24", "evening", "2026-09-28 10:58")
+        self.assertEqual((current, previous), select_source_pair([older, previous, current]))
+
     def test_pairs_latest_morning_with_preceding_evening(self):
         evening = report("2026-09-14-evening", "2026-09-14", "evening", "2026-09-14 19:08")
         morning = report("2026-09-14-morning", "2026-09-14", "morning", "2026-09-15 07:03")
