@@ -4,7 +4,7 @@
 
 ## 范围与工作方式
 
-- `web/` 维护公开报告导入、快照和 Pages 展示。报告刷新由 `a_share_daily.public_report_refresh` 负责；模型解读与提示词由 `market_intel_commentary` 负责。网页中的同名脚本是旧调用方兼容入口。生产发布和定时器归独立的 `quant-intel-deploy`，导入与快照逻辑仍待按职责整理。
+- `web/` 维护 Pages 展示与兼容入口。报告刷新由 `a_share_daily.public_report_refresh` 负责；模型解读与提示词由 `market_intel_commentary` 负责；公开报告导入、美国市场日报导入和快照归档由 `market_intel_publication` 负责。生产发布和定时器归独立的 `quant-intel-deploy`。
 - 新增功能先按职责归属放置。数据抓取、指标计算、报告写作、模型编排与证据审核优先在 platform 实现。本仓库只增加公开产物契约校验、静态渲染、下载和展示所需的适配。跨仓通过版本化公开产物或稳定 CLI 交接，不直接导入对方源码。
 - 本目录已随 Git 历史并入平台仓库。迁移现有生成逻辑时，先在平台模块提供等价产物及测试，再更新 deploy 消费者和网页展示，确认生产切换及回滚路径后移除旧入口。
 - 开始前只读检查工作树、分支、远端和已有 worktree，保留其他人的改动。从最新 `origin/main` 为每个独立任务创建专属分支与 worktree，只在其中开发和验证，不直接在 `main` 上开发或与其他 agent 共用工作树。
@@ -14,7 +14,7 @@
 ## 目录职责
 
 - `src/` 中的 Astro 页面负责正式展示；`src/legacy/` 保留旧页面回退材料。继续使用文本节点渲染报告和模型内容。
-- `scripts/` 负责导入、构建、生成、健康检查和归档。明确区分输入数据校验失败与模型服务不可用。
+- `scripts/` 负责网站构建、公开图表审核、健康检查及旧调用方兼容入口。明确区分输入数据校验失败与模型服务不可用。
 - `src/market_intel_commentary/prompts/` 维护生成口径。修改提示词后核对缓存、来源引用和数字校验行为。
 - `artifacts/public/data/` 与 `artifacts/public/reports/` 仅保存可公开的近期快照，构建后的公开 URL 仍为 `/data/` 与 `/reports/`。`configs/` 仅放无密钥样例，`docs/` 记录当前用法和有日期的历史决策。
 
