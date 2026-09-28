@@ -39,10 +39,10 @@
 - Produces Astro's strict project configuration with `allowJs: true` so unmigrated site modules remain usable during the incremental conversion.
 - Keeps `npm run check` as the required type gate for `.astro`, `.ts`, `.tsx`, and existing JavaScript files.
 
-- [ ] **Step 1: Add the type check command and strict config.** Use Astro's recommended `extends: "astro/tsconfigs/strict"`, enable `allowJs`, and keep `noEmit` enabled. Add only the TypeScript dependency/configuration required by Astro check.
-- [ ] **Step 2: Run `npm run check`.** Expected: the current codebase is type checked and any real existing errors are reported before module migration.
-- [ ] **Step 3: Fix only configuration or declaration issues exposed by the new gate.** Do not change runtime behavior or suppress errors with `any`/`@ts-ignore`.
-- [ ] **Step 4: Rerun `npm run check` and commit.** Expected: PASS.
+- [x] **Step 1: Add the type check command and strict config.** Use Astro's recommended `extends: "astro/tsconfigs/strict"`, enable `allowJs`, and keep `noEmit` enabled. Add only the TypeScript dependency/configuration required by Astro check.
+- [x] **Step 2: Run `npm run check`.** Expected: the current codebase is type checked and any real existing errors are reported before module migration.
+- [x] **Step 3: Fix only configuration or declaration issues exposed by the new gate.** Do not change runtime behavior or suppress errors with `any`/`@ts-ignore`.
+- [x] **Step 4: Rerun `npm run check` and commit.** Expected: PASS.
 
 ### Task 2: Migrate chart data and source labels to TypeScript
 
@@ -57,11 +57,11 @@
 - `loadChart(reportId: string, fetcher?: typeof fetch): Promise<ChartPayload>` preserves the existing identity validation and URL.
 - `toOption(card: ChartCard): EChartsOption` preserves the current tooltip, zero line, units, colors, and signed display.
 
-- [ ] **Step 1: Extend the chart loader test for a non-public payload and write the TypeScript-facing import expectation.** Keep the test behavior focused on rejection of an untrusted payload.
-- [ ] **Step 2: Run `node --test tests/chart-data.test.cjs tests/market-sources.test.cjs`.** Expected: the new rejection case fails against the current test fixture or import surface, establishing the migration target.
-- [ ] **Step 3: Rename the modules to `.ts`, define narrow input/output types, and preserve all runtime checks.** `response.json()` must be validated by the existing publication/report/chart checks before returning `ChartPayload`; no `as` cast may bypass that boundary.
-- [ ] **Step 4: Update imports and rerun the focused Node tests.** Expected: PASS with the same URL, source labels, tooltip output, and rejection behavior.
-- [ ] **Step 5: Run `npm run check` and commit.** Expected: PASS with the migrated modules included in Astro's type graph.
+- [x] **Step 1: Extend the chart loader test for a non-public payload and write the TypeScript-facing import expectation.** Keep the test behavior focused on rejection of an untrusted payload.
+- [x] **Step 2: Run `node --test tests/chart-data.test.cjs tests/market-sources.test.cjs`.** Expected: the new rejection case fails against the current test fixture or import surface, establishing the migration target.
+- [x] **Step 3: Rename the modules to `.ts`, define narrow input/output types, and preserve all runtime checks.** `response.json()` must be validated by the existing publication/report/chart checks before returning `ChartPayload`; no `as` cast may bypass that boundary.
+- [x] **Step 4: Update imports and rerun the focused Node tests.** Expected: PASS with the same URL, source labels, tooltip output, and rejection behavior.
+- [x] **Step 5: Run `npm run check` and commit.** Expected: PASS with the migrated modules included in Astro's type graph.
 
 ### Task 3: Migrate the React chart island to TSX
 
@@ -74,14 +74,14 @@
 - `ChartIsland` accepts `{ reportId: string; chartKey: string }` and keeps the existing client-visible behavior.
 - The dynamic chart engine import remains runtime-loaded only after expansion; chart disposal and `ResizeObserver` cleanup remain unchanged.
 
-- [ ] **Step 1: Update the Astro component import and add a test assertion for the `.tsx` island path.** Keep the rendered page contract unchanged.
-- [ ] **Step 2: Run `node --test tests/astro-pages.test.cjs`.** Expected: FAIL because the component still has the old `.jsx` path.
-- [ ] **Step 3: Rename the component to `.tsx`, type its props, refs, chart instance, and cleanup handles, and update the Astro import.** Avoid changing user-visible copy or chart lifecycle behavior.
-- [ ] **Step 4: Run the focused Node tests, `npm run check`, and `npm run build`.** Expected: PASS; build output contains the same public chart routes and no old module import.
-- [ ] **Step 5: Commit the TSX migration and update the plan status.**
+- [x] **Step 1: Update the Astro component import and add a test assertion for the `.tsx` island path.** Keep the rendered page contract unchanged.
+- [x] **Step 2: Run `node --test tests/astro-pages.test.cjs`.** Expected: FAIL because the component still has the old `.jsx` path.
+- [x] **Step 3: Rename the component to `.tsx`, type its props, refs, chart instance, and cleanup handles, and update the Astro import.** Avoid changing user-visible copy or chart lifecycle behavior.
+- [x] **Step 4: Run the focused Node tests, `npm run check`, and `npm run build`.** Expected: PASS; build output contains the same public chart routes and no old module import.
+- [x] **Step 5: Commit the TSX migration and update the plan status.**
 
 ### Completion
 
-- [ ] Run the Web checks required by `web/AGENTS.md` that are available locally: `npm run check`, `npm run build`, the focused Node tests, and `git diff --check`.
-- [ ] Record any unavailable Python or dependency audit checks without claiming them as passing.
+- [x] Run the Web checks required by `web/AGENTS.md` that are available locally: `npm run check`, `npm run build`, the focused Node tests, and `git diff --check`.
+- [x] Record any unavailable Python or dependency audit checks without claiming them as passing.
 - [ ] Push the task branch and open a PR targeting `main`; do not merge or change production configuration in this task.
