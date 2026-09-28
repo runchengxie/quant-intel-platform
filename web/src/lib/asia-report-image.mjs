@@ -44,11 +44,11 @@ function sixDimensionRows(markdown) {
   for (const line of lines.slice(start + 1)) {
     if (/^#{2,3} /.test(line)) break;
     if (!line.trim().startsWith('|')) continue;
-    const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+    const cells = line.split(/(?<!\\)\|/).slice(1, -1).map((cell) => cell.trim().replace(/\\\|/g, '|'));
     if (cells.length !== 4 || !labels.includes(cells[0])) continue;
     const score = Number(cells[1]);
     found.set(cells[0], {
-      score: cells[1] !== '' && Number.isFinite(score) && score >= 0 && score <= 100 ? score : null,
+      score: /^(?:0|[1-9]\d?|100)(?:\.\d+)?$/.test(cells[1]) && Number.isFinite(score) && score <= 100 ? score : null,
       status: cells[2], evidence: cells[3],
     });
   }
@@ -60,6 +60,9 @@ function sixDimensionBars(draw, rows) {
   for (const row of rows) {
     if (row.score === null || row.score === undefined) {
       draw.text(`${row.label} · 缺项`, MUTED, 13);
+      if (row.status && row.status !== '缺项') draw.text(row.status, MUTED, 12);
+      if (row.evidence) draw.text(row.evidence, MUTED, 12);
+      draw.y += 9;
       continue;
     }
     const color = row.label === '亏钱风险' ? UP : DOWN;
