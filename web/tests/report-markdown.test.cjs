@@ -64,8 +64,11 @@ test("keeps malformed or incomplete tables visible as plain text", () => {
 });
 
 test("real A-share six-dimension and TOP10 sections become tables", () => {
-  const report = reports.find((item) => item.id === "2026-09-18-evening");
-  for (const title of ["六维观察", "七、行业板块 TOP10"]) {
+  const titles = ["六维观察", "七、行业板块 TOP10"];
+  const report = reports.findLast((item) => item.kind === "evening"
+    && titles.every((title) => item.sections?.some((section) => section.title === title)));
+  assert.ok(report, "a visible evening report should cover both table sections");
+  for (const title of titles) {
     const section = report.sections.find((item) => item.title === title);
     const nodes = renderReportBlocks(document, section.paragraphs);
     const table = nodes.find((node) => node.tagName === "div")?.children[0];
