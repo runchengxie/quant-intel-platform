@@ -1,10 +1,12 @@
-export async function downloadMarketChartPng(svg, date) {
+export async function downloadMarketChartPng(svg, date, kind = 'market-daily') {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('无效报告日期');
+  if (!['market-daily', 'asia-daily'].includes(kind)) throw new Error('无效报告类型');
   const width = Number(svg?.getAttribute('width'));
   const height = Number(svg?.getAttribute('height'));
   if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
     throw new Error('图表尺寸不可用');
   }
+  const scale = Math.min(2, 8192 / width, 8192 / height, Math.sqrt(12_000_000 / (width * height)));
   const markup = new XMLSerializer().serializeToString(svg);
   const sourceUrl = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml;charset=utf-8' }));
   try {
@@ -15,11 +17,11 @@ export async function downloadMarketChartPng(svg, date) {
       picture.src = sourceUrl;
     });
     const canvas = document.createElement('canvas');
-    canvas.width = width * 2;
-    canvas.height = height * 2;
+    canvas.width = Math.round(width * scale);
+    canvas.height = Math.round(height * scale);
     const context = canvas.getContext('2d');
     if (!context) throw new Error('浏览器不支持图表导出');
-    context.scale(2, 2);
+    context.scale(scale, scale);
     context.drawImage(picture, 0, 0, width, height);
     const png = await new Promise((resolve, reject) => {
       canvas.toBlob((blob) => blob ? resolve(blob) : reject(new Error('PNG 生成失败')), 'image/png');
@@ -28,7 +30,7 @@ export async function downloadMarketChartPng(svg, date) {
     try {
       const link = document.createElement('a');
       link.href = downloadUrl;
-      link.download = `${date}-market-daily-charts.png`;
+      link.download = `${date}-${kind}-report.png`;
       try {
         document.body.append(link);
         link.click();

@@ -46,7 +46,7 @@ test("a verified same-day Treasury level alone still produces a sourced image", 
   const svg = buildMarketDailyChartSvg(summary);
   assert.match(svg, /4\.25%/);
   assert.match(svg, /2026-09-24/);
-  assert.doesNotMatch(svg, /FRED/);
+  assert.match(svg, /FRED/);
 });
 
 test("Treasury yield levels have their own four-tenor percent chart", () => {
@@ -66,11 +66,11 @@ test("Treasury yield levels have their own four-tenor percent chart", () => {
   const svg = buildMarketDailyChartSvg(summary);
   assert.match(svg, /美债收益率水平（%）/);
   assert.match(svg, /观测日 2026-09-25/);
-  assert.doesNotMatch(svg, /美国财政部|home\.treasury\.gov/);
+  assert.match(svg, /美国财政部|home\.treasury\.gov/);
   assert.doesNotMatch(svg, /\+4\.81%/);
 });
 
-test("chart image orders verified bars without repeating report prose", () => {
+test("report image combines charts with verified report prose", () => {
   const treasuryUrl = "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve";
   const summary = summarizeMarketDaily({ schema_version: "1.0", run_id: "daily-2026-09-25", facts: [
     { id: "index.spx.change_percent", value: 0.51, quality: "reviewed", observation_date: "2026-09-25", source_url: "https://example.test/close" },
@@ -85,28 +85,28 @@ test("chart image orders verified bars without repeating report prose", () => {
   assert.ok(svg.indexOf("四大指数收盘涨跌") < svg.indexOf("美债收益率水平（%）"));
   assert.ok(svg.indexOf("美债收益率水平（%）") < svg.indexOf("美债收益率当日变动（bp）"));
   assert.ok(svg.indexOf("美债收益率当日变动（bp）") < svg.indexOf("跨资产日涨跌（%）"));
-  assert.doesNotMatch(svg, /微软上涨 3\.7%|跨资产价格/);
+  assert.match(svg, /微软上涨 3\.7%/);
 });
 
-test("stock narrative remains in the report rather than the chart", () => {
+test("stock narrative is included in the report image", () => {
   const summary = summarizeMarketDaily({ schema_version: "1.0", run_id: "daily-2026-09-25", facts: [
     { id: "index.spx.change_percent", value: 0.51, quality: "reviewed", observation_date: "2026-09-25", source_url: "https://example.test/close" },
   ], events: [{ id: "reviewed.11" }], claims: [
     { claim: `${"中".repeat(48)}Anthropic`, evidence_ids: ["reviewed.11"], sources: ["https://example.test/stock"] },
   ], sections: [{ key: "movers", claims: ["reviewed.11"] }] });
-  assert.doesNotMatch(buildMarketDailyChartSvg(summary), /Anthropic/);
+  assert.match(buildMarketDailyChartSvg(summary), /Anthropic/);
 });
 
-test("market narrative remains in the report rather than the chart", () => {
+test("market narrative is included in the report image", () => {
   const summary = summarizeMarketDaily({ schema_version: "1.0", run_id: "daily-2026-09-25", facts: [
     { id: "index.spx.change_percent", value: 0.51, quality: "reviewed", observation_date: "2026-09-25", source_url: "https://example.test/close" },
   ], events: [{ id: "reviewed.0" }], claims: [
     { claim: `${"中".repeat(47)}道指上涨 0.93%。`, evidence_ids: ["reviewed.0"], sources: ["https://example.test/close"] },
   ], sections: [{ key: "market", claims: ["reviewed.0"] }] });
-  assert.doesNotMatch(buildMarketDailyChartSvg(summary), /道指上涨 0\.93%/);
+  assert.match(buildMarketDailyChartSvg(summary), /0\.93%/);
 });
 
-test("image charts stock returns without repeating prices and report sections", () => {
+test("image includes stock prices, macro facts, explanations and sources", () => {
   const marketDate = "2026-09-25";
   const facts = [
     { id: "index.spx.change_percent", value: 0.51, quality: "reviewed", observation_date: marketDate, source_url: "https://example.test/close" },
@@ -125,9 +125,10 @@ test("image charts stock returns without repeating prices and report sections", 
   const svg = buildMarketDailyChartSvg(summary);
   assert.match(svg, /MSFT/);
   assert.match(svg, /\+1\.25%/);
-  assert.doesNotMatch(svg, /200\.50|CPI 同比/);
-  for (const section of sections) assert.doesNotMatch(svg, new RegExp(`${section} 已核实的完整说明`));
-  assert.doesNotMatch(svg, /example\.test|finance\.yahoo\.com|fred\.stlouisfed\.org|来源/);
+  assert.match(svg, /200\.50/);
+  assert.match(svg, /CPI 同比/);
+  for (const section of sections) assert.match(svg, new RegExp(`${section} 已核实的完整说明`));
+  assert.match(svg, /example\.test|finance\.yahoo\.com|fred\.stlouisfed\.org|来源/);
 });
 
 test("market daily does not accept malformed or impossible stock quote facts", () => {
@@ -256,7 +257,7 @@ test("market daily charts preserve FMP commodity provenance", () => {
 
   assert.ok(summary);
   assert.equal(summary.crossAssetRows[0].sourceLabel, "FMP");
-  assert.doesNotMatch(buildMarketDailyChartSvg(summary), /FMP/);
+  assert.match(buildMarketDailyChartSvg(summary), /FMP/);
   assert.equal(summarizeMarketDaily({ ...payload, facts: pair.map((row) => ({ ...row, instrument: "Brent (FMP GCUSD, continuous)" })) }), null);
 });
 
@@ -408,7 +409,7 @@ test("market daily charts keep signed values and source dates in separate units"
   assert.match(charts[1].rows[0].sourceUrl, /^https:\/\/home\.treasury\.gov\//);
 });
 
-test("chart image uses reviewed report-date facts with dates and units but no sources", () => {
+test("report image retains dates, units and source references", () => {
   const summary = summarizeMarketDaily({
     schema_version: "1.0", run_id: "daily-2026-09-23", facts: [
       { id: "index.spx.change_percent", value: -0.8, quality: "reviewed", observation_date: "2026-09-23", source_url: "https://abcnews.com/Business/close" },
@@ -425,7 +426,7 @@ test("chart image uses reviewed report-date facts with dates and units but no so
   assert.match(svg, /\+0\.40%/);
   assert.match(svg, /\+15\.00 bp/);
   assert.match(svg, /观测日 2026-09-23/);
-  assert.doesNotMatch(svg, /abcnews\.com|home\.treasury\.gov|来源/);
+  assert.match(svg, /abcnews\.com|home\.treasury\.gov|来源/);
   assert.match(svg, /2026-09-22，非报告日/);
   assert.doesNotMatch(svg, /FRED 原始数据|<script>/);
 });
