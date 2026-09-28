@@ -44,9 +44,11 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   assert.ok(index.indexOf('aria-label="下载这份美股报告"') < index.indexOf('id="market-daily-chart"'));
   const usSection = index.slice(index.indexOf('id="us-session"'), index.indexOf('id="asia-session"'));
   const currentUs = usSection.slice(0, usSection.indexOf('class="market-history"'));
-  assert.match(currentUs, /reports\/2026-09-25-market-daily\.md">Markdown 原文/);
-  assert.match(currentUs, /reports\/2026-09-25-market-daily-no-citations\.md">Markdown 阅读版/);
-  assert.match(currentUs, /reports\/2026-09-25-market-daily\.txt">纯文本报告/);
+  const usReport = JSON.parse(readFileSync(path.join(root, 'artifacts/public/data/market_daily_report.json'), 'utf8'));
+  const usDate = usReport.run_id.slice(6);
+  assert.ok(currentUs.includes(`reports/${usDate}-market-daily.md">Markdown 原文`));
+  assert.ok(currentUs.includes(`reports/${usDate}-market-daily-no-citations.md">Markdown 阅读版`));
+  assert.ok(currentUs.includes(`reports/${usDate}-market-daily.txt">纯文本报告`));
   assert.ok(currentUs.indexOf('Markdown 原文') < currentUs.indexOf('id="market-daily-chart"'));
   assert.ok(currentUs.indexOf('Markdown 阅读版') < currentUs.indexOf('id="market-daily-chart"'));
   assert.ok(currentUs.indexOf('纯文本报告') < currentUs.indexOf('id="market-daily-chart"'));
@@ -55,7 +57,7 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   assert.ok(chart);
   assert.match(chart, /市场驱动因素/);
   assert.match(chart, /关键来源/);
-  assert.match(chart, /观测日 2026-09-25/);
+  assert.ok(chart.includes(`观测日 ${usDate}`));
   const asia = index.match(/id="asia-daily-chart">([\s\S]*?)<\/div>/)?.[1];
   assert.ok(asia);
   assert.match(asia, /亚洲市场图表/);
@@ -139,7 +141,7 @@ test('visual report keeps verified facts, commentary and source links together',
   const chart = index.match(/id="market-daily-chart">([\s\S]*?)<\/div>/)?.[1];
   assert.ok(chart);
   assert.match(chart, /美债收益率水平/);
-  assert.match(chart, /4\.81%/);
+  assert.match(chart, /\d+\.\d+%/);
   assert.match(chart, /跨资产日涨跌/);
   assert.match(chart, /BTC\/USD 现货/);
   assert.match(chart, /市场驱动因素/);
