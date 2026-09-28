@@ -15,7 +15,7 @@
 - Keep browser paths, artifact field names, error messages, and public report behavior unchanged.
 - Do not add Java, Go, or Rust to `quant-intel-platform`.
 - Do not replace runtime JSON validation with TypeScript assertions or casts.
-- Keep existing CommonJS Node tests working while source modules move to `.ts`/`.tsx`.
+- Keep existing CommonJS Node tests working while source modules move to `.ts`/`.tsx`; run them through the repository's `tsx` test script so Node 22.12 does not need native `.ts` loading.
 - Do not edit the unrelated Pages path migration plan or any production/deploy configuration.
 
 ## Review Focus
@@ -58,7 +58,7 @@
 - `toOption(card: ChartCard): EChartsOption` preserves the current tooltip, zero line, units, colors, and signed display.
 
 - [x] **Step 1: Extend the chart loader test for a non-public payload and write the TypeScript-facing import expectation.** Keep the test behavior focused on rejection of an untrusted payload.
-- [x] **Step 2: Run `node --test tests/chart-data.test.cjs tests/market-sources.test.cjs`.** Expected: the new rejection case fails against the current test fixture or import surface, establishing the migration target.
+- [x] **Step 2: Run `npm test -- tests/chart-data.test.cjs tests/market-sources.test.cjs`.** Expected: the new rejection case fails against the current test fixture or import surface, establishing the migration target.
 - [x] **Step 3: Rename the modules to `.ts`, define narrow input/output types, and preserve all runtime checks.** `response.json()` must be validated by the existing publication/report/chart checks before returning `ChartPayload`; no `as` cast may bypass that boundary.
 - [x] **Step 4: Update imports and rerun the focused Node tests.** Expected: PASS with the same URL, source labels, tooltip output, and rejection behavior.
 - [x] **Step 5: Run `npm run check` and commit.** Expected: PASS with the migrated modules included in Astro's type graph.
@@ -75,13 +75,13 @@
 - The dynamic chart engine import remains runtime-loaded only after expansion; chart disposal and `ResizeObserver` cleanup remain unchanged.
 
 - [x] **Step 1: Update the Astro component import and add a test assertion for the `.tsx` island path.** Keep the rendered page contract unchanged.
-- [x] **Step 2: Run `node --test tests/astro-pages.test.cjs`.** Expected: FAIL because the component still has the old `.jsx` path.
+- [x] **Step 2: Run `npm test -- tests/astro-pages.test.cjs`.** Expected: FAIL because the component still has the old `.jsx` path.
 - [x] **Step 3: Rename the component to `.tsx`, type its props, refs, chart instance, and cleanup handles, and update the Astro import.** Avoid changing user-visible copy or chart lifecycle behavior.
 - [x] **Step 4: Run the focused Node tests, `npm run check`, and `npm run build`.** Expected: PASS; build output contains the same public chart routes and no old module import.
 - [x] **Step 5: Commit the TSX migration and update the plan status.**
 
 ### Completion
 
-- [x] Run the Web checks required by `web/AGENTS.md` that are available locally: `npm run check`, `npm run build`, the focused Node tests, and `git diff --check`.
+- [x] Run the Web checks required by `web/AGENTS.md` that are available locally: `npm run check`, `npm run build`, `npm test`, and `git diff --check`.
 - [x] Record any unavailable Python or dependency audit checks without claiming them as passing.
 - [ ] Push the task branch and open a PR targeting `main`; do not merge or change production configuration in this task.

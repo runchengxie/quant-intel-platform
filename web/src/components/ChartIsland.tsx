@@ -20,6 +20,7 @@ export default function ChartIsland({ reportId, chartKey }: ChartIslandProps) {
 
   useEffect(() => {
     if (!expanded) return undefined;
+    setError('');
     let active = true;
     let instance: ChartInstance | undefined;
     let observer: ResizeObserver | undefined;

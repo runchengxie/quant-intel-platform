@@ -31,7 +31,7 @@ export function loadReports() {
 export function loadChart(reportId) {
   if (!/^\d{4}-\d{2}-\d{2}-(?:morning|evening)$/.test(reportId)) throw new Error('invalid chart identity');
   const chart = readJson(`data/charts/${reportId}.json`);
-  if (chart && (chart.report_id !== reportId || chart.publication !== 'public')) {
+  if (chart && !isPublicChartPayload(chart, reportId)) {
     throw new Error('unreviewed or mismatched chart file');
   }
   return chart?.charts || CHART_KEYS.map((key) => ({
@@ -41,6 +41,28 @@ export function loadChart(reportId) {
     reason: '尚无通过逐点审核的公开图表数据',
     points: [],
   }));
+}
+
+function isPublicChartPayload(chart, reportId) {
+  return chart?.schema_version === 'market_intel.a_share_charts.v1'
+    && chart.publication === 'public'
+    && chart.report_id === reportId
+    && chart.date === reportId.slice(0, 10)
+    && chart.kind === reportId.slice(11)
+    && typeof chart.generated_at === 'string'
+    && !Number.isNaN(Date.parse(chart.generated_at))
+    && typeof chart.content_sha256 === 'string'
+    && /^[a-f0-9]{64}$/i.test(chart.content_sha256)
+    && Array.isArray(chart.charts)
+    && chart.charts.every((card) => card && typeof card.key === 'string'
+      && typeof card.title === 'string'
+      && ['ok', 'degraded', 'missing', 'skipped'].includes(card.status)
+      && (card.reason === undefined || card.reason === null || typeof card.reason === 'string')
+      && Array.isArray(card.points)
+      && card.points.every((point) => point && typeof point.label === 'string'
+        && typeof point.value === 'number' && Number.isFinite(point.value)
+        && typeof point.unit === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(point.observation_date)
+        && typeof point.source_label === 'string' && /^https:\/\//.test(point.source_url)));
 }
 
 export function loadMarkdown(report) {

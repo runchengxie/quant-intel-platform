@@ -21,12 +21,17 @@ export interface ChartCard {
   points: ChartPoint[];
   key: string;
   status: ChartStatus;
-  reason?: string;
+  reason?: string | null;
 }
 
 export interface ChartPayload {
+  schema_version: 'market_intel.a_share_charts.v1';
   publication: 'public';
   report_id: string;
+  date: string;
+  kind: 'morning' | 'evening';
+  generated_at: string;
+  content_sha256: string;
   charts: ChartCard[];
 }
 
@@ -49,18 +54,28 @@ function isChartPoint(value: unknown): value is ChartPoint {
     && typeof value.unit === 'string'
     && typeof value.observation_date === 'string'
     && typeof value.source_label === 'string'
-    && typeof value.source_url === 'string';
+    && typeof value.source_url === 'string'
+    && /^https:\/\//.test(value.source_url);
 }
 
 function isChartPayload(value: unknown, reportId: string): value is ChartPayload {
   return isRecord(value)
+    && value.schema_version === 'market_intel.a_share_charts.v1'
     && value.publication === 'public'
     && value.report_id === reportId
+    && /^\d{4}-\d{2}-\d{2}$/.test(String(value.date))
+    && value.date === reportId.slice(0, 10)
+    && value.kind === reportId.slice(11)
+    && typeof value.generated_at === 'string'
+    && !Number.isNaN(Date.parse(value.generated_at))
+    && typeof value.content_sha256 === 'string'
+    && /^[a-f0-9]{64}$/i.test(value.content_sha256)
     && Array.isArray(value.charts)
     && value.charts.every((card) => isRecord(card)
       && typeof card.title === 'string'
       && typeof card.key === 'string'
       && (card.status === 'ok' || card.status === 'degraded' || card.status === 'missing' || card.status === 'skipped')
+      && (card.reason === undefined || card.reason === null || typeof card.reason === 'string')
       && Array.isArray(card.points)
       && card.points.every(isChartPoint));
 }

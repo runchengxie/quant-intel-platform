@@ -38,7 +38,7 @@ ruff format --check scripts tests tools
 ty check
 vulture scripts tests tools --min-confidence 80
 python3 -m pytest
-node --test tests/*.cjs
+npm test
 node --check src/legacy/app.js
 python3 scripts/build_site.py --output /tmp/quant-market-intel-check
 pip-audit --strict

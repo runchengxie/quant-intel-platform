@@ -46,7 +46,7 @@ jobs:
           ty check
           vulture scripts tests tools --min-confidence 80
           python -m pytest
-          node --test tests/*.cjs
+          npm test
           node --check src/legacy/app.js
           python scripts/build_site.py --output "${{ runner.temp }}/website-check"
       - name: Build market website
