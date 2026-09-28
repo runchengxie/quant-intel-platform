@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
 
+from ops_common import recovery_actions
 from ops_common.business_freshness import BusinessTargets, FreshnessContext
 from ops_common.market_intel_recovery import MARKET_INTEL_SPECS
 from ops_common.scheduled_recovery import (
@@ -84,6 +86,51 @@ def test_legacy_suppression_without_delivery_does_not_hide_failure(tmp_path: Pat
         notifier=lambda _message: True,
     )
     assert alert["status"] == "sent"
+
+
+def test_notification_disabled_does_not_erase_prior_delivery(tmp_path: Path) -> None:
+    paused = _build_alert(
+        previous={"failure_fingerprint": "same", "alert": {"status": "sent"}},
+        stages=[{"key": "current_contract", "status": "recovery_failed"}],
+        failure_fingerprint="same",
+        date_key="20260928",
+        state_path=tmp_path / "state.json",
+        notifier=None,
+    )
+    assert paused["delivered"] is True
+    resumed = _build_alert(
+        previous={"failure_fingerprint": "same", "alert": paused},
+        stages=[{"key": "current_contract", "status": "recovery_failed"}],
+        failure_fingerprint="same",
+        date_key="20260928",
+        state_path=tmp_path / "state.json",
+        notifier=lambda _message: (_ for _ in ()).throw(AssertionError("must not send")),
+    )
+    assert resumed["status"] == "suppressed_duplicate"
+
+
+def test_recovery_alert_key_is_stable_for_same_failure_fingerprint(
+    tmp_path: Path,
+    monkeypatch,
+) -> None:
+    cli = tmp_path / "lark-cli"
+    cli.touch()
+    monkeypatch.setenv("LARK_CLI", str(cli))
+    monkeypatch.setenv("WATCHDOG_ALERT_FEISHU_CHAT_ID", "test-chat")
+    calls: list[list[str]] = []
+
+    def send(args, **_kwargs):
+        calls.append(args)
+        return subprocess.CompletedProcess(args, 0)
+
+    monkeypatch.setattr(recovery_actions.subprocess, "run", send)
+    prefix = "Market Intel scheduled recovery remains unhealthy\ndate=20260928 fingerprint=aaaaaaaaaaaaaaaaaaaaaaaa\n"
+    assert recovery_actions.notify_recovery_failure(
+        prefix + "stages=current_contract=recovery_failed"
+    )
+    assert recovery_actions.notify_recovery_failure(prefix + "stages=current_contract=cooldown")
+    keys = [args[args.index("--idempotency-key") + 1] for args in calls]
+    assert keys[0] == keys[1]
 
 
 def test_reconcile_skips_disabled_stage_and_its_dependents(tmp_path: Path) -> None:
