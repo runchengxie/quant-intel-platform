@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import os
+import re
 import subprocess
 from collections.abc import Callable, Sequence
 from datetime import UTC, datetime
@@ -36,7 +37,9 @@ def notify_recovery_failure(message: str) -> bool:
     lark_cli = os.environ.get("LARK_CLI", str(Path.home() / ".local/bin/lark-cli"))
     if not chat_id or not Path(lark_cli).is_file():
         return False
-    key = "scheduled-recovery-" + hashlib.sha256(message.encode("utf-8")).hexdigest()[:24]
+    fingerprint = re.search(r"\bfingerprint=([0-9a-f]{24})\b", message)
+    key_material = fingerprint.group(1) if fingerprint else message
+    key = "scheduled-recovery-" + hashlib.sha256(key_material.encode("utf-8")).hexdigest()[:24]
     try:
         result = subprocess.run(  # noqa: S603 - command uses a fixed argv shape
             [
