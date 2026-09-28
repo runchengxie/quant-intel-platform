@@ -38,3 +38,12 @@ def test_public_site_uploads_report_ledger_for_private_archival() -> None:
     assert "web/artifacts/public/data" in workflow
     assert "web/artifacts/public/reports" in workflow
     assert "if-no-files-found: error" in workflow
+
+
+def test_public_site_only_uploads_and_deploys_from_main() -> None:
+    workflow = yaml.safe_load((WORKFLOW_ROOT / "public-site.yml").read_text(encoding="utf-8"))
+    main_only = "github.ref == 'refs/heads/main' && github.event_name != 'pull_request'"
+    steps = workflow["jobs"]["build"]["steps"]
+    for name in ("Upload public report ledger for the private publisher", "Upload Pages artifact"):
+        assert next(step for step in steps if step.get("name") == name)["if"] == main_only
+    assert workflow["jobs"]["deploy"]["if"] == main_only
