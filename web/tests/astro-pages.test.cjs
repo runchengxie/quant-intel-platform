@@ -33,31 +33,27 @@ test('Astro emits a readable five-session static site with six chart states', ()
   assert.match(index, /19:00 亚洲市场收盘复盘/);
   assert.match(index, /旧晨报保留归档/);
   assert.match(index, /市场驱动/);
-  assert.match(index, /展开完整已核实报告/);
-  assert.ok(index.indexOf('id="us-indexes"') < index.indexOf('<h3>重点个股</h3>'));
-  assert.ok(index.indexOf('<h3>重点个股</h3>') < index.indexOf('id="us-rates"'));
-  assert.ok(index.indexOf('id="us-rates"') < index.indexOf('id="us-assets"'));
-  assert.match(index, /aria-label="S&amp;P 500 最近 [2-5] 个已核实交易日的日涨跌"/);
-  assert.match(index, /id="us-chart" open/);
-  assert.match(index, /下方筛选仅作用于历史报告/);
-  assert.match(index, /<th>5 年<\/th><td>4\.980%/);
-  assert.match(index, /<th>30 年<\/th><td>5\.490%/);
-  assert.match(index, /Markdown 原文/);
-  assert.ok(index.indexOf('aria-label="下载这份美股报告"') < index.indexOf('id="us-indexes"'));
-  assert.equal((index.match(/aria-label="下载这份美股报告"/g) || []).length, 1);
+  assert.match(index, /阅读全文与数据质量说明/);
+  assert.match(index, /核对来源链接/);
   assert.match(index, /id="market-daily-chart"/);
-  assert.match(index, /<details class="market-chart"/);
+  assert.match(index, /id="asia-daily-chart"/);
   assert.match(index, /id="download-market-chart"/);
-  const chart = index.match(/<div class="market-chart-graphic" id="market-daily-chart">([\s\S]*?)<\/div>/)?.[1];
+  assert.match(index, /id="download-asia-report"/);
+  assert.match(index, /Markdown 阅读版/);
+  assert.ok(index.indexOf('aria-label="下载这份美股报告"') < index.indexOf('id="market-daily-chart"'));
+  const usSection = index.slice(index.indexOf('id="us-session"'), index.indexOf('id="asia-session"'));
+  const currentUs = usSection.slice(0, usSection.indexOf('class="market-history"'));
+  assert.doesNotMatch(currentUs, /Markdown 原文|纯文本报告|class="index-grid"|class="market-table"/);
+  const chart = index.match(/<div class="market-chart-graphic market-report-graphic" id="market-daily-chart">([\s\S]*?)<\/div>/)?.[1];
   assert.ok(chart);
-  assert.match(chart, /2026-09-25 美东交易日市场图表/);
+  assert.match(chart, /市场驱动因素/);
+  assert.match(chart, /关键来源/);
   assert.match(chart, /观测日 2026-09-25/);
-  assert.doesNotMatch(chart, /home\.treasury\.gov|来源/);
-  assert.match(chart, /BTC\/USD 现货/);
-  assert.doesNotMatch(chart, /经济数据|市场驱动因素/);
-  assert.doesNotMatch(index, /美国财政部<\/a><a[^>]*>美国财政部/);
-  assert.doesNotMatch(index, /Yahoo Finance<\/a><a[^>]*>Yahoo Finance/);
-  assert.doesNotMatch(index, /FMP<\/a><a[^>]*>FMP/);
+  const asia = index.match(/id="asia-daily-chart">([\s\S]*?)<\/div>/)?.[1];
+  assert.ok(asia);
+  assert.match(asia, /六图概览/);
+  assert.match(asia, /综合仪表盘/);
+  assert.match(asia, /数据缺项|缺项/);
   const styles = readdirSync(path.join(root, 'dist/_astro')).filter((name) => name.endsWith('.css'))
     .map((name) => readFileSync(path.join(root, `dist/_astro/${name}`), 'utf8')).join('\n');
   assert.match(styles, /:root\[data-theme=?"?dark/);
@@ -97,51 +93,18 @@ test('US daily chart is absent when the public report has no eligible market fac
   }
 });
 
-test('Astro market brief shows verified primary facts, semantic sources and compact secondary content', () => {
-  const fixture = mkdtempSync(path.join(path.dirname(root), 'market-daily-brief-'));
-  try {
-    cpSync(path.join(root, 'artifacts/public/data'), path.join(fixture, 'data'), { recursive: true });
-    cpSync(path.join(root, 'artifacts/public/reports'), path.join(fixture, 'reports'), { recursive: true });
-    const file = path.join(fixture, 'data/market_daily_report.json');
-    const report = JSON.parse(readFileSync(file, 'utf8'));
-    const reportDate = report.run_id.slice(6);
-    const fact = (id, value, unit, source, source_url, metric, observation_date) => ({
-      id, value, unit, source, source_url, metric, observation_date,
-    });
-    report.facts.push(
-      fact('treasury.2y.level_percent', 3.85, 'percent', 'US Treasury', 'https://home.treasury.gov/data', 'yield_level', reportDate),
-      fact('cross_asset.brent.close', 68.25, 'USD/barrel', 'Yahoo Finance', 'https://finance.yahoo.com/quote/BZ=F/', 'close', reportDate),
-      fact('cross_asset.brent.change_percent', 1.25, 'percent', 'Yahoo Finance', 'https://finance.yahoo.com/quote/BZ=F/', 'daily_return', reportDate),
-      fact('cross_asset.silver.close', 64.8, 'USD/troy_ounce', 'Financial Modeling Prep', 'https://site.financialmodelingprep.com/developer/docs/stable/commodities-historical-price-eod-full', 'commodity_close', reportDate),
-      fact('cross_asset.silver.change_percent', 1.24, 'percent', 'Financial Modeling Prep', 'https://site.financialmodelingprep.com/developer/docs/stable/commodities-historical-price-eod-full', 'daily_return', reportDate),
-      fact('cross_asset.bitcoin_spot.close', 84093.13, 'USD/bitcoin', 'Financial Modeling Prep', 'https://site.financialmodelingprep.com/developer/docs/stable/cryptocurrency-historical-price-eod-full', 'crypto_spot_close', reportDate),
-      fact('cross_asset.bitcoin_spot.change_percent', -0.35, 'percent', 'Financial Modeling Prep', 'https://site.financialmodelingprep.com/developer/docs/stable/cryptocurrency-historical-price-eod-full', 'daily_return', reportDate),
-    );
-    for (const rate of report.facts.filter((row) => row.id.startsWith('treasury.2y.'))) {
-      rate.source = 'FRED';
-      rate.source_url = 'https://fred.stlouisfed.org/series/DGS2';
-    }
-    writeFileSync(file, JSON.stringify(report));
-    execFileSync('npm', ['run', 'build', '--', '--outDir', path.join(fixture, 'built')], {
-      cwd: root, stdio: 'pipe', env: { ...process.env, ASTRO_DATA_ROOT: fixture },
-    });
-    const html = readFileSync(path.join(fixture, 'built/index.html'), 'utf8');
-    assert.match(html, /美股收盘/);
-    assert.match(html, /美债收益率/);
-    assert.match(html, /3\.850%/);
-    assert.match(html, /跨资产行情/);
-    assert.match(html, /68\.25 USD\/barrel/);
-    assert.match(html, /BTC\/USD 现货/);
-    assert.match(html, /84,093\.13 USD\/bitcoin/);
-    assert.match(html, />美国财政部</);
-    assert.match(html, /<a href="https:\/\/fred\.stlouisfed\.org\/series\/DGS2"[^>]*>FRED<\/a>/);
-    assert.match(html, />Yahoo Finance</);
-    assert.match(html, />FMP</);
-    assert.match(html, /Yahoo Finance/);
-    assert.match(html, /展开完整已核实报告/);
-  } finally {
-    rmSync(fixture, { recursive: true, force: true });
-  }
+test('visual report keeps verified facts, commentary and source links together', () => {
+  const index = readFileSync(path.join(root, 'dist/index.html'), 'utf8');
+  const chart = index.match(/id="market-daily-chart">([\s\S]*?)<\/div>/)?.[1];
+  assert.ok(chart);
+  assert.match(chart, /美债收益率水平/);
+  assert.match(chart, /4\.81%/);
+  assert.match(chart, /跨资产日涨跌/);
+  assert.match(chart, /BTC\/USD 现货/);
+  assert.match(chart, /市场驱动因素/);
+  assert.match(chart, /关键来源/);
+  assert.match(index, /<a href="https:\/\/home\.treasury\.gov[^"]*"[^>]*>美国财政部<\/a>/);
+  assert.match(index, /阅读全文与数据质量说明/);
 });
 
 test('all visible US daily Markdown editions disclose public source quality', () => {

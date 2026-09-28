@@ -319,23 +319,50 @@ function escapeSvgText(value) {
   })[character]);
 }
 
+function wrapSvgText(value, width = 52) {
+  const tokens = String(value).replace(/\s+/g, " ").trim()
+    .match(/[A-Za-z][A-Za-z0-9./%+_-]*|[+-]?\d[\d,.%/-]*|./gu) ?? [];
+  const lines = [];
+  let line = "";
+  for (const token of tokens) {
+    if (token.length > width) {
+      if (line) lines.push(line.trim());
+      for (let start = 0; start < token.length; start += width) lines.push(token.slice(start, start + width));
+      line = "";
+      continue;
+    }
+    if (line.length + token.length > width && line) {
+      lines.push(line.trim());
+      line = "";
+    }
+    line += token;
+  }
+  if (line) lines.push(line.trim());
+  return lines;
+}
+
 function buildMarketDailyChartSvg(summary) {
   const charts = buildMarketDailyCharts(summary);
   const laggedRates = summary.rateRows.filter((row) => row.observationDate !== summary.date);
-  if (!charts.length && !laggedRates.length) return null;
+  if (!charts.length && !laggedRates.length && !summary.secondaryRows.length && !summary.claims.length) return null;
   let y = 118;
   const parts = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="__HEIGHT__" viewBox="0 0 960 __HEIGHT__" role="img">`,
-    `<title>${escapeSvgText(summary.date)} 美东交易日市场图表</title>`,
-    `<desc>展示已核实的指数、个股、美债和跨资产数值，并列出观测日。</desc>`,
+    `<title>${escapeSvgText(summary.date)} 美东交易日市场图文复盘</title>`,
+    `<desc>展示已核实的行情图解、市场解读、经济数据和关键来源。</desc>`,
     `<rect width="960" height="__HEIGHT__" fill="#fff9f2"/>`,
     `<text x="54" y="62" fill="#34271f" font-family="sans-serif" font-size="28" font-weight="700">${escapeSvgText(summary.date)} 美东交易日</text>`,
-    `<text x="54" y="91" fill="#715f52" font-family="sans-serif" font-size="15">美股收盘复盘${summary.historicalBackfill ? " · 事后整理" : ""} · 数值逐项标注观测日</text>`,
+    `<text x="54" y="91" fill="#715f52" font-family="sans-serif" font-size="15">美股收盘复盘${summary.historicalBackfill ? " · 事后整理" : ""} · 图解、解读与来源</text>`,
   ];
   for (const chart of charts) {
     parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="19" font-weight="700">${escapeSvgText(chart.title)}（${escapeSvgText(chart.unit)}）</text>`);
     y += 34;
     for (const row of chart.rows) {
+      const equity = summary.equityRows.find((item) => row.id === `equity.${item.symbol.toLowerCase()}.change_percent`);
+      const asset = summary.crossAssetRows.find((item) => row.id === `cross_asset.${item.name}.change_percent`);
+      const assetUnit = asset && ({ "USD/barrel": "美元/桶", "USD/troy_ounce": "美元/金衡盎司", "USD/bitcoin": "美元/BTC" })[asset.priceUnit];
+      const close = equity ? `收盘 ${equity.priceValue.toFixed(2)} 美元`
+        : asset ? `收盘 ${asset.priceValue.toLocaleString("en-US", { maximumFractionDigits: 2 })} ${assetUnit || asset.priceUnit}` : "";
       const center = chart.kind === "level" ? 350 : 565;
       const width = Math.round(row.width * (chart.kind === "level" ? 4.3 : 2.15));
       const barX = row.side === "negative" ? center - width : center;
@@ -345,7 +372,7 @@ function buildMarketDailyChartSvg(summary) {
       parts.push(`<rect x="${barX}" y="${y - 11}" width="${width}" height="14" rx="2" fill="${color}"/>`);
       parts.push(`<line x1="${center}" y1="${y - 16}" x2="${center}" y2="${y + 8}" stroke="#5d4c40" stroke-width="1"/>`);
       parts.push(`<text x="800" y="${y + 5}" fill="#34271f" font-family="monospace" font-size="16" font-weight="700">${escapeSvgText(row.valueText)}</text>`);
-      parts.push(`<text x="54" y="${y + 25}" fill="#715f52" font-family="sans-serif" font-size="12">观测日 ${escapeSvgText(row.observationDate)}</text>`);
+      parts.push(`<text x="54" y="${y + 25}" fill="#715f52" font-family="sans-serif" font-size="12">观测日 ${escapeSvgText(row.observationDate)}${close ? ` · ${escapeSvgText(close)}` : ""} · ${escapeSvgText(row.sourceLabel)}</text>`);
       y += 58;
     }
     y += 20;
@@ -361,6 +388,27 @@ function buildMarketDailyChartSvg(summary) {
     }
     y += 12;
   }
+  const addSection = (title, paragraphs) => {
+    if (!paragraphs.length) return;
+    y += 15;
+    parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="20" font-weight="700">${escapeSvgText(title)}</text>`);
+    y += 32;
+    for (const paragraph of paragraphs) {
+      for (const line of wrapSvgText(paragraph)) {
+        parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="15">${escapeSvgText(line)}</text>`);
+        y += 23;
+      }
+      y += 9;
+    }
+  };
+  for (const section of summary.claimSections) {
+    addSection(section.title, section.claims.map((claim) => `${claim.text}（${[...new Set(claim.sourceUrls.map((url) => new URL(url).hostname))].join("、")}）`));
+  }
+  addSection("经济数据", summary.secondaryRows.map((row) => `${row.text} · 观测日 ${row.observationDate} · ${row.sourceLabel}`));
+  addSection("数据状态", [summary.historicalBackfill ? "历史补报：事后整理，并非报告日当天发布。" : "当日公开复盘。", ...summary.gaps.map((gap) => `尚缺：${gap}`)]);
+  const urls = [...new Set([...summary.rows.map((row) => row.sourceUrl), ...summary.claims.flatMap((claim) => claim.sourceUrls)])];
+  const domains = [...new Set(urls.map((url) => new URL(url).hostname))];
+  addSection("关键来源", [...domains.map((domain) => `· ${domain}`), "完整来源链接见网页报告。"]);
   const height = y + 55;
   parts.push(`<line x1="54" y1="${height - 48}" x2="906" y2="${height - 48}" stroke="#d9c7b6"/>`);
   parts.push(`<text x="54" y="${height - 22}" fill="#715f52" font-family="sans-serif" font-size="12">市场有风险，投资需谨慎。</text>`);

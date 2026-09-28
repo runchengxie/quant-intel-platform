@@ -90,6 +90,11 @@ a:hover { color: var(--desk-accent); }
 .report-downloads-top { margin: 0 0 18px; padding: 10px 0 14px; border-top: 0; border-bottom: 1px solid var(--desk-line); }
 .download-label { color: var(--desk-muted); font-size: 12px; font-weight: 700; }
 .report-downloads-top .link-row { margin-top: 7px; }
+.report-downloads-top button, .report-actions button { border: 0; background: none; padding: 0; color: var(--desk-accent); font: inherit; font-weight: 650; text-decoration: underline; cursor: pointer; }
+.report-downloads-top button:focus-visible, .report-actions button:focus-visible { outline: 2px solid var(--desk-accent); outline-offset: 3px; }
+.report-downloads-top button:disabled, .report-actions button:disabled { opacity: .55; cursor: wait; }
+.market-report-graphic { margin: 16px 0; }
+.market-sources li { margin: 7px 0; overflow-wrap: anywhere; }
 .report-list { gap: 16px 32px; }
 .report-tile { border: 0; border-top: 1px solid var(--desk-line); padding: 18px 0; }
 .report-tile h3 { font-family: var(--font-heading); }
