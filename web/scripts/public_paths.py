@@ -1,22 +1,16 @@
-"""Map public URL-relative paths to the reviewed snapshot in the checkout."""
+"""Compatibility entry point for platform-owned public publication."""
 
 from __future__ import annotations
 
+import importlib
+import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+from market_intel_publication.public_paths import public_snapshot_root as public_snapshot_root
+from market_intel_publication.public_paths import safe_public_report_path as safe_public_report_path
 
-def public_snapshot_root(repo_root: Path) -> Path:
-    return repo_root / "artifacts" / "public"
+_owner = importlib.import_module("market_intel_publication.public_paths")
 
-
-def safe_public_report_path(repo_root: Path, source_url: str) -> Path:
-    source = Path(source_url)
-    if source.is_absolute() or len(source.parts) != 2 or source.parts[0] != "reports":
-        raise ValueError(f"invalid report source path: {source_url}")
-    if source.parts[1] in (".", "..") or source.suffix != ".md":
-        raise ValueError(f"invalid report source path: {source_url}")
-    root = public_snapshot_root(repo_root) / "reports"
-    resolved = (public_snapshot_root(repo_root) / source).resolve()
-    if not resolved.is_relative_to(root.resolve()):
-        raise ValueError(f"invalid report source path: {source_url}")
-    return resolved
+if __name__ != "__main__":
+    sys.modules[__name__] = _owner

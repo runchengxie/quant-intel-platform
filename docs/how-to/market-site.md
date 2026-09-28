@@ -24,7 +24,7 @@ python3 -m http.server 8000 --directory "$preview_root"
 
 - `web/artifacts/public/` 保存完成公开审核的近期数据和报告。构建后下载路径仍是 `/data/`、`/reports/`。
 - `web/src/` 负责 Astro 页面和旧版归档页面。`web/tests/` 覆盖契约与渲染。
-- `web/scripts/` 保留报告导入、证据校验、模型解读和静态构建入口。市场数据权威资产及生产调度不在此处。
+- 平台包的 `market_intel_publication` 负责报告导入与公开快照，`market_intel_commentary` 负责模型解读。`web/scripts/` 保留兼容入口、图表审核与静态构建。市场数据权威资产及生产调度不在此处。
 - 亚洲收盘解读先尝试本机 Codex，再按已配置密钥尝试 DeepSeek、Gemini、MiniMax。连续晚报可用最新晚报与前次晚报形成对照。历史晨晚报配对仍可阅读。
 
 私有部署的配置、回执和恢复步骤在 `quant-intel-deploy/docs/market-pages-publisher.md`。网站内部的开发细节见 [`web/docs/technical-guide.md`](https://github.com/runchengxie/quant-intel-platform/blob/main/web/docs/technical-guide.md)。

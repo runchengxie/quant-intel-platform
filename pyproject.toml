@@ -42,7 +42,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["daily_messenger*", "tushare_jobs*", "ops_common*", "a_share_daily*", "a_share_analysis*", "market_intel_config*", "market_intel_commentary*", "research_contracts*"]
+include = ["daily_messenger*", "tushare_jobs*", "ops_common*", "a_share_daily*", "a_share_analysis*", "market_intel_config*", "market_intel_commentary*", "market_intel_publication*", "research_contracts*"]
 
 [tool.setuptools.package-dir]
 "" = "src"
@@ -58,6 +58,9 @@ marketops = "tushare_jobs.cli:main"
 a-share-daily = "a_share_daily.cli:main"
 market-public-refresh = "a_share_daily.public_report_refresh:main"
 market-commentary = "market_intel_commentary.generate_commentary:main"
+market-import-reports = "market_intel_publication.import_reports:main"
+market-import-daily-report = "market_intel_publication.import_market_daily_report:main"
+market-sync-public-snapshot = "market_intel_publication.sync_public_snapshot:main"
 
 [tool.ruff]
 line-length = 100
