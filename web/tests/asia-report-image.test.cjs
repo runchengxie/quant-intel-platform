@@ -44,6 +44,38 @@ test('real evening data uses breadth, trend and money flow visuals without overn
   assert.match(svg, /<polyline/);
   assert.doesNotMatch(svg, /美股隔夜图|标普500 ETF|Meta/);
   assert.match(svg, /观测日：2026-09-18 至 2026-09-24/);
+  assert.match(svg, /data-dimension="流动性"/);
+  assert.match(svg, /data-dimension="亏钱风险"/);
+  assert.match(svg, /亏钱风险越高，风险越高/);
+  assert.match(svg, /成交额分位 15\.0%/);
+});
+
+test('six-dimensional chart rejects invalid scores and escapes evidence', async () => {
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.mjs');
+  const report = { id: '2026-09-25-evening', kind: 'evening', date: '2026-09-25', summary: '' };
+  const markdown = '### 六维观察\n| 维度 | 观察分 | 状态 | 证据 |\n|---|---:|---|---|\n'
+    + '| 流动性 | 75 | 较强 | 成交额改善 <script> |\n'
+    + '| 亏钱风险 | N/A | 缺项 | 数据不足 |\n';
+  const svg = buildAsiaReportSvg(report, [], markdown);
+  assert.match(svg, /data-dimension="流动性"/);
+  assert.match(svg, /成交额改善 &lt;script&gt;/);
+  assert.match(svg, /亏钱风险 · 缺项/);
+  assert.match(svg, /数据不足/);
+  assert.doesNotMatch(svg, /data-dimension="亏钱风险"|NaN/);
+});
+
+test('six-dimensional chart accepts escaped evidence pipes but rejects non-decimal scores', async () => {
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.mjs');
+  const report = { id: '2026-09-25-evening', kind: 'evening', date: '2026-09-25', summary: '' };
+  const markdown = '### 六维观察\n| 维度 | 观察分 | 状态 | 证据 |\n|---|---:|---|---|\n'
+    + '| 流动性 | 30.5 | 偏弱 | 数据 A \\| 数据 B |\n'
+    + '| 广度 | 0x10 | 缺项 | 数据格式错误 |\n';
+  const svg = buildAsiaReportSvg(report, [], markdown);
+  assert.match(svg, /data-dimension="流动性"/);
+  assert.match(svg, /数据 A \| 数据 B/);
+  assert.match(svg, /广度 · 缺项/);
+  assert.match(svg, /数据格式错误/);
+  assert.doesNotMatch(svg, /data-dimension="广度"/);
 });
 
 test('Asia report image escapes public text and rejects a morning identity', async () => {
