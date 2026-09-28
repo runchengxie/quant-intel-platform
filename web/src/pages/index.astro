@@ -2,7 +2,7 @@
 import '../styles/site.css';
 import '../styles/editorial.css';
 import '../styles/research-language.css';
-import { loadReports, loadSummaries, loadMarketDaily, loadMarketDailyHistory, loadLatestInsight, readJson, loadChart, loadMarkdown } from '../lib/reports.mjs';
+import { loadReports, loadSummaries, loadMarketDaily, loadMarketDailyHistory, loadLatestInsight, readJson, loadChart, loadMarkdown, VISUAL_REPORT_START_DATE } from '../lib/reports.mjs';
 import { renderMarkdown } from '../lib/markdown.mjs';
 import { formatEvidenceLine } from '../lib/evidence.mjs';
 import { buildEveningNotes } from '../lib/evening-notes.mjs';
@@ -19,11 +19,17 @@ const latestEveningDate = reports.filter((row) => row.kind === 'evening')
   .map((row) => row.date).sort().at(-1);
 const latestEvening = reports.filter((row) => row.kind === 'evening')
   .sort((a, b) => b.date.localeCompare(a.date))[0];
+const eveningHistory = reports.filter((row) => row.kind === 'evening' && row.date >= VISUAL_REPORT_START_DATE && row.id !== latestEvening?.id);
 const asiaReportSvg = latestEvening ? buildAsiaReportSvg(latestEvening, loadChart(latestEvening.id), loadMarkdown(latestEvening)) : null;
 const market = loadMarketDaily();
 const marketChartSummary = market?.publication === 'public' ? marketDailyUtils.summarizeMarketDaily(market) : null;
 const marketChartSvg = marketChartSummary ? marketDailyUtils.buildMarketDailyChartSvg(marketChartSummary) : null;
-const marketHistory = loadMarketDailyHistory().filter((row) => row.date !== market?.date);
+const marketHistory = loadMarketDailyHistory()
+  .filter((row) => row.date >= VISUAL_REPORT_START_DATE && row.date !== market?.date)
+  .map((row) => {
+    const summary = marketDailyUtils.summarizeMarketDaily(row);
+    return { ...row, chartSvg: summary ? marketDailyUtils.buildMarketDailyChartSvg(summary) : null };
+  });
 const sourceRows = marketChartSummary?.rows || [];
 const sourceLinks = [...new Map([
   ...sourceRows.map((row) => [row.sourceUrl, { href: row.sourceUrl, label: row.sourceLabel, context: row.label }]),
@@ -51,7 +57,6 @@ const timestampLabel = (value) => {
 };
 const evidenceById = new Map((insight?.evidence || []).map((row) => [row.id, row]));
 const citedEvidence = (ids) => (ids || []).map((id) => evidenceById.get(id)).filter(Boolean);
-const dates = [...new Set(reports.map((row) => row.date))];
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 <!doctype html>
@@ -60,7 +65,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f4f0e8" />
-    <meta name="description" content="Quant 市场情报：中国时间晚报、美股日报、市场解读与可核实图表；旧晨报保留归档。" />
+    <meta name="description" content="Quant 市场情报：每日美股与亚洲市场收盘复盘、市场解读与可核实图表。" />
     <title>Quant 市场情报 · Quant Market Intel</title>
     <script is:inline>
       try {
@@ -73,60 +78,54 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     </script>
   </head>
   <body>
-    <header class="topbar"><a class="brand" href={`${base}/`}><span class="brand-mark">Q</span><span>QUANT <b>MARKET INTEL</b></span></a><nav class="top-nav" aria-label="主导航"><a href="#us-session">美股日报</a><a href="#asia-session">亚洲晚报</a><a href="#reports-title">历史报告</a><a href={`${base}/docs/`}>文档</a></nav><button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">深色</button></header>
+    <header class="topbar"><a class="brand" href={`${base}/`}><span class="brand-mark">Q</span><span>QUANT <b>MARKET INTEL</b></span></a><nav class="top-nav" aria-label="主导航"><a href="#us-session">美股日报</a><a href="#asia-session">亚洲晚报</a>{eveningHistory.length > 0 && <a href="#reports-title">历史晚报</a>}<a href={`${base}/docs/`}>文档</a></nav><button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">深色</button></header>
     <main class="shell">
       <div class="content">
-        <section class="hero"><div class="hero-copy"><span class="eyebrow">公开日报 / 每日两场</span><h1>Quant 市场情报</h1><p>每日跟踪美股与亚洲收盘。先看可核实的行情，再读变化与依据；每项数据保留观测日和来源。旧晨报保留归档。</p></div><nav class="session-nav" aria-label="最新日报"><a href="#us-session"><span>最新美股日报</span><strong>{market?.date || '待更新'}</strong><small>07:00 · 美东交易日</small></a><a href="#asia-session"><span>最新亚洲晚报</span><strong>{latestEveningDate || '待更新'}</strong><small>19:00 · 北京时间</small></a></nav></section>
+        <section class="hero"><div class="hero-copy"><span class="eyebrow">每日两份公开日报</span><h1>Quant 市场情报</h1><p>每天梳理美股和亚洲市场的收盘行情，附上变化说明、数据日期和来源。</p></div><nav class="session-nav" aria-label="最新日报"><a href="#us-session"><span>最新美股日报</span><strong>{market?.date || '待更新'}</strong><small>07:00 · 北京时间</small></a><a href="#asia-session"><span>最新亚洲晚报</span><strong>{latestEveningDate || '待更新'}</strong><small>19:00 · 北京时间</small></a></nav></section>
         <section class="panel" id="us-session" aria-labelledby="market-title"><div class="section-heading"><span class="eyebrow">最新美股日报 · {market?.date || '待更新'}</span><h2 id="market-title">07:00 美股收盘复盘</h2></div>
           {market?.markdown ? <>
             <div class="report-downloads report-downloads-top" aria-label="下载这份美股报告"><span class="download-label">获取这份复盘</span><div class="link-row">{market.hasCitationFreeMarkdown && <a href={`${base}/reports/${market.date}-market-daily-no-citations.md`}>Markdown 阅读版</a>}{marketChartSvg && <button type="button" id="download-market-chart" data-report-image data-report-date={market.date} data-report-kind="market-daily" data-chart-target="#market-daily-chart svg" data-status-target="#market-chart-download-status">下载图片版 PNG</button>}</div><p id="market-chart-download-status" class="section-note" role="status" aria-live="polite"></p></div>
-            <p class="section-note">{market.date} 美东报告日{marketGeneratedLabel ? ` · 报告生成 ${marketGeneratedLabel}（美东）` : ''}。图片版汇总已核实的行情、解读和来源；缺项不以旧值填补。</p>
+            <p class="section-note">美股报告日期：{market.date}{marketGeneratedLabel ? ` · 生成时间：${marketGeneratedLabel}（美东时间）` : ''}。图片版包含已核实的行情、解读和来源。缺少的数据会标为缺项。</p>
             {marketChartSvg ? <div class="market-brief">
               <div class="market-chart-graphic market-report-graphic" id="market-daily-chart" set:html={marketChartSvg} />
               <details class="secondary-report market-sources"><summary>核对来源链接（{sourceLinks.length}）</summary><ul>{sourceLinks.map((source) => <li>{source.context} · <a href={source.href} target="_blank" rel="noreferrer">{source.label}</a></li>)}</ul></details>
               <details class="secondary-report"><summary>阅读全文与数据质量说明</summary><div class="markdown-body" set:html={renderMarkdown(market.markdown || '', { compactSources: true })} /></details>
             </div> : <div class="market-empty"><p>这份报告尚无可用于图片版的已核实行情。</p><details class="secondary-report"><summary>查看现有报告内容</summary><div class="markdown-body" set:html={renderMarkdown(market.markdown || '', { compactSources: true })} /></details></div>}
-            {marketHistory.length > 0 && <div class="market-history"><h3>最近 5 个美东交易日</h3>{marketHistory.map((row) => <details class="secondary-report"><summary>{row.date}{row.quality_summary?.revision === 'historical_backfill' ? ' · 历史补报' : ''}</summary><div class="link-row"><a href={`${base}/reports/${row.date}-market-daily.md`}>Markdown 原文</a>{row.hasCitationFreeMarkdown && <a href={`${base}/reports/${row.date}-market-daily-no-citations.md`}>Markdown 阅读版（无引用）</a>}<a href={`${base}/reports/${row.date}-market-daily.txt`}>纯文本报告</a></div><div class="markdown-body" set:html={renderMarkdown(row.markdown, { compactSources: true })} /></details>)}</div>}
+            {marketHistory.length > 0 && <div class="market-history"><h3>近期美股报告</h3>{marketHistory.map((row) => <details class="secondary-report"><summary>{row.date}</summary><div class="link-row report-actions">{row.hasCitationFreeMarkdown && <a href={`${base}/reports/${row.date}-market-daily-no-citations.md`}>Markdown 阅读版</a>}{row.chartSvg && <button type="button" data-report-image data-report-date={row.date} data-report-kind="market-daily" data-chart-target={`#market-history-chart-${row.date} svg`} data-status-target={`#market-history-status-${row.date}`}>下载图片版 PNG</button>}</div><p id={`market-history-status-${row.date}`} class="section-note" role="status" aria-live="polite"></p>{row.chartSvg && <div class="market-chart-graphic market-report-graphic" id={`market-history-chart-${row.date}`} set:html={row.chartSvg} />}<details class="secondary-report"><summary>阅读完整报告与来源</summary><div class="markdown-body" set:html={renderMarkdown(row.markdown, { compactSources: true })} /></details></details>)}</div>}
           </> : <p class="empty">暂未取得可公开的美股日报。</p>}
         </section>
         <section id="asia-session" class="session-group" aria-labelledby="asia-session-title">
           <section class="panel"><div class="section-heading"><span class="eyebrow">最新亚洲晚报 · {latestEveningDate || '待更新'}</span><h2 id="asia-session-title">19:00 亚洲市场收盘复盘</h2></div>
-            {latestEvening ? <><p class="section-note">最近晚报 {latestEvening.date} · 19:00 是首版目标，以报告内的实际生成时间和数据日期为准。</p><div class="link-row report-actions"><a href={`${base}/reports/${latestEvening.id}/`}>阅读完整复盘与六图</a>{asiaReportSvg && <button type="button" id="download-asia-report" data-report-image data-report-date={latestEvening.date} data-report-kind="asia-daily" data-chart-target="#asia-daily-chart svg" data-status-target="#asia-chart-download-status">下载图片版 PNG</button>}</div><p id="asia-chart-download-status" class="section-note" role="status" aria-live="polite"></p>{asiaReportSvg ? <div class="market-chart-graphic market-report-graphic" id="asia-daily-chart" set:html={asiaReportSvg} /> : <p>{latestEvening.summary}</p>}<details class="secondary-report"><summary>核对亚洲晚报来源和原始数值</summary><div class="link-row"><a href={`${base}/reports/${latestEvening.id}/`}>完整报告与图表来源</a><a href={`${base}/${latestEvening.source_url}`}>Markdown 原文</a></div></details></> : <p class="empty">暂未取得可公开的亚洲收盘复盘。</p>}
+            {latestEvening ? <><p class="section-note">报告日期：{latestEvening.date}。晚报计划于北京时间 19:00 发布，实际生成时间和数据日期见报告正文。</p><div class="link-row report-actions"><a href={`${base}/reports/${latestEvening.id}/`}>阅读完整报告</a>{asiaReportSvg && <button type="button" id="download-asia-report" data-report-image data-report-date={latestEvening.date} data-report-kind="asia-daily" data-chart-target="#asia-daily-chart svg" data-status-target="#asia-chart-download-status">下载图片版 PNG</button>}</div><p id="asia-chart-download-status" class="section-note" role="status" aria-live="polite"></p>{asiaReportSvg ? <div class="market-chart-graphic market-report-graphic" id="asia-daily-chart" set:html={asiaReportSvg} /> : <p>{latestEvening.summary}</p>}<details class="secondary-report"><summary>查看数据和来源</summary><div class="link-row"><a href={`${base}/reports/${latestEvening.id}/`}>完整报告与图表来源</a><a href={`${base}/${latestEvening.source_url}`}>Markdown 原文</a></div></details></> : <p class="empty">暂未取得可公开的亚洲收盘复盘。</p>}
           </section>
         <section class="panel" aria-labelledby="insight-title"><div class="section-heading"><h2 id="insight-title">{insightArchived ? '历史市场解读与验证' : '市场解读与验证'}</h2></div>
-          {insightArchived && <p class="backfill-note">此解读基于停用前的晨晚报配对，不代表最新晚报；请以晚报原文和下方事实提要为准。</p>}
+          {insightArchived && <p class="backfill-note">这篇解读依据停用前的晨晚报生成，日期早于最新晚报。最新行情请查看上方晚报和下方事实提要。</p>}
           {insight?.analysis?.overview?.text ? <>
-            <p class="section-note">{insight.date} · 信息截至 {timestampLabel(insight.as_of)} · 解读生成 {timestampLabel(insight.generated_at)}（北京时间）。展开依据可核对原文。</p>
-            {insight.generation_mode === 'retrospective' && <p class="backfill-note">历史材料回放：基于归档或补发报告生成，保留实际生成时间。</p>}
+            <p class="section-note">{insight.date} · 数据截至 {timestampLabel(insight.as_of)} · 解读生成于 {timestampLabel(insight.generated_at)}（北京时间）。展开下方依据可查看原文。</p>
+            {insight.generation_mode === 'retrospective' && <p class="backfill-note">这篇解读依据旧报告或补发报告生成，页面标注的是实际生成时间。</p>}
             <p>{insight.analysis.overview.text}</p>
             <details><summary>查看概览依据</summary><ul>{citedEvidence(insight.analysis.overview.evidence_ids).map((item) => <li><a href={`${base}/reports/${item.report_id}/`}>{item.section}</a>：{formatEvidenceLine(item.section, item.text)}</li>)}</ul></details>
-            {(insight.analysis.changes || []).length > 0 && <><h3>值得留意的变化</h3>{insight.analysis.changes.map((item) => <div class="insight-item"><p>{item.text}</p><details><summary>查看依据</summary><ul>{citedEvidence(item.evidence_ids).map((evidence) => <li><a href={`${base}/reports/${evidence.report_id}/`}>{evidence.section}</a>：{formatEvidenceLine(evidence.section, evidence.text)}</li>)}</ul></details></div>)}</>}
-            {(insight.analysis.tensions || []).length > 0 && <><h3>还没得到确认的地方</h3>{insight.analysis.tensions.map((item) => <div class="insight-item"><p>{item.text}</p><details><summary>查看依据</summary><ul>{citedEvidence(item.evidence_ids).map((evidence) => <li><a href={`${base}/reports/${evidence.report_id}/`}>{evidence.section}</a>：{formatEvidenceLine(evidence.section, evidence.text)}</li>)}</ul></details></div>)}</>}
-            {watchpoints.length > 0 && <><h3>留给下一份晚报的问题</h3><div class="watchpoint-list">{watchpoints.map((item) => <div class="watchpoint"><span class:list={['status-pill', item.outcome?.status || 'pending']}>{outcomeLabels[item.outcome?.status || 'pending']}</span><p>{item.question}</p><p class="section-note">{item.metricLabel} {item.operator} {item.threshold}{item.unit}</p>{item.outcome?.report_id && <><p class="section-note">核对 {item.outcome.observed_date} 晚报{item.outcome.observed_value !== null ? `：${item.outcome.observed_value}${item.unit}` : ''}</p>{item.outcome.evidence?.length > 0 && <details><summary>查看核对依据</summary><ul>{item.outcome.evidence.map((evidence) => <li><a href={`${base}/reports/${evidence.report_id}/`}>{evidence.section}</a>：{formatEvidenceLine(evidence.section, evidence.text)}</li>)}</ul></details>}</>}</div>)}</div><p class="section-note">保留原判断，另记后续条件核对结果。</p></>}
+            {(insight.analysis.changes || []).length > 0 && <><h3>近期变化</h3>{insight.analysis.changes.map((item) => <div class="insight-item"><p>{item.text}</p><details><summary>查看依据</summary><ul>{citedEvidence(item.evidence_ids).map((evidence) => <li><a href={`${base}/reports/${evidence.report_id}/`}>{evidence.section}</a>：{formatEvidenceLine(evidence.section, evidence.text)}</li>)}</ul></details></div>)}</>}
+            {(insight.analysis.tensions || []).length > 0 && <><h3>仍待确认</h3>{insight.analysis.tensions.map((item) => <div class="insight-item"><p>{item.text}</p><details><summary>查看依据</summary><ul>{citedEvidence(item.evidence_ids).map((evidence) => <li><a href={`${base}/reports/${evidence.report_id}/`}>{evidence.section}</a>：{formatEvidenceLine(evidence.section, evidence.text)}</li>)}</ul></details></div>)}</>}
+            {watchpoints.length > 0 && <><h3>下期观察</h3><div class="watchpoint-list">{watchpoints.map((item) => <div class="watchpoint"><span class:list={['status-pill', item.outcome?.status || 'pending']}>{outcomeLabels[item.outcome?.status || 'pending']}</span><p>{item.question}</p><p class="section-note">{item.metricLabel} {item.operator} {item.threshold}{item.unit}</p>{item.outcome?.report_id && <><p class="section-note">核对 {item.outcome.observed_date} 晚报{item.outcome.observed_value !== null ? `：${item.outcome.observed_value}${item.unit}` : ''}</p>{item.outcome.evidence?.length > 0 && <details><summary>查看核对依据</summary><ul>{item.outcome.evidence.map((evidence) => <li><a href={`${base}/reports/${evidence.report_id}/`}>{evidence.section}</a>：{formatEvidenceLine(evidence.section, evidence.text)}</li>)}</ul></details>}</>}</div>)}</div><p class="section-note">原判断和后续核对结果均保留在此。</p></>}
             {insight.quality_warnings?.length > 0 && <details><summary>数据缺项与限制（{insight.quality_warnings.length}）</summary><ul>{insight.quality_warnings.map((warning) => <li>{formatEvidenceLine('六维观察', warning)}</li>)}</ul></details>}
           </> : <p class="empty">暂无通过验证的市场解读。</p>}
         </section>
-        <section class="panel" aria-labelledby="summary-title"><div class="section-heading"><h2 id="summary-title">最近几天的晚报提要与市场简评</h2></div>
+        <section class="panel" aria-labelledby="summary-title"><div class="section-heading"><h2 id="summary-title">近期晚报提要</h2></div>
           {displayNotes.length ? <div class="notes-list">{displayNotes.map((row) => <article><time>{row.date}</time>{row.source === 'evening' && <a href={`${base}/reports/${row.reportId}/`}>晚报事实提要 · 查看依据</a>}<p>{row.text}</p></article>)}</div> : <p class="empty">暂无简评。</p>}
         </section>
         </section>
-        <section class="reports-section" aria-labelledby="reports-title"><div class="section-heading"><h2 id="reports-title">晚报与历史晨报</h2><p class="section-note">下方筛选仅作用于历史报告。</p></div>
-          <div class="archive-filters"><label for="kind-filter">报告类型<select id="kind-filter"><option value="all">全部</option><option value="morning">晨报</option><option value="evening">晚报</option></select></label><label for="date-filter">查看日期<select id="date-filter"><option value="all">最近报告</option>{dates.map((date) => <option value={date}>{date}</option>)}</select></label></div>
-          <div class="report-list" id="report-list">{reports.map((report) => <article class="report-tile" data-date={report.date} data-kind={report.kind}>
-            <div class="report-meta"><time>{report.date}</time><span>{report.kind === 'morning' ? '晨报' : '晚报'}</span>{report.generation_mode === 'backfill' && <span class="backfill">历史补发</span>}</div>
+        {eveningHistory.length > 0 && <section class="reports-section" aria-labelledby="reports-title"><div class="section-heading"><h2 id="reports-title">历史亚洲收盘复盘</h2></div>
+          <div class="report-list">{eveningHistory.map((report) => <article class="report-tile">
+            <div class="report-meta"><time>{report.date}</time><span>亚洲晚报</span></div>
             <h3><a href={`${base}/reports/${report.id}/`}>{report.title}</a></h3><p>{report.summary}</p>
-            <div class="link-row"><a href={`${base}/reports/${report.id}/`}>阅读报告与六图</a><a href={`${base}/${report.source_url}`}>Markdown 原文</a></div>
+            <div class="link-row"><a href={`${base}/reports/${report.id}/`}>阅读图文复盘</a></div>
           </article>)}</div>
-          <p id="no-reports" class="empty" hidden>没有找到这类报告。试试其他日期或类型。</p>
-        </section>
+        </section>}
       </div>
     </main>
     <footer class="footer"><span>QUANT MARKET INTEL</span><span>市场信息仅供研究参考</span></footer>
     <script>
-      const kind = document.querySelector('#kind-filter');
-      const date = document.querySelector('#date-filter');
-      const cards = [...document.querySelectorAll('.report-tile')];
-      const empty = document.querySelector('#no-reports');
       const themeToggle = document.querySelector('#theme-toggle');
       const themeKey = 'market-intel-theme';
       const applyTheme = (theme) => {
@@ -157,21 +156,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           await downloadMarketChartPng(chart, button.dataset.reportDate, button.dataset.reportKind);
           status.textContent = '图片版 PNG 已生成。';
         } catch {
-          status.textContent = 'PNG 生成失败；可继续阅读网页报告。';
+          status.textContent = 'PNG 生成失败。请直接阅读网页报告。';
         } finally {
           button.disabled = false;
         }
       }));
-      const update = () => {
-        let shown = 0;
-        for (const card of cards) {
-          card.hidden = (kind.value !== 'all' && card.dataset.kind !== kind.value) || (date.value !== 'all' && card.dataset.date !== date.value);
-          if (!card.hidden) shown += 1;
-        }
-        empty.hidden = shown > 0;
-      };
-      kind.addEventListener('change', update);
-      date.addEventListener('change', update);
     </script>
   </body>
 </html>

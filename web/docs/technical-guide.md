@@ -23,7 +23,7 @@ python3 scripts/build_site.py --output "$preview_root/quant-intel-platform"
 python3 -m http.server 8000 --directory "$preview_root"
 ```
 
-打开 <http://localhost:8000/quant-intel-platform/>。站点基址是 `/quant-intel-platform/`，报告下载和数据请求仍使用该基址下的 `/reports/`、`/data/`。`npm run build` 可单独检查 Astro 输出，其 `dist/` 仅供开发验证。正式页面和 `/legacy/` 回退页面都支持深色模式。首页的日期趋势只取最近五份公开日报中观测日等于报告日的指数事实，不足两期时不画趋势；每日行情图默认展开，归档筛选只作用于历史报告。平台文档构建到同一站点的 `/docs/`。
+打开 <http://localhost:8000/quant-intel-platform/>。站点基址是 `/quant-intel-platform/`，报告下载和数据请求仍使用该基址下的 `/reports/`、`/data/`。`npm run build` 可单独检查 Astro 输出，其 `dist/` 仅供开发验证。正式页面和 `/legacy/` 回退页面都支持深色模式。首页从 2026-09-28 起按新版图文格式展示历史美股日报和亚洲晚报。旧版报告直达页仍可核对。首页的日期趋势只取最近五份公开日报中观测日等于报告日的指数事实，不足两期时不画趋势。平台文档构建到同一站点的 `/docs/`。
 
 ## 导入公开报告
 
