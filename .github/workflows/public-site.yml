@@ -57,7 +57,7 @@ jobs:
       - name: Build documentation under /docs
         run: uv run mkdocs build --strict --site-dir "${{ runner.temp }}/public-site/docs"
       - name: Upload public report ledger for the private publisher
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-artifact@v4
         with:
           name: market-intel-ledger-${{ github.run_id }}-1
@@ -73,13 +73,13 @@ jobs:
           name: public-site-preview
           path: ${{ runner.temp }}/public-site
       - name: Upload Pages artifact
-        if: github.event_name != 'pull_request'
+        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
           path: ${{ runner.temp }}/public-site
 
   deploy:
-    if: github.event_name != 'pull_request'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     permissions:
