@@ -24,6 +24,7 @@ test('Astro emits a readable five-session static site with six chart states', ()
   const reportId = reports[0].id;
   assert.match(index, /Quant 市场情报/);
   assert.ok(index.includes('/quant-intel-platform/'));
+  assert.ok(index.includes('href="/quant-intel-platform/docs/"'));
   assert.ok(!index.includes('/market-intel-pages/'));
   assert.match(index, /id="theme-toggle"/);
   assert.match(index, /id="us-session"/);

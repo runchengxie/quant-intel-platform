@@ -12,6 +12,7 @@
 
 [五分钟开始](getting-started.md){ .md-button .md-button--primary }
 [系统架构](architecture.md){ .md-button }
+[市场日报](https://runchengxie.github.io/quant-intel-platform/){ .md-button }
 
 </p>
 </div>
