@@ -41,3 +41,16 @@ def test_boundary_checker_skips_private_export_candidates(tmp_path: Path) -> Non
     result = check_tree(tmp_path)
 
     assert result.forbidden_matches == ()
+
+
+def test_boundary_checker_scans_web_source_but_skips_local_dependencies(tmp_path: Path) -> None:
+    source = tmp_path / "web" / "src" / "example.js"
+    source.parent.mkdir(parents=True)
+    source.write_text("https://fast.xiaodefa.cn", encoding="utf-8")
+    dependency = tmp_path / "web" / "node_modules" / "package.js"
+    dependency.parent.mkdir(parents=True)
+    dependency.write_text("ghp_123456789012345678901234567890123456", encoding="utf-8")
+
+    result = check_tree(tmp_path)
+
+    assert result.forbidden_matches == ("fast.xiaodefa.cn",)

@@ -12,6 +12,10 @@ files:
     classification: public
     action: retain
     reason: public documentation site configuration without production settings
+  - path: web/
+    classification: public
+    action: retain
+    reason: public market website, reviewed snapshots, and isolated website checks
   - path: src/
     classification: public
     action: retain

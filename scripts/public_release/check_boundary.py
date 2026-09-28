@@ -29,6 +29,10 @@ SKIP_PREFIXES = (
     ".venv/",
     "build/",
     "dist/",
+    "web/.venv/",
+    "web/node_modules/",
+    "web/dist/",
+    "web/.astro/",
 )
 
 

@@ -1,0 +1,1785 @@
+{
+  "schema_version": "market_intel_pages.insights.v1",
+  "generation": {
+    "status": "generated",
+    "provider": "codex",
+    "model": "codex-cli",
+    "checked_at": "2026-09-24T23:01:24+08:00",
+    "target_date": "2026-09-23",
+    "analysis_attempts": 1
+  },
+  "insights": [
+    {
+      "as_of": "2026-09-24T22:21:31.300310+08:00",
+      "date": "2026-09-23",
+      "morning_report_id": "2026-09-23-morning",
+      "evening_report_id": "2026-09-23-evening",
+      "source_report_ids": [
+        "2026-09-18-evening",
+        "2026-09-18-morning",
+        "2026-09-21-evening",
+        "2026-09-23-evening",
+        "2026-09-23-morning"
+      ],
+      "source_hashes": {
+        "2026-09-18-evening": "9cc8552e371c25c62460268e89d8f5c33782dee16942d6f6972d1ee2a050489c",
+        "2026-09-18-morning": "ba65795c72ef0faac491f4e20583af630985c627811b3ac94ca28d734c1b6ed6",
+        "2026-09-21-evening": "693412f0583dc6705affbc4f75a04ebac2a49fb7a5fbd67c6e5e90829d1ae377",
+        "2026-09-23-evening": "ab8dc147d0d9df0c0210af4c2d2b4de9020a4ef624eb021c36dada1446a6bfad",
+        "2026-09-23-morning": "cd718faeac56d73e8d7f06888005271d8dcbb605f822f1938e56a3f808746d69"
+      },
+      "source_hash": "fc70c9134ada02e92315e1f6be7695a972a86964c43e4aa1be404926c44e7bc8",
+      "evidence": [
+        {
+          "id": "2026-09-18-evening:s0:p0",
+          "report_id": "2026-09-18-evening",
+          "section": "报告信息",
+          "text": "生成时间: 2026-09-19 17:28:00.441216"
+        },
+        {
+          "id": "2026-09-18-evening:s0:p1",
+          "report_id": "2026-09-18-evening",
+          "section": "报告信息",
+          "text": "数据日期: 2026-09-18"
+        },
+        {
+          "id": "2026-09-18-evening:s0:p2",
+          "report_id": "2026-09-18-evening",
+          "section": "报告信息",
+          "text": "报告生成方式: backfill"
+        },
+        {
+          "id": "2026-09-18-evening:s0:p3",
+          "report_id": "2026-09-18-evening",
+          "section": "报告信息",
+          "text": "本报告为历史数据补发，生成时间是本次重建时间，不代表当时已发布。"
+        },
+        {
+          "id": "2026-09-18-evening:s1:p0",
+          "report_id": "2026-09-18-evening",
+          "section": "一、市场状态",
+          "text": "- 状态: 偏热。"
+        },
+        {
+          "id": "2026-09-18-evening:s1:p1",
+          "report_id": "2026-09-18-evening",
+          "section": "一、市场状态",
+          "text": "- 热度 / 脆弱度: 88.1 / 10.5（观察分）。"
+        },
+        {
+          "id": "2026-09-18-evening:s1:p2",
+          "report_id": "2026-09-18-evening",
+          "section": "一、市场状态",
+          "text": "- 口径: 热度、脆弱度与六维分数均为市场状态观察分，不直接映射仓位，也不构成交易指令。"
+        },
+        {
+          "id": "2026-09-18-evening:s2:p0",
+          "report_id": "2026-09-18-evening",
+          "section": "六维观察",
+          "text": "| 维度 | 观察分 | 状态 | 证据 |"
+        },
+        {
+          "id": "2026-09-18-evening:s2:p1",
+          "report_id": "2026-09-18-evening",
+          "section": "六维观察",
+          "text": "|---|---:|---|---|"
+        },
+        {
+          "id": "2026-09-18-evening:s2:p2",
+          "report_id": "2026-09-18-evening",
+          "section": "六维观察",
+          "text": "| 流动性 | 78.7 | 较强 | 成交额/历史中位 1.11x；成交额分位 85.0% |"
+        },
+        {
+          "id": "2026-09-18-evening:s2:p3",
+          "report_id": "2026-09-18-evening",
+          "section": "六维观察",
+          "text": "| 广度 | 78.5 | 较强 | 上涨率 76.2%；个股中位涨跌 1.1%；站上VWAP占比 53.5% |"
+        },
+        {
+          "id": "2026-09-18-evening:s2:p4",
+          "report_id": "2026-09-18-evening",
+          "section": "六维观察",
+          "text": "| 赚钱效应 | 88.8 | 较强 | 涨停率 1.4%；涨幅超5%占比 7.2% |"
+        },
+        {
+          "id": "2026-09-18-evening:s2:p5",
+          "report_id": "2026-09-18-evening",
+          "section": "六维观察",
+          "text": "| 亏钱风险 | 0 | 低风险 | 跌停率 0.0%；跌幅超5%占比 0.2% |"
+        },
+        {
+          "id": "2026-09-18-evening:s2:p6",
+          "report_id": "2026-09-18-evening",
+          "section": "六维观察",
+          "text": "| 趋势确认 | 95.5 | 较强 | 上涨指数占比 100.0%；指数中位涨跌 1.8%；指数收盘位置 72.0% |"
+        },
+        {
+          "id": "2026-09-18-evening:s2:p7",
+          "report_id": "2026-09-18-evening",
+          "section": "六维观察",
+          "text": "| 轮动质量 | 95.9 | 较强 | 上涨行业占比 93.8%；行业中位涨跌 1.3%；领涨集中度 18.7% |"
+        },
+        {
+          "id": "2026-09-18-evening:s3:p0",
+          "report_id": "2026-09-18-evening",
+          "section": "核心矛盾",
+          "text": "- N/A"
+        },
+        {
+          "id": "2026-09-18-evening:s4:p0",
+          "report_id": "2026-09-18-evening",
+          "section": "明日验证",
+          "text": "- N/A"
+        },
+        {
+          "id": "2026-09-18-evening:s5:p0",
+          "report_id": "2026-09-18-evening",
+          "section": "昨日验证复盘",
+          "text": "- N/A"
+        },
+        {
+          "id": "2026-09-18-evening:s6:p0",
+          "report_id": "2026-09-18-evening",
+          "section": "数据完整度与校准",
+          "text": "- 完整度: 高（95%）；六维可用: 6/6。"
+        },
+        {
+          "id": "2026-09-18-evening:s6:p1",
+          "report_id": "2026-09-18-evening",
+          "section": "数据完整度与校准",
+          "text": "- 警告: 赚钱效应、亏钱风险存在缺项，观察分按可用指标重加权。"
+        },
+        {
+          "id": "2026-09-18-evening:s6:p2",
+          "report_id": "2026-09-18-evening",
+          "section": "数据完整度与校准",
+          "text": "- 校准: 暂定观察刻度（未回测）。"
+        },
+        {
+          "id": "2026-09-18-evening:s7:p0",
+          "report_id": "2026-09-18-evening",
+          "section": "二、指数总览",
+          "text": "上证指数: 3911.87 [OK] +0.94% | 成交 9941.69亿"
+        },
+        {
+          "id": "2026-09-18-evening:s7:p1",
+          "report_id": "2026-09-18-evening",
+          "section": "二、指数总览",
+          "text": "深证成指: 13640.87 [OK] +1.72% | 成交 5658.15亿"
+        },
+        {
+          "id": "2026-09-18-evening:s7:p2",
+          "report_id": "2026-09-18-evening",
+          "section": "二、指数总览",
+          "text": "创业板指: 3372.68 [OK] +2.25% | 成交 2227.36亿"
+        },
+        {
+          "id": "2026-09-18-evening:s7:p3",
+          "report_id": "2026-09-18-evening",
+          "section": "二、指数总览",
+          "text": "科创50: 1652.63 [OK] +2.89% | 成交 1176.53亿"
+        },
+        {
+          "id": "2026-09-18-evening:s7:p4",
+          "report_id": "2026-09-18-evening",
+          "section": "二、指数总览",
+          "text": "沪深300: 4507.39 [OK] +1.06% | 成交 5376.99亿"
+        },
+        {
+          "id": "2026-09-18-evening:s7:p5",
+          "report_id": "2026-09-18-evening",
+          "section": "二、指数总览",
+          "text": "中证500: 7799.61 [OK] +1.89% | 成交 3704.58亿"
+        },
+        {
+          "id": "2026-09-18-evening:s7:p6",
+          "report_id": "2026-09-18-evening",
+          "section": "二、指数总览",
+          "text": "中证1000: 7687.59 [OK] +1.84% | 成交 4301.97亿"
+        },
+        {
+          "id": "2026-09-18-evening:s8:p0",
+          "report_id": "2026-09-18-evening",
+          "section": "三、市场总览",
+          "text": "全市场中位数涨跌 [OK] +1.07% | 成交额加权涨跌 +2.86% | 总成交 2.09万亿"
+        },
+        {
+          "id": "2026-09-18-evening:s8:p1",
+          "report_id": "2026-09-18-evening",
+          "section": "三、市场总览",
+          "text": "> 成交额加权与中位数偏离 1.8pp，高成交标的相对偏强"
+        },
+        {
+          "id": "2026-09-18-evening:s8:p2",
+          "report_id": "2026-09-18-evening",
+          "section": "三、市场总览",
+          "text": "上涨 4234 家 | 下跌 1152 家 | 平盘 167 家 | 上涨率 76.2%"
+        },
+        {
+          "id": "2026-09-18-evening:s8:p3",
+          "report_id": "2026-09-18-evening",
+          "section": "三、市场总览",
+          "text": "站上 VWAP 比例: 53.5% | 开盘跳空: +0.42% | 日内振幅中位数: 2.75% | 收盘位置: 55.7%"
+        },
+        {
+          "id": "2026-09-18-evening:s8:p4",
+          "report_id": "2026-09-18-evening",
+          "section": "三、市场总览",
+          "text": "涨跌分布: -100~-9.9%:1  -9.9~-7%:4  -7~-5%:6  -5~-3%:38  -3~-1%:344  -1~0%:759  0~1%:1509  1~3%:1897  3~5%:593  5~7%:198  7~9.9%:88  9.9~100%:115"
+        },
+        {
+          "id": "2026-09-18-evening:s9:p0",
+          "report_id": "2026-09-18-evening",
+          "section": "四、涨跌停",
+          "text": "涨停 80 家 | 跌停 1 家 | 涨幅>5% 402 家 | 跌幅>5% 11 家"
+        },
+        {
+          "id": "2026-09-18-evening:s10:p0",
+          "report_id": "2026-09-18-evening",
+          "section": "六、融资融券",
+          "text": "两融数据暂缺（T+1延迟）"
+        },
+        {
+          "id": "2026-09-18-evening:s11:p0",
+          "report_id": "2026-09-18-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 行业 | 均涨跌 | 中位数 | 家数 | 上涨率 |"
+        },
+        {
+          "id": "2026-09-18-evening:s11:p1",
+          "report_id": "2026-09-18-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "|------|--------|--------|------|--------|"
+        },
+        {
+          "id": "2026-09-18-evening:s11:p2",
+          "report_id": "2026-09-18-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 其他 | +2.85% | +1.78% | 370 | 87.3% |"
+        },
+        {
+          "id": "2026-09-18-evening:s11:p3",
+          "report_id": "2026-09-18-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 电子 | +2.74% | +2.33% | 436 | 89.4% |"
+        },
+        {
+          "id": "2026-09-18-evening:s11:p4",
+          "report_id": "2026-09-18-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 房地产 | +2.03% | +1.69% | 100 | 81.0% |"
+        },
+        {
+          "id": "2026-09-18-evening:s11:p5",
+          "report_id": "2026-09-18-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 电力设备 | +1.97% | +1.62% | 358 | 88.5% |"
+        },
+        {
+          "id": "2026-09-18-evening:s11:p6",
+          "report_id": "2026-09-18-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 机械设备 | +1.86% | +1.34% | 612 | 81.4% |"
+        },
+        {
+          "id": "2026-09-18-evening:s11:p7",
+          "report_id": "2026-09-18-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 通信 | +1.77% | +1.27% | 151 | 80.8% |"
+        },
+        {
+          "id": "2026-09-18-evening:s11:p8",
+          "report_id": "2026-09-18-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 计算机 | +1.77% | +1.40% | 340 | 82.4% |"
+        },
+        {
+          "id": "2026-09-18-evening:s11:p9",
+          "report_id": "2026-09-18-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 美容护理 | +1.74% | +1.18% | 33 | 84.8% |"
+        },
+        {
+          "id": "2026-09-18-evening:s11:p10",
+          "report_id": "2026-09-18-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 国防军工 | +1.66% | +1.31% | 135 | 85.9% |"
+        },
+        {
+          "id": "2026-09-18-evening:s11:p11",
+          "report_id": "2026-09-18-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 轻工制造 | +1.63% | +0.92% | 168 | 72.6% |"
+        },
+        {
+          "id": "2026-09-18-evening:s11:p12",
+          "report_id": "2026-09-18-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "跌幅靠前行业:"
+        },
+        {
+          "id": "2026-09-18-evening:s11:p13",
+          "report_id": "2026-09-18-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "银行(-0.48%)、煤炭(-0.46%)、交通运输(+0.23%)、农林牧渔(+0.27%)、钢铁(+0.46%)"
+        },
+        {
+          "id": "2026-09-18-evening:s12:p0",
+          "report_id": "2026-09-18-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 代码 | 成交额(亿) | 涨跌 |"
+        },
+        {
+          "id": "2026-09-18-evening:s12:p1",
+          "report_id": "2026-09-18-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "|------|-----------|------|"
+        },
+        {
+          "id": "2026-09-18-evening:s12:p2",
+          "report_id": "2026-09-18-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 300308 | 270.8 | +3.40% |"
+        },
+        {
+          "id": "2026-09-18-evening:s12:p3",
+          "report_id": "2026-09-18-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 300502 | 185.1 | +4.87% |"
+        },
+        {
+          "id": "2026-09-18-evening:s12:p4",
+          "report_id": "2026-09-18-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 600176 | 177.5 | -4.52% |"
+        },
+        {
+          "id": "2026-09-18-evening:s12:p5",
+          "report_id": "2026-09-18-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 603986 | 157.9 | +4.95% |"
+        },
+        {
+          "id": "2026-09-18-evening:s12:p6",
+          "report_id": "2026-09-18-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 600487 | 156.5 | +1.46% |"
+        },
+        {
+          "id": "2026-09-18-evening:s12:p7",
+          "report_id": "2026-09-18-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 688825 | 144.6 | +3.87% |"
+        },
+        {
+          "id": "2026-09-18-evening:s12:p8",
+          "report_id": "2026-09-18-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 002384 | 138.8 | +1.35% |"
+        },
+        {
+          "id": "2026-09-18-evening:s12:p9",
+          "report_id": "2026-09-18-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 688256 | 135.1 | +0.65% |"
+        },
+        {
+          "id": "2026-09-18-evening:s12:p10",
+          "report_id": "2026-09-18-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 300394 | 130.4 | +2.52% |"
+        },
+        {
+          "id": "2026-09-18-evening:s12:p11",
+          "report_id": "2026-09-18-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 600183 | 125.7 | -1.44% |"
+        },
+        {
+          "id": "2026-09-18-evening:s13:p0",
+          "report_id": "2026-09-18-evening",
+          "section": "十、极端异动",
+          "text": "涨幅前五: 920298.BJ(+30.00%)、688292.SH(+20.02%)、301390.SZ(+20.00%)、301583.SZ(+20.00%)、301689.SZ(+20.00%)"
+        },
+        {
+          "id": "2026-09-18-evening:s13:p1",
+          "report_id": "2026-09-18-evening",
+          "section": "十、极端异动",
+          "text": "跌幅前五: 002528.SZ(-10.03%)、002360.SZ(-8.58%)、603880.SH(-8.55%)、301030.SZ(-8.22%)、300741.SZ(-7.43%)"
+        },
+        {
+          "id": "2026-09-18-evening:s13:p2",
+          "report_id": "2026-09-18-evening",
+          "section": "十、极端异动",
+          "text": "---"
+        },
+        {
+          "id": "2026-09-18-evening:s13:p3",
+          "report_id": "2026-09-18-evening",
+          "section": "十、极端异动",
+          "text": "*数据: Tushare / market-data-platform | 主题: 研究编辑部 | 生成: 2026-09-19 17:28*"
+        },
+        {
+          "id": "2026-09-18-morning:s0:p0",
+          "report_id": "2026-09-18-morning",
+          "section": "报告信息",
+          "text": "生成时间: 2026-09-19 17:40:12.099635"
+        },
+        {
+          "id": "2026-09-18-morning:s0:p1",
+          "report_id": "2026-09-18-morning",
+          "section": "报告信息",
+          "text": "数据日期: 2026-09-18"
+        },
+        {
+          "id": "2026-09-18-morning:s0:p2",
+          "report_id": "2026-09-18-morning",
+          "section": "报告信息",
+          "text": "报告生成方式: backfill"
+        },
+        {
+          "id": "2026-09-18-morning:s0:p3",
+          "report_id": "2026-09-18-morning",
+          "section": "报告信息",
+          "text": "本报告为历史数据补发，生成时间是本次重建时间，不代表当时已发布。新闻输入已禁用，新闻栏目缺项；跨市场事实使用目标日期快照。"
+        },
+        {
+          "id": "2026-09-18-morning:s1:p0",
+          "report_id": "2026-09-18-morning",
+          "section": "亚洲市场盘前 / 美股市场盘后（2026-09-18）",
+          "text": "原稿生成时间: 2026-09-19 17:40"
+        },
+        {
+          "id": "2026-09-18-morning:s1:p1",
+          "report_id": "2026-09-18-morning",
+          "section": "亚洲市场盘前 / 美股市场盘后（2026-09-18）",
+          "text": "报告主题: 研究编辑部"
+        },
+        {
+          "id": "2026-09-18-morning:s1:p2",
+          "report_id": "2026-09-18-morning",
+          "section": "亚洲市场盘前 / 美股市场盘后（2026-09-18）",
+          "text": "生成方式: market-intel 结构化事实 + 规则模板；未使用自由写作流程。"
+        },
+        {
+          "id": "2026-09-18-morning:s2:p0",
+          "report_id": "2026-09-18-morning",
+          "section": "1. 隔夜要闻",
+          "text": "- [WARN] 未取得通过结构化校验的新闻条目；跳过自由文本新闻。"
+        },
+        {
+          "id": "2026-09-18-morning:s3:p0",
+          "report_id": "2026-09-18-morning",
+          "section": "2. 美股隔夜回顾",
+          "text": "- [fetch] 标普500 ETF SPY +1.13%，收 762.60；纳斯达克100 ETF QQQ +1.73%，收 716.92；费城半导体 ETF SMH +2.76%，收 560.61"
+        },
+        {
+          "id": "2026-09-18-morning:s3:p1",
+          "report_id": "2026-09-18-morning",
+          "section": "2. 美股隔夜回顾",
+          "text": "- 领涨: AMD +6.36%，NVDA +2.54%，AVGO +2.29%"
+        },
+        {
+          "id": "2026-09-18-morning:s3:p2",
+          "report_id": "2026-09-18-morning",
+          "section": "2. 美股隔夜回顾",
+          "text": "- 领跌: GOOGL +1.30%，META +1.34%，AAPL +1.38%"
+        },
+        {
+          "id": "2026-09-18-morning:s3:p3",
+          "report_id": "2026-09-18-morning",
+          "section": "2. 美股隔夜回顾",
+          "text": "- 关键矛盾: SMH 相对 QQQ +1.03pp，半导体相对强。"
+        },
+        {
+          "id": "2026-09-18-morning:s4:p0",
+          "report_id": "2026-09-18-morning",
+          "section": "3. 亚洲市场速览",
+          "text": "- [fetch] 日经225 ^N225 +0.69%，收 63,923；韩国KOSPI ^KS11 +1.37%，收 6,718"
+        },
+        {
+          "id": "2026-09-18-morning:s4:p1",
+          "report_id": "2026-09-18-morning",
+          "section": "3. 亚洲市场速览",
+          "text": "- 日本半导体: 6920.T +0.59%，6146.T -0.80%，8035.T -1.39%"
+        },
+        {
+          "id": "2026-09-18-morning:s4:p2",
+          "report_id": "2026-09-18-morning",
+          "section": "3. 亚洲市场速览",
+          "text": "- 韩国半导体: 042700.KS -0.22%，005930.KS -0.39%，000660.KS -0.80%"
+        },
+        {
+          "id": "2026-09-18-morning:s5:p0",
+          "report_id": "2026-09-18-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [OK] AI芯片: +3.55%，市场 US，驱动 NVDA +2.5%，AMD +6.4%，AVGO +2.3%"
+        },
+        {
+          "id": "2026-09-18-morning:s5:p1",
+          "report_id": "2026-09-18-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [OK] 算力概念: +2.54%，市场 US，驱动 NVDA +2.5%"
+        },
+        {
+          "id": "2026-09-18-morning:s5:p2",
+          "report_id": "2026-09-18-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [OK] GPU概念: +2.54%，市场 US，驱动 NVDA +2.5%"
+        },
+        {
+          "id": "2026-09-18-morning:s5:p3",
+          "report_id": "2026-09-18-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [OK] CPO概念: +2.29%，市场 US，驱动 AVGO +2.3%"
+        },
+        {
+          "id": "2026-09-18-morning:s5:p4",
+          "report_id": "2026-09-18-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [OK] 新能源车: +2.27%，市场 US，驱动 TSLA +2.3%"
+        },
+        {
+          "id": "2026-09-18-morning:s5:p5",
+          "report_id": "2026-09-18-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [OK] 锂电池: +2.27%，市场 US，驱动 TSLA +2.3%"
+        },
+        {
+          "id": "2026-09-18-morning:s5:p6",
+          "report_id": "2026-09-18-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [fetch] 商品映射 白银概念: +3.37%，SLV +3.4%"
+        },
+        {
+          "id": "2026-09-18-morning:s5:p7",
+          "report_id": "2026-09-18-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [fetch] 商品映射 贵金属: +1.63%，GC=F -0.2%，SLV +3.4%"
+        },
+        {
+          "id": "2026-09-18-morning:s5:p8",
+          "report_id": "2026-09-18-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [fetch] 商品映射 黄金概念: +0.77%，GC=F -0.2%，GLD +1.7%"
+        },
+        {
+          "id": "2026-09-18-morning:s6:p0",
+          "report_id": "2026-09-18-morning",
+          "section": "5. A股盘前热点预判",
+          "text": "- 关注映射: AI芯片(+3.55%)，算力概念(+2.54%)，GPU概念(+2.54%)，CPO概念(+2.29%)，新能源车(+2.27%)"
+        },
+        {
+          "id": "2026-09-18-morning:s6:p1",
+          "report_id": "2026-09-18-morning",
+          "section": "5. A股盘前热点预判",
+          "text": "- 风险映射: 材料国产替代(-1.39%)，测试设备(-1.50%)，汽车芯片(-2.22%)，MCU(-2.22%)，功率半导体(-2.22%)"
+        },
+        {
+          "id": "2026-09-18-morning:s7:p0",
+          "report_id": "2026-09-18-morning",
+          "section": "6. 宏观环境",
+          "text": "- [fetch] VIX 恐慌指数: 17.71 (+2.97%)，截至 2026-09-16"
+        },
+        {
+          "id": "2026-09-18-morning:s7:p1",
+          "report_id": "2026-09-18-morning",
+          "section": "6. 宏观环境",
+          "text": "- [fetch] DXY 美元指数: 100.22 (-0.09%)"
+        },
+        {
+          "id": "2026-09-18-morning:s7:p2",
+          "report_id": "2026-09-18-morning",
+          "section": "6. 宏观环境",
+          "text": "- [fetch] 10Y 美债收益率: 5.01 (+0.20%)，截至 2026-09-16"
+        },
+        {
+          "id": "2026-09-18-morning:s7:p3",
+          "report_id": "2026-09-18-morning",
+          "section": "6. 宏观环境",
+          "text": "- [fetch] AAII: 看多 37.5 / 看空 31.5，多空差 +6.00%"
+        },
+        {
+          "id": "2026-09-18-morning:s8:p0",
+          "report_id": "2026-09-18-morning",
+          "section": "7. 数据质量",
+          "text": "- [fetch] 目标交易日 2026-09-18；fresh 6 项，expected_delay 1 项，skipped 0 项，stale/missing 5 项，optional_degraded 4 项。"
+        },
+        {
+          "id": "2026-09-18-morning:s8:p1",
+          "report_id": "2026-09-18-morning",
+          "section": "7. 数据质量",
+          "text": "- [WARN] 同花顺热榜(ths_hot) 最新 20260917，目标 20260918；GitHub Actions 快照 + Windows Task Scheduler 补抓 + 报告流水线最终补抓 后仍未更新，补抓后仍旧。"
+        },
+        {
+          "id": "2026-09-18-morning:s8:p2",
+          "report_id": "2026-09-18-morning",
+          "section": "7. 数据质量",
+          "text": "- [WARN] 涨跌停明细(limit_list_ths) 最新 20260917，目标 20260918；GitHub Actions 快照 + Windows Task Scheduler 补抓 + 报告流水线最终补抓 后仍未更新，补抓后仍旧。"
+        },
+        {
+          "id": "2026-09-18-morning:s8:p3",
+          "report_id": "2026-09-18-morning",
+          "section": "7. 数据质量",
+          "text": "- [WARN] 东方财富概念(dc_concept) 最新 20260917，目标 20260918；GitHub Actions 快照 + Windows Task Scheduler 补抓 + 报告流水线最终补抓 后仍未更新，补抓后仍旧。"
+        },
+        {
+          "id": "2026-09-18-morning:s8:p4",
+          "report_id": "2026-09-18-morning",
+          "section": "7. 数据质量",
+          "text": "- [WARN] 开盘啦概念成分(kpl_concept_cons) 最新 20260917，目标 20260918；GitHub Actions 快照 + Windows Task Scheduler 补抓 + 报告流水线最终补抓 后仍未更新，补抓后仍旧。"
+        },
+        {
+          "id": "2026-09-18-morning:s8:p5",
+          "report_id": "2026-09-18-morning",
+          "section": "7. 数据质量",
+          "text": "- [WARN] 东方财富概念成分(dc_concept_cons) 最新 20260917，目标 20260918；GitHub Actions 快照 + Windows Task Scheduler 补抓 + 报告流水线最终补抓 后仍未更新，补抓后仍旧。"
+        },
+        {
+          "id": "2026-09-18-morning:s8:p6",
+          "report_id": "2026-09-18-morning",
+          "section": "7. 数据质量",
+          "text": "- [fetch] 可选增强数据 融资融券余额(margin) 最新 20260914，目标 20260918；补抓后仍旧；可选增强数据降级，报告已降级，不阻断发送。"
+        },
+        {
+          "id": "2026-09-18-morning:s8:p7",
+          "report_id": "2026-09-18-morning",
+          "section": "7. 数据质量",
+          "text": "- [fetch] 可选增强数据 融资融券明细(margin_detail) 最新 20260914，目标 20260918；补抓后仍旧；可选增强数据降级，报告已降级，不阻断发送。"
+        },
+        {
+          "id": "2026-09-18-morning:s8:p8",
+          "report_id": "2026-09-18-morning",
+          "section": "7. 数据质量",
+          "text": "- [fetch] 可选增强数据 同花顺资金流(moneyflow_ths) 最新 20260916，目标 20260918；补抓后仍旧；可选增强数据降级，报告已降级，不阻断发送。"
+        },
+        {
+          "id": "2026-09-18-morning:s8:p9",
+          "report_id": "2026-09-18-morning",
+          "section": "7. 数据质量",
+          "text": "- [fetch] 可选增强数据 开盘啦涨停池(kpl_list) 最新 20260917，目标 20260918；补抓后仍旧；可选增强数据降级，报告已降级，不阻断发送。"
+        },
+        {
+          "id": "2026-09-18-morning:s8:p10",
+          "report_id": "2026-09-18-morning",
+          "section": "7. 数据质量",
+          "text": "- [fetch] 沪深港通十大成交(hsgt_top10) 最新 20260917；沪深港通成交数据可能受官方披露节奏影响。"
+        },
+        {
+          "id": "2026-09-21-evening:s0:p0",
+          "report_id": "2026-09-21-evening",
+          "section": "报告信息",
+          "text": "生成时间: 2026-09-22 17:33:14.499330"
+        },
+        {
+          "id": "2026-09-21-evening:s0:p1",
+          "report_id": "2026-09-21-evening",
+          "section": "报告信息",
+          "text": "数据日期: 2026-09-21"
+        },
+        {
+          "id": "2026-09-21-evening:s0:p2",
+          "report_id": "2026-09-21-evening",
+          "section": "报告信息",
+          "text": "报告生成方式: scheduled"
+        },
+        {
+          "id": "2026-09-21-evening:s0:p3",
+          "report_id": "2026-09-21-evening",
+          "section": "报告信息",
+          "text": "本报告按计划生成，生成时间为本次实际运行时间。"
+        },
+        {
+          "id": "2026-09-21-evening:s1:p0",
+          "report_id": "2026-09-21-evening",
+          "section": "一、市场状态",
+          "text": "- 状态: 偏热。"
+        },
+        {
+          "id": "2026-09-21-evening:s1:p1",
+          "report_id": "2026-09-21-evening",
+          "section": "一、市场状态",
+          "text": "- 热度 / 脆弱度: 93 / 0.6（观察分）。"
+        },
+        {
+          "id": "2026-09-21-evening:s1:p2",
+          "report_id": "2026-09-21-evening",
+          "section": "一、市场状态",
+          "text": "- 口径: 热度、脆弱度与六维分数均为市场状态观察分，不直接映射仓位，也不构成交易指令。"
+        },
+        {
+          "id": "2026-09-21-evening:s2:p0",
+          "report_id": "2026-09-21-evening",
+          "section": "六维观察",
+          "text": "| 维度 | 观察分 | 状态 | 证据 |"
+        },
+        {
+          "id": "2026-09-21-evening:s2:p1",
+          "report_id": "2026-09-21-evening",
+          "section": "六维观察",
+          "text": "|---|---:|---|---|"
+        },
+        {
+          "id": "2026-09-21-evening:s2:p2",
+          "report_id": "2026-09-21-evening",
+          "section": "六维观察",
+          "text": "| 流动性 | 66.8 | 偏强 | 成交额/历史中位 1.07x；成交额分位 70.0% |"
+        },
+        {
+          "id": "2026-09-21-evening:s2:p3",
+          "report_id": "2026-09-21-evening",
+          "section": "六维观察",
+          "text": "| 广度 | 96.2 | 较强 | 上涨率 81.7%；个股中位涨跌 1.5%；站上VWAP占比 74.7% |"
+        },
+        {
+          "id": "2026-09-21-evening:s2:p4",
+          "report_id": "2026-09-21-evening",
+          "section": "六维观察",
+          "text": "| 赚钱效应 | 100 | 较强 | 涨停率 1.9%；涨幅超5%占比 9.9% |"
+        },
+        {
+          "id": "2026-09-21-evening:s2:p5",
+          "report_id": "2026-09-21-evening",
+          "section": "六维观察",
+          "text": "| 亏钱风险 | 0 | 低风险 | 跌停率 0.1%；跌幅超5%占比 0.5% |"
+        },
+        {
+          "id": "2026-09-21-evening:s2:p6",
+          "report_id": "2026-09-21-evening",
+          "section": "六维观察",
+          "text": "| 趋势确认 | N/A | 数据缺失 | 指数行情未刷新，趋势确认不可用 |"
+        },
+        {
+          "id": "2026-09-21-evening:s2:p7",
+          "report_id": "2026-09-21-evening",
+          "section": "六维观察",
+          "text": "| 轮动质量 | 100 | 较强 | 上涨行业占比 100.0%；行业中位涨跌 1.9%；领涨集中度 16.6% |"
+        },
+        {
+          "id": "2026-09-21-evening:s3:p0",
+          "report_id": "2026-09-21-evening",
+          "section": "核心矛盾",
+          "text": "- N/A"
+        },
+        {
+          "id": "2026-09-21-evening:s4:p0",
+          "report_id": "2026-09-21-evening",
+          "section": "明日验证",
+          "text": "- N/A"
+        },
+        {
+          "id": "2026-09-21-evening:s5:p0",
+          "report_id": "2026-09-21-evening",
+          "section": "昨日验证复盘",
+          "text": "- N/A"
+        },
+        {
+          "id": "2026-09-21-evening:s6:p0",
+          "report_id": "2026-09-21-evening",
+          "section": "数据完整度与校准",
+          "text": "- 完整度: 中（78%）；六维可用: 5/6。"
+        },
+        {
+          "id": "2026-09-21-evening:s6:p1",
+          "report_id": "2026-09-21-evening",
+          "section": "数据完整度与校准",
+          "text": "- 警告: 缺少 趋势确认；赚钱效应、亏钱风险存在缺项，观察分按可用指标重加权。"
+        },
+        {
+          "id": "2026-09-21-evening:s6:p2",
+          "report_id": "2026-09-21-evening",
+          "section": "数据完整度与校准",
+          "text": "- 校准: 暂定观察刻度（未回测）。"
+        },
+        {
+          "id": "2026-09-21-evening:s7:p0",
+          "report_id": "2026-09-21-evening",
+          "section": "二、指数总览",
+          "text": "指数数据暂缺"
+        },
+        {
+          "id": "2026-09-21-evening:s8:p0",
+          "report_id": "2026-09-21-evening",
+          "section": "三、市场总览",
+          "text": "全市场中位数涨跌 [OK] +1.54% | 成交额加权涨跌 +1.75% | 总成交 2.05万亿"
+        },
+        {
+          "id": "2026-09-21-evening:s8:p1",
+          "report_id": "2026-09-21-evening",
+          "section": "三、市场总览",
+          "text": "上涨 4536 家 | 下跌 936 家 | 平盘 81 家 | 上涨率 81.7%"
+        },
+        {
+          "id": "2026-09-21-evening:s8:p2",
+          "report_id": "2026-09-21-evening",
+          "section": "三、市场总览",
+          "text": "站上 VWAP 比例: 74.7% | 开盘跳空: +0.05% | 日内振幅中位数: 3.21% | 收盘位置: 75.0%"
+        },
+        {
+          "id": "2026-09-21-evening:s8:p3",
+          "report_id": "2026-09-21-evening",
+          "section": "三、市场总览",
+          "text": "涨跌分布: -100~-9.9%:5  -9.9~-7%:7  -7~-5%:14  -5~-3%:76  -3~-1%:345  -1~0%:489  0~1%:1161  1~3%:2091  3~5%:815  5~7%:296  7~9.9%:112  9.9~100%:142"
+        },
+        {
+          "id": "2026-09-21-evening:s9:p0",
+          "report_id": "2026-09-21-evening",
+          "section": "四、涨跌停",
+          "text": "涨停 106 家 | 跌停 3 家 | 涨幅>5% 550 家 | 跌幅>5% 26 家"
+        },
+        {
+          "id": "2026-09-21-evening:s10:p0",
+          "report_id": "2026-09-21-evening",
+          "section": "六、融资融券",
+          "text": "两融数据暂缺（T+1延迟）"
+        },
+        {
+          "id": "2026-09-21-evening:s11:p0",
+          "report_id": "2026-09-21-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 行业 | 均涨跌 | 中位数 | 家数 | 上涨率 |"
+        },
+        {
+          "id": "2026-09-21-evening:s11:p1",
+          "report_id": "2026-09-21-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "|------|--------|--------|------|--------|"
+        },
+        {
+          "id": "2026-09-21-evening:s11:p2",
+          "report_id": "2026-09-21-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 医药生物 | +4.01% | +3.64% | 464 | 95.5% |"
+        },
+        {
+          "id": "2026-09-21-evening:s11:p3",
+          "report_id": "2026-09-21-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 房地产 | +3.08% | +3.18% | 100 | 85.0% |"
+        },
+        {
+          "id": "2026-09-21-evening:s11:p4",
+          "report_id": "2026-09-21-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 美容护理 | +3.01% | +3.20% | 33 | 97.0% |"
+        },
+        {
+          "id": "2026-09-21-evening:s11:p5",
+          "report_id": "2026-09-21-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 农林牧渔 | +2.91% | +2.42% | 77 | 97.4% |"
+        },
+        {
+          "id": "2026-09-21-evening:s11:p6",
+          "report_id": "2026-09-21-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 商贸零售 | +2.72% | +2.25% | 108 | 96.3% |"
+        },
+        {
+          "id": "2026-09-21-evening:s11:p7",
+          "report_id": "2026-09-21-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 社会服务 | +2.49% | +1.70% | 57 | 94.7% |"
+        },
+        {
+          "id": "2026-09-21-evening:s11:p8",
+          "report_id": "2026-09-21-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 基础化工 | +2.37% | +1.99% | 351 | 88.0% |"
+        },
+        {
+          "id": "2026-09-21-evening:s11:p9",
+          "report_id": "2026-09-21-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 石油石化 | +2.35% | +2.48% | 49 | 89.8% |"
+        },
+        {
+          "id": "2026-09-21-evening:s11:p10",
+          "report_id": "2026-09-21-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 纺织服饰 | +2.30% | +1.78% | 101 | 82.2% |"
+        },
+        {
+          "id": "2026-09-21-evening:s11:p11",
+          "report_id": "2026-09-21-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 食品饮料 | +2.30% | +2.04% | 126 | 91.3% |"
+        },
+        {
+          "id": "2026-09-21-evening:s11:p12",
+          "report_id": "2026-09-21-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "跌幅靠前行业:"
+        },
+        {
+          "id": "2026-09-21-evening:s11:p13",
+          "report_id": "2026-09-21-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "银行(+0.21%)、公用事业(+0.57%)、电力设备(+0.88%)、有色金属(+1.07%)、环保(+1.11%)"
+        },
+        {
+          "id": "2026-09-21-evening:s12:p0",
+          "report_id": "2026-09-21-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 代码 | 成交额(亿) | 涨跌 |"
+        },
+        {
+          "id": "2026-09-21-evening:s12:p1",
+          "report_id": "2026-09-21-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "|------|-----------|------|"
+        },
+        {
+          "id": "2026-09-21-evening:s12:p2",
+          "report_id": "2026-09-21-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 300308 | 198.2 | +1.57% |"
+        },
+        {
+          "id": "2026-09-21-evening:s12:p3",
+          "report_id": "2026-09-21-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 300502 | 162.2 | +2.64% |"
+        },
+        {
+          "id": "2026-09-21-evening:s12:p4",
+          "report_id": "2026-09-21-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 300476 | 148.0 | +9.23% |"
+        },
+        {
+          "id": "2026-09-21-evening:s12:p5",
+          "report_id": "2026-09-21-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 300750 | 147.6 | -1.61% |"
+        },
+        {
+          "id": "2026-09-21-evening:s12:p6",
+          "report_id": "2026-09-21-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 688825 | 139.7 | +2.41% |"
+        },
+        {
+          "id": "2026-09-21-evening:s12:p7",
+          "report_id": "2026-09-21-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 600487 | 131.5 | +3.25% |"
+        },
+        {
+          "id": "2026-09-21-evening:s12:p8",
+          "report_id": "2026-09-21-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 603986 | 129.8 | +0.91% |"
+        },
+        {
+          "id": "2026-09-21-evening:s12:p9",
+          "report_id": "2026-09-21-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 600176 | 123.8 | +1.89% |"
+        },
+        {
+          "id": "2026-09-21-evening:s12:p10",
+          "report_id": "2026-09-21-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 000725 | 108.9 | +2.53% |"
+        },
+        {
+          "id": "2026-09-21-evening:s12:p11",
+          "report_id": "2026-09-21-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 002185 | 107.1 | +2.88% |"
+        },
+        {
+          "id": "2026-09-21-evening:s13:p0",
+          "report_id": "2026-09-21-evening",
+          "section": "十、极端异动",
+          "text": "涨幅前五: 920427.BJ(+29.92%)、920478.BJ(+29.91%)、300110.SZ(+20.07%)、300829.SZ(+20.02%)、688137.SH(+20.00%)"
+        },
+        {
+          "id": "2026-09-21-evening:s13:p1",
+          "report_id": "2026-09-21-evening",
+          "section": "十、极端异动",
+          "text": "跌幅前五: 688135.SH(-12.76%)、002528.SZ(-10.06%)、003013.SZ(-10.02%)、605198.SH(-10.00%)、300424.SZ(-9.57%)"
+        },
+        {
+          "id": "2026-09-21-evening:s13:p2",
+          "report_id": "2026-09-21-evening",
+          "section": "十、极端异动",
+          "text": "---"
+        },
+        {
+          "id": "2026-09-21-evening:s13:p3",
+          "report_id": "2026-09-21-evening",
+          "section": "十、极端异动",
+          "text": "*数据: Tushare / market-data-platform | 主题: 研究编辑部 | 生成: 2026-09-22 17:33*"
+        },
+        {
+          "id": "2026-09-23-evening:s0:p0",
+          "report_id": "2026-09-23-evening",
+          "section": "报告信息",
+          "text": "生成时间: 2026-09-24 22:18:22.091412"
+        },
+        {
+          "id": "2026-09-23-evening:s0:p1",
+          "report_id": "2026-09-23-evening",
+          "section": "报告信息",
+          "text": "数据日期: 2026-09-23"
+        },
+        {
+          "id": "2026-09-23-evening:s0:p2",
+          "report_id": "2026-09-23-evening",
+          "section": "报告信息",
+          "text": "报告生成方式: backfill"
+        },
+        {
+          "id": "2026-09-23-evening:s0:p3",
+          "report_id": "2026-09-23-evening",
+          "section": "报告信息",
+          "text": "本报告为历史数据补发，生成时间是本次重建时间，不代表当时已发布。"
+        },
+        {
+          "id": "2026-09-23-evening:s1:p0",
+          "report_id": "2026-09-23-evening",
+          "section": "一、市场状态",
+          "text": "- 状态: 偏冷。"
+        },
+        {
+          "id": "2026-09-23-evening:s1:p1",
+          "report_id": "2026-09-23-evening",
+          "section": "一、市场状态",
+          "text": "- 热度 / 脆弱度: 38.2 / 38（观察分）。"
+        },
+        {
+          "id": "2026-09-23-evening:s1:p2",
+          "report_id": "2026-09-23-evening",
+          "section": "一、市场状态",
+          "text": "- 口径: 热度、脆弱度与六维分数均为市场状态观察分，不直接映射仓位，也不构成交易指令。"
+        },
+        {
+          "id": "2026-09-23-evening:s2:p0",
+          "report_id": "2026-09-23-evening",
+          "section": "六维观察",
+          "text": "| 维度 | 观察分 | 状态 | 证据 |"
+        },
+        {
+          "id": "2026-09-23-evening:s2:p1",
+          "report_id": "2026-09-23-evening",
+          "section": "六维观察",
+          "text": "|---|---:|---|---|"
+        },
+        {
+          "id": "2026-09-23-evening:s2:p2",
+          "report_id": "2026-09-23-evening",
+          "section": "六维观察",
+          "text": "| 流动性 | 25.4 | 偏弱 | 成交额/历史中位 0.90x；成交额分位 20.0% |"
+        },
+        {
+          "id": "2026-09-23-evening:s2:p3",
+          "report_id": "2026-09-23-evening",
+          "section": "六维观察",
+          "text": "| 广度 | 20.3 | 较弱 | 上涨率 34.0%；个股中位涨跌 -0.6%；站上VWAP占比 33.2% |"
+        },
+        {
+          "id": "2026-09-23-evening:s2:p4",
+          "report_id": "2026-09-23-evening",
+          "section": "六维观察",
+          "text": "| 赚钱效应 | 52.3 | 中性 | 涨停率 0.9%；涨幅超5%占比 4.0% |"
+        },
+        {
+          "id": "2026-09-23-evening:s2:p5",
+          "report_id": "2026-09-23-evening",
+          "section": "六维观察",
+          "text": "| 亏钱风险 | 23.6 | 低风险 | 跌停率 0.3%；跌幅超5%占比 2.6% |"
+        },
+        {
+          "id": "2026-09-23-evening:s2:p6",
+          "report_id": "2026-09-23-evening",
+          "section": "六维观察",
+          "text": "| 趋势确认 | N/A | 数据缺失 | 指数行情未刷新，趋势确认不可用 |"
+        },
+        {
+          "id": "2026-09-23-evening:s2:p7",
+          "report_id": "2026-09-23-evening",
+          "section": "六维观察",
+          "text": "| 轮动质量 | 16.3 | 较弱 | 上涨行业占比 18.8%；行业中位涨跌 -0.6%；领涨集中度 88.5% |"
+        },
+        {
+          "id": "2026-09-23-evening:s3:p0",
+          "report_id": "2026-09-23-evening",
+          "section": "核心矛盾",
+          "text": "- N/A"
+        },
+        {
+          "id": "2026-09-23-evening:s4:p0",
+          "report_id": "2026-09-23-evening",
+          "section": "明日验证",
+          "text": "- N/A"
+        },
+        {
+          "id": "2026-09-23-evening:s5:p0",
+          "report_id": "2026-09-23-evening",
+          "section": "昨日验证复盘",
+          "text": "- N/A"
+        },
+        {
+          "id": "2026-09-23-evening:s6:p0",
+          "report_id": "2026-09-23-evening",
+          "section": "数据完整度与校准",
+          "text": "- 完整度: 中（78%）；六维可用: 5/6。"
+        },
+        {
+          "id": "2026-09-23-evening:s6:p1",
+          "report_id": "2026-09-23-evening",
+          "section": "数据完整度与校准",
+          "text": "- 警告: 缺少 趋势确认；赚钱效应、亏钱风险存在缺项，观察分按可用指标重加权。"
+        },
+        {
+          "id": "2026-09-23-evening:s6:p2",
+          "report_id": "2026-09-23-evening",
+          "section": "数据完整度与校准",
+          "text": "- 校准: 暂定观察刻度（未回测）。"
+        },
+        {
+          "id": "2026-09-23-evening:s7:p0",
+          "report_id": "2026-09-23-evening",
+          "section": "二、指数总览",
+          "text": "指数数据暂缺"
+        },
+        {
+          "id": "2026-09-23-evening:s8:p0",
+          "report_id": "2026-09-23-evening",
+          "section": "三、市场总览",
+          "text": "全市场中位数涨跌 [WARN] -0.61% | 成交额加权涨跌 +0.72% | 总成交 1.78万亿"
+        },
+        {
+          "id": "2026-09-23-evening:s8:p1",
+          "report_id": "2026-09-23-evening",
+          "section": "三、市场总览",
+          "text": "> 成交额加权与中位数偏离 1.3pp，高成交标的相对偏强"
+        },
+        {
+          "id": "2026-09-23-evening:s8:p2",
+          "report_id": "2026-09-23-evening",
+          "section": "三、市场总览",
+          "text": "上涨 1891 家 | 下跌 3564 家 | 平盘 101 家 | 上涨率 34.0%"
+        },
+        {
+          "id": "2026-09-23-evening:s8:p3",
+          "report_id": "2026-09-23-evening",
+          "section": "三、市场总览",
+          "text": "站上 VWAP 比例: 33.2% | 开盘跳空: +0.00% | 日内振幅中位数: 2.78% | 收盘位置: 30.0%"
+        },
+        {
+          "id": "2026-09-23-evening:s8:p4",
+          "report_id": "2026-09-23-evening",
+          "section": "三、市场总览",
+          "text": "涨跌分布: -100~-9.9%:25  -9.9~-7%:36  -7~-5%:83  -5~-3%:402  -3~-1%:1652  -1~0%:1366  0~1%:929  1~3%:630  3~5%:212  5~7%:88  7~9.9%:46  9.9~100%:86"
+        },
+        {
+          "id": "2026-09-23-evening:s9:p0",
+          "report_id": "2026-09-23-evening",
+          "section": "四、涨跌停",
+          "text": "涨停 51 家 | 跌停 15 家 | 涨幅>5% 221 家 | 跌幅>5% 144 家"
+        },
+        {
+          "id": "2026-09-23-evening:s10:p0",
+          "report_id": "2026-09-23-evening",
+          "section": "六、融资融券",
+          "text": "两融数据暂缺（T+1延迟）"
+        },
+        {
+          "id": "2026-09-23-evening:s11:p0",
+          "report_id": "2026-09-23-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 行业 | 均涨跌 | 中位数 | 家数 | 上涨率 |"
+        },
+        {
+          "id": "2026-09-23-evening:s11:p1",
+          "report_id": "2026-09-23-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "|------|--------|--------|------|--------|"
+        },
+        {
+          "id": "2026-09-23-evening:s11:p2",
+          "report_id": "2026-09-23-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 其他 | +1.30% | -0.28% | 373 | 39.9% |"
+        },
+        {
+          "id": "2026-09-23-evening:s11:p3",
+          "report_id": "2026-09-23-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 电子 | +0.94% | +0.53% | 436 | 59.9% |"
+        },
+        {
+          "id": "2026-09-23-evening:s11:p4",
+          "report_id": "2026-09-23-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 机械设备 | +0.44% | -0.07% | 612 | 47.4% |"
+        },
+        {
+          "id": "2026-09-23-evening:s11:p5",
+          "report_id": "2026-09-23-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 基础化工 | +0.23% | -0.20% | 351 | 44.4% |"
+        },
+        {
+          "id": "2026-09-23-evening:s11:p6",
+          "report_id": "2026-09-23-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 汽车 | +0.12% | -0.19% | 245 | 40.8% |"
+        },
+        {
+          "id": "2026-09-23-evening:s11:p7",
+          "report_id": "2026-09-23-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 医药生物 | +0.00% | -0.36% | 464 | 40.5% |"
+        },
+        {
+          "id": "2026-09-23-evening:s11:p8",
+          "report_id": "2026-09-23-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 建筑材料 | -0.13% | 0.00% | 87 | 46.0% |"
+        },
+        {
+          "id": "2026-09-23-evening:s11:p9",
+          "report_id": "2026-09-23-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 家用电器 | -0.13% | -0.61% | 93 | 29.0% |"
+        },
+        {
+          "id": "2026-09-23-evening:s11:p10",
+          "report_id": "2026-09-23-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 房地产 | -0.15% | -0.46% | 100 | 35.0% |"
+        },
+        {
+          "id": "2026-09-23-evening:s11:p11",
+          "report_id": "2026-09-23-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "| 社会服务 | -0.15% | -0.55% | 57 | 24.6% |"
+        },
+        {
+          "id": "2026-09-23-evening:s11:p12",
+          "report_id": "2026-09-23-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "跌幅靠前行业:"
+        },
+        {
+          "id": "2026-09-23-evening:s11:p13",
+          "report_id": "2026-09-23-evening",
+          "section": "七、行业板块 TOP10",
+          "text": "煤炭(-2.59%)、传媒(-2.20%)、公用事业(-1.82%)、农林牧渔(-1.65%)、商贸零售(-1.49%)"
+        },
+        {
+          "id": "2026-09-23-evening:s12:p0",
+          "report_id": "2026-09-23-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 代码 | 成交额(亿) | 涨跌 |"
+        },
+        {
+          "id": "2026-09-23-evening:s12:p1",
+          "report_id": "2026-09-23-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "|------|-----------|------|"
+        },
+        {
+          "id": "2026-09-23-evening:s12:p2",
+          "report_id": "2026-09-23-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 300308 | 136.8 | -0.56% |"
+        },
+        {
+          "id": "2026-09-23-evening:s12:p3",
+          "report_id": "2026-09-23-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 688825 | 121.5 | +1.31% |"
+        },
+        {
+          "id": "2026-09-23-evening:s12:p4",
+          "report_id": "2026-09-23-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 600487 | 111.5 | -4.19% |"
+        },
+        {
+          "id": "2026-09-23-evening:s12:p5",
+          "report_id": "2026-09-23-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 603986 | 105.2 | -0.84% |"
+        },
+        {
+          "id": "2026-09-23-evening:s12:p6",
+          "report_id": "2026-09-23-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 300502 | 103.0 | -0.84% |"
+        },
+        {
+          "id": "2026-09-23-evening:s12:p7",
+          "report_id": "2026-09-23-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 000725 | 96.5 | +0.33% |"
+        },
+        {
+          "id": "2026-09-23-evening:s12:p8",
+          "report_id": "2026-09-23-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 002384 | 94.4 | -2.58% |"
+        },
+        {
+          "id": "2026-09-23-evening:s12:p9",
+          "report_id": "2026-09-23-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 688008 | 79.9 | +0.69% |"
+        },
+        {
+          "id": "2026-09-23-evening:s12:p10",
+          "report_id": "2026-09-23-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 600641 | 79.6 | +9.28% |"
+        },
+        {
+          "id": "2026-09-23-evening:s12:p11",
+          "report_id": "2026-09-23-evening",
+          "section": "八、高成交核心票 TOP10",
+          "text": "| 002463 | 79.2 | +2.37% |"
+        },
+        {
+          "id": "2026-09-23-evening:s13:p0",
+          "report_id": "2026-09-23-evening",
+          "section": "十、极端异动",
+          "text": "涨幅前五: 688512.SH(+20.03%)、688656.SH(+20.00%)、301150.SZ(+20.00%)、688056.SH(+20.00%)、688337.SH(+20.00%)"
+        },
+        {
+          "id": "2026-09-23-evening:s13:p1",
+          "report_id": "2026-09-23-evening",
+          "section": "十、极端异动",
+          "text": "跌幅前五: 920229.BJ(-30.00%)、601091.SH(-21.01%)、301234.SZ(-12.70%)、300788.SZ(-12.36%)、688121.SH(-12.12%)"
+        },
+        {
+          "id": "2026-09-23-evening:s13:p2",
+          "report_id": "2026-09-23-evening",
+          "section": "十、极端异动",
+          "text": "---"
+        },
+        {
+          "id": "2026-09-23-evening:s13:p3",
+          "report_id": "2026-09-23-evening",
+          "section": "十、极端异动",
+          "text": "*数据: Tushare / market-data-platform | 主题: 研究编辑部 | 生成: 2026-09-24 22:18*"
+        },
+        {
+          "id": "2026-09-23-morning:s0:p0",
+          "report_id": "2026-09-23-morning",
+          "section": "报告信息",
+          "text": "生成时间: 2026-09-24 22:21:31.300310"
+        },
+        {
+          "id": "2026-09-23-morning:s0:p1",
+          "report_id": "2026-09-23-morning",
+          "section": "报告信息",
+          "text": "数据日期: 2026-09-23"
+        },
+        {
+          "id": "2026-09-23-morning:s0:p2",
+          "report_id": "2026-09-23-morning",
+          "section": "报告信息",
+          "text": "报告生成方式: backfill"
+        },
+        {
+          "id": "2026-09-23-morning:s0:p3",
+          "report_id": "2026-09-23-morning",
+          "section": "报告信息",
+          "text": "本报告为历史数据补发，生成时间是本次重建时间，不代表当时已发布。新闻输入已禁用，新闻栏目缺项；跨市场事实使用目标日期快照。"
+        },
+        {
+          "id": "2026-09-23-morning:s1:p0",
+          "report_id": "2026-09-23-morning",
+          "section": "亚洲市场盘前 / 美股市场盘后（2026-09-23）",
+          "text": "原稿生成时间: 2026-09-24 22:21"
+        },
+        {
+          "id": "2026-09-23-morning:s1:p1",
+          "report_id": "2026-09-23-morning",
+          "section": "亚洲市场盘前 / 美股市场盘后（2026-09-23）",
+          "text": "报告主题: 研究编辑部"
+        },
+        {
+          "id": "2026-09-23-morning:s1:p2",
+          "report_id": "2026-09-23-morning",
+          "section": "亚洲市场盘前 / 美股市场盘后（2026-09-23）",
+          "text": "生成方式: market-intel 结构化事实 + 规则模板；未使用自由写作流程。"
+        },
+        {
+          "id": "2026-09-23-morning:s2:p0",
+          "report_id": "2026-09-23-morning",
+          "section": "1. 隔夜要闻",
+          "text": "- [WARN] 未取得通过结构化校验的新闻条目；跳过自由文本新闻。"
+        },
+        {
+          "id": "2026-09-23-morning:s3:p0",
+          "report_id": "2026-09-23-morning",
+          "section": "2. 美股隔夜回顾",
+          "text": "- [fetch] 标普500 ETF SPY -0.72%，收 767.81；纳斯达克100 ETF QQQ -0.84%，收 741.21；费城半导体 ETF SMH -1.00%，收 601.41"
+        },
+        {
+          "id": "2026-09-23-morning:s3:p1",
+          "report_id": "2026-09-23-morning",
+          "section": "2. 美股隔夜回顾",
+          "text": "- 领涨: META +1.02%，MSFT +0.52%，TSLA +0.32%"
+        },
+        {
+          "id": "2026-09-23-morning:s3:p2",
+          "report_id": "2026-09-23-morning",
+          "section": "2. 美股隔夜回顾",
+          "text": "- 领跌: GOOGL -3.80%，AVGO -2.62%，AMZN -2.24%"
+        },
+        {
+          "id": "2026-09-23-morning:s4:p0",
+          "report_id": "2026-09-23-morning",
+          "section": "3. 亚洲市场速览",
+          "text": "- [fetch] 日经225 ^N225 +1.38%，收 65,019；韩国KOSPI ^KS11 +1.65%，收 7,008"
+        },
+        {
+          "id": "2026-09-23-morning:s4:p1",
+          "report_id": "2026-09-23-morning",
+          "section": "3. 亚洲市场速览",
+          "text": "- 日本半导体: 6920.T +8.70%，6857.T +5.99%，6723.T +4.45%"
+        },
+        {
+          "id": "2026-09-23-morning:s4:p2",
+          "report_id": "2026-09-23-morning",
+          "section": "3. 亚洲市场速览",
+          "text": "- 韩国半导体: 005930.KS +3.25%，042700.KS +1.46%，000660.KS +1.20%"
+        },
+        {
+          "id": "2026-09-23-morning:s5:p0",
+          "report_id": "2026-09-23-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [OK] 光刻机: +8.70%，市场 JP，驱动 6920.T +8.7%"
+        },
+        {
+          "id": "2026-09-23-morning:s5:p1",
+          "report_id": "2026-09-23-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [OK] EUV检测: +8.70%，市场 JP，驱动 6920.T +8.7%"
+        },
+        {
+          "id": "2026-09-23-morning:s5:p2",
+          "report_id": "2026-09-23-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [OK] 测试设备: +5.99%，市场 JP，驱动 6857.T +6.0%"
+        },
+        {
+          "id": "2026-09-23-morning:s5:p3",
+          "report_id": "2026-09-23-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [OK] 汽车芯片: +4.45%，市场 JP，驱动 6723.T +4.5%"
+        },
+        {
+          "id": "2026-09-23-morning:s5:p4",
+          "report_id": "2026-09-23-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [OK] MCU: +4.45%，市场 JP，驱动 6723.T +4.5%"
+        },
+        {
+          "id": "2026-09-23-morning:s5:p5",
+          "report_id": "2026-09-23-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [OK] 功率半导体: +4.45%，市场 JP，驱动 6723.T +4.5%"
+        },
+        {
+          "id": "2026-09-23-morning:s5:p6",
+          "report_id": "2026-09-23-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [fetch] 商品映射 珠宝首饰: -1.23%，GC=F -1.2%"
+        },
+        {
+          "id": "2026-09-23-morning:s5:p7",
+          "report_id": "2026-09-23-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [fetch] 商品映射 黄金概念: -1.52%，GC=F -1.2%，GLD -1.8%"
+        },
+        {
+          "id": "2026-09-23-morning:s5:p8",
+          "report_id": "2026-09-23-morning",
+          "section": "4. 跨市场传导信号",
+          "text": "- [fetch] 商品映射 贵金属: -2.42%，GC=F -1.2%，SLV -4.2%"
+        },
+        {
+          "id": "2026-09-23-morning:s6:p0",
+          "report_id": "2026-09-23-morning",
+          "section": "5. A股盘前热点预判",
+          "text": "- 关注映射: 光刻机(+8.70%)，EUV检测(+8.70%)，测试设备(+5.99%)，汽车芯片(+4.45%)，MCU(+4.45%)"
+        },
+        {
+          "id": "2026-09-23-morning:s6:p1",
+          "report_id": "2026-09-23-morning",
+          "section": "5. A股盘前热点预判",
+          "text": "- 风险映射: AI芯片(-1.83%)，云计算(-1.84%)，跨境电商(-2.24%)，CPO概念(-2.62%)，大模型(-3.80%)"
+        },
+        {
+          "id": "2026-09-23-morning:s7:p0",
+          "report_id": "2026-09-23-morning",
+          "section": "6. 宏观环境",
+          "text": "- [fetch] VIX 恐慌指数: 14.21 (-4.44%)，截至 2026-09-22"
+        },
+        {
+          "id": "2026-09-23-morning:s7:p1",
+          "report_id": "2026-09-23-morning",
+          "section": "6. 宏观环境",
+          "text": "- [fetch] DXY 美元指数: 101.11 (+0.68%)"
+        },
+        {
+          "id": "2026-09-23-morning:s7:p2",
+          "report_id": "2026-09-23-morning",
+          "section": "6. 宏观环境",
+          "text": "- [fetch] 10Y 美债收益率: 4.96 (+0.00%)，截至 2026-09-22"
+        },
+        {
+          "id": "2026-09-23-morning:s7:p3",
+          "report_id": "2026-09-23-morning",
+          "section": "6. 宏观环境",
+          "text": "- [fetch] AAII: 看多 37.5 / 看空 31.5，多空差 +6.00%"
+        },
+        {
+          "id": "2026-09-23-morning:s8:p0",
+          "report_id": "2026-09-23-morning",
+          "section": "7. 数据质量",
+          "text": "- [fetch] 目标交易日 2026-09-23；fresh 6 项，expected_delay 0 项，skipped 0 项，stale/missing 5 项，optional_degraded 5 项。"
+        },
+        {
+          "id": "2026-09-23-morning:s8:p1",
+          "report_id": "2026-09-23-morning",
+          "section": "7. 数据质量",
+          "text": "- [WARN] 同花顺热榜(ths_hot) 最新 20260917，目标 20260923；GitHub Actions 快照 + Windows Task Scheduler 补抓 + 报告流水线最终补抓 后仍未更新，补抓后仍旧。"
+        },
+        {
+          "id": "2026-09-23-morning:s8:p2",
+          "report_id": "2026-09-23-morning",
+          "section": "7. 数据质量",
+          "text": "- [WARN] 涨跌停明细(limit_list_ths) 最新 20260917，目标 20260923；GitHub Actions 快照 + Windows Task Scheduler 补抓 + 报告流水线最终补抓 后仍未更新，补抓后仍旧。"
+        },
+        {
+          "id": "2026-09-23-morning:s8:p3",
+          "report_id": "2026-09-23-morning",
+          "section": "7. 数据质量",
+          "text": "- [WARN] 东方财富概念(dc_concept) 最新 20260917，目标 20260923；GitHub Actions 快照 + Windows Task Scheduler 补抓 + 报告流水线最终补抓 后仍未更新，补抓后仍旧。"
+        },
+        {
+          "id": "2026-09-23-morning:s8:p4",
+          "report_id": "2026-09-23-morning",
+          "section": "7. 数据质量",
+          "text": "- [WARN] 开盘啦概念成分(kpl_concept_cons) 最新 20260917，目标 20260923；GitHub Actions 快照 + Windows Task Scheduler 补抓 + 报告流水线最终补抓 后仍未更新，补抓后仍旧。"
+        },
+        {
+          "id": "2026-09-23-morning:s8:p5",
+          "report_id": "2026-09-23-morning",
+          "section": "7. 数据质量",
+          "text": "- [WARN] 东方财富概念成分(dc_concept_cons) 最新 20260917，目标 20260923；GitHub Actions 快照 + Windows Task Scheduler 补抓 + 报告流水线最终补抓 后仍未更新，补抓后仍旧。"
+        },
+        {
+          "id": "2026-09-23-morning:s8:p6",
+          "report_id": "2026-09-23-morning",
+          "section": "7. 数据质量",
+          "text": "- [fetch] 可选增强数据 融资融券余额(margin) 最新 20260914，目标 20260923；补抓后仍旧；可选增强数据降级，报告已降级，不阻断发送。"
+        },
+        {
+          "id": "2026-09-23-morning:s8:p7",
+          "report_id": "2026-09-23-morning",
+          "section": "7. 数据质量",
+          "text": "- [fetch] 可选增强数据 融资融券明细(margin_detail) 最新 20260914，目标 20260923；补抓后仍旧；可选增强数据降级，报告已降级，不阻断发送。"
+        },
+        {
+          "id": "2026-09-23-morning:s8:p8",
+          "report_id": "2026-09-23-morning",
+          "section": "7. 数据质量",
+          "text": "- [fetch] 可选增强数据 沪深港通十大成交(hsgt_top10) 最新 20260917，目标 20260923；补抓后仍旧；可选增强数据降级，报告已降级，不阻断发送。"
+        },
+        {
+          "id": "2026-09-23-morning:s8:p9",
+          "report_id": "2026-09-23-morning",
+          "section": "7. 数据质量",
+          "text": "- [fetch] 可选增强数据 同花顺资金流(moneyflow_ths) 最新 20260916，目标 20260923；补抓后仍旧；可选增强数据降级，报告已降级，不阻断发送。"
+        },
+        {
+          "id": "2026-09-23-morning:s8:p10",
+          "report_id": "2026-09-23-morning",
+          "section": "7. 数据质量",
+          "text": "- [fetch] 可选增强数据 开盘啦涨停池(kpl_list) 最新 20260917，目标 20260923；补抓后仍旧；可选增强数据降级，报告已降级，不阻断发送。"
+        }
+      ],
+      "metrics": {
+        "advancing_pct": {
+          "value": 34.0,
+          "label": "上涨率",
+          "unit": "%",
+          "evidence_ids": [
+            "2026-09-23-evening:s2:p3",
+            "2026-09-23-evening:s8:p2"
+          ]
+        },
+        "volume_ratio": {
+          "value": 0.9,
+          "label": "成交额 / 历史中位数",
+          "unit": "倍",
+          "evidence_ids": [
+            "2026-09-23-evening:s2:p2"
+          ]
+        },
+        "tail_loss_pct": {
+          "value": 2.6,
+          "label": "跌幅超过 5% 占比",
+          "unit": "%",
+          "evidence_ids": [
+            "2026-09-23-evening:s2:p5"
+          ]
+        },
+        "above_vwap_pct": {
+          "value": 33.2,
+          "label": "站上 VWAP 占比",
+          "unit": "%",
+          "evidence_ids": [
+            "2026-09-23-evening:s2:p3",
+            "2026-09-23-evening:s8:p3"
+          ]
+        }
+      },
+      "quality_warnings": [
+        "| 趋势确认 | N/A | 数据缺失 | 指数行情未刷新，趋势确认不可用 |",
+        "- 校准: 暂定观察刻度（未回测）。",
+        "指数数据暂缺",
+        "两融数据暂缺（T+1延迟）",
+        "- [WARN] 未取得通过结构化校验的新闻条目；跳过自由文本新闻。",
+        "- [fetch] 可选增强数据 融资融券余额(margin) 最新 20260914，目标 20260923；补抓后仍旧；可选增强数据降级，报告已降级，不阻断发送。",
+        "- [fetch] 可选增强数据 融资融券明细(margin_detail) 最新 20260914，目标 20260923；补抓后仍旧；可选增强数据降级，报告已降级，不阻断发送。",
+        "- [fetch] 可选增强数据 沪深港通十大成交(hsgt_top10) 最新 20260917，目标 20260923；补抓后仍旧；可选增强数据降级，报告已降级，不阻断发送。",
+        "- [fetch] 可选增强数据 同花顺资金流(moneyflow_ths) 最新 20260916，目标 20260923；补抓后仍旧；可选增强数据降级，报告已降级，不阻断发送。",
+        "- [fetch] 可选增强数据 开盘啦涨停池(kpl_list) 最新 20260917，目标 20260923；补抓后仍旧；可选增强数据降级，报告已降级，不阻断发送。"
+      ],
+      "id": "7784ecc60982ea5e0bdd49f8",
+      "generated_at": "2026-09-24T23:01:24+08:00",
+      "generation_mode": "retrospective",
+      "provider": "codex",
+      "model": "codex-cli",
+      "prompt_version": "market-insight-v1",
+      "prompt_hash": "1718c724818607ad36a4394ab76d53b9a8e16f58c938a5225038c5bb08d79f65",
+      "fingerprint": "5a6ae969446bbbce2ee2a45f9d262331e49bb72ec6f8b6801217519657aa03e4",
+      "analysis": {
+        "overview": {
+          "text": "盘面已从此前普涨转向多数个股走弱，成交也在收缩，高成交标的相对偏强还不足以说明整体企稳。",
+          "evidence_ids": [
+            "2026-09-21-evening:s8:p0",
+            "2026-09-21-evening:s8:p1",
+            "2026-09-23-evening:s8:p0",
+            "2026-09-23-evening:s8:p1",
+            "2026-09-23-evening:s8:p2"
+          ]
+        },
+        "changes": [
+          {
+            "text": "相比此前可比晚报，上涨率、站上VWAP占比均回落，个股中位涨跌转负；成交额相对历史中位也由偏强转弱。",
+            "evidence_ids": [
+              "2026-09-21-evening:s2:p2",
+              "2026-09-21-evening:s2:p3",
+              "2026-09-23-evening:s2:p2",
+              "2026-09-23-evening:s2:p3"
+            ]
+          },
+          {
+            "text": "行业上涨范围明显收窄，领涨更集中；涨停减少、跌停和大幅下跌个股增多，局部强势之外的压力在扩大。",
+            "evidence_ids": [
+              "2026-09-21-evening:s2:p7",
+              "2026-09-23-evening:s2:p7",
+              "2026-09-21-evening:s9:p0",
+              "2026-09-23-evening:s9:p0"
+            ]
+          }
+        ],
+        "tensions": [
+          {
+            "text": "成交额加权涨跌仍为正，电子行业均值和中位数也上涨，说明仍有局部支撑，但不能替代市场广度改善。",
+            "evidence_ids": [
+              "2026-09-23-evening:s8:p0",
+              "2026-09-23-evening:s11:p3",
+              "2026-09-23-evening:s2:p3"
+            ]
+          },
+          {
+            "text": "本次是历史补发，不能当作当时已发布的判断；指数缺失使趋势仍待确认，新闻缺项也意味着涨跌原因缺乏证据。",
+            "evidence_ids": [
+              "2026-09-23-evening:s0:p3",
+              "2026-09-23-evening:s2:p6",
+              "2026-09-23-morning:s2:p0"
+            ]
+          }
+        ],
+        "watchpoints": [
+          {
+            "question": "上涨覆盖面能否回升？",
+            "metric": "advancing_pct",
+            "operator": ">",
+            "threshold": 34.0,
+            "evidence_ids": [
+              "2026-09-23-evening:s2:p3",
+              "2026-09-23-evening:s8:p2"
+            ]
+          },
+          {
+            "question": "成交相对历史中位能否改善？",
+            "metric": "volume_ratio",
+            "operator": ">",
+            "threshold": 0.9,
+            "evidence_ids": [
+              "2026-09-23-evening:s2:p2"
+            ]
+          },
+          {
+            "question": "大幅下跌个股占比能否收敛？",
+            "metric": "tail_loss_pct",
+            "operator": "<",
+            "threshold": 2.6,
+            "evidence_ids": [
+              "2026-09-23-evening:s2:p5"
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "outcomes": [
+    {
+      "insight_id": "7784ecc60982ea5e0bdd49f8",
+      "watchpoint_index": 0,
+      "status": "pending",
+      "report_id": null,
+      "observed_date": null,
+      "observed_value": null,
+      "evidence_ids": [],
+      "evidence": [],
+      "source_hash": null
+    },
+    {
+      "insight_id": "7784ecc60982ea5e0bdd49f8",
+      "watchpoint_index": 1,
+      "status": "pending",
+      "report_id": null,
+      "observed_date": null,
+      "observed_value": null,
+      "evidence_ids": [],
+      "evidence": [],
+      "source_hash": null
+    },
+    {
+      "insight_id": "7784ecc60982ea5e0bdd49f8",
+      "watchpoint_index": 2,
+      "status": "pending",
+      "report_id": null,
+      "observed_date": null,
+      "observed_value": null,
+      "evidence_ids": [],
+      "evidence": [],
+      "source_hash": null
+    }
+  ]
+}
