@@ -96,8 +96,13 @@ def build_context(reports: list[dict], morning: dict, evening: dict) -> dict:
         and generated <= cutoff
         and row["date"] <= morning["date"]
     ]
-    dates = sorted({row["date"] for row in eligible}, reverse=True)[:5]
-    selected = sorted([row for row in eligible if row["date"] in dates], key=lambda row: row["id"])
+    if morning.get("kind") == "evening":
+        # The new single-evening session has a precise comparison window.
+        # Archived mornings are often duplicates and can overwhelm the model.
+        selected = sorted((morning, evening), key=lambda row: row["id"])
+    else:
+        dates = sorted({row["date"] for row in eligible}, reverse=True)[:5]
+        selected = sorted([row for row in eligible if row["date"] in dates], key=lambda row: row["id"])
     evidence = evidence_for(selected)
     warnings = list(
         dict.fromkeys(

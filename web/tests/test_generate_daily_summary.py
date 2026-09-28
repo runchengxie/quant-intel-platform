@@ -11,6 +11,7 @@ from scripts.generate_daily_summary import (
     summary_source_hash,
     validate_summary,
 )
+from scripts.insight_contract import build_context
 
 
 def report(report_id, date, kind, generated_at):
@@ -38,6 +39,13 @@ class SourcePairTests(unittest.TestCase):
         previous = report("previous", "2026-09-23", "evening", "2026-09-24 22:18")
         current = report("current", "2026-09-24", "evening", "2026-09-28 10:58")
         self.assertEqual((current, previous), select_source_pair([older, previous, current]))
+
+    def test_evening_context_excludes_duplicate_archived_morning(self):
+        previous = report("previous", "2026-09-23", "evening", "2026-09-23 19:00")
+        morning = report("morning", "2026-09-24", "morning", "2026-09-24 07:00")
+        current = report("current", "2026-09-24", "evening", "2026-09-24 19:00")
+        context = build_context([previous, morning, current], current, previous)
+        self.assertEqual(["current", "previous"], context["source_report_ids"])
 
     def test_pairs_latest_morning_with_preceding_evening(self):
         evening = report("2026-09-14-evening", "2026-09-14", "evening", "2026-09-14 19:08")

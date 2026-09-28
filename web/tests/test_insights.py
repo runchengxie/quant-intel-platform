@@ -137,6 +137,29 @@ class InsightContractTests(unittest.TestCase):
 
 
 class GenerationTests(unittest.TestCase):
+    def test_invalid_first_completion_is_retried_without_weakening_validation(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            reports = root / "reports.json"
+            reports.write_text(
+                json.dumps({"schema_version": "market_intel_pages.reports.v1", "reports": sources()})
+            )
+            calls = 0
+
+            def generator(*_args):
+                nonlocal calls
+                calls += 1
+                if calls == 1:
+                    unsupported = copy.deepcopy(analysis())
+                    unsupported["changes"][0]["text"] = "上涨率 99.9%。"
+                    return unsupported
+                return analysis()
+
+            result = run(reports, root / "insights.json", api_key="test-key", generator=generator)
+            self.assertEqual(2, calls)
+            self.assertEqual("generated", result["generation"]["status"])
+            self.assertEqual("上涨率 56.3%。", result["insights"][0]["analysis"]["changes"][0]["text"])
+
     def test_http_failure_publishes_safe_status_without_exception_text(self):
         with tempfile.TemporaryDirectory() as directory:
             p = Path(directory)
@@ -269,7 +292,7 @@ class GenerationTests(unittest.TestCase):
             generation = result["generation"]
             self.assertEqual("analysis_validation_failed", generation["error_code"])
             self.assertNotIn("secret model prose", json.dumps(generation))
-            self.assertEqual(1, generation["analysis_attempts"])
+            self.assertEqual(3, generation["analysis_attempts"])
 
 
 if __name__ == "__main__":
