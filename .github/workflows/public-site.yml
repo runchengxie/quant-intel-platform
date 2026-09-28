@@ -56,6 +56,16 @@ jobs:
         run: python scripts/build_site.py --output "$SITE_OUTPUT"
       - name: Build documentation under /docs
         run: uv run mkdocs build --strict --site-dir "${{ runner.temp }}/public-site/docs"
+      - name: Upload public report ledger for the private publisher
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-intel-ledger-${{ github.run_id }}-1
+          path: |
+            web/artifacts/public/data
+            web/artifacts/public/reports
+          if-no-files-found: error
+          retention-days: 7
       - name: Upload preview artifact
         if: github.event_name == 'pull_request'
         uses: actions/upload-artifact@v4

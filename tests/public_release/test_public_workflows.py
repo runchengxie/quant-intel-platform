@@ -30,3 +30,11 @@ def test_active_public_workflows_are_secret_free_and_read_only() -> None:
 def test_disabled_workflow_candidates_are_not_active_public_ci() -> None:
     disabled = tuple(sorted(WORKFLOW_ROOT.glob("*.disabled")))
     assert disabled == ()
+
+
+def test_public_site_uploads_report_ledger_for_private_archival() -> None:
+    workflow = (WORKFLOW_ROOT / "public-site.yml").read_text(encoding="utf-8")
+    assert "market-intel-ledger-${{ github.run_id }}-1" in workflow
+    assert "web/artifacts/public/data" in workflow
+    assert "web/artifacts/public/reports" in workflow
+    assert "if-no-files-found: error" in workflow
