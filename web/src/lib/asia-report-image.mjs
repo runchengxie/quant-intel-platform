@@ -29,10 +29,141 @@ function excerpt(markdown, heading, limit = 3) {
     const clean = line.trim().startsWith('|')
       ? line.split('|').map((cell) => cell.trim()).filter(Boolean).join(' / ')
       : line.replace(/^[-*>\s]+/, '').trim();
-    if (clean) result.push(clean);
+    if (clean && !/^N\/A$/i.test(clean)) result.push(clean);
     if (result.length >= limit) break;
   }
   return result;
+}
+
+const INK = '#34271f';
+const MUTED = '#715f52';
+const UP = '#b64d33';
+const DOWN = '#5c7182';
+const TRACK = '#efe2d5';
+const FLAT = '#b9a99a';
+const CHART_KEYS = ['dashboard', 'moneyflow', 'topic', 'sentiment', 'weekly_chart'];
+const FONT = "'Source Han Sans CN', 'Noto Sans CJK SC', 'Noto Sans SC', 'PingFang SC', sans-serif";
+
+const formatNumber = (value, digits = 1) => Number(value).toLocaleString('zh-CN', { maximumFractionDigits: digits });
+const textNode = (x, y, value, { size = 13, color = INK, anchor = 'start', weight = '400' } = {}) =>
+  `<text x="${x}" y="${y}" text-anchor="${anchor}" fill="${color}" font-family="sans-serif" font-size="${size}" font-weight="${weight}">${escapeText(value)}</text>`;
+const usablePoints = (chart) => ['ok', 'degraded'].includes(chart.status) && Array.isArray(chart.points)
+  ? chart.points.filter((point) => Number.isFinite(point.value) && sourceDomain(point.source_url)) : [];
+
+function sourceNote(draw, points) {
+  const dates = [...new Set(points.map((point) => point.observation_date))].sort();
+  const sources = [...new Set(points.map((point) => point.source_label))];
+  draw.text(`观测日：${dates.length > 1 ? `${dates[0]} 至 ${dates.at(-1)}` : dates[0]} · 来源：${sources.join('、')}`, MUTED, 12);
+}
+
+function breadth(draw, points, title = '市场广度') {
+  const rows = ['上涨家数', '下跌家数', '平盘家数'].map((label) => points.find((point) => point.label === label));
+  if (rows.some((row) => !row) || new Set(rows.map((row) => row.observation_date)).size !== 1) return false;
+  const total = rows.reduce((sum, row) => sum + row.value, 0);
+  if (total <= 0) return false;
+  draw.parts.push(textNode(54, draw.y, title, { size: 15, weight: '600' }));
+  draw.y += 16;
+  let left = 54;
+  for (const [index, row] of rows.entries()) {
+    const width = 852 * row.value / total;
+    draw.parts.push(`<rect x="${left}" y="${draw.y}" width="${width}" height="25" fill="${[UP, DOWN, FLAT][index]}"/>`);
+    left += width;
+  }
+  draw.y += 45;
+  draw.parts.push(textNode(54, draw.y, `涨 ${formatNumber(rows[0].value, 0)} 家`, { color: UP }));
+  draw.parts.push(textNode(350, draw.y, `跌 ${formatNumber(rows[1].value, 0)} 家`, { color: DOWN }));
+  draw.parts.push(textNode(650, draw.y, `平 ${formatNumber(rows[2].value, 0)} 家`, { color: MUTED }));
+  draw.y += 29;
+  return true;
+}
+
+function metricCards(draw, points, labels) {
+  const rows = labels.map((label) => points.find((point) => point.label === label)).filter(Boolean);
+  if (!rows.length) return;
+  const width = 852 / rows.length;
+  for (const [index, point] of rows.entries()) {
+    const x = 54 + index * width;
+    draw.parts.push(`<rect x="${x}" y="${draw.y}" width="${width - 10}" height="60" fill="#f5ebe1"/>`);
+    draw.parts.push(textNode(x + 12, draw.y + 21, point.label, { size: 12, color: MUTED }));
+    draw.parts.push(textNode(x + 12, draw.y + 46, `${formatNumber(point.value, 2)} ${point.unit}`, { size: 18, weight: '600', color: point.value < 0 ? DOWN : UP }));
+  }
+  draw.y += 78;
+}
+
+function trend(draw, points, prefix, title, unit) {
+  const rows = points.filter((point) => point.label.startsWith(`${prefix} `) && point.unit === unit)
+    .sort((a, b) => a.observation_date.localeCompare(b.observation_date)).slice(-5);
+  if (rows.length < 2) return false;
+  draw.parts.push(textNode(54, draw.y, title, { size: 15, weight: '600' }));
+  draw.y += 20;
+  const top = draw.y;
+  const values = rows.map((row) => row.value);
+  const low = Math.min(...values);
+  const high = Math.max(...values);
+  const span = Math.max(high - low, 1);
+  const vertices = rows.map((row, index) => ({
+    x: 100 + index * 750 / Math.max(rows.length - 1, 1),
+    y: top + 62 - (row.value - low) / span * 45,
+  }));
+  draw.parts.push(`<line x1="54" y1="${top + 64}" x2="906" y2="${top + 64}" stroke="${TRACK}"/>`);
+  draw.parts.push(`<polyline points="${vertices.map(({ x, y }) => `${x},${y}`).join(' ')}" fill="none" stroke="${UP}" stroke-width="3"/>`);
+  for (const [index, row] of rows.entries()) {
+    const { x, y } = vertices[index];
+    draw.parts.push(`<circle cx="${x}" cy="${y}" r="4" fill="${UP}"/>`);
+    draw.parts.push(textNode(x, top + 80, row.observation_date.slice(5), { size: 11, color: MUTED, anchor: 'middle' }));
+    draw.parts.push(textNode(x, top + 98, formatNumber(row.value, 0), { size: 11, anchor: 'middle' }));
+  }
+  draw.y = top + 124;
+  return true;
+}
+
+function rankedBars(draw, rows, title, color, width = 400, x = 54) {
+  if (!rows.length) return;
+  draw.parts.push(textNode(x, draw.y, title, { size: 15, weight: '600' }));
+  draw.y += 22;
+  const max = Math.max(...rows.map((point) => Math.abs(point.value)), 1);
+  for (const point of rows) {
+    draw.parts.push(textNode(x, draw.y, point.label, { size: 12 }));
+    draw.parts.push(textNode(x + width, draw.y, `${formatNumber(point.value, 2)} ${point.unit}`, { size: 12, color, anchor: 'end' }));
+    draw.parts.push(`<rect x="${x}" y="${draw.y + 7}" width="${width}" height="8" fill="${TRACK}"/>`);
+    draw.parts.push(`<rect x="${x}" y="${draw.y + 7}" width="${Math.max(2, width * Math.abs(point.value) / max)}" height="8" fill="${color}"/>`);
+    draw.y += 38;
+  }
+  draw.y += 9;
+}
+
+function weekly(draw, points) {
+  const byDate = new Map();
+  for (const point of points) {
+    const match = /^(上涨家数|下跌家数|平盘家数|成交额) (\d{4}-\d{2}-\d{2})$/.exec(point.label);
+    if (match) {
+      if (!byDate.has(match[2])) byDate.set(match[2], {});
+      byDate.get(match[2])[match[1]] = point;
+    }
+  }
+  const dates = [...byDate.keys()].sort().slice(-5);
+  const breadthRows = dates.filter((date) => ['上涨家数', '下跌家数', '平盘家数'].every((key) => byDate.get(date)[key]));
+  if (breadthRows.length) {
+    draw.parts.push(textNode(54, draw.y, '近几日涨跌分布', { size: 15, weight: '600' }));
+    draw.y += 22;
+    for (const date of breadthRows) {
+      const row = byDate.get(date);
+      const values = ['上涨家数', '下跌家数', '平盘家数'].map((key) => row[key].value);
+      const total = values.reduce((sum, value) => sum + value, 0);
+      if (total <= 0) continue;
+      draw.parts.push(textNode(54, draw.y + 15, date.slice(5), { size: 12 }));
+      let x = 145;
+      for (const [index, value] of values.entries()) {
+        const width = 650 * value / total;
+        draw.parts.push(`<rect x="${x}" y="${draw.y}" width="${width}" height="22" fill="${[UP, DOWN, FLAT][index]}"/>`);
+        x += width;
+      }
+      draw.parts.push(textNode(906, draw.y + 15, `${formatNumber(values[0] / total * 100, 0)}% 涨`, { size: 12, anchor: 'end', color: UP }));
+      draw.y += 32;
+    }
+    draw.y += 12;
+  }
+  trend(draw, points, '成交额', '成交额走势（亿）', '亿');
 }
 
 export function buildAsiaReportSvg(report, charts, markdown) {
@@ -43,7 +174,7 @@ export function buildAsiaReportSvg(report, charts, markdown) {
   const parts = [
     '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="__HEIGHT__" viewBox="0 0 960 __HEIGHT__" role="img">',
     `<title>${escapeText(report.date)} 亚洲市场收盘图文复盘</title>`,
-    '<desc>包含亚洲市场收盘摘要、六图公开数据、次日观察及关键来源。</desc>',
+    '<desc>包含亚洲市场收盘摘要、市场广度、资金流向、市场温度、周度变化及关键来源。</desc>',
     '<rect width="960" height="__HEIGHT__" fill="#fff9f2"/>',
     `<text x="54" y="60" fill="#34271f" font-family="sans-serif" font-size="28" font-weight="700">${escapeText(report.date)} 亚洲市场收盘复盘</text>`,
     `<text x="54" y="88" fill="#715f52" font-family="sans-serif" font-size="14">北京时间 19:00 目标版 · 以报告实际生成时间和数据日期为准${report.generation_mode === 'backfill' ? ' · 历史补报' : ''}</text>`,
@@ -58,6 +189,12 @@ export function buildAsiaReportSvg(report, charts, markdown) {
     y += 14;
     parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="20" font-weight="700">${escapeText(heading)}</text>`);
     y += 32;
+  };
+  const draw = {
+    parts,
+    get y() { return y; },
+    set y(value) { y = value; },
+    text: addText,
   };
   addText(report.summary);
   for (const [heading, title, limit] of [
@@ -77,28 +214,39 @@ export function buildAsiaReportSvg(report, charts, markdown) {
       for (const line of lines) addText(line);
     }
   }
-  addHeading('六图概览');
+  addHeading('亚洲市场图表');
   const validPoints = [];
-  for (const chart of charts) {
-    addHeading(`${chart.title} · ${({ ok: '已核实', degraded: '部分缺项', missing: '缺项', skipped: '跳过' })[chart.status] || '缺项'}`);
+  const chartTitles = { dashboard: '综合盘面', moneyflow: '资金流向', topic: '热点概念', sentiment: '市场温度', weekly_chart: '周度概览' };
+  for (const key of CHART_KEYS) {
+    const chart = charts.find((item) => item.key === key) || { status: 'missing', points: [], reason: '暂无可公开数据' };
+    addHeading(`${chartTitles[key]} · ${({ ok: '已核实', degraded: '部分缺项', missing: '缺项', skipped: '跳过' })[chart.status] || '缺项'}`);
     if (chart.reason) addText(chart.reason, '#715f52', 13);
-    const points = Array.isArray(chart.points) ? chart.points.filter((point) => Number.isFinite(point.value) && sourceDomain(point.source_url)) : [];
-    const maxByUnit = new Map();
-    for (const point of points) maxByUnit.set(point.unit, Math.max(maxByUnit.get(point.unit) || 0, Math.abs(point.value)));
-    for (const point of points) {
-      const width = Math.max(2, Math.round(Math.abs(point.value) / (maxByUnit.get(point.unit) || 1) * 260));
-      const center = 575;
-      const x = point.value < 0 ? center - width : center;
-      parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="14">${escapeText(point.label)}</text>`);
-      parts.push(`<rect x="315" y="${y - 14}" width="520" height="15" fill="#efe2d5"/>`);
-      parts.push(`<rect x="${x}" y="${y - 12}" width="${width}" height="11" fill="${point.value < 0 ? '#74728b' : '#b3513b'}"/>`);
-      parts.push(`<text x="906" y="${y}" text-anchor="end" fill="#34271f" font-family="monospace" font-size="13">${escapeText(Number(point.value).toLocaleString('zh-CN', { maximumFractionDigits: 2 }))} ${escapeText(point.unit)}</text>`);
-      y += 21;
-      parts.push(`<text x="54" y="${y}" fill="#715f52" font-family="sans-serif" font-size="11">观测日 ${escapeText(point.observation_date)} · ${escapeText(point.source_label)}</text>`);
-      y += 27;
-      validPoints.push(point);
+    const points = usablePoints(chart);
+    if (!points.length) {
+      if (!chart.reason) addText('暂无通过审核的公开数据。', MUTED, 13);
+      continue;
     }
-    if (!points.length) addText('暂无通过审核的公开图表数据。', '#715f52', 13);
+    if (key === 'dashboard') {
+      breadth(draw, points);
+      metricCards(draw, points, ['平均涨跌', '涨停家数', '最高连板']);
+      trend(draw, points, '融资余额', '融资余额走势（亿）', '亿');
+    } else if (key === 'moneyflow') {
+      const start = draw.y;
+      rankedBars(draw, points.filter((point) => point.value > 0), '主力净流入', UP, 400);
+      const leftEnd = draw.y;
+      draw.y = start;
+      rankedBars(draw, points.filter((point) => point.value < 0), '主力净流出', DOWN, 400, 506);
+      draw.y = Math.max(draw.y, leftEnd);
+    } else if (key === 'topic') {
+      rankedBars(draw, points.slice(0, 10), '热点权重', UP, 690);
+    } else if (key === 'sentiment') {
+      breadth(draw, points);
+      metricCards(draw, points, ['平均涨跌', '涨停家数', '个股总数']);
+    } else if (key === 'weekly_chart') {
+      weekly(draw, points);
+    }
+    sourceNote(draw, points);
+    validPoints.push(...points);
   }
   const sources = [...new Set(validPoints.map((point) => `${point.source_label} · ${sourceDomain(point.source_url)}`))];
   if (sources.length) {
@@ -111,5 +259,6 @@ export function buildAsiaReportSvg(report, charts, markdown) {
   y += 26;
   parts.push(`<text x="54" y="${y}" fill="#715f52" font-family="sans-serif" font-size="12">缺少的数据会标为缺项。完整数值、方法和来源见网页报告。市场信息仅供研究参考。</text>`);
   parts.push('</svg>');
-  return parts.join('').replaceAll('__HEIGHT__', String(y + 28));
+  return parts.join('').replaceAll('__HEIGHT__', String(y + 28))
+    .replaceAll('font-family="sans-serif"', `font-family="${FONT}"`);
 }

@@ -342,6 +342,7 @@ function wrapSvgText(value, width = 52) {
 }
 
 function buildMarketDailyChartSvg(summary) {
+  const font = "'Source Han Sans CN', 'Noto Sans CJK SC', 'Noto Sans SC', 'PingFang SC', sans-serif";
   const charts = buildMarketDailyCharts(summary);
   const laggedRates = summary.rateRows.filter((row) => row.observationDate !== summary.date);
   if (!charts.length && !laggedRates.length && !summary.secondaryRows.length && !summary.claims.length) return null;
@@ -366,7 +367,7 @@ function buildMarketDailyChartSvg(summary) {
       const center = chart.kind === "level" ? 350 : 565;
       const width = Math.round(row.width * (chart.kind === "level" ? 4.3 : 2.15));
       const barX = row.side === "negative" ? center - width : center;
-      const color = row.side === "negative" ? "#9e806d" : "#c74f36";
+      const color = row.side === "negative" ? "#5c7182" : "#b64d33";
       parts.push(`<text x="54" y="${y + 5}" fill="#34271f" font-family="sans-serif" font-size="16" font-weight="600">${escapeSvgText(row.label)}</text>`);
       parts.push(`<rect x="350" y="${y - 13}" width="430" height="18" rx="3" fill="#f2e7dc"/>`);
       parts.push(`<rect x="${barX}" y="${y - 11}" width="${width}" height="14" rx="2" fill="${color}"/>`);
@@ -413,7 +414,9 @@ function buildMarketDailyChartSvg(summary) {
   parts.push(`<line x1="54" y1="${height - 48}" x2="906" y2="${height - 48}" stroke="#d9c7b6"/>`);
   parts.push(`<text x="54" y="${height - 22}" fill="#715f52" font-family="sans-serif" font-size="12">市场有风险，投资需谨慎。</text>`);
   parts.push("</svg>");
-  return parts.join("").replaceAll("__HEIGHT__", String(height));
+  return parts.join("").replaceAll("__HEIGHT__", String(height))
+    .replaceAll('font-family="sans-serif"', `font-family="${font}"`)
+    .replaceAll('font-family="monospace"', `font-family="${font}" font-variant-numeric="tabular-nums"`);
 }
 
 function formatMarketDailyStatus(summary) {

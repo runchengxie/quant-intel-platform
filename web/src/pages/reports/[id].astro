@@ -3,7 +3,7 @@ import '../../styles/site.css';
 import '../../styles/editorial.css';
 import '../../styles/research-language.css';
 import ChartCards from '../../components/ChartCards.astro';
-import { loadReports, loadMarkdown, loadChart, VISUAL_REPORT_START_DATE } from '../../lib/reports.mjs';
+import { loadReports, loadMarkdown, loadChart } from '../../lib/reports.mjs';
 import { renderMarkdown } from '../../lib/markdown.mjs';
 import { buildAsiaReportSvg } from '../../lib/asia-report-image.mjs';
 
@@ -15,7 +15,7 @@ const { report } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const markdown = loadMarkdown(report);
 const body = renderMarkdown(markdown);
-const visualReport = report.kind === 'evening' && report.date >= VISUAL_REPORT_START_DATE
+const visualReport = report.kind === 'evening'
   ? buildAsiaReportSvg(report, loadChart(report.id), markdown) : null;
 ---
 <!doctype html>

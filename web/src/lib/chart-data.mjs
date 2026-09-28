@@ -30,7 +30,7 @@ export function toOption(card) {
   return {
     animation: false,
     aria: { enabled: true, description: `${card.title}。逐项数值和来源见图下方表格。` },
-    color: ['#b3513b'],
+    color: ['#b64d33'],
     legend: { show: true, data: [card.title], bottom: 0 },
     grid: { left: 54, right: 30, top: 38, bottom: points.length > 8 ? 96 : 72, containLabel: true },
     tooltip: { trigger: 'item', formatter: (params) => {
@@ -42,7 +42,7 @@ export function toOption(card) {
     dataZoom: points.length > 8 ? [{ type: 'slider', start: 0, end: Math.min(100, 800 / points.length) }] : [],
     series: [{ name: card.title, type: 'bar', data: points.map((point) => ({
       value: point.value,
-      itemStyle: { color: point.value < 0 ? '#64637b' : '#b3513b' },
+      itemStyle: { color: point.value < 0 ? '#5c7182' : '#b64d33' },
     })), markLine: { silent: true, symbol: 'none', data: [{ yAxis: 0 }] } }],
   };
 }
