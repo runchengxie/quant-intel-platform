@@ -1,10 +1,12 @@
 ---
 import '../styles/site.css';
+import '../styles/editorial.css';
 import { loadReports, loadSummaries, loadMarketDaily, loadMarketDailyHistory, loadLatestInsight, readJson } from '../lib/reports.mjs';
 import { renderMarkdown } from '../lib/markdown.mjs';
 import { formatEvidenceLine } from '../lib/evidence.mjs';
 import { buildEveningNotes } from '../lib/evening-notes.mjs';
 import { factSource, uniqueFactSources } from '../lib/market-sources.mjs';
+import { buildMarketTrend } from '../lib/market-trend.mjs';
 import marketDailyUtils from '../lib/market-daily-utils.js';
 
 const reports = loadReports();
@@ -34,6 +36,9 @@ const claimRows = (key, limit = 3) => {
 const formatNumber = (value, digits = 2) => Number.isFinite(value)
   ? value.toLocaleString('zh-CN', { minimumFractionDigits: digits, maximumFractionDigits: digits }) : '—';
 const indexFacts = factsFor(['index.spx.change_percent', 'index.dow.change_percent', 'index.nasdaq.change_percent', 'index.russell2000.change_percent']);
+const publicMarketDates = [...marketHistory, market].filter(Boolean);
+const indexTrends = new Map(indexFacts.map((fact) => [fact.id, buildMarketTrend(publicMarketDates, fact.id)]));
+const trendHeight = (value, rows) => Math.max(12, Math.round(Math.abs(value) / Math.max(...rows.map((row) => Math.abs(row.value)), 0.01) * 48));
 const equityRows = marketChartSummary?.equityRows || [];
 const rateTenors = ['2y', '5y', '10y', '30y'];
 const rateRows = rateTenors.map((tenor) => ({
@@ -81,44 +86,52 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <meta name="theme-color" content="#f8f2e9" />
     <meta name="description" content="Quant 市场情报：中国时间晚报、美股日报、市场解读与可核实图表；旧晨报保留归档。" />
     <title>Quant 市场情报 · Quant Market Intel</title>
+    <script is:inline>
+      try {
+        const saved = localStorage.getItem('market-intel-theme');
+        document.documentElement.dataset.theme = saved === 'light' || saved === 'dark'
+          ? saved : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      } catch {
+        document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+    </script>
   </head>
   <body>
     <header class="topbar"><a class="brand" href={`${base}/`}><span class="brand-mark">M</span><span>QUANT MARKET INTEL</span></a><div class="top-actions"><span class="top-note">市场观察 · 每日更新</span><a class="docs-link" href={`${base}/docs/`}>文档</a><button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">深色</button></div></header>
     <main class="shell">
-      <aside class="sidebar">
+      <aside class="sidebar" aria-label="网站导航与归档筛选">
         <span class="eyebrow">DAILY BRIEFING</span>
         <h1>Quant 市场情报</h1>
         <p class="intro">每天两场：早上看美股收盘，晚上看亚洲收盘。旧晨报保留归档。</p>
-        <label for="kind-filter">报告类型</label>
-        <select id="kind-filter"><option value="all">全部</option><option value="morning">晨报</option><option value="evening">晚报</option></select>
-        <label for="date-filter">查看日期</label>
-        <select id="date-filter"><option value="all">最近报告</option>{dates.map((date) => <option value={date}>{date}</option>)}</select>
+        <nav class="sidebar-nav" aria-label="页面目录"><a href="#us-session">美股收盘</a><a href="#asia-session">亚洲收盘</a><a href="#reports-title">历史报告</a></nav>
         <p class="sidebar-foot">目录更新 {reports.length > 0 ? reports[0].date : '暂无报告'} · 最近 {dates.length} 个交易日</p>
       </aside>
       <div class="content">
-        <section class="hero"><span class="eyebrow">TWO DAILY SESSIONS</span><h2>早上美股，晚上亚洲</h2><p>07:00 / 19:00 为中国时间首版目标；页面保留实际生成时间、原始观测日与后续修订记录。旧报告内容仍可在归档中阅读。</p><nav class="session-nav" aria-label="日报场次"><a href="#us-session">07:00 美股收盘复盘</a><a href="#asia-session">19:00 亚洲市场收盘复盘</a></nav></section>
+        <section class="hero"><span class="eyebrow">QUANT DAILY DESK</span><h2>早上看美股，晚上看亚洲</h2><p>两场收盘复盘，先看行情与变化，再读依据。页面逐项保留观测日，旧晨报留在归档。</p><nav class="session-nav" aria-label="日报场次"><a href="#us-session"><span>07:00 · 美股收盘</span><strong>{market?.date || '待更新'}</strong><small>美东交易日</small></a><a href="#asia-session"><span>19:00 · 亚洲收盘</span><strong>{latestEveningDate || '待更新'}</strong><small>北京时间</small></a></nav></section>
         <section class="panel" id="us-session" aria-labelledby="market-title"><div class="section-heading"><span class="eyebrow">07:00 · US CLOSE SESSION</span><h2 id="market-title">07:00 美股收盘复盘</h2></div>
           {market?.markdown ? <>
-            <p class="section-note">{market.date} 美东报告日{marketGeneratedLabel ? ` · 报告生成 ${marketGeneratedLabel}（美东）` : ''} · 行情按各项原始观测日展示。这里只呈现来源和日期校验通过的字段，不以旧值填补缺项。</p>
+            <p class="section-note">{market.date} 美东报告日{marketGeneratedLabel ? ` · 报告生成 ${marketGeneratedLabel}（美东）` : ''}。行情逐项标注观测日与来源，缺项不以旧值填补。</p>
             <div class="link-row"><a href={`${base}/reports/${market.date}-market-daily.md`}>Markdown 原文</a>{market.hasCitationFreeMarkdown && <a href={`${base}/reports/${market.date}-market-daily-no-citations.md`}>Markdown 阅读版（无引用）</a>}<a href={`${base}/reports/${market.date}-market-daily.txt`}>纯文本报告</a></div>
             {hasPrimaryData ? <div class="market-brief">
-              <h3>美股收盘</h3>
+              <nav class="market-brief-nav" aria-label="美股日报内容"><a href="#us-indexes">指数</a>{equityRows.length > 0 && <a href="#us-stocks">个股</a>}{rateRows.length > 0 && <a href="#us-rates">美债</a>}{assets.length > 0 && <a href="#us-assets">跨资产</a>}{marketChartSvg && <a href="#us-chart">行情图</a>}<a href="#us-drivers">市场驱动</a></nav>
+              <h3 id="us-indexes">美股收盘</h3>
               <div class="index-grid">{indexFacts.map((fact) => <article class="market-stat">
-                <span>{fact.instrument}</span><strong>{Number(fact.value) > 0 ? '+' : ''}{formatNumber(Number(fact.value))}%</strong>
+                <span>{fact.instrument}</span><strong class:list={[Number(fact.value) < 0 && 'down']}>{Number(fact.value) > 0 ? '+' : ''}{formatNumber(Number(fact.value))}%</strong>
+                {indexTrends.get(fact.id)?.length > 1 && <div class="market-trend" role="group" aria-label={`${fact.instrument} 最近 ${indexTrends.get(fact.id).length} 个已核实交易日的日涨跌`}>{indexTrends.get(fact.id).map((point) => <a class:list={['market-trend-bar', point.value < 0 && 'down', point.value === 0 && 'zero']} style={`--bar-height:${trendHeight(point.value, indexTrends.get(fact.id))}%`} href={`${base}/reports/${point.date}-market-daily.md`} aria-label={`${point.date}，${point.value > 0 ? '+' : ''}${formatNumber(point.value)}%`} title={`${point.date}：${point.value > 0 ? '+' : ''}${formatNumber(point.value)}%`}><span /></a>)}</div>}
                 <small>观测日 {fact.observation_date} · {factSource(fact) && <a href={factSource(fact).href} target="_blank" rel="noreferrer">来源</a>}</small>
               </article>)}</div>
-              {equityRows.length > 0 && <><h3>美股个股收盘</h3><div class="index-grid">{equityRows.map((row) => <article class="market-stat"><span>{row.symbol}</span><strong>{formatNumber(row.priceValue)} 美元</strong><small>{row.changeValue > 0 ? '+' : ''}{formatNumber(row.changeValue)}% · 观测日 {row.observationDate} · <a href={row.sourceUrl} target="_blank" rel="noreferrer">{row.sourceLabel}</a></small></article>)}</div></>}
+              {equityRows.length > 0 && <><h3 id="us-stocks">美股个股收盘</h3><div class="index-grid">{equityRows.map((row) => <article class="market-stat"><span>{row.symbol}</span><strong>{formatNumber(row.priceValue)} 美元</strong><small>{row.changeValue > 0 ? '+' : ''}{formatNumber(row.changeValue)}% · 观测日 {row.observationDate} · <a href={row.sourceUrl} target="_blank" rel="noreferrer">{row.sourceLabel}</a></small></article>)}</div></>}
               {claimRows('movers').length > 0 && <><h3>重点个股</h3><ul class="brief-claims">{claimRows('movers', 3).map((claim) => <li>{claim.claim} <span class="claim-sources">{(claim.sources || []).map((url, index) => /^https:\/\//.test(url) && <a href={url} target="_blank" rel="noreferrer">来源{index + 1}</a>)}</span></li>)}</ul></>}
-              {rateRows.length > 0 && <><h3>美债收益率</h3><div class="table-scroll"><table class="market-table"><thead><tr><th>期限</th><th>收益率</th><th>日变动</th><th>观测日 / 来源</th></tr></thead><tbody>{rateRows.map(({ tenor, level, change }) => <tr><th>{tenor.replace('y', ' 年')}</th><td>{level ? `${formatNumber(Number(level.value), 3)}%` : '暂缺'}</td><td>{change ? `${Number(change.value) > 0 ? '+' : ''}${formatNumber(Number(change.value))} bp` : '暂缺'}</td><td>{(level || change)?.observation_date || '—'} · {uniqueFactSources([level, change].filter(Boolean)).map((source) => <a href={source.href} target="_blank" rel="noreferrer">{source.label}</a>)}</td></tr>)}</tbody></table></div></>}
-              {assets.length > 0 && <><h3>跨资产行情</h3><div class="asset-grid">{assets.map(({ name, close, change }) => <article class="market-stat"><span>{name}</span><strong>{change ? `${Number(change.value) > 0 ? '+' : ''}${formatNumber(Number(change.value))}%` : '涨跌暂缺'}</strong><small>{close ? `${formatNumber(Number(close.value))} ${close.unit}` : ''} {close?.observation_date || change?.observation_date ? `· 观测日 ${close?.observation_date || change?.observation_date}` : ''} · {uniqueFactSources([close, change].filter(Boolean)).map((source) => <a href={source.href} target="_blank" rel="noreferrer">{source.label}</a>)}</small></article>)}</div></>}
-              {marketChartSvg && <details class="market-chart">
+              {rateRows.length > 0 && <><h3 id="us-rates">美债收益率</h3><div class="table-scroll"><table class="market-table"><thead><tr><th>期限</th><th>收益率</th><th>日变动</th><th>观测日 / 来源</th></tr></thead><tbody>{rateRows.map(({ tenor, level, change }) => <tr><th>{tenor.replace('y', ' 年')}</th><td>{level ? `${formatNumber(Number(level.value), 3)}%` : '暂缺'}</td><td>{change ? `${Number(change.value) > 0 ? '+' : ''}${formatNumber(Number(change.value))} bp` : '暂缺'}</td><td>{(level || change)?.observation_date || '—'} · {uniqueFactSources([level, change].filter(Boolean)).map((source) => <a href={source.href} target="_blank" rel="noreferrer">{source.label}</a>)}</td></tr>)}</tbody></table></div></>}
+              {assets.length > 0 && <><h3 id="us-assets">跨资产行情</h3><div class="asset-grid">{assets.map(({ name, close, change }) => <article class="market-stat"><span>{name}</span><strong class:list={[Number(change?.value) < 0 && 'down']}>{change ? `${Number(change.value) > 0 ? '+' : ''}${formatNumber(Number(change.value))}%` : '涨跌暂缺'}</strong><small>{close ? `${formatNumber(Number(close.value))} ${close.unit}` : ''} {close?.observation_date || change?.observation_date ? `· 观测日 ${close?.observation_date || change?.observation_date}` : ''} · {uniqueFactSources([close, change].filter(Boolean)).map((source) => <a href={source.href} target="_blank" rel="noreferrer">{source.label}</a>)}</small></article>)}</div></>}
+              {marketChartSvg && <details class="market-chart" id="us-chart" open>
                 <summary>行情图表 · 指数、重点个股、美债与跨资产（可下载 PNG）</summary>
                 <div class="market-chart-heading"><button type="button" id="download-market-chart" data-report-date={market.date}>下载图表 PNG</button></div>
                 <p class="section-note">仅绘制报告日来源和日期校验通过的数据；原始数值与来源链接见上方行情及展开后的报告。</p>
                 <div class="market-chart-graphic" id="market-daily-chart" set:html={marketChartSvg} />
                 <p id="market-chart-download-status" class="section-note" role="status" aria-live="polite"></p>
               </details>}
-              <h3>市场驱动</h3>
+              <h3 id="us-drivers">市场驱动</h3>
               {claimRows('drivers').length ? <ul class="brief-claims">{claimRows('drivers').map((claim) => <li>{claim.claim} <span class="claim-sources">{(claim.sources || []).map((url, index) => /^https:\/\//.test(url) && <a href={url} target="_blank" rel="noreferrer">来源{index + 1}</a>)}</span></li>)}</ul> : <p class="section-note">暂无通过核验的市场驱动材料。</p>}
               <details class="secondary-report"><summary>展开完整已核实报告（含经济数据、公司新闻与质量说明）</summary><div class="markdown-body" set:html={renderMarkdown(market.markdown || '', { compactSources: true })} /></details>
             </div> : <div class="market-empty"><p>这份报告尚无可用于新版行情摘要的字段。</p><p>缺少的行情不会以估值或其他日期的数据补造。</p><details class="secondary-report"><summary>查看现有报告内容</summary><div class="markdown-body" set:html={renderMarkdown(market.markdown || '', { compactSources: true })} /></details></div>}
@@ -146,7 +159,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           {displayNotes.length ? <div class="notes-list">{displayNotes.map((row) => <article><time>{row.date}</time>{row.source === 'evening' && <a href={`${base}/reports/${row.reportId}/`}>晚报事实提要 · 查看依据</a>}<p>{row.text}</p></article>)}</div> : <p class="empty">暂无简评。</p>}
         </section>
         </section>
-        <section class="reports-section" aria-labelledby="reports-title"><div class="section-heading"><span class="eyebrow">REPORT ARCHIVE</span><h2 id="reports-title">晚报与历史晨报</h2></div>
+        <section class="reports-section" aria-labelledby="reports-title"><div class="section-heading"><span class="eyebrow">REPORT ARCHIVE</span><h2 id="reports-title">晚报与历史晨报</h2><p class="section-note">下方筛选仅作用于历史报告。</p></div>
+          <div class="archive-filters"><label for="kind-filter">报告类型<select id="kind-filter"><option value="all">全部</option><option value="morning">晨报</option><option value="evening">晚报</option></select></label><label for="date-filter">查看日期<select id="date-filter"><option value="all">最近报告</option>{dates.map((date) => <option value={date}>{date}</option>)}</select></label></div>
           <div class="report-list" id="report-list">{reports.map((report) => <article class="report-tile" data-date={report.date} data-kind={report.kind}>
             <div class="report-meta"><time>{report.date}</time><span>{report.kind === 'morning' ? '晨报' : '晚报'}</span>{report.generation_mode === 'backfill' && <span class="backfill">历史补发</span>}</div>
             <h3><a href={`${base}/reports/${report.id}/`}>{report.title}</a></h3><p>{report.summary}</p>
@@ -168,9 +182,14 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         document.documentElement.dataset.theme = theme;
         themeToggle.setAttribute('aria-pressed', String(theme === 'dark'));
         themeToggle.textContent = theme === 'dark' ? '浅色' : '深色';
+        themeToggle.setAttribute('aria-label', theme === 'dark' ? '切换浅色模式' : '切换深色模式');
       };
       const savedTheme = localStorage.getItem(themeKey);
-      applyTheme(savedTheme === 'dark' ? 'dark' : 'light');
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+      applyTheme(savedTheme === 'dark' || savedTheme === 'light' ? savedTheme : systemTheme.matches ? 'dark' : 'light');
+      systemTheme.addEventListener('change', () => {
+        if (localStorage.getItem(themeKey) === null) applyTheme(systemTheme.matches ? 'dark' : 'light');
+      });
       themeToggle.addEventListener('click', () => {
         const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
         localStorage.setItem(themeKey, next);

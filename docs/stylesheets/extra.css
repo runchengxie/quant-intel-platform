@@ -1,20 +1,20 @@
 :root {
-  --mi-background: #f7f6f2;
-  --mi-surface: #efede7;
-  --mi-text: #20211e;
-  --mi-muted: #6e7069;
-  --mi-faint: #9b9d96;
-  --mi-accent: #76513b;
-  --mi-accent-soft: #e9ddd4;
-  --mi-border: #d9d7d0;
-  --mi-selection: #ddc8b9;
+  --mi-background: #f8f2e9;
+  --mi-surface: #fffaf4;
+  --mi-text: #342b25;
+  --mi-muted: #766558;
+  --mi-faint: #a28b7d;
+  --mi-accent: #aa5139;
+  --mi-accent-soft: #f4e8dc;
+  --mi-border: #e8d8c9;
+  --mi-selection: #ead1bd;
   --mi-reading-width: 48rem;
 }
 
 [data-md-color-scheme="default"] {
   --md-primary-fg-color: var(--mi-accent);
-  --md-primary-fg-color--light: #926b50;
-  --md-primary-fg-color--dark: #593b2b;
+  --md-primary-fg-color--light: #c5795e;
+  --md-primary-fg-color--dark: #803b2b;
   --md-accent-fg-color: var(--mi-accent);
   --md-default-bg-color: var(--mi-background);
   --md-default-fg-color: var(--mi-text);
@@ -24,18 +24,18 @@
 }
 
 [data-md-color-scheme="slate"] {
-  --mi-background: #171815;
-  --mi-surface: #21231f;
-  --mi-text: #e8e6df;
-  --mi-muted: #aaa9a2;
-  --mi-faint: #7d7f78;
-  --mi-accent: #d1a07f;
-  --mi-accent-soft: #392d26;
-  --mi-border: #343630;
+  --mi-background: #171513;
+  --mi-surface: #211d1a;
+  --mi-text: #f0e5da;
+  --mi-muted: #b9aa9c;
+  --mi-faint: #8f7768;
+  --mi-accent: #e2a487;
+  --mi-accent-soft: #34251d;
+  --mi-border: #40352d;
   --mi-selection: #654b3b;
   --md-primary-fg-color: var(--mi-accent);
-  --md-primary-fg-color--light: #e0b99c;
-  --md-primary-fg-color--dark: #a77659;
+  --md-primary-fg-color--light: #f0bea7;
+  --md-primary-fg-color--dark: #b8795c;
   --md-accent-fg-color: var(--mi-accent);
   --md-default-bg-color: var(--mi-background);
   --md-default-fg-color: var(--mi-text);
@@ -75,8 +75,27 @@ body {
 }
 
 .md-header__topic {
-  font-weight: 650;
-  letter-spacing: -0.02em;
+  font-weight: 750;
+  letter-spacing: 0.04em;
+}
+
+.md-header__button.md-logo {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  margin: 0.25rem 0.5rem 0.25rem 0;
+  border-radius: 0.5rem;
+  background: var(--mi-accent);
+  color: #fff;
+}
+
+.md-header__button.md-logo svg {
+  fill: currentColor;
+}
+
+[data-md-color-scheme="slate"] .md-header__button.md-logo {
+  color: #211d1a;
 }
 
 .md-tabs {
@@ -114,6 +133,10 @@ body {
 
 .md-main__inner {
   margin-top: 1.5rem;
+}
+
+.md-typeset .md-button {
+  border-radius: 0.5rem;
 }
 
 .md-content {
@@ -173,7 +196,7 @@ body {
 
 .mi-home {
   max-width: 46rem;
-  padding: clamp(3.5rem, 10vw, 7rem) 0 clamp(2.5rem, 8vw, 5rem);
+  padding: clamp(2.5rem, 6vw, 4rem) 0 clamp(2rem, 5vw, 3rem);
 }
 
 .mi-eyebrow {
@@ -187,7 +210,7 @@ body {
 .mi-home h1 {
   margin: 0;
   font-family: "Noto Serif SC", "Songti SC", SimSun, Georgia, serif;
-  font-size: clamp(2.8rem, 7vw, 5.2rem);
+  font-size: clamp(2.6rem, 5vw, 3.4rem);
   font-weight: 650;
   letter-spacing: -0.065em;
   line-height: 1.2;
@@ -195,9 +218,9 @@ body {
 
 .mi-home > p:not(.mi-eyebrow):not(.mi-home__links) {
   max-width: 38rem;
-  margin: 1.5rem 0 0;
+  margin: 1.1rem 0 0;
   color: var(--mi-muted);
-  font-size: clamp(1.05rem, 2vw, 1.2rem);
+  font-size: clamp(0.9rem, 1.4vw, 1.05rem);
 }
 
 .mi-home__links {
@@ -214,6 +237,10 @@ body {
   background: var(--mi-accent);
   border-color: var(--mi-accent);
   color: #fff;
+}
+
+[data-md-color-scheme="slate"] .mi-home .md-button--primary {
+  color: #211d1a;
 }
 
 .md-footer {
