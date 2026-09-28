@@ -363,11 +363,12 @@ def test_real_site_build_overlays_astro_pages_and_keeps_downloads(tmp_path: Path
     index_data = json.loads((output / "data/reports.json").read_text(encoding="utf-8"))
     report_id = index_data["reports"][0]["id"]
     index = (output / "index.html").read_text(encoding="utf-8")
-    assert 'id="reports-title"' in index
-    assert f"/quant-intel-platform/reports/{report_id}/" in index
+    assert 'id="reports-title"' not in index
+    assert 'id="kind-filter"' not in index
     assert (output / f"reports/{report_id}/index.html").is_file()
     market = json.loads((output / "data/market_daily_report.json").read_text(encoding="utf-8"))
     market_date = market["run_id"].removeprefix("daily-")
+    assert f"/quant-intel-platform/reports/{market_date}-market-daily-no-citations.md" in index
     assert (output / f"reports/{market_date}-market-daily.md").is_file()
     assert (output / f"reports/{market_date}-market-daily.txt").is_file()
     history = json.loads((output / "data/market_daily_reports.json").read_text(encoding="utf-8"))["reports"]
@@ -377,7 +378,8 @@ def test_real_site_build_overlays_astro_pages_and_keeps_downloads(tmp_path: Path
         assert f"# 美股市场日报（{date}）" in reading
         assert "https://" not in reading
         assert "证据：" not in reading
-        assert f"/quant-intel-platform/reports/{date}-market-daily-no-citations.md" in index
+        if date != market_date:
+            assert f"/quant-intel-platform/reports/{date}-market-daily-no-citations.md" not in index
     assert "| 5 年期 | 4.98% | -5.00 bp | 2026-09-25 |" in (
         output / "reports/2026-09-25-market-daily-no-citations.md"
     ).read_text(encoding="utf-8")

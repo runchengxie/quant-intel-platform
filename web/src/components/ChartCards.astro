@@ -7,8 +7,8 @@ const cards = loadChart(reportId);
 const formatValue = (point) => `${Number(point.value).toLocaleString('zh-CN', { maximumFractionDigits: 2 })} ${point.unit}`;
 ---
 <section class="charts-section" aria-labelledby="chart-heading">
-  <div class="section-heading"><span class="eyebrow">DATA & CHARTS</span><h2 id="chart-heading">六图概览</h2></div>
-  <p class="section-note">只展示经逐点审核的公开数据。原图仍用于飞书；缺项不会以旧图代替。</p>
+  <div class="section-heading"><span class="eyebrow">行情图表</span><h2 id="chart-heading">六图概览</h2></div>
+  <p class="section-note">这里展示已逐项核实的公开数据。缺少的数据会标为缺项。</p>
   <div class="chart-grid">
     {cards.map((card) => (
       <article class="chart-card" data-chart-key={card.key} data-chart-status={card.status}>

@@ -31,7 +31,8 @@ test('Astro emits a readable five-session static site with six chart states', ()
   assert.match(index, /id="asia-session"/);
   assert.match(index, /07:00 美股收盘复盘/);
   assert.match(index, /19:00 亚洲市场收盘复盘/);
-  assert.match(index, /旧晨报保留归档/);
+  assert.doesNotMatch(index, /晚报与历史晨报|旧晨报保留归档|id="kind-filter"|id="date-filter"/);
+  assert.doesNotMatch(index, /历史亚洲收盘复盘/);
   assert.match(index, /市场驱动/);
   assert.match(index, /阅读全文与数据质量说明/);
   assert.match(index, /核对来源链接/);
@@ -57,7 +58,6 @@ test('Astro emits a readable five-session static site with six chart states', ()
   const styles = readdirSync(path.join(root, 'dist/_astro')).filter((name) => name.endsWith('.css'))
     .map((name) => readFileSync(path.join(root, `dist/_astro/${name}`), 'utf8')).join('\n');
   assert.match(styles, /:root\[data-theme=?"?dark/);
-  assert.ok(index.includes(reportId));
   const report = path.join(root, `dist/reports/${reportId}/index.html`);
   assert.ok(existsSync(report));
   const html = readFileSync(report, 'utf8');
@@ -71,6 +71,40 @@ test('Astro emits a readable five-session static site with six chart states', ()
   assert.match(index, /<a href="https:\/\/home\.treasury\.gov[^"]*"[^>]*>美国财政部<\/a>/);
   assert.doesNotMatch(index, /\| 流动性 \|/);
   assert.match(html, /<table>/);
+});
+
+test('new Asian evening reports build a visual history while old direct links remain available', () => {
+  const fixture = mkdtempSync(path.join(path.dirname(root), 'modern-evening-history-'));
+  try {
+    cpSync(path.join(root, 'artifacts/public'), fixture, { recursive: true });
+    const indexFile = path.join(fixture, 'data/reports.json');
+    const reportIndex = JSON.parse(readFileSync(indexFile, 'utf8'));
+    const template = reportIndex.reports.find((row) => row.id === '2026-09-24-evening');
+    assert.ok(template);
+    for (const date of ['2026-09-28', '2026-09-29']) {
+      const id = `${date}-evening`;
+      reportIndex.reports.push({ ...template, id, date, title: `收盘复盘（${date}）`,
+        source_url: `reports/${id}.md`, generation_mode: 'scheduled' });
+      cpSync(path.join(fixture, 'reports/2026-09-24-evening.md'), path.join(fixture, `reports/${id}.md`));
+      const chart = JSON.parse(readFileSync(path.join(fixture, 'data/charts/2026-09-24-evening.json'), 'utf8'));
+      chart.report_id = id;
+      writeFileSync(path.join(fixture, `data/charts/${id}.json`), JSON.stringify(chart));
+    }
+    writeFileSync(indexFile, JSON.stringify(reportIndex));
+    execFileSync('npm', ['run', 'build', '--', '--outDir', path.join(fixture, 'built')], {
+      cwd: root, stdio: 'pipe', env: { ...process.env, ASTRO_DATA_ROOT: fixture },
+    });
+    const home = readFileSync(path.join(fixture, 'built/index.html'), 'utf8');
+    assert.match(home, /历史亚洲收盘复盘/);
+    assert.match(home, /reports\/2026-09-28-evening\//);
+    assert.doesNotMatch(home, /reports\/2026-09-24-morning\//);
+    const modern = readFileSync(path.join(fixture, 'built/reports/2026-09-28-evening/index.html'), 'utf8');
+    assert.match(modern, /id="asia-daily-chart"/);
+    assert.match(modern, /id="download-asia-report"/);
+    assert.ok(existsSync(path.join(fixture, 'built/reports/2026-09-24-morning/index.html')));
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
 });
 
 test('US daily chart is absent when the public report has no eligible market facts', () => {
@@ -123,9 +157,9 @@ test('historical insight discloses timing, limitations and verification units', 
   const insight = JSON.parse(readFileSync(path.join(root, 'artifacts/public/data/insights.json'), 'utf8')).insights[0];
   if (!insight) return;
   const index = readFileSync(path.join(root, 'dist/index.html'), 'utf8');
-  assert.match(index, /信息截至/);
+  assert.match(index, /数据截至/);
   assert.match(index, /解读生成/);
-  if (insight.generation_mode === 'retrospective') assert.match(index, /历史材料回放/);
+  if (insight.generation_mode === 'retrospective') assert.match(index, /依据旧报告或补发报告生成/);
   if (insight.quality_warnings.length) assert.match(index, /数据缺项与限制/);
   const point = insight.analysis.watchpoints[0];
   if (point) {

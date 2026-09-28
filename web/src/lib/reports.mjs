@@ -2,6 +2,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import path from 'node:path';
 
 export const CHART_KEYS = ['dashboard', 'moneyflow', 'topic', 'sentiment', 'us_overnight', 'weekly_chart'];
+export const VISUAL_REPORT_START_DATE = '2026-09-28';
 export const CHART_TITLES = {
   dashboard: '综合仪表盘', moneyflow: '资金流向图', topic: '热点概念图',
   sentiment: '情绪指标图', us_overnight: '美股隔夜图', weekly_chart: '周度概览图',

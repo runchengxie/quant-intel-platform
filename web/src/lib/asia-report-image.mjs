@@ -109,7 +109,7 @@ export function buildAsiaReportSvg(report, charts, markdown) {
   y += 28;
   parts.push(`<line x1="54" y1="${y}" x2="906" y2="${y}" stroke="#d9c7b6"/>`);
   y += 26;
-  parts.push(`<text x="54" y="${y}" fill="#715f52" font-family="sans-serif" font-size="12">缺项保持缺项；完整数值、方法与来源见网页报告。市场信息仅供研究参考。</text>`);
+  parts.push(`<text x="54" y="${y}" fill="#715f52" font-family="sans-serif" font-size="12">缺少的数据会标为缺项。完整数值、方法和来源见网页报告。市场信息仅供研究参考。</text>`);
   parts.push('</svg>');
   return parts.join('').replaceAll('__HEIGHT__', String(y + 28));
 }

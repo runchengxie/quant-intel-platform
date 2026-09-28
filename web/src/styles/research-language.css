@@ -27,6 +27,7 @@ a:hover { color: var(--desk-accent); }
 
 .topbar {
   height: 66px;
+  padding-inline: max(24px, calc((100vw - 1132px) / 2));
   border-color: var(--desk-line);
   background: var(--desk-paper);
 }
@@ -101,7 +102,7 @@ a:hover { color: var(--desk-accent); }
 .report-tile h3 a { color: var(--desk-ink); }
 .report-tile .link-row { margin-top: 16px; }
 .archive-filters select { border-color: var(--desk-line); border-radius: 0; background: var(--desk-surface); color: var(--desk-ink); }
-.footer { border-color: var(--desk-line); color: var(--desk-muted); font-family: var(--font-body); }
+.footer { max-width: 1180px; border-color: var(--desk-line); color: var(--desk-muted); font-family: var(--font-body); }
 
 .report-shell { max-width: 1040px; padding-top: 50px; }
 .report-heading { border-top: 2px solid var(--desk-ink); padding-top: 23px; }
