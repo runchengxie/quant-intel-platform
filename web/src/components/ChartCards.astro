@@ -1,0 +1,35 @@
+---
+import { loadChart } from '../lib/reports.mjs';
+import ChartIsland from './ChartIsland.jsx';
+
+const { reportId } = Astro.props;
+const cards = loadChart(reportId);
+const formatValue = (point) => `${Number(point.value).toLocaleString('zh-CN', { maximumFractionDigits: 2 })} ${point.unit}`;
+---
+<section class="charts-section" aria-labelledby="chart-heading">
+  <div class="section-heading"><span class="eyebrow">DATA & CHARTS</span><h2 id="chart-heading">六图概览</h2></div>
+  <p class="section-note">只展示经逐点审核的公开数据。原图仍用于飞书；缺项不会以旧图代替。</p>
+  <div class="chart-grid">
+    {cards.map((card) => (
+      <article class="chart-card" data-chart-key={card.key} data-chart-status={card.status}>
+        <div class="chart-head">
+          <h3>{card.title}</h3>
+          <span class:list={['status-pill', card.status]}>{({ ok: '已核实', degraded: '降级', missing: '缺项', skipped: '跳过' })[card.status] || '缺项'}</span>
+        </div>
+        {card.reason && <p class="chart-reason">{card.reason}</p>}
+        {card.points.length > 0 && <ChartIsland reportId={reportId} chartKey={card.key} client:visible />}
+        {card.points.length > 0 && (
+          <details class="chart-values">
+            <summary>查看数值与来源</summary>
+            <div class="table-scroll"><table>
+              <thead><tr><th scope="col">指标</th><th scope="col">数值</th><th scope="col">观测日</th><th scope="col">来源</th></tr></thead>
+              <tbody>{card.points.map((point) => (
+                <tr><th scope="row">{point.label}</th><td>{formatValue(point)}</td><td>{point.observation_date}</td><td><a href={point.source_url} target="_blank" rel="noopener noreferrer">{point.source_label}</a></td></tr>
+              ))}</tbody>
+            </table></div>
+          </details>
+        )}
+      </article>
+    ))}
+  </div>
+</section>

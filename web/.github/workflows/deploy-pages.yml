@@ -1,0 +1,148 @@
+name: Deploy GitHub Pages
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      force_summary:
+        description: Regenerate the latest daily note even if one already exists
+        required: false
+        default: false
+        type: boolean
+      force_insights:
+        description: Regenerate evidence-linked commentary
+        required: false
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install Astro dependencies
+        run: npm ci
+      - name: Install development checks
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install --group dev
+      - name: Lint, format, types, and unused code
+        run: |
+          ruff check scripts tests tools
+          ruff format --check scripts tests tools
+          ty check
+          vulture scripts tests tools --min-confidence 80
+      - name: Test contracts and rendering helpers
+        run: |
+          python -m pytest --cov-report=xml
+          node --test tests/*.cjs
+          node --check src/legacy/app.js
+          node --check src/legacy/summary-utils.js
+          python scripts/build_site.py --output "${{ runner.temp }}/market-intel-check"
+      - name: Audit dependencies and structure
+        run: |
+          pip-audit --strict --format json --output "${{ runner.temp }}/dependency-audit.json"
+          radon cc scripts -s -a
+          radon raw scripts -s
+          python tools/audit_structure.py --output "${{ runner.temp }}/structure.json"
+      - name: Preserve quality reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: quality-reports
+          path: |
+            coverage.xml
+            ${{ runner.temp }}/dependency-audit.json
+            ${{ runner.temp }}/structure.json
+          if-no-files-found: ignore
+  deploy:
+    if: github.event_name != 'pull_request'
+    needs: checks
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out site
+        uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          cache: npm
+      - name: Install Astro dependencies
+        run: npm ci
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      - name: Build site artifact
+        env:
+          SITE_OUTPUT: ${{ runner.temp }}/quant-intel-pages-site
+        run: python3 scripts/build_site.py --output "$SITE_OUTPUT"
+      - name: Generate evidence-linked commentary
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_API_KEY_2: ${{ secrets.GEMINI_API_KEY_2 }}
+          GEMINI_API_KEY_3: ${{ secrets.GEMINI_API_KEY_3 }}
+          GEMINI_MODEL: ${{ vars.GEMINI_MODEL }}
+          DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          DEEPSEEK_MODEL: ${{ vars.DEEPSEEK_MODEL }}
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          MINIMAX_MODEL: ${{ vars.MINIMAX_MODEL }}
+          FORCE_INSIGHTS: ${{ inputs.force_insights }}
+          SITE_OUTPUT: ${{ runner.temp }}/quant-intel-pages-site
+          LEDGER_OUTPUT: ${{ runner.temp }}/market-intel-ledger
+        run: |
+          force_flag=""
+          if [ "$FORCE_INSIGHTS" = "true" ]; then force_flag="--force"; fi
+          for provider in gemini deepseek minimax; do
+            status=$(python3 scripts/generate_insights.py --provider "$provider" --reports artifacts/public/data/reports.json --history "$SITE_OUTPUT/data/insights.json" --history-url '${{ steps.pages.outputs.base_url }}/data/insights.json' --output "$SITE_OUTPUT/data/insights.json" --archive-dir "$LEDGER_OUTPUT" $force_flag | python3 -c 'import json,sys; print(json.load(sys.stdin)["status"])')
+            echo "Insight provider $provider: $status"
+            if [ "$status" = "generated" ] || [ "$status" = "cached" ] || [ "$status" = "no_source_pair" ]; then break; fi
+          done
+      - name: Generate latest daily note
+        env:
+          MINIMAX_API_KEY: ${{ secrets.MINIMAX_API_KEY }}
+          MINIMAX_MODEL: ${{ vars.MINIMAX_MODEL }}
+          SITE_OUTPUT: ${{ runner.temp }}/quant-intel-pages-site
+        run: |
+          force_flag=""
+          if [ "${{ inputs.force_summary }}" = "true" ]; then force_flag="--force"; fi
+          python3 scripts/generate_daily_summary.py --reports artifacts/public/data/reports.json --summaries artifacts/public/data/daily_summaries.json --insights "$SITE_OUTPUT/data/insights.json" --history-url '${{ steps.pages.outputs.base_url }}/data/daily_summaries.json' --output "$SITE_OUTPUT/data/daily_summaries.json" $force_flag
+      - name: Render pages with final commentary snapshot
+        env:
+          SITE_OUTPUT: ${{ runner.temp }}/quant-intel-pages-site
+        run: python3 scripts/build_site.py --output "$SITE_OUTPUT" --refresh-astro
+      - name: Preserve commentary revisions and verification receipts
+        uses: actions/upload-artifact@v4
+        with:
+          name: market-intel-ledger-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/market-intel-ledger
+          if-no-files-found: ignore
+          retention-days: 90
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ runner.temp }}/quant-intel-pages-site
+      - name: Deploy site
+        id: deployment
+        uses: actions/deploy-pages@v4

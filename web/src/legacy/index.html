@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f8f3eb">
+    <meta name="description" content="Quant Market Intel：晨报与晚报之间值得留意的市场变化。">
+    <title>Quant 市场情报 · Quant Market Intel</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="summary-utils.js" defer></script>
+    <script src="report-markdown.js" defer></script>
+    <script src="market-daily-utils.js" defer></script>
+    <script src="theme-utils.js" defer></script>
+    <script src="app.js" defer></script>
+  </head>
+  <body>
+    <header class="topbar">
+      <a class="wordmark" href="#top" aria-label="Quant Market Intel 首页">
+        <span class="mark" aria-hidden="true">M</span>
+        <span>QUANT MARKET INTEL</span>
+      </a>
+      <div class="topbar-actions"><span class="topbar-note">市场观察 · 每日更新</span><button id="theme-toggle" class="theme-toggle" type="button" aria-label="切换主题">主题：系统</button></div>
+    </header>
+
+    <main id="top" class="layout">
+      <aside class="sidebar" aria-label="报告导航">
+        <div class="eyebrow">DAILY BRIEFING</div>
+        <h1>Quant 市场情报</h1>
+        <p class="intro">每天读完晨报和前一晚的晚报，只留下值得记住的几句。</p>
+        <div class="filter-label">报告类型</div>
+        <div class="filters" role="group" aria-label="按报告类型筛选">
+          <button class="filter is-active" data-kind="all" type="button" aria-pressed="true">全部</button>
+          <button class="filter" data-kind="morning" type="button" aria-pressed="false">晨报</button>
+          <button class="filter" data-kind="evening" type="button" aria-pressed="false">晚报</button>
+        </div>
+        <label class="date-label" for="date-filter">查看日期</label>
+        <select id="date-filter" aria-label="选择最近五个交易日">
+          <option value="">最近报告</option>
+        </select>
+        <button id="clear-date" class="clear-date" type="button">清除日期筛选</button>
+        <div class="sidebar-foot">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span id="updated-at">正在读取报告目录…</span>
+        </div>
+      </aside>
+
+      <section class="content" aria-live="polite">
+        <div class="content-head">
+          <div>
+            <div class="eyebrow" id="section-kicker">LATEST EDITION</div>
+            <h2 id="section-title">最新报告</h2>
+          </div>
+          <span class="demo-badge">网页展示最近 5 个交易日</span>
+        </div>
+        <div id="data-health" class="data-health" role="status">正在核对数据时间…</div>
+        <section class="market-daily" aria-labelledby="market-daily-title">
+          <div class="notes-heading">
+            <div><div class="eyebrow">US MARKET DAILY</div><h3 id="market-daily-title">美股市场日报</h3></div>
+            <span class="notes-source">逐项标注观测日与来源</span>
+          </div>
+          <p id="market-daily-status" class="insight-status">正在读取美股宏观日报…</p>
+          <div id="market-daily-files" class="market-daily-files"></div>
+          <div id="market-daily-charts" class="market-daily-charts"></div>
+          <div id="market-daily-list" class="market-daily-list"></div>
+          <div id="market-daily-claims" class="market-daily-claims"></div>
+          <details id="market-daily-secondary" class="market-daily-secondary">
+            <summary>更多宏观数据与公司新闻</summary>
+            <div id="market-daily-secondary-list" class="market-daily-secondary-list"></div>
+          </details>
+        </section>
+        <section class="market-insights" aria-labelledby="insights-title">
+          <div class="notes-heading">
+            <div>
+              <div class="eyebrow">MARKET JOURNAL</div>
+              <h3 id="insights-title">市场解读与验证</h3>
+            </div>
+            <span class="notes-source">看变化 · 留证据 · 下期核对</span>
+          </div>
+          <p id="insight-status" class="insight-status"></p>
+          <div id="insight-list"></div>
+        </section>
+        <section class="daily-notes" aria-labelledby="notes-title" aria-live="polite">
+          <div class="notes-heading">
+            <div>
+              <div class="eyebrow">DAILY NOTES</div>
+              <h3 id="notes-title">最近几天的市场简评</h3>
+            </div>
+            <span class="notes-source">晨报 + 前一晚晚报</span>
+          </div>
+          <div id="daily-summary-list" class="daily-summary-list"></div>
+          <div id="summary-empty" class="summary-empty" hidden>
+            <span class="empty-mark" aria-hidden="true">—</span>
+            <p>暂无简评</p>
+          </div>
+        </section>
+        <div id="report-list" class="report-list"></div>
+        <div id="empty-state" class="empty-state" hidden>
+          <span class="empty-mark" aria-hidden="true">—</span>
+          <h3>没有找到这类报告</h3>
+          <p>试试其他日期，或切换晨报与晚报。</p>
+        </div>
+        <div id="load-error" class="load-error" hidden>
+          报告目录暂时无法读取。请通过本地静态服务器打开此页面。
+        </div>
+      </section>
+    </main>
+    <footer class="footer">
+      <span>QUANT MARKET INTEL</span>
+      <span>市场信息仅供研究参考</span>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,71 @@
+美股市场日报｜2026-09-18 美东报告日
+报告生成时间：2026-09-25T15:42:08.727752+00:00；逐项显示原始观测日。
+历史补报：本次事后重建，非当日已发布报告。
+
+一、美股市场表现
+- 标普 500 日涨跌：+0.17%（观测日 2026-09-18）
+  来源：https://finance.yahoo.com/quote/%5EGSPC/history/
+- 道指日涨跌：-0.18%（观测日 2026-09-18）
+  来源：https://finance.yahoo.com/quote/%5EDJI/history/
+- 纳指日涨跌：+0.39%（观测日 2026-09-18）
+  来源：https://finance.yahoo.com/quote/%5EIXIC/history/
+- 罗素 2000 日涨跌：-0.49%（观测日 2026-09-18）
+  来源：https://finance.yahoo.com/quote/%5ERUT/history/
+
+二、美债、布伦特、金银与比特币
+- 2 年期美债收益率日变动：+9.00 bp（观测日 2026-09-18）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 5 年期美债收益率日变动：+8.00 bp（观测日 2026-09-18）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 10 年期美债收益率日变动：+7.00 bp（观测日 2026-09-18）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 30 年期美债收益率日变动：+5.00 bp（观测日 2026-09-18）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 2 年期美债收益率水平：4.76%（观测日 2026-09-18）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 5 年期美债收益率水平：4.86%（观测日 2026-09-18）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 10 年期美债收益率水平：5.01%（观测日 2026-09-18）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 30 年期美债收益率水平：5.34%（观测日 2026-09-18）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 布伦特期货收盘：103.87 美元/桶（观测日 2026-09-18）
+  来源：https://finance.yahoo.com/quote/BZ%3DF/history/
+- 布伦特日涨跌：-0.91%（观测日 2026-09-18）
+  来源：https://finance.yahoo.com/quote/BZ%3DF/history/
+- COMEX 黄金期货收盘：4424.90 美元/金衡盎司（观测日 2026-09-18）
+  来源：https://finance.yahoo.com/quote/GC%3DF/history/
+- 黄金日涨跌：+0.57%（观测日 2026-09-18）
+  来源：https://finance.yahoo.com/quote/GC%3DF/history/
+- COMEX 白银期货收盘：66.56 美元/金衡盎司（观测日 2026-09-18）
+  来源：https://finance.yahoo.com/quote/SI%3DF/history/
+- 白银日涨跌：+1.66%（观测日 2026-09-18）
+  来源：https://finance.yahoo.com/quote/SI%3DF/history/
+- CME 比特币期货收盘：81330.00 美元/BTC（观测日 2026-09-18）
+  来源：https://finance.yahoo.com/quote/BTC%3DF/history/
+- 比特币期货日涨跌：+6.17%（观测日 2026-09-18）
+  来源：https://finance.yahoo.com/quote/BTC%3DF/history/
+
+三、市场驱动因素
+- 暂无经核实内容。
+
+四、经济数据与美联储动态
+- CPI 同比：3.40%（观测日 2026-08-01）
+  来源：https://fred.stlouisfed.org/series/CPIAUCNS
+- PCE 同比：3.70%（观测日 2026-07-01）
+  来源：https://fred.stlouisfed.org/series/PCEPI
+- 失业率：4.10%（观测日 2026-08-01）
+  来源：https://fred.stlouisfed.org/series/UNRATE
+- 非农就业月变动：162.00 千人（观测日 2026-08-01）
+  来源：https://fred.stlouisfed.org/series/PAYEMS
+
+五、公司新闻
+- 暂无经核实内容。
+
+六、主要上涨与下跌个股
+- 暂无经核实内容。
+
+
+尚缺：研究解释。
+
+风险提示：市场有风险，投资需谨慎。

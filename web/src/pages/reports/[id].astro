@@ -1,0 +1,28 @@
+---
+import '../../styles/site.css';
+import ChartCards from '../../components/ChartCards.astro';
+import { loadReports, loadMarkdown } from '../../lib/reports.mjs';
+import { renderMarkdown } from '../../lib/markdown.mjs';
+
+export function getStaticPaths() {
+  return loadReports().map((report) => ({ params: { id: report.id }, props: { report } }));
+}
+
+const { report } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const body = renderMarkdown(loadMarkdown(report));
+---
+<!doctype html>
+<html lang="zh-CN">
+  <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="theme-color" content="#f8f2e9" /><title>{report.title} · Quant 市场情报</title></head>
+  <body>
+    <header class="topbar"><a class="brand" href={`${base}/`}><span class="brand-mark">M</span><span>QUANT MARKET INTEL</span></a><span class="top-note">{report.kind === 'morning' ? '晨报' : '晚报'} · {report.date}</span></header>
+    <main class="report-shell">
+      <nav class="crumb"><a href={`${base}/`}>← 返回报告目录</a></nav>
+      <div class="report-heading"><span class="eyebrow">{report.kind === 'morning' ? 'MORNING REPORT' : 'EVENING REPORT'}</span><h1>{report.title}</h1><p>{report.summary}</p>{report.generation_mode === 'backfill' && <p class="backfill-note">历史补发：生成时间并非该交易日的实际发布时间。</p>}<a class="source-link" href={`${base}/${report.source_url}`}>查看 Markdown 原文</a></div>
+      <ChartCards reportId={report.id} />
+      <article class="panel report-body markdown-body" set:html={body} />
+    </main>
+    <footer class="footer"><span>QUANT MARKET INTEL</span><span>市场信息仅供研究参考</span></footer>
+  </body>
+</html>
