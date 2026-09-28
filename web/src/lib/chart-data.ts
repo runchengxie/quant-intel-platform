@@ -11,11 +11,17 @@ export interface ChartPoint {
   unit: string;
   observation_date: string;
   source_label: string;
+  source_url: string;
 }
+
+export type ChartStatus = 'ok' | 'degraded' | 'missing' | 'skipped';
 
 export interface ChartCard {
   title: string;
   points: ChartPoint[];
+  key: string;
+  status: ChartStatus;
+  reason?: string;
 }
 
 export interface ChartPayload {
@@ -42,7 +48,8 @@ function isChartPoint(value: unknown): value is ChartPoint {
     && Number.isFinite(value.value)
     && typeof value.unit === 'string'
     && typeof value.observation_date === 'string'
-    && typeof value.source_label === 'string';
+    && typeof value.source_label === 'string'
+    && typeof value.source_url === 'string';
 }
 
 function isChartPayload(value: unknown, reportId: string): value is ChartPayload {
@@ -52,6 +59,8 @@ function isChartPayload(value: unknown, reportId: string): value is ChartPayload
     && Array.isArray(value.charts)
     && value.charts.every((card) => isRecord(card)
       && typeof card.title === 'string'
+      && typeof card.key === 'string'
+      && (card.status === 'ok' || card.status === 'degraded' || card.status === 'missing' || card.status === 'skipped')
       && Array.isArray(card.points)
       && card.points.every(isChartPoint));
 }

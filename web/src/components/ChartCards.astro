@@ -1,6 +1,6 @@
 ---
 import { loadChart } from '../lib/reports.mjs';
-import ChartIsland from './ChartIsland.jsx';
+import ChartIsland from './ChartIsland.tsx';
 
 const { reportId } = Astro.props;
 const cards = loadChart(reportId).filter((card) => card.key !== 'us_overnight');

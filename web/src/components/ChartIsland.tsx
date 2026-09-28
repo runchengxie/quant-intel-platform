@@ -1,16 +1,28 @@
 import { useEffect, useRef, useState } from 'react';
-import { loadChart, toOption } from '../lib/chart-data.mjs';
+import type { EChartsOption } from 'echarts';
+import { loadChart, toOption } from '../lib/chart-data.ts';
 
-export default function ChartIsland({ reportId, chartKey }) {
+interface ChartIslandProps {
+  reportId: string;
+  chartKey: string;
+}
+
+interface ChartInstance {
+  setOption: (option: EChartsOption) => void;
+  resize: () => void;
+  dispose: () => void;
+}
+
+export default function ChartIsland({ reportId, chartKey }: ChartIslandProps) {
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState('');
-  const container = useRef(null);
+  const container = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!expanded) return undefined;
     let active = true;
-    let instance;
-    let observer;
+    let instance: ChartInstance | undefined;
+    let observer: ResizeObserver | undefined;
     (async () => {
       try {
         const report = await loadChart(reportId);
