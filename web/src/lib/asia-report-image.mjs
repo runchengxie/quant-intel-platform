@@ -35,6 +35,44 @@ function excerpt(markdown, heading, limit = 3) {
   return result;
 }
 
+function sixDimensionRows(markdown) {
+  const labels = ['流动性', '广度', '赚钱效应', '亏钱风险', '趋势确认', '轮动质量'];
+  const lines = markdown.split('\n');
+  const start = lines.findIndex((line) => line.trim() === '### 六维观察');
+  if (start < 0) return null;
+  const found = new Map();
+  for (const line of lines.slice(start + 1)) {
+    if (/^#{2,3} /.test(line)) break;
+    if (!line.trim().startsWith('|')) continue;
+    const cells = line.split('|').slice(1, -1).map((cell) => cell.trim());
+    if (cells.length !== 4 || !labels.includes(cells[0])) continue;
+    const score = Number(cells[1]);
+    found.set(cells[0], {
+      score: cells[1] !== '' && Number.isFinite(score) && score >= 0 && score <= 100 ? score : null,
+      status: cells[2], evidence: cells[3],
+    });
+  }
+  return labels.map((label) => ({ label, ...found.get(label) }));
+}
+
+function sixDimensionBars(draw, rows) {
+  draw.text('观察分越高表示该维度越强；亏钱风险越高，风险越高。', MUTED, 12);
+  for (const row of rows) {
+    if (row.score === null || row.score === undefined) {
+      draw.text(`${row.label} · 缺项`, MUTED, 13);
+      continue;
+    }
+    const color = row.label === '亏钱风险' ? UP : DOWN;
+    draw.parts.push(textNode(54, draw.y, row.label, { size: 14, weight: '600' }));
+    draw.parts.push(`<rect x="245" y="${draw.y - 12}" width="520" height="14" fill="${TRACK}"/>`);
+    draw.parts.push(`<rect data-dimension="${escapeText(row.label)}" x="245" y="${draw.y - 12}" width="${520 * row.score / 100}" height="14" fill="${color}"/>`);
+    draw.parts.push(textNode(906, draw.y, `${formatNumber(row.score, 1)} / 100 · ${row.status}`, { size: 13, color, anchor: 'end' }));
+    draw.y += 20;
+    if (row.evidence) draw.text(row.evidence, MUTED, 12);
+    draw.y += 9;
+  }
+}
+
 const INK = '#34271f';
 const MUTED = '#715f52';
 const UP = '#b64d33';
@@ -224,6 +262,14 @@ export function buildAsiaReportSvg(report, charts, markdown) {
     ['### 九、热门概念 TOP5', '热门概念', 4], ['### 十、极端异动', '极端异动', 3],
     ['### 数据完整度与校准', '数据完整度与校准', 3],
   ]) {
+    if (heading === '### 六维观察') {
+      const rows = sixDimensionRows(markdown);
+      if (rows) {
+        addHeading(title);
+        sixDimensionBars(draw, rows);
+      }
+      continue;
+    }
     const lines = excerpt(markdown, heading, limit);
     if (lines.length) {
       addHeading(title);
