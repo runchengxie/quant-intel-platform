@@ -36,7 +36,7 @@ python3 -m http.server 8000 --directory "$preview_root"
 | `tests/`、`tools/` | 测试与结构审计工具 |
 | `docs/` | 维护方法、数据契约和历史设计记录 |
 
-`web/` 是 `quant-intel-platform` 的公开日报应用，不是独立仓库。它目前仍保留部分导入、快照和模型解读脚本。数据与报告生产逻辑会逐步迁往平台 Python 模块，网站保留公开契约校验、静态渲染和下载。生产发布与定时任务仍由独立的 `quant-intel-deploy` 管理。具体边界见[开发与数据维护](docs/technical-guide.md#项目边界)。
+`web/` 是 `quant-intel-platform` 的公开日报应用，不是独立仓库。报告刷新由平台的 `market-public-refresh` 命令负责，`web/scripts/refresh_reports.py` 仅为旧调用方保留兼容入口。导入、快照和模型解读脚本仍在 `web/`，后续按职责迁移。生产发布与定时任务仍由独立的 `quant-intel-deploy` 管理。具体边界见[开发与数据维护](docs/technical-guide.md#项目边界)。
 
 ## 常见问题
 

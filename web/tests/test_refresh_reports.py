@@ -155,7 +155,7 @@ class RefreshReportsTests(unittest.TestCase):
     def test_public_timestamps_preserve_actual_microseconds_within_one_second(self):
         earlier = datetime(2026, 9, 19, 15, 30, 0, 123456, tzinfo=timezone(timedelta(hours=8)))
         later = earlier.replace(microsecond=234567)
-        with patch.object(self.module, "datetime") as clock:
+        with patch.object(self.module._owner, "datetime") as clock:
             clock.now.side_effect = [earlier, later]
             evening = self.module.public_markdown("## 20260918 盘后点评", "2026-09-18", "evening", "backfill")
             morning = self.module.public_markdown("# 盘前（2026-09-18）", "2026-09-18", "morning", "backfill")
@@ -242,7 +242,9 @@ class RefreshReportsTests(unittest.TestCase):
             self.run_refresh()
         (self.output / ".git").rmdir()
         (self.base / ".git").mkdir()
-        with patch.object(self.module, "__file__", str(self.base / "repo/scripts/refresh_reports.py")):
+        with patch.object(
+            self.module._owner, "__file__", str(self.base / "repo/src/a_share_daily/public_report_refresh.py")
+        ):
             self.assertTrue(self.run_refresh().is_file())
 
     def test_morning_rejects_live_fallback_or_mismatched_dates(self):
