@@ -4,11 +4,11 @@
 
 ## 项目边界
 
-本仓库当前负责公开报告导入、最近五个有报告日期的快照、模型解读、静态页面和 GitHub Pages 发布。`quant-intel-platform` 负责行情与报告生产，`quant-intel-deploy` 负责生产部署和定时任务。三个仓库独立管理，本仓库没有 Git submodule。
+`web/` 是 `quant-intel-platform` 内的公开日报应用，负责近期快照、公开校验、静态页面和 GitHub Pages 展示。平台 Python 模块负责行情与报告生产，独立的 `quant-intel-deploy` 负责生产定时器和发布。本目录不是 Git submodule。
 
-长期目标是让 Pages 专注公开展示。新数据抓取、研究解释、报告写作和模型编排放在 platform。Pages 接收带版本、日期、来源及审核状态的公开产物，做发布前校验、静态渲染与下载。现有 `scripts/` 中的导入、简评和解读入口仍被发布器及 Actions 调用，暂时保留。
+长期目标是让 `web/` 专注公开展示。新数据抓取、研究解释、报告写作和模型编排放在平台模块。网站接收带版本、日期、来源及审核状态的公开产物，做发布前校验、静态渲染与下载。现有 `scripts/` 中的导入、简评和解读入口仍被发布器调用，迁移期间暂时保留。
 
-迁移时按 platform 提供产物、deploy 切换调用、Pages 移除旧入口的顺序分别开 PR，并验证旧报告和新报告都能展示。仓库合并不在当前计划内。若将来跨仓契约的维护成本超过独立发布的收益，再重新评估。
+迁移现有入口时，先由平台模块提供等价产物，再切换 deploy 调用，最后移除 `web/` 中的旧入口。各阶段都须验证历史报告和新报告可以展示。
 
 公开窗口按实际存在的报告日期计算。只有晚报的日期也占一个名额。完整报告、历史解读和审核回执放在仓库外的私有归档中。Pages 构建或部署成功只说明网站可用，不代表数据及时或新闻事实已经核实。
 
@@ -19,11 +19,11 @@ CI 使用 Python 3.11 和 Node.js 24。安装锁定的 Node 依赖后，先用 P
 ```bash
 npm ci
 preview_root=$(mktemp -d /tmp/qmi-preview.XXXXXX)
-python3 scripts/build_site.py --output "$preview_root/quant-intel-pages"
+python3 scripts/build_site.py --output "$preview_root/quant-intel-platform"
 python3 -m http.server 8000 --directory "$preview_root"
 ```
 
-打开 <http://localhost:8000/quant-intel-pages/>。站点基址是 `/quant-intel-pages/`，但报告下载和数据请求仍使用该基址下的 `/reports/`、`/data/`。`npm run build` 可单独检查 Astro 输出，其 `dist/` 仅供开发验证。正式页面和 `/legacy/` 回退页面都支持深色模式。
+打开 <http://localhost:8000/quant-intel-platform/>。站点基址是 `/quant-intel-platform/`，报告下载和数据请求仍使用该基址下的 `/reports/`、`/data/`。`npm run build` 可单独检查 Astro 输出，其 `dist/` 仅供开发验证。正式页面和 `/legacy/` 回退页面都支持深色模式。平台文档构建到同一站点的 `/docs/`。
 
 ## 导入公开报告
 
@@ -51,15 +51,15 @@ python3 scripts/sync_public_snapshot.py --archive-dir /path/to/private-archive
 
 生产发布器在本机导入新报告后，优先调用已登录的 Codex CLI 生成带证据的结构化解读和简评。CLI 在只读沙盒运行，登录态不上传到 GitHub。无效输出不会写入公开索引，也不会阻止原报告发布。
 
-Pages Actions 会保留有效的 Codex 记录。没有有效记录时，解读依次尝试 Gemini、DeepSeek、MiniMax，首个通过格式、引用和数字校验的结果即停止回退。简评优先沿用同一条解读的概览，必要时可独立尝试 MiniMax。模型输出通过格式校验不等于新闻事实已独立核实，不能补造缺少来源的公司新闻或市场归因。
+平台公开网站 workflow 只校验并展示已发布材料，不读取模型密钥。Codex 和备用模型的调用需在受控发布链路完成。当前本机发布器优先使用 Codex，Gemini、DeepSeek、MiniMax 的新链路尚待切换验证。模型输出通过格式校验不等于新闻事实已独立核实，不能补造缺少来源的公司新闻或市场归因。
 
 | 用途 | 入口 | 依赖 |
 |---|---|---|
 | 本机默认解读 | `scripts/generate_codex_commentary.py` | 已登录的 Codex CLI、仓库外的工作和归档目录 |
 | 每日简评 | `scripts/generate_daily_summary.py` | 有效解读概览，或 `MINIMAX_API_KEY` |
-| 带来源的市场解读 | `scripts/generate_insights.py` | Actions 按 Gemini、DeepSeek、MiniMax 顺序回退 |
+| 带来源的市场解读 | `scripts/generate_insights.py` | 受控环境手动运行，自动回退链路待迁移 |
 
-配置样例是 `configs/.env.example`。实际密钥留在仓库外，通过进程环境或 GitHub Actions Secret 传入。Richard 机器可沿用 `~/.config/richard/`，其他机器选择自己的私有配置目录，代码不固定用户名。以下路径是占位示例：
+配置样例是 `configs/.env.example`。实际密钥留在仓库外，通过受控进程环境传入，不进入公开网站 workflow。Richard 机器可沿用 `~/.config/richard/`，其他机器选择自己的私有配置目录，代码不固定用户名。以下路径是占位示例：
 
 ```bash
 cp configs/.env.example /path/to/private/model.env
@@ -112,6 +112,6 @@ python3 scripts/import_charts.py \
 
 提交前按 [AGENTS.md](../AGENTS.md) 的质量门禁运行 Ruff、ty、vulture、Python 和 Node 测试、独立站点构建、依赖审计、结构审计与 `git diff --check`。代码指标、已知缺口见[维护检查记录](maintenance-audit-2026-09-19.md)。页面改动还要检查默认日期、筛选、无数据、来源展开、桌面和手机布局、深色模式。
 
-GitHub Actions 在 PR 上运行检查，`main` 更新或手动触发时部署 Pages。部署时读取已发布的近期生成记录，生成简评和解读，再重渲染页面，避免正文和本次数据快照不一致。Actions 的记录 artifact 保留 90 天，生产发布器在部署后下载到私有归档并核对哈希。`force_summary`、`force_insights` 是手动重生成开关。
+GitHub Actions 在 PR 上检查网页和平台文档，`main` 更新或手动触发时一次构建、一次部署。它只渲染仓库中通过公开校验的近期产物，不生成新解读。需要密钥的生成和私有归档留在受控发布链路。
 
 09-15 的[网站设计](superpowers/specs/2026-09-15-quant-market-intel-pages-design.md)、[网站实施](superpowers/plans/2026-09-15-quant-market-intel-pages.md)与[MiniMax 实施](superpowers/plans/2026-09-15-quant-market-intel-minimax.md)保留早期决策背景，当前操作以本页、[每日生成与维护说明](daily-generation-options.md)和 [AGENTS.md](../AGENTS.md) 为准。

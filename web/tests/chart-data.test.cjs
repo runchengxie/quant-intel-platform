@@ -9,7 +9,7 @@ test('chart loader requests only the selected report identity', async () => {
     urls.push(url);
     return { ok: true, json: async () => payload };
   });
-  assert.deepEqual(urls, ['/quant-intel-pages/data/charts/2026-09-18-morning.json']);
+  assert.deepEqual(urls, ['/quant-intel-platform/data/charts/2026-09-18-morning.json']);
   await assert.rejects(() => loadChart('../private', async () => ({})), /identity/);
   await assert.rejects(() => loadChart('2026-09-18-evening', async () => ({
     ok: true, json: async () => payload,

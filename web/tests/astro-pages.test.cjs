@@ -23,7 +23,7 @@ test('Astro emits a readable five-session static site with six chart states', ()
   const reports = JSON.parse(readFileSync(path.join(root, 'artifacts/public/data/reports.json'), 'utf8')).reports;
   const reportId = reports[0].id;
   assert.match(index, /Quant 市场情报/);
-  assert.ok(index.includes('/quant-intel-pages/'));
+  assert.ok(index.includes('/quant-intel-platform/'));
   assert.ok(!index.includes('/market-intel-pages/'));
   assert.match(index, /id="theme-toggle"/);
   assert.match(index, /id="us-session"/);
@@ -62,7 +62,7 @@ test('Astro emits a readable five-session static site with six chart states', ()
   assert.match(html, /class="panel report-body markdown-body"/);
   assert.match(html, /data-chart-key="dashboard"/);
   assert.match(html, /data-chart-key="weekly_chart"/);
-  assert.ok(html.includes(`/quant-intel-pages/reports/${reportId}.md`));
+  assert.ok(html.includes(`/quant-intel-platform/reports/${reportId}.md`));
   assert.doesNotMatch(html, /private-chat-target/);
   assert.doesNotMatch(index, /echarts\.|ChartIsland\.|\.png["']/);
   assert.doesNotMatch(html, /echarts\.|ChartIsland\.|\.png["']/);

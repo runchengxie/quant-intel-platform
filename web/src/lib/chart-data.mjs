@@ -1,4 +1,4 @@
-const BASE = '/quant-intel-pages';
+const BASE = '/quant-intel-platform';
 
 function escapeHtml(value) {
   return String(value).replace(/[&<>"']/g, (character) => ({

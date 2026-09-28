@@ -3,7 +3,7 @@ import react from '@astrojs/react';
 
 export default defineConfig({
   site: 'https://runchengxie.github.io',
-  base: '/quant-intel-pages',
+  base: '/quant-intel-platform',
   outDir: process.env.ASTRO_OUT_DIR || './dist',
   integrations: [react()],
 });

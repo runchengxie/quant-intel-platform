@@ -23,8 +23,9 @@
 - `tushare_jobs/`：报告专用轻量任务与兼容导出；权威 A 股数据 owner 为 `market-data-platform`。
 - `style_replica_bridge/`：将 owner 回测产物转换为报告 tearsheet。
 - `ops_common/`：环境、投递窗口、freshness、恢复和通知。
+- `web/`：公开日报网站、近期公开快照、下载、来源展示和网站专属测试。根路径发布日报，平台文档发布到 `/docs/`。`web/` 是本仓目录，不是 submodule。
 
-配置在 `config/`，运行状态在 `state/`，报告产物在 `out/`，文档在 `docs/`，本地质量工具在 `project_tools/`。
+配置在 `config/`，运行状态在 `state/`，报告产物在 `out/`，文档在 `docs/`，本地质量工具在 `project_tools/`。网站的 Node 和 Python 开发依赖留在 `web/`，不加入平台运行包。
 
 ## 开发命令
 
@@ -128,6 +129,8 @@ QUANT_RESEARCH_ROOT=/path/to/quant-research
 本仓在 PR 和 `main` 推送时运行完整代码质量门禁，包括全量测试与覆盖率、Ruff、ty、维护性指标、CLI 帮助、package coverage、脚本语法和公开边界检查。CI 不读取真实市场数据、不调用飞书或券商。历史快照 workflow 保留为 `.disabled` 文件，不得在 CI 中重新启用真实数据抓取和自动提交。
 
 public framework 的 lint、类型检查、离线测试和构建应优先放在本仓运行。私有部署仓库的 GitHub Actions 默认关闭，以避免消耗有限的 private-repository minutes；private 部署变更必须先通过本地 `uv sync --locked`、部署 smoke tests 和调度模板检查。只有在 production shadow/canary 或正式切换前确实需要时，才临时启用 private workflow，并在任务完成后关闭。
+
+统一网站 workflow 先构建 `web/` 的 Astro 日报，再把 MkDocs 文档构建进同一产物的 `/docs/`，只部署一次。公开 workflow 不读取模型密钥。需要凭据的新闻研究和模型回退由受控发布链路完成；网页只展示已审核公开产物。
 
 ## Worktree-first 目录规范
 

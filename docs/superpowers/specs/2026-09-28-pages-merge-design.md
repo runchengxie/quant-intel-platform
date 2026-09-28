@@ -20,7 +20,7 @@
 
 先合并 platform 的网站与统一构建 PR，在新地址做只读影子验证，旧站继续发布。再修改 `quant-intel-deploy` 的两个发布器，使机器人检出 platform 仓库并只提交 `web/artifacts/public/` 白名单。导入脚本从稳定的 platform 发布目录下 `web/scripts/` 调用。更新生产环境、机器人检出与定时器时须检查 pending 状态，逐项试跑并保留回滚目录。
 
-Pages 仓库的 Gemini、DeepSeek、MiniMax Secrets 不能自动随代码迁移。正式切换前，在 platform 仓库配置同名 Secrets，按名称及最小成功探测验证，不记录密钥值。Codex CLI 仍在本机发布器运行。缺少模型 Secrets 时不得把回退能力写成已恢复。
+平台公开 CI 保持无密钥，只校验并渲染已经审核的公开产物。Codex CLI 和 Gemini、DeepSeek、MiniMax 回退留在受控的私有发布链路运行，沿用仓库外凭据。迁移前须核对回退供应商的实际执行路径和结果回执；未完成时在交付记录中明确标出该能力尚未切换，不把模型输出当作已核实新闻。
 
 平台站点和两个发布器连续通过验证后，旧 `quant-intel-pages` 站点改为指向新首页的跳转页；旧仓库暂不删除或归档，以保留回滚路径和完整历史。旧报告直链是否能逐项重定向应单独验证，无法重定向时在切换记录中列明。
 

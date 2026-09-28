@@ -1,6 +1,6 @@
 # quant-intel-platform（Market Intel）
 
-[在线文档](https://runchengxie.github.io/quant-intel-platform/)
+[市场日报](https://runchengxie.github.io/quant-intel-platform/) · [在线文档](https://runchengxie.github.io/quant-intel-platform/docs/)
 
 `quant-intel-platform` 为市场研究提供自动化报告、网页看板和信息投递。它汇总市场与新闻信息，读取其他项目发布的版本化研究结果，再负责校验、整理、展示和投递。
 

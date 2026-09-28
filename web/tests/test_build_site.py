@@ -353,7 +353,7 @@ def test_real_site_build_overlays_astro_pages_and_keeps_downloads(tmp_path: Path
     report_id = index_data["reports"][0]["id"]
     index = (output / "index.html").read_text(encoding="utf-8")
     assert "REPORT ARCHIVE" in index
-    assert f"/quant-intel-pages/reports/{report_id}/" in index
+    assert f"/quant-intel-platform/reports/{report_id}/" in index
     assert (output / f"reports/{report_id}/index.html").is_file()
     market = json.loads((output / "data/market_daily_report.json").read_text(encoding="utf-8"))
     market_date = market["run_id"].removeprefix("daily-")
@@ -366,7 +366,7 @@ def test_real_site_build_overlays_astro_pages_and_keeps_downloads(tmp_path: Path
         assert f"# 美股市场日报（{date}）" in reading
         assert "https://" not in reading
         assert "证据：" not in reading
-        assert f"/quant-intel-pages/reports/{date}-market-daily-no-citations.md" in index
+        assert f"/quant-intel-platform/reports/{date}-market-daily-no-citations.md" in index
     assert "| 5 年期 | 4.98% | -5.00 bp | 2026-09-25 |" in (
         output / "reports/2026-09-25-market-daily-no-citations.md"
     ).read_text(encoding="utf-8")

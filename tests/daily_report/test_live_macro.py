@@ -196,6 +196,18 @@ def test_cli_daily_report_does_not_publish_fixture_values(monkeypatch, tmp_path)
         "daily_messenger.daily_report.pipeline.fetch_cross_asset_facts",
         lambda _date: ([], ("BZ=F", "GC=F", "SI=F", "BTC=F")),
     )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_btc_spot_facts",
+        lambda _date: ([], "source_unavailable"),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_index_facts",
+        lambda _date: ([], ("^GSPC", "^DJI", "^IXIC", "^RUT")),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_equity_facts",
+        lambda _date, _movers: ([], ("MSFT", "AAPL", "NVDA", "AMZN", "GOOGL", "META")),
+    )
 
     assert main(["daily-report", "--out", str(tmp_path)]) == 0
     payload = json.loads((tmp_path / "daily_report.json").read_text())

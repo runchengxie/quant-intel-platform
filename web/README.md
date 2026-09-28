@@ -2,7 +2,7 @@
 
 这是一个静态日报网站。早上看美股收盘，晚上看亚洲市场收盘；旧晨报和晚报仍可在归档中阅读。网页展示最近五个有报告的日期，并标出数据的原始观测日、来源和缺项。报告仅供研究参考。
 
-[打开网站](https://runchengxie.github.io/quant-intel-pages/)
+[打开网站](https://runchengxie.github.io/quant-intel-platform/) · [平台文档](https://runchengxie.github.io/quant-intel-platform/docs/)
 
 ## 能看到什么
 
@@ -14,16 +14,16 @@
 
 ## 快速预览
 
-准备 Python 3.11、Node.js 24 和 npm。在仓库根目录执行：
+准备 Python 3.11、Node.js 24 和 npm。从平台仓库的 `web/` 目录执行：
 
 ```bash
 npm ci
 preview_root=$(mktemp -d /tmp/qmi-preview.XXXXXX)
-python3 scripts/build_site.py --output "$preview_root/quant-intel-pages"
+python3 scripts/build_site.py --output "$preview_root/quant-intel-platform"
 python3 -m http.server 8000 --directory "$preview_root"
 ```
 
-然后打开 <http://localhost:8000/quant-intel-pages/>。输出目录由 `mktemp` 新建；构建会重新创建指定目录，请勿改成存放业务数据的路径。只想检查 Astro 页面时，可运行 `npm run build`。
+然后打开 <http://localhost:8000/quant-intel-platform/>。输出目录由 `mktemp` 新建；构建会重新创建指定目录，请勿改成存放业务数据的路径。只想检查 Astro 页面时，可运行 `npm run build`。
 
 ## 到哪里找
 
@@ -36,9 +36,7 @@ python3 -m http.server 8000 --directory "$preview_root"
 | `tests/`、`tools/` | 测试与结构审计工具 |
 | `docs/` | 维护方法、数据契约和历史设计记录 |
 
-本仓库没有 Git submodule。它的长期定位是公开报告的展示层，负责接收已发布的数据、校验公开契约、生成静态页面和下载文件。行情采集、报告写作与研究逻辑由独立的 `quant-intel-platform` 负责。生产部署与定时任务由独立的 `quant-intel-deploy` 负责。
-
-目前 Pages 仍保留部分导入、快照和模型解读脚本，这是现有发布链路的一部分。后续会按版本化公开产物逐步把内容生产迁回 platform。现阶段不合并两个仓库，已有功能也不会因职责调整而直接删除。具体边界见[开发与数据维护](docs/technical-guide.md#项目边界)。
+`web/` 是 `quant-intel-platform` 的公开日报应用，不是独立仓库。它目前仍保留部分导入、快照和模型解读脚本。数据与报告生产逻辑会逐步迁往平台 Python 模块，网站保留公开契约校验、静态渲染和下载。生产发布与定时任务仍由独立的 `quant-intel-deploy` 管理。具体边界见[开发与数据维护](docs/technical-guide.md#项目边界)。
 
 ## 常见问题
 
