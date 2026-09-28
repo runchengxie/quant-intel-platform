@@ -1,12 +1,12 @@
 <div class="mi-home" markdown="1">
 
-<p class="mi-eyebrow">QUANT MARKET INTEL · DOCUMENTATION</p>
+<p class="mi-eyebrow">QUANT MARKET INTEL / DOCUMENTATION</p>
 
 # Quant 市场情报
 
-一个面向市场情报、报告、网页看板和数据契约的公开框架。
+市场日报、报告系统与数据契约的使用文档。
 
-平台把市场事实、研究产物和确定性规则组合起来，生成可复现、可检查的报告产品。生产凭据、定时任务和真实运行数据由私有部署仓库管理。
+这里记录从公开日报到平台实现的完整路径：如何阅读数据、运行报告，以及核对各模块的责任边界。生产凭据、定时任务和真实运行数据由私有部署仓库管理。
 
 <p class="mi-home__links" markdown="1">
 
@@ -17,7 +17,7 @@
 </p>
 </div>
 
-## 从这里开始
+## 阅读路径
 
 如果你第一次接触这个项目，建议按下面的顺序阅读：
 
@@ -26,7 +26,7 @@
 3. [常见任务](how-to/run-daily-report.md)：按任务查找操作步骤
 4. [系统架构](architecture.md)：进一步了解平台由哪些部分组成
 
-## 平台包含什么
+## 文档范围
 
 | 模块 | 作用 |
 | --- | --- |
