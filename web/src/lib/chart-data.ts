@@ -1,30 +1,80 @@
+import type {
+  EChartsOption,
+  TooltipComponentFormatterCallbackParams,
+} from 'echarts';
+
 const BASE = '/quant-intel-platform';
 
-function escapeHtml(value) {
-  return String(value).replace(/[&<>"']/g, (character) => ({
-    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
-  })[character]);
+export interface ChartPoint {
+  label: string;
+  value: number;
+  unit: string;
+  observation_date: string;
+  source_label: string;
 }
 
-export async function loadChart(reportId, fetcher = fetch) {
+export interface ChartCard {
+  title: string;
+  points: ChartPoint[];
+}
+
+export interface ChartPayload {
+  publication: 'public';
+  report_id: string;
+  charts: ChartCard[];
+}
+
+function escapeHtml(value: string | number): string {
+  const replacements: Record<string, string> = {
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  };
+  return String(value).replace(/[&<>"']/g, (character) => replacements[character]);
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isChartPoint(value: unknown): value is ChartPoint {
+  return isRecord(value)
+    && typeof value.label === 'string'
+    && typeof value.value === 'number'
+    && Number.isFinite(value.value)
+    && typeof value.unit === 'string'
+    && typeof value.observation_date === 'string'
+    && typeof value.source_label === 'string';
+}
+
+function isChartPayload(value: unknown, reportId: string): value is ChartPayload {
+  return isRecord(value)
+    && value.publication === 'public'
+    && value.report_id === reportId
+    && Array.isArray(value.charts)
+    && value.charts.every((card) => isRecord(card)
+      && typeof card.title === 'string'
+      && Array.isArray(card.points)
+      && card.points.every(isChartPoint));
+}
+
+export async function loadChart(reportId: string, fetcher: typeof fetch = fetch): Promise<ChartPayload> {
   if (!/^\d{4}-\d{2}-\d{2}-(?:morning|evening)$/.test(reportId)) {
     throw new Error('invalid chart identity');
   }
   const response = await fetcher(`${BASE}/data/charts/${reportId}.json`);
   if (!response.ok) throw new Error('chart data unavailable');
   const chart = await response.json();
-  if (chart.publication !== 'public' || chart.report_id !== reportId || !Array.isArray(chart.charts)) {
+  if (!isChartPayload(chart, reportId)) {
     throw new Error('chart identity mismatch');
   }
   return chart;
 }
 
-export function signedValue(value, unit) {
+export function signedValue(value: number, unit: string): string {
   const sign = value > 0 ? '+' : value < 0 ? '−' : '';
   return `${sign}${Math.abs(value).toLocaleString('zh-CN', { maximumFractionDigits: 2 })} ${unit}`;
 }
 
-export function toOption(card) {
+export function toOption(card: ChartCard): EChartsOption {
   const points = card.points;
   const units = [...new Set(points.map((point) => point.unit))];
   return {
@@ -33,8 +83,9 @@ export function toOption(card) {
     color: ['#b64d33'],
     legend: { show: true, data: [card.title], bottom: 0 },
     grid: { left: 54, right: 30, top: 38, bottom: points.length > 8 ? 96 : 72, containLabel: true },
-    tooltip: { trigger: 'item', formatter: (params) => {
-      const point = points[params.dataIndex];
+    tooltip: { trigger: 'item', formatter: (params: TooltipComponentFormatterCallbackParams) => {
+      const item = Array.isArray(params) ? params[0] : params;
+      const point = points[item.dataIndex ?? 0];
       return `${escapeHtml(point.label)}<br>${escapeHtml(signedValue(point.value, point.unit))}<br>观测日 ${escapeHtml(point.observation_date)}<br>${escapeHtml(point.source_label)}`;
     } },
     xAxis: { type: 'category', data: points.map((point) => point.label), axisLabel: { rotate: points.length > 5 ? 35 : 0, interval: 0 } },
