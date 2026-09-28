@@ -3,7 +3,7 @@ import '../../styles/site.css';
 import '../../styles/editorial.css';
 import '../../styles/research-language.css';
 import ChartCards from '../../components/ChartCards.astro';
-import { loadReports, loadMarkdown, loadChart, VISUAL_REPORT_START_DATE } from '../../lib/reports.mjs';
+import { loadReports, loadMarkdown, loadChart } from '../../lib/reports.mjs';
 import { renderMarkdown } from '../../lib/markdown.mjs';
 import { buildAsiaReportSvg } from '../../lib/asia-report-image.mjs';
 
@@ -15,8 +15,11 @@ const { report } = Astro.props;
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const markdown = loadMarkdown(report);
 const body = renderMarkdown(markdown);
-const visualReport = report.kind === 'evening' && report.date >= VISUAL_REPORT_START_DATE
-  ? buildAsiaReportSvg(report, loadChart(report.id), markdown) : null;
+const charts = report.kind === 'evening' ? loadChart(report.id) : null;
+const visualReport = charts ? buildAsiaReportSvg(report, charts, markdown) : null;
+const chartSources = [...new Map((charts || []).flatMap((chart) => (chart.points || [])
+  .filter((point) => /^https:\/\//.test(point.source_url))
+  .map((point) => [point.source_url, point.source_label]))).entries()];
 ---
 <!doctype html>
 <html lang="zh-CN">
@@ -30,7 +33,7 @@ const visualReport = report.kind === 'evening' && report.date >= VISUAL_REPORT_S
         <div class="link-row report-actions"><button type="button" id="download-asia-report" data-report-image data-report-date={report.date} data-report-kind="asia-daily" data-chart-target="#asia-daily-chart svg" data-status-target="#asia-chart-download-status">下载图片版 PNG</button></div>
         <p id="asia-chart-download-status" class="section-note" role="status" aria-live="polite"></p>
         <div class="market-chart-graphic market-report-graphic" id="asia-daily-chart" set:html={visualReport} />
-        <details class="secondary-report"><summary>阅读完整报告与来源</summary><article class="report-body markdown-body" set:html={body} /></details>
+        <details class="secondary-report"><summary>阅读完整报告与来源</summary><article class="report-body markdown-body" set:html={body} /><ChartCards reportId={report.id} />{chartSources.length > 0 && <><h3>图表来源</h3><ul>{chartSources.map(([href, label]) => <li><a href={href} target="_blank" rel="noreferrer">{label} · {href}</a></li>)}</ul></>}</details>
       </section> : <><ChartCards reportId={report.id} /><article class="panel report-body markdown-body" set:html={body} /></>}
     </main>
     <footer class="footer"><span>QUANT MARKET INTEL</span><span>市场信息仅供研究参考</span></footer>

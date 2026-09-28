@@ -3,11 +3,11 @@ import { loadChart } from '../lib/reports.mjs';
 import ChartIsland from './ChartIsland.jsx';
 
 const { reportId } = Astro.props;
-const cards = loadChart(reportId);
+const cards = loadChart(reportId).filter((card) => card.key !== 'us_overnight');
 const formatValue = (point) => `${Number(point.value).toLocaleString('zh-CN', { maximumFractionDigits: 2 })} ${point.unit}`;
 ---
 <section class="charts-section" aria-labelledby="chart-heading">
-  <div class="section-heading"><span class="eyebrow">行情图表</span><h2 id="chart-heading">六图概览</h2></div>
+  <div class="section-heading"><span class="eyebrow">行情图表</span><h2 id="chart-heading">亚洲市场图表</h2></div>
   <p class="section-note">这里展示已逐项核实的公开数据。缺少的数据会标为缺项。</p>
   <div class="chart-grid">
     {cards.map((card) => (

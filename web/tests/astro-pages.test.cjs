@@ -17,7 +17,7 @@ test('legacy page reads public data and reports from the site root', () => {
   assert.match(app, /source\.href = `\.\.\/\$\{report\.source_url\}`/);
 });
 
-test('Astro emits a readable five-session static site with six chart states', () => {
+test('Astro emits a readable recent-report site with Asian market chart states', () => {
   execFileSync('npm', ['run', 'build'], { cwd: root, stdio: 'pipe' });
   const index = readFileSync(path.join(root, 'dist/index.html'), 'utf8');
   const reports = JSON.parse(readFileSync(path.join(root, 'artifacts/public/data/reports.json'), 'utf8')).reports;
@@ -58,8 +58,9 @@ test('Astro emits a readable five-session static site with six chart states', ()
   assert.match(chart, /观测日 2026-09-25/);
   const asia = index.match(/id="asia-daily-chart">([\s\S]*?)<\/div>/)?.[1];
   assert.ok(asia);
-  assert.match(asia, /六图概览/);
-  assert.match(asia, /综合仪表盘/);
+  assert.match(asia, /亚洲市场图表/);
+  assert.match(asia, /综合盘面/);
+  assert.doesNotMatch(asia, /美股隔夜图/);
   assert.match(asia, /数据缺项|缺项/);
   const styles = readdirSync(path.join(root, 'dist/_astro')).filter((name) => name.endsWith('.css'))
     .map((name) => readFileSync(path.join(root, `dist/_astro/${name}`), 'utf8')).join('\n');
@@ -67,9 +68,9 @@ test('Astro emits a readable five-session static site with six chart states', ()
   const report = path.join(root, `dist/reports/${reportId}/index.html`);
   assert.ok(existsSync(report));
   const html = readFileSync(report, 'utf8');
-  assert.match(html, /class="panel report-body markdown-body"/);
-  assert.match(html, /data-chart-key="dashboard"/);
-  assert.match(html, /data-chart-key="weekly_chart"/);
+  assert.match(html, /id="asia-daily-chart"/);
+  assert.match(html, /阅读完整报告与来源/);
+  assert.doesNotMatch(html, /data-chart-key="us_overnight"/);
   assert.ok(html.includes(`/quant-intel-platform/reports/${reportId}.md`));
   assert.doesNotMatch(html, /private-chat-target/);
   assert.doesNotMatch(index, /echarts\.|ChartIsland\.|\.png["']/);
