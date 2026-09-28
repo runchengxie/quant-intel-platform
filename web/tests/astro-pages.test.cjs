@@ -6,6 +6,12 @@ const path = require('node:path');
 
 const root = path.join(__dirname, '..');
 
+function assertDriverSectionMatchesReport(chart, report) {
+  const hasVerifiedDrivers = report.sections?.some((section) => section.key === 'drivers' && section.claims?.length);
+  if (hasVerifiedDrivers) assert.match(chart, /市场驱动因素/);
+  else assert.doesNotMatch(chart, /市场驱动因素/);
+}
+
 test('legacy page reads public data and reports from the site root', () => {
   const app = readFileSync(path.join(root, 'src/legacy/app.js'), 'utf8');
   assert.match(app, /fetch\("\.\.\/data\/reports\.json"/);
@@ -55,7 +61,7 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   assert.doesNotMatch(currentUs, /class="index-grid"|class="market-table"/);
   const chart = index.match(/<div class="market-chart-graphic market-report-graphic" id="market-daily-chart">([\s\S]*?)<\/div>/)?.[1];
   assert.ok(chart);
-  assert.match(chart, /市场驱动因素/);
+  assertDriverSectionMatchesReport(chart, usReport);
   assert.match(chart, /关键来源/);
   assert.ok(chart.includes(`观测日 ${usDate}`));
   const asia = index.match(/id="asia-daily-chart">([\s\S]*?)<\/div>/)?.[1];
@@ -148,7 +154,7 @@ test('visual report keeps verified facts, commentary and source links together',
   assert.ok(twoYearSection.slice(0, 600).includes(`${twoYear.value.toFixed(2)}%`));
   assert.match(chart, /跨资产日涨跌/);
   assert.match(chart, /BTC\/USD 现货/);
-  assert.match(chart, /市场驱动因素/);
+  assertDriverSectionMatchesReport(chart, report);
   assert.match(chart, /关键来源/);
   assert.match(index, /<a href="https:\/\/home\.treasury\.gov[^"]*"[^>]*>美国财政部<\/a>/);
   assert.match(index, /阅读全文与数据质量说明/);

@@ -462,10 +462,25 @@ def _build_alert(
     state_path: Path,
     notifier: Notifier | None,
 ) -> dict[str, Any]:
-    if failure_fingerprint is None or notifier is None:
+    if failure_fingerprint is None:
         return {"status": "not_needed"}
-    if previous.get("failure_fingerprint") == failure_fingerprint:
-        return {"status": "suppressed_duplicate", "fingerprint": failure_fingerprint}
+    previous_alert = previous.get("alert")
+    delivered = (
+        previous.get("failure_fingerprint") == failure_fingerprint
+        and isinstance(previous_alert, Mapping)
+        and (previous_alert.get("status") == "sent" or previous_alert.get("delivered") is True)
+    )
+    if notifier is None:
+        return (
+            {"status": "not_needed", "delivered": True} if delivered else {"status": "not_needed"}
+        )
+    if delivered:
+        return {
+            "status": "suppressed_duplicate",
+            "fingerprint": failure_fingerprint,
+            "delivered": True,
+        }
+    # Legacy suppression does not prove delivery; retry with the notifier's stable idempotency key.
     failed = ", ".join(
         f"{stage.get('key')}={stage.get('status')}"
         for stage in stages
