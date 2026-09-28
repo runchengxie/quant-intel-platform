@@ -141,7 +141,11 @@ test('visual report keeps verified facts, commentary and source links together',
   const chart = index.match(/id="market-daily-chart">([\s\S]*?)<\/div>/)?.[1];
   assert.ok(chart);
   assert.match(chart, /美债收益率水平/);
-  assert.match(chart, /\d+\.\d+%/);
+  const report = JSON.parse(readFileSync(path.join(root, 'artifacts/public/data/market_daily_report.json'), 'utf8'));
+  const twoYear = report.facts.find((fact) => fact.id === 'treasury.2y.level_percent');
+  assert.ok(twoYear);
+  const twoYearSection = chart.slice(chart.indexOf('2 年期美债收益率水平'));
+  assert.ok(twoYearSection.slice(0, 600).includes(`${twoYear.value.toFixed(2)}%`));
   assert.match(chart, /跨资产日涨跌/);
   assert.match(chart, /BTC\/USD 现货/);
   assert.match(chart, /市场驱动因素/);
