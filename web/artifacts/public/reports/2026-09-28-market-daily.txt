@@ -1,0 +1,84 @@
+美股市场日报｜2026-09-28 美东报告日
+报告生成时间：2026-09-28T22:31:44.833964+00:00；逐项显示原始观测日。
+
+一、美股市场表现
+- 标普 500 日涨跌：-0.77%（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/%5EGSPC/history/
+- 道指日涨跌：-0.67%（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/%5EDJI/history/
+- 纳指日涨跌：-0.92%（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/%5EIXIC/history/
+- 罗素 2000 日涨跌：-0.69%（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/%5ERUT/history/
+
+二、重点个股
+- MSFT：509.22 美元，-1.35%（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/MSFT/history/
+- AAPL：338.40 美元，-0.78%（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/AAPL/history/
+- NVDA：228.86 美元，+1.68%（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/NVDA/history/
+- AMZN：246.15 美元，-1.41%（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/AMZN/history/
+- GOOGL：342.75 美元，-0.34%（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/GOOGL/history/
+- META：715.62 美元，-4.79%（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/META/history/
+- 暂无经核实内容。
+
+三、美债收益率
+- 2 年期美债收益率日变动：+11.00 bp（观测日 2026-09-28）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 5 年期美债收益率日变动：+8.00 bp（观测日 2026-09-28）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 10 年期美债收益率日变动：+7.00 bp（观测日 2026-09-28）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 30 年期美债收益率日变动：+7.00 bp（观测日 2026-09-28）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 2 年期美债收益率水平：4.92%（观测日 2026-09-28）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 5 年期美债收益率水平：5.06%（观测日 2026-09-28）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 10 年期美债收益率水平：5.24%（观测日 2026-09-28）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 30 年期美债收益率水平：5.56%（观测日 2026-09-28）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+
+四、跨资产行情
+- 布伦特期货收盘：105.70 美元/桶（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/BZX26.NYM/history/
+- 布伦特日涨跌：+1.32%（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/BZX26.NYM/history/
+- COMEX 黄金期货收盘：4156.70 美元/金衡盎司（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/GCZ26.CMX/history/
+- 黄金日涨跌：-3.81%（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/GCZ26.CMX/history/
+- COMEX 白银期货收盘：61.14 美元/金衡盎司（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/SIZ26.CMX/history/
+- 白银日涨跌：-5.65%（观测日 2026-09-28）
+  来源：https://finance.yahoo.com/quote/SIZ26.CMX/history/
+- BTC/USD 现货收盘：83196.17 美元/BTC（观测日 2026-09-28）
+  来源：https://site.financialmodelingprep.com/developer/docs/stable/cryptocurrency-historical-price-eod-full
+- BTC/USD 现货日涨跌：-1.50%（观测日 2026-09-28）
+  来源：https://site.financialmodelingprep.com/developer/docs/stable/cryptocurrency-historical-price-eod-full
+
+五、市场驱动因素
+- 暂无经核实内容。
+
+六、经济数据与美联储动态
+- CPI 同比：3.40%（观测日 2026-08-01）
+  来源：https://fred.stlouisfed.org/series/CPIAUCNS
+- PCE 同比：3.70%（观测日 2026-07-01）
+  来源：https://fred.stlouisfed.org/series/PCEPI
+- 失业率：4.10%（观测日 2026-08-01）
+  来源：https://fred.stlouisfed.org/series/UNRATE
+- 非农就业月变动：162.00 千人（观测日 2026-08-01）
+  来源：https://fred.stlouisfed.org/series/PAYEMS
+
+七、公司新闻
+- 暂无经核实内容。
+
+
+尚缺：研究解释、比特币期货行情。
+
+风险提示：市场有风险，投资需谨慎。
