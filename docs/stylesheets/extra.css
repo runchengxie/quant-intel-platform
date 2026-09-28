@@ -264,6 +264,7 @@ body {
   --mi-surface: #f8f5ef;
   --mi-text: #252525;
   --mi-muted: #716c63;
+  --mi-copy: #514b43;
   --mi-faint: #81796e;
   --mi-accent: #b64d33;
   --mi-accent-soft: #ede5d9;
@@ -276,6 +277,7 @@ body {
   --mi-surface: #1b2128;
   --mi-text: #edf0f2;
   --mi-muted: #9aa4ae;
+  --mi-copy: #c4cad0;
   --mi-faint: #87919b;
   --mi-accent: #e28a70;
   --mi-accent-soft: #2d2524;
@@ -283,19 +285,20 @@ body {
   --mi-selection: #654b3b;
 }
 
-body { font-family: Manrope, "Noto Sans SC", "PingFang SC", sans-serif; }
+body { font-family: "Source Han Sans CN", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC", sans-serif; }
 .md-header, .md-tabs { background: var(--mi-background); }
 .md-header__topic { font-size: .82rem; font-weight: 700; letter-spacing: .02em; }
 .md-header__button.md-logo { border-radius: 0; background: var(--mi-text); }
 [data-md-color-scheme="slate"] .md-header__button.md-logo { background: var(--mi-accent); }
 .md-tabs__link { font-size: .78rem; }
 .md-nav__link { font-size: .72rem; }
-.md-content { max-width: 52rem; }
+.md-content { max-width: 48rem; }
 .md-content h1, .md-content h2, .md-content h3, .mi-home h1 {
-  font-family: "Noto Serif SC", "Source Han Serif CN", "Songti SC", Georgia, serif;
+  font-family: "Source Han Sans CN", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC", sans-serif;
 }
-.md-content h1 { font-size: clamp(2.1rem, 4vw, 3.3rem); letter-spacing: -.055em; }
-.md-content h2 { border-color: var(--mi-border); }
+.md-content h1 { font-size: clamp(2rem, 3.5vw, 2.6rem); letter-spacing: -.035em; }
+.md-content h2 { border-color: var(--mi-border); font-size: 1.35rem; }
+.md-typeset p, .md-typeset li { color: var(--mi-copy); line-height: 1.8; }
 .md-typeset table:not([class]) { border: 1px solid var(--mi-border); background: var(--mi-surface); box-shadow: none; }
 .md-typeset table:not([class]) th { background: var(--mi-accent-soft); color: var(--mi-text); }
 .md-typeset table:not([class]) td, .md-typeset table:not([class]) th { border-color: var(--mi-border); }
@@ -304,20 +307,21 @@ body { font-family: Manrope, "Noto Sans SC", "PingFang SC", sans-serif; }
 .md-typeset .admonition, .md-typeset details { border-color: var(--mi-border); background: var(--mi-surface); }
 
 .mi-home {
-  max-width: 52rem;
-  margin-bottom: 1.4rem;
+  max-width: 48rem;
+  margin-bottom: 1rem;
   border-top: 2px solid var(--mi-text);
-  padding-top: clamp(2.2rem, 5vw, 3.2rem);
+  padding-top: clamp(1.8rem, 4vw, 2.5rem);
 }
-.mi-eyebrow { color: var(--mi-accent); font: 600 .65rem ui-monospace, monospace; letter-spacing: .12em; }
-.mi-home h1 { font-size: clamp(2.4rem, 4vw, 3.2rem); }
-.mi-home > p:not(.mi-eyebrow):not(.mi-home__links) { max-width: 41rem; font-size: .94rem; line-height: 1.85; }
-.mi-home__links { margin-top: 2rem; }
+.mi-eyebrow { color: var(--mi-accent); font: 600 .65rem "Source Han Sans CN", sans-serif; letter-spacing: .08em; }
+.mi-home h1 { font-size: clamp(2.1rem, 3.5vw, 2.6rem); }
+.mi-home > p:not(.mi-eyebrow):not(.mi-home__links) { max-width: 41rem; font-size: .82rem; line-height: 1.8; }
+.mi-home__links { margin-top: 1.4rem; }
 .mi-home .md-button { margin-bottom: .5rem; }
 .mi-home .md-button--primary { background: var(--mi-text); border-color: var(--mi-text); color: var(--mi-background); }
 [data-md-color-scheme="slate"] .mi-home .md-button--primary { color: var(--mi-background); }
 .md-search__form { border: 1px solid var(--mi-border); border-radius: 0; background: var(--mi-surface); }
 .md-search__input, .md-search__icon { color: var(--mi-text); }
+.md-search__input::placeholder { color: var(--mi-muted); opacity: 1; }
 @media screen and (max-width: 700px) {
-  .mi-home h1 { font-size: 2.4rem; }
+  .mi-home h1 { font-size: 2.1rem; }
 }

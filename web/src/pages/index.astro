@@ -98,23 +98,14 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     </script>
   </head>
   <body>
-    <header class="topbar"><a class="brand" href={`${base}/`}><span class="brand-mark">Q</span><span>QUANT <b>MARKET INTEL</b></span></a><div class="top-actions"><span class="top-note">市场观察 / 公开日报</span><a class="docs-link" href={`${base}/docs/`}>方法与文档</a><button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">深色</button></div></header>
+    <header class="topbar"><a class="brand" href={`${base}/`}><span class="brand-mark">Q</span><span>QUANT <b>MARKET INTEL</b></span></a><nav class="top-nav" aria-label="主导航"><a href="#us-session">美股日报</a><a href="#asia-session">亚洲晚报</a><a href="#reports-title">历史报告</a><a href={`${base}/docs/`}>文档</a></nav><button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">深色</button></header>
     <main class="shell">
-      <aside class="sidebar" aria-label="网站导航与归档筛选">
-        <span class="eyebrow">MARKET INTELLIGENCE / 01</span>
-        <h1>Quant 市场情报</h1>
-        <p class="intro">每天两场：早上看美股收盘，晚上看亚洲收盘。旧晨报保留归档。</p>
-        <nav class="sidebar-nav" aria-label="页面目录"><a href="#us-session">美股收盘</a><a href="#asia-session">亚洲收盘</a><a href="#reports-title">历史报告</a></nav>
-        <p class="sidebar-foot">目录更新 {reports.length > 0 ? reports[0].date : '暂无报告'} · 最近 {dates.length} 个交易日</p>
-      </aside>
       <div class="content">
-        <section class="hero"><span class="eyebrow">DAILY MARKET REVIEW</span><h2>收盘之后，<br />看清市场发生了什么。</h2><p>美股与亚洲市场的每日复盘。先看可核实的行情，再读变化与依据；每项数据保留观测日和来源。</p><nav class="session-nav" aria-label="日报场次"><a href="#us-session"><span>01 / 美股收盘</span><strong>{market?.date || '待更新'}</strong><small>07:00 · 美东交易日</small></a><a href="#asia-session"><span>02 / 亚洲收盘</span><strong>{latestEveningDate || '待更新'}</strong><small>19:00 · 北京时间</small></a></nav></section>
-        <section class="panel" id="us-session" aria-labelledby="market-title"><div class="section-heading"><span class="eyebrow">07:00 · US CLOSE SESSION</span><h2 id="market-title">07:00 美股收盘复盘</h2></div>
+        <section class="hero"><div class="hero-copy"><span class="eyebrow">公开日报 / 每日两场</span><h1>Quant 市场情报</h1><p>每日跟踪美股与亚洲收盘。先看可核实的行情，再读变化与依据；每项数据保留观测日和来源。旧晨报保留归档。</p></div><nav class="session-nav" aria-label="最新日报"><a href="#us-session"><span>最新美股日报</span><strong>{market?.date || '待更新'}</strong><small>07:00 · 美东交易日</small></a><a href="#asia-session"><span>最新亚洲晚报</span><strong>{latestEveningDate || '待更新'}</strong><small>19:00 · 北京时间</small></a></nav></section>
+        <section class="panel" id="us-session" aria-labelledby="market-title"><div class="section-heading"><span class="eyebrow">最新美股日报 · {market?.date || '待更新'}</span><h2 id="market-title">07:00 美股收盘复盘</h2></div>
           {market?.markdown ? <>
             <p class="section-note">{market.date} 美东报告日{marketGeneratedLabel ? ` · 报告生成 ${marketGeneratedLabel}（美东）` : ''}。行情逐项标注观测日与来源，缺项不以旧值填补。</p>
-            <div class="link-row"><a href={`${base}/reports/${market.date}-market-daily.md`}>Markdown 原文</a>{market.hasCitationFreeMarkdown && <a href={`${base}/reports/${market.date}-market-daily-no-citations.md`}>Markdown 阅读版（无引用）</a>}<a href={`${base}/reports/${market.date}-market-daily.txt`}>纯文本报告</a></div>
             {hasPrimaryData ? <div class="market-brief">
-              <nav class="market-brief-nav" aria-label="美股日报内容"><a href="#us-indexes">指数</a>{equityRows.length > 0 && <a href="#us-stocks">个股</a>}{rateRows.length > 0 && <a href="#us-rates">美债</a>}{assets.length > 0 && <a href="#us-assets">跨资产</a>}{marketChartSvg && <a href="#us-chart">行情图</a>}<a href="#us-drivers">市场驱动</a></nav>
               <h3 id="us-indexes">美股收盘</h3>
               <div class="index-grid">{indexFacts.map((fact) => <article class="market-stat">
                 <span>{fact.instrument}</span><strong class:list={[Number(fact.value) < 0 && 'down']}>{Number(fact.value) > 0 ? '+' : ''}{formatNumber(Number(fact.value))}%</strong>
@@ -136,14 +127,15 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
               {claimRows('drivers').length ? <ul class="brief-claims">{claimRows('drivers').map((claim) => <li>{claim.claim} <span class="claim-sources">{(claim.sources || []).map((url, index) => /^https:\/\//.test(url) && <a href={url} target="_blank" rel="noreferrer">来源{index + 1}</a>)}</span></li>)}</ul> : <p class="section-note">暂无通过核验的市场驱动材料。</p>}
               <details class="secondary-report"><summary>展开完整已核实报告（含经济数据、公司新闻与质量说明）</summary><div class="markdown-body" set:html={renderMarkdown(market.markdown || '', { compactSources: true })} /></details>
             </div> : <div class="market-empty"><p>这份报告尚无可用于新版行情摘要的字段。</p><p>缺少的行情不会以估值或其他日期的数据补造。</p><details class="secondary-report"><summary>查看现有报告内容</summary><div class="markdown-body" set:html={renderMarkdown(market.markdown || '', { compactSources: true })} /></details></div>}
+            <details class="report-downloads"><summary>下载这份报告</summary><div class="link-row"><a href={`${base}/reports/${market.date}-market-daily.md`}>Markdown 原文</a>{market.hasCitationFreeMarkdown && <a href={`${base}/reports/${market.date}-market-daily-no-citations.md`}>Markdown 阅读版（无引用）</a>}<a href={`${base}/reports/${market.date}-market-daily.txt`}>纯文本报告</a></div></details>
             {marketHistory.length > 0 && <div class="market-history"><h3>最近 5 个美东交易日</h3>{marketHistory.map((row) => <details class="secondary-report"><summary>{row.date}{row.quality_summary?.revision === 'historical_backfill' ? ' · 历史补报' : ''}</summary><div class="link-row"><a href={`${base}/reports/${row.date}-market-daily.md`}>Markdown 原文</a>{row.hasCitationFreeMarkdown && <a href={`${base}/reports/${row.date}-market-daily-no-citations.md`}>Markdown 阅读版（无引用）</a>}<a href={`${base}/reports/${row.date}-market-daily.txt`}>纯文本报告</a></div><div class="markdown-body" set:html={renderMarkdown(row.markdown, { compactSources: true })} /></details>)}</div>}
           </> : <p class="empty">暂未取得可公开的美股日报。</p>}
         </section>
         <section id="asia-session" class="session-group" aria-labelledby="asia-session-title">
-          <section class="panel"><div class="section-heading"><span class="eyebrow">19:00 · ASIA CLOSE SESSION</span><h2 id="asia-session-title">19:00 亚洲市场收盘复盘</h2></div>
+          <section class="panel"><div class="section-heading"><span class="eyebrow">最新亚洲晚报 · {latestEveningDate || '待更新'}</span><h2 id="asia-session-title">19:00 亚洲市场收盘复盘</h2></div>
             {latestEvening ? <><p class="section-note">最近晚报 {latestEvening.date} · 19:00 是首版目标，以报告内的实际生成时间和数据日期为准。</p><h3><a href={`${base}/reports/${latestEvening.id}/`}>{latestEvening.title}</a></h3><p>{latestEvening.summary}</p><div class="link-row"><a href={`${base}/reports/${latestEvening.id}/`}>阅读完整复盘与六图</a><a href={`${base}/${latestEvening.source_url}`}>查看 Markdown 原文</a></div></> : <p class="empty">暂未取得可公开的亚洲收盘复盘。</p>}
           </section>
-        <section class="panel" aria-labelledby="insight-title"><div class="section-heading"><span class="eyebrow">MARKET JOURNAL</span><h2 id="insight-title">{insightArchived ? '历史市场解读与验证' : '市场解读与验证'}</h2></div>
+        <section class="panel" aria-labelledby="insight-title"><div class="section-heading"><h2 id="insight-title">{insightArchived ? '历史市场解读与验证' : '市场解读与验证'}</h2></div>
           {insightArchived && <p class="backfill-note">此解读基于停用前的晨晚报配对，不代表最新晚报；请以晚报原文和下方事实提要为准。</p>}
           {insight?.analysis?.overview?.text ? <>
             <p class="section-note">{insight.date} · 信息截至 {timestampLabel(insight.as_of)} · 解读生成 {timestampLabel(insight.generated_at)}（北京时间）。展开依据可核对原文。</p>
@@ -156,11 +148,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
             {insight.quality_warnings?.length > 0 && <details><summary>数据缺项与限制（{insight.quality_warnings.length}）</summary><ul>{insight.quality_warnings.map((warning) => <li>{formatEvidenceLine('六维观察', warning)}</li>)}</ul></details>}
           </> : <p class="empty">暂无通过验证的市场解读。</p>}
         </section>
-        <section class="panel" aria-labelledby="summary-title"><div class="section-heading"><span class="eyebrow">DAILY NOTES</span><h2 id="summary-title">最近几天的晚报提要与市场简评</h2></div>
+        <section class="panel" aria-labelledby="summary-title"><div class="section-heading"><h2 id="summary-title">最近几天的晚报提要与市场简评</h2></div>
           {displayNotes.length ? <div class="notes-list">{displayNotes.map((row) => <article><time>{row.date}</time>{row.source === 'evening' && <a href={`${base}/reports/${row.reportId}/`}>晚报事实提要 · 查看依据</a>}<p>{row.text}</p></article>)}</div> : <p class="empty">暂无简评。</p>}
         </section>
         </section>
-        <section class="reports-section" aria-labelledby="reports-title"><div class="section-heading"><span class="eyebrow">REPORT ARCHIVE</span><h2 id="reports-title">晚报与历史晨报</h2><p class="section-note">下方筛选仅作用于历史报告。</p></div>
+        <section class="reports-section" aria-labelledby="reports-title"><div class="section-heading"><h2 id="reports-title">晚报与历史晨报</h2><p class="section-note">下方筛选仅作用于历史报告。</p></div>
           <div class="archive-filters"><label for="kind-filter">报告类型<select id="kind-filter"><option value="all">全部</option><option value="morning">晨报</option><option value="evening">晚报</option></select></label><label for="date-filter">查看日期<select id="date-filter"><option value="all">最近报告</option>{dates.map((date) => <option value={date}>{date}</option>)}</select></label></div>
           <div class="report-list" id="report-list">{reports.map((report) => <article class="report-tile" data-date={report.date} data-kind={report.kind}>
             <div class="report-meta"><time>{report.date}</time><span>{report.kind === 'morning' ? '晨报' : '晚报'}</span>{report.generation_mode === 'backfill' && <span class="backfill">历史补发</span>}</div>
