@@ -1,14 +1,14 @@
-<div class="mi-home" markdown>
+<div class="mi-home" markdown="1">
 
-<p class="mi-eyebrow">MARKET INTELLIGENCE · RESEARCH · SYSTEMS</p>
+<p class="mi-eyebrow">QUANT MARKET INTEL · DOCUMENTATION</p>
 
-# Market Intel
+# Quant 市场情报
 
 一个面向市场情报、报告、网页看板和数据契约的公开框架。
 
 平台把市场事实、研究产物和确定性规则组合起来，生成可复现、可检查的报告产品。生产凭据、定时任务和真实运行数据由私有部署仓库管理。
 
-<p class="mi-home__links" markdown>
+<p class="mi-home__links" markdown="1">
 
 [五分钟开始](getting-started.md){ .md-button .md-button--primary }
 [系统架构](architecture.md){ .md-button }

@@ -34,9 +34,12 @@ test('Astro emits a readable five-session static site with six chart states', ()
   assert.match(index, /旧晨报保留归档/);
   assert.match(index, /市场驱动/);
   assert.match(index, /展开完整已核实报告/);
-  assert.ok(index.indexOf('<h3>美股收盘</h3>') < index.indexOf('<h3>重点个股</h3>'));
-  assert.ok(index.indexOf('<h3>重点个股</h3>') < index.indexOf('<h3>美债收益率</h3>'));
-  assert.ok(index.indexOf('<h3>美债收益率</h3>') < index.indexOf('<h3>跨资产行情</h3>'));
+  assert.ok(index.indexOf('id="us-indexes"') < index.indexOf('<h3>重点个股</h3>'));
+  assert.ok(index.indexOf('<h3>重点个股</h3>') < index.indexOf('id="us-rates"'));
+  assert.ok(index.indexOf('id="us-rates"') < index.indexOf('id="us-assets"'));
+  assert.match(index, /aria-label="S&amp;P 500 最近 [2-5] 个已核实交易日的日涨跌"/);
+  assert.match(index, /id="us-chart" open/);
+  assert.match(index, /下方筛选仅作用于历史报告/);
   assert.match(index, /<th>5 年<\/th><td>4\.980%/);
   assert.match(index, /<th>30 年<\/th><td>5\.490%/);
   assert.match(index, /Markdown 原文/);
