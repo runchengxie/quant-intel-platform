@@ -115,7 +115,21 @@ def _codex_analysis(context: dict, cli: Path, work_dir: Path, repo: Path) -> dic
             env=environment,
         )
         if result.returncode or not output.is_file():
-            raise RuntimeError(f"codex exited {result.returncode}")
+            diagnostic = (result.stderr or "").lower()
+            category = (
+                "authentication"
+                if any(word in diagnostic for word in ("unauthorized", "authentication", "login required"))
+                else (
+                    "rate_limit"
+                    if any(word in diagnostic for word in ("rate limit", "quota exceeded"))
+                    else (
+                        "network"
+                        if any(word in diagnostic for word in ("connection", "timeout", "dns", "tls"))
+                        else "unknown"
+                    )
+                )
+            )
+            raise RuntimeError(f"codex_exit_{result.returncode}:{category}")
         return validate_analysis(json.loads(output.read_text(encoding="utf-8")), context)
 
 

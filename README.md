@@ -21,6 +21,7 @@ uv run dm --help
 
 - 生成市场日报、A 股晨报晚报和风格周报
 - 查看静态网页看板
+- 查看每日更新的美股与亚洲市场公开日报，阅读近五个报告日期的归档
 - 按配置向指定受众投递报告并记录回执
 
 ## 文档
@@ -28,6 +29,7 @@ uv run dm --help
 - [入门指南](docs/getting-started.md)：准备环境并运行报告
 - [新机器配置](docs/new-machine-setup.md)：了解本地环境和配置
 - [系统架构](docs/architecture.md)：查看报告生成和投递流程
+- [市场日报网站](docs/how-to/market-site.md)：预览网站、了解公开数据与发布边界
 - [运维手册](docs/operations.md)：查看运行、恢复与排障
 - [文档索引](docs/index.md)：按主题查找其他技术说明
 

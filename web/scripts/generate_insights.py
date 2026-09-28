@@ -149,13 +149,22 @@ def _load_history(path: Path, history_url: str | None) -> tuple[list[dict], str 
     return history, history_warning
 
 
-def _generate_with_fallback(generator, context, prompt, provider, model, api_keys):
+def _generate_with_fallback(generator, context, prompt, provider, model, api_keys, attempts):
     last_error = None
     for api_key in api_keys:
-        try:
-            return validate_analysis(generator(context, prompt, provider, model, api_key), context)
-        except (OSError, ValueError, KeyError, IndexError, TypeError) as exc:
-            last_error = exc
+        # A model can produce one invalid JSON claim while the next completion
+        # follows the contract. Both attempts still pass the same strict gate.
+        for attempt in range(3):
+            try:
+                attempts[0] += 1
+                return validate_analysis(generator(context, prompt, provider, model, api_key), context)
+            except ValueError as exc:
+                last_error = exc
+                if attempt < 2:
+                    continue
+            except (OSError, KeyError, IndexError, TypeError) as exc:
+                last_error = exc
+            break
     if last_error is not None:
         raise last_error
     raise ValueError("no API keys configured")
@@ -193,7 +202,7 @@ def _update_history(
     ).hexdigest()
     generation["target_date"] = morning["date"]
     api_keys = [api_key] if isinstance(api_key, str) else [key for key in (api_key or []) if key]
-    generation["analysis_attempts"] = len(api_keys)
+    generation["analysis_attempts"] = 0
     current = next(
         (
             row
@@ -219,8 +228,11 @@ def _update_history(
     elif not api_keys:
         generation["status"] = "not_configured"
     else:
+        attempts = [0]
         try:
-            analysis = _generate_with_fallback(generator, context, prompt, provider, model, api_keys)
+            analysis = _generate_with_fallback(
+                generator, context, prompt, provider, model, api_keys, attempts
+            )
             identity = hashlib.sha256(
                 json.dumps([fingerprint, analysis, now], sort_keys=True).encode()
             ).hexdigest()[:24]
@@ -250,6 +262,8 @@ def _update_history(
                 generation["diagnostics"] = getattr(exc, "diagnostics", {"http_status": exc.code})
             elif isinstance(exc, ValueError):
                 generation["error_code"] = validation_error_code(exc)
+        finally:
+            generation["analysis_attempts"] = attempts[0]
     return history
 
 

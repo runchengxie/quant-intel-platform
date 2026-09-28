@@ -69,15 +69,24 @@ def extract_metrics(report: dict) -> dict:
 
 
 def build_context(reports: list[dict], morning: dict, evening: dict) -> dict:
+    """Build a verified context for a current session and prior Asia close.
+
+    The morning/evening field names are retained for archived index consumers.
+    New records may contain two evening reports, with the first as current.
+    """
     cutoff = report_generated_at(morning)
     evening_time = report_generated_at(evening)
     if (
         cutoff is None
         or evening_time is None
         or evening_time >= cutoff
-        or morning.get("kind") != "morning"
+        or morning.get("kind") not in {"morning", "evening"}
         or evening.get("kind") != "evening"
-        or evening["date"] > morning["date"]
+        or (
+            evening["date"] >= morning["date"]
+            if morning.get("kind") == "evening"
+            else evening["date"] > morning["date"]
+        )
     ):
         raise ValueError("invalid source pair or timestamps")
     eligible = [
@@ -87,8 +96,13 @@ def build_context(reports: list[dict], morning: dict, evening: dict) -> dict:
         and generated <= cutoff
         and row["date"] <= morning["date"]
     ]
-    dates = sorted({row["date"] for row in eligible}, reverse=True)[:5]
-    selected = sorted([row for row in eligible if row["date"] in dates], key=lambda row: row["id"])
+    if morning.get("kind") == "evening":
+        # The new single-evening session has a precise comparison window.
+        # Archived mornings are often duplicates and can overwhelm the model.
+        selected = sorted((morning, evening), key=lambda row: row["id"])
+    else:
+        dates = sorted({row["date"] for row in eligible}, reverse=True)[:5]
+        selected = sorted([row for row in eligible if row["date"] in dates], key=lambda row: row["id"])
     evidence = evidence_for(selected)
     warnings = list(
         dict.fromkeys(

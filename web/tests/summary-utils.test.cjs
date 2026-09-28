@@ -51,6 +51,16 @@ test("selected date returns only its summary", () => {
   );
 });
 
+test("latest evening commentary remains visible after morning publication stops", () => {
+  const reports = [report("2026-09-23", "evening"), report("2026-09-24", "evening")];
+  const record = {
+    date: "2026-09-24",
+    morning_report_id: "2026-09-24-evening",
+    evening_report_id: "2026-09-23-evening",
+  };
+  assert.deepEqual(selectVisibleSummaries([record], reports, ""), [record]);
+});
+
 test("summary with missing or incorrectly typed sources is not displayed", () => {
   const reports = [report("2026-09-14", "morning"), report("2026-09-14", "evening")];
   const invalid = [

@@ -31,16 +31,50 @@ def report_generated_at(report: dict) -> datetime | None:
 
 
 def select_source_pair(reports: list[dict]) -> tuple[dict, dict] | None:
+    """Select the latest session and an earlier Asia close as its baseline.
+
+    Historical morning/evening pairs remain valid. New evening-only sessions
+    use the preceding evening so stopping morning publication does not freeze
+    commentary on the last archived morning report.
+    """
     mornings = [
         (generated, row)
         for row in reports
         if row.get("kind") == "morning" and (generated := report_generated_at(row)) is not None
     ]
-    if not mornings:
-        return None
-    morning_time, morning = max(
-        mornings, key=lambda item: (item[1].get("date", ""), item[0], item[1].get("id", ""))
+    latest_morning = max(
+        mornings, key=lambda item: (item[1].get("date", ""), item[0], item[1].get("id", "")), default=None
     )
+    latest_evening = max(
+        (
+            (generated, row)
+            for row in reports
+            if row.get("kind") == "evening" and (generated := report_generated_at(row)) is not None
+        ),
+        key=lambda item: (item[1].get("date", ""), item[0], item[1].get("id", "")),
+        default=None,
+    )
+    if latest_evening and (
+        not latest_morning
+        or (latest_evening[1]["date"], latest_evening[0]) > (latest_morning[1]["date"], latest_morning[0])
+    ):
+        current_time, current = latest_evening
+        earlier = [
+            (generated, row)
+            for row in reports
+            if row.get("kind") == "evening"
+            and row.get("id") != current.get("id")
+            and row.get("date", "") < current.get("date", "")
+            and (generated := report_generated_at(row)) is not None
+            and generated < current_time
+        ]
+        if earlier:
+            return current, max(
+                earlier, key=lambda item: (item[1].get("date", ""), item[0], item[1].get("id", ""))
+            )[1]
+    if not latest_morning:
+        return None
+    morning_time, morning = latest_morning
     evenings = [
         (generated, row)
         for row in reports
@@ -57,7 +91,7 @@ def select_source_pair(reports: list[dict]) -> tuple[dict, dict] | None:
 
 def build_messages(morning: dict, evening: dict, prompt: str) -> list[dict]:
     sources = {
-        "morning": {key: morning.get(key) for key in ("id", "date", "title", "sections")},
+        "current_session": {key: morning.get(key) for key in ("id", "date", "kind", "title", "sections")},
         "preceding_evening": {key: evening.get(key) for key in ("id", "date", "title", "sections")},
     }
     return [
