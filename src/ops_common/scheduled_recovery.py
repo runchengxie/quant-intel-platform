@@ -464,8 +464,17 @@ def _build_alert(
 ) -> dict[str, Any]:
     if failure_fingerprint is None or notifier is None:
         return {"status": "not_needed"}
-    if previous.get("failure_fingerprint") == failure_fingerprint:
-        return {"status": "suppressed_duplicate", "fingerprint": failure_fingerprint}
+    previous_alert = previous.get("alert")
+    if (
+        previous.get("failure_fingerprint") == failure_fingerprint
+        and isinstance(previous_alert, Mapping)
+        and (previous_alert.get("status") == "sent" or previous_alert.get("delivered") is True)
+    ):
+        return {
+            "status": "suppressed_duplicate",
+            "fingerprint": failure_fingerprint,
+            "delivered": True,
+        }
     failed = ", ".join(
         f"{stage.get('key')}={stage.get('status')}"
         for stage in stages

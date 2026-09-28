@@ -8,6 +8,7 @@ from ops_common.market_intel_recovery import MARKET_INTEL_SPECS
 from ops_common.scheduled_recovery import (
     DEFAULT_SPECS,
     RecoverySpec,
+    _build_alert,
     _disabled_stage_statuses,
     reconcile,
 )
@@ -27,6 +28,62 @@ def test_disabling_morning_model_disables_dependent_morning_report() -> None:
         "morning_model": "disabled_by_configuration",
         "morning_report": "disabled_dependency",
     }
+
+
+def test_failed_recovery_alert_is_retried_for_same_failure(tmp_path: Path) -> None:
+    messages: list[str] = []
+
+    def notify(message: str) -> bool:
+        messages.append(message)
+        return True
+
+    alert = _build_alert(
+        previous={"failure_fingerprint": "same", "alert": {"status": "failed"}},
+        stages=[{"key": "current_contract", "status": "recovery_failed"}],
+        failure_fingerprint="same",
+        date_key="20260928",
+        state_path=tmp_path / "state.json",
+        notifier=notify,
+    )
+
+    assert alert["status"] == "sent"
+    assert len(messages) == 1
+
+
+def test_sent_recovery_alert_is_suppressed_for_same_failure(tmp_path: Path) -> None:
+    alert = _build_alert(
+        previous={"failure_fingerprint": "same", "alert": {"status": "sent"}},
+        stages=[{"key": "current_contract", "status": "recovery_failed"}],
+        failure_fingerprint="same",
+        date_key="20260928",
+        state_path=tmp_path / "state.json",
+        notifier=lambda _message: (_ for _ in ()).throw(AssertionError("must not send")),
+    )
+
+    assert alert["status"] == "suppressed_duplicate"
+    assert alert["delivered"] is True
+
+    again = _build_alert(
+        previous={"failure_fingerprint": "same", "alert": alert},
+        stages=[{"key": "current_contract", "status": "recovery_failed"}],
+        failure_fingerprint="same",
+        date_key="20260928",
+        state_path=tmp_path / "state.json",
+        notifier=lambda _message: (_ for _ in ()).throw(AssertionError("must not send")),
+    )
+    assert again["status"] == "suppressed_duplicate"
+
+
+def test_legacy_suppression_without_delivery_does_not_hide_failure(tmp_path: Path) -> None:
+    alert = _build_alert(
+        previous={"failure_fingerprint": "same", "alert": {"status": "suppressed_duplicate"}},
+        stages=[{"key": "current_contract", "status": "recovery_failed"}],
+        failure_fingerprint="same",
+        date_key="20260928",
+        state_path=tmp_path / "state.json",
+        notifier=lambda _message: True,
+    )
+    assert alert["status"] == "sent"
 
 
 def test_reconcile_skips_disabled_stage_and_its_dependents(tmp_path: Path) -> None:
