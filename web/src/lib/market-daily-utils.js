@@ -319,79 +319,20 @@ function escapeSvgText(value) {
   })[character]);
 }
 
-function svgClaimLines(text) {
-  const characters = Array.from(text.replace(/\s+/g, " ").trim());
-  const lines = [];
-  let line = "";
-  for (const token of characters.join("").match(/[A-Za-z][A-Za-z0-9./%+-]*|[+-]?\d[\d,.%/-]*|./gu) ?? []) {
-    if (line.length + token.length > 50 && line) {
-      lines.push(line.trimEnd());
-      line = "";
-    }
-    if (!line && /^\s+$/.test(token)) continue;
-    line += token;
-  }
-  if (line) lines.push(line.trimEnd());
-  return lines;
-}
-
 function buildMarketDailyChartSvg(summary) {
   const charts = buildMarketDailyCharts(summary);
-  if (!charts.length && !summary.crossAssetRows.length && !summary.rateRows.length && !summary.claims.length) return null;
-  const moverRows = (summary.claimSections.find((section) => section.key === "movers")?.claims ?? [])
-    .map((claim) => ({ lines: svgClaimLines(claim.text) }));
+  const laggedRates = summary.rateRows.filter((row) => row.observationDate !== summary.date);
+  if (!charts.length && !laggedRates.length) return null;
   let y = 118;
   const parts = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="__HEIGHT__" viewBox="0 0 960 __HEIGHT__" role="img">`,
     `<title>${escapeSvgText(summary.date)} 美东交易日市场图表</title>`,
-    `<desc>展示已核实的指数、个股、美债、跨资产、宏观数据和市场说明，并列出数值观测日。</desc>`,
+    `<desc>展示已核实的指数、个股、美债和跨资产数值，并列出观测日。</desc>`,
     `<rect width="960" height="__HEIGHT__" fill="#fff9f2"/>`,
     `<text x="54" y="62" fill="#34271f" font-family="sans-serif" font-size="28" font-weight="700">${escapeSvgText(summary.date)} 美东交易日</text>`,
     `<text x="54" y="91" fill="#715f52" font-family="sans-serif" font-size="15">美股收盘复盘${summary.historicalBackfill ? " · 事后整理" : ""} · 数值逐项标注观测日</text>`,
   ];
-  const firstRates = charts.findIndex((chart) => chart.title.startsWith("美债"));
-  const firstCross = charts.findIndex((chart) => chart.title.startsWith("跨资产"));
-  const moverInsertAt = firstRates >= 0 ? firstRates : firstCross >= 0 ? firstCross : charts.length;
-  const laggedRates = summary.rateRows.filter((row) => row.observationDate !== summary.date);
-  const addLaggedRates = () => {
-    if (!laggedRates.length) return;
-    parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="19" font-weight="700">美债较早观测值</text>`);
-    y += 30;
-    for (const row of laggedRates) {
-      const level = row.levelValue === null ? "收益率暂缺" : `${row.levelValue.toFixed(2)}%`;
-      const change = row.changeValue === null ? "日变动暂缺" : `${row.changeValue >= 0 ? "+" : ""}${row.changeValue.toFixed(2)} bp`;
-      parts.push(`<text x="54" y="${y}" fill="#715f52" font-family="sans-serif" font-size="14">${escapeSvgText(row.label)}：${escapeSvgText(level)} · ${escapeSvgText(change)} · 观测日 ${escapeSvgText(row.observationDate)}，非报告日</text>`);
-      y += 27;
-    }
-    y += 12;
-  };
-  const addEquityPrices = () => {
-    if (!summary.equityRows.length) return;
-    parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="19" font-weight="700">美股个股收盘价</text>`);
-    y += 30;
-    for (const row of summary.equityRows) {
-      parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="14">${escapeSvgText(row.symbol)}：${escapeSvgText(row.priceValue.toFixed(2))} 美元 · ${escapeSvgText(row.changeValue >= 0 ? "+" : "")}${escapeSvgText(row.changeValue.toFixed(2))}% · 观测日 ${escapeSvgText(row.observationDate)}</text>`);
-      y += 27;
-    }
-    y += 12;
-  };
-  const addMovers = () => {
-    addEquityPrices();
-    if (!moverRows.length) return;
-    parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="19" font-weight="700">重点个股（已核实）</text>`);
-    y += 30;
-    for (const row of moverRows) {
-      for (const line of row.lines) {
-        parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="14">${escapeSvgText(line)}</text>`);
-        y += 20;
-      }
-      y += 12;
-    }
-    y += 15;
-  };
-  for (const [chartIndex, chart] of charts.entries()) {
-    if (chartIndex === moverInsertAt) addMovers();
-    if (chartIndex === firstCross) addLaggedRates();
+  for (const chart of charts) {
     parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="19" font-weight="700">${escapeSvgText(chart.title)}（${escapeSvgText(chart.unit)}）</text>`);
     y += 34;
     for (const row of chart.rows) {
@@ -409,46 +350,16 @@ function buildMarketDailyChartSvg(summary) {
     }
     y += 20;
   }
-  if (moverInsertAt === charts.length) addMovers();
-  if (firstCross < 0) addLaggedRates();
-  if (summary.crossAssetRows.length) {
-    parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="18" font-weight="700">跨资产价格</text>`);
-    y += 27;
-    for (const row of summary.crossAssetRows) {
-      const unit = ({ "USD/barrel": "美元/桶", "USD/troy_ounce": "美元/金衡盎司", "USD/bitcoin": "美元/BTC" })[row.priceUnit] ?? row.priceUnit;
-      const price = `${row.priceValue.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${unit}`;
-      const change = `${row.changeValue >= 0 ? "+" : ""}${row.changeValue.toFixed(2)}%`;
-      parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="14">${escapeSvgText(row.label)}：${escapeSvgText(price)} · ${escapeSvgText(change)} · 观测日 ${escapeSvgText(row.observationDate)}</text>`);
+  if (laggedRates.length) {
+    parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="19" font-weight="700">美债较早观测值</text>`);
+    y += 30;
+    for (const row of laggedRates) {
+      const level = row.levelValue === null ? "收益率暂缺" : `${row.levelValue.toFixed(2)}%`;
+      const change = row.changeValue === null ? "日变动暂缺" : `${row.changeValue >= 0 ? "+" : ""}${row.changeValue.toFixed(2)} bp`;
+      parts.push(`<text x="54" y="${y}" fill="#715f52" font-family="sans-serif" font-size="14">${escapeSvgText(row.label)}：${escapeSvgText(level)} · ${escapeSvgText(change)} · 观测日 ${escapeSvgText(row.observationDate)}，非报告日</text>`);
       y += 27;
     }
     y += 12;
-  }
-  if (summary.secondaryRows.length) {
-    parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="19" font-weight="700">经济数据</text>`);
-    y += 30;
-    for (const row of summary.secondaryRows) {
-      parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="14">${escapeSvgText(row.text)} · 观测日 ${escapeSvgText(row.observationDate)}</text>`);
-      y += 27;
-    }
-    y += 12;
-  }
-  for (const section of summary.claimSections.filter((item) => item.key !== "movers")) {
-    parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="19" font-weight="700">${escapeSvgText(section.title)}</text>`);
-    y += 30;
-    for (const claim of section.claims) {
-      for (const line of svgClaimLines(claim.text)) {
-        parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="14">${escapeSvgText(line)}</text>`);
-        y += 20;
-      }
-      y += 12;
-    }
-    y += 12;
-  }
-  if (summary.gaps.length) {
-    for (const line of svgClaimLines(`尚缺：${summary.gaps.join("、")}。`)) {
-      parts.push(`<text x="54" y="${y}" fill="#715f52" font-family="sans-serif" font-size="13">${escapeSvgText(line)}</text>`);
-      y += 20;
-    }
   }
   const height = y + 55;
   parts.push(`<line x1="54" y1="${height - 48}" x2="906" y2="${height - 48}" stroke="#d9c7b6"/>`);

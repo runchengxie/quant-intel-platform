@@ -87,6 +87,9 @@ a:hover { color: var(--desk-accent); }
 .panel summary { color: var(--desk-accent); }
 .report-downloads { margin-top: 28px; border-top: 1px solid var(--desk-line); padding-top: 8px; }
 .report-downloads .link-row { margin-top: 12px; }
+.report-downloads-top { margin: 0 0 18px; padding: 10px 0 14px; border-top: 0; border-bottom: 1px solid var(--desk-line); }
+.download-label { color: var(--desk-muted); font-size: 12px; font-weight: 700; }
+.report-downloads-top .link-row { margin-top: 7px; }
 .report-list { gap: 16px 32px; }
 .report-tile { border: 0; border-top: 1px solid var(--desk-line); padding: 18px 0; }
 .report-tile h3 { font-family: var(--font-heading); }
