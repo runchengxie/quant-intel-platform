@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 test('PNG export rasterizes the displayed SVG at 2x and releases object URLs', async () => {
-  const { downloadMarketChartPng } = await import('../src/lib/market-chart-download.mjs');
+  const { downloadMarketChartPng } = await import('../src/lib/market-chart-download.ts');
   const previous = {
     Image: globalThis.Image,
     XMLSerializer: globalThis.XMLSerializer,
@@ -54,7 +54,7 @@ test('PNG export rasterizes the displayed SVG at 2x and releases object URLs', a
 });
 
 test('PNG export removes the download link and releases URLs if the browser blocks the click', async () => {
-  const { downloadMarketChartPng } = await import('../src/lib/market-chart-download.mjs');
+  const { downloadMarketChartPng } = await import('../src/lib/market-chart-download.ts');
   const previous = {
     Image: globalThis.Image,
     XMLSerializer: globalThis.XMLSerializer,

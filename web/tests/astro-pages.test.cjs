@@ -191,7 +191,7 @@ test('historical insight discloses timing, limitations and verification units', 
 });
 
 test('GFM tables render but untrusted HTML and script URLs are removed', async () => {
-  const { renderMarkdown } = await import('../src/lib/markdown.mjs');
+  const { renderMarkdown } = await import('../src/lib/markdown.ts');
   const html = renderMarkdown('| 维度 | 值 |\n|---|---:|\n| 流动性 | 17.1 |\n\n<script>alert(1)</script>\n[bad](javascript:alert(1))');
   assert.match(html, /<table>/);
   assert.match(html, /流动性/);
@@ -199,7 +199,7 @@ test('GFM tables render but untrusted HTML and script URLs are removed', async (
 });
 
 test('market daily source URLs become compact numbered links only in the rendered page', async () => {
-  const { renderMarkdown } = await import('../src/lib/markdown.mjs');
+  const { renderMarkdown } = await import('../src/lib/markdown.ts');
   const source = '- 来源：https://example.com/one, https://example.org/two';
   const html = renderMarkdown(source, { compactSources: true });
   assert.match(html, /<a href="https:\/\/example.com\/one"[^>]*>来源1<\/a>/);
@@ -209,7 +209,7 @@ test('market daily source URLs become compact numbered links only in the rendere
 });
 
 test('single table-row evidence is labelled instead of showing raw Markdown pipes', async () => {
-  const { formatEvidenceLine } = await import('../src/lib/evidence.mjs');
+  const { formatEvidenceLine } = await import('../src/lib/evidence.ts');
   assert.equal(formatEvidenceLine('六维观察', '| 流动性 | 25.4 | 偏弱 | 成交额/历史中位 0.90x |'),
     '维度：流动性；观察分：25.4；状态：偏弱；证据：成交额/历史中位 0.90x');
   assert.equal(formatEvidenceLine('七、行业板块 TOP10', '| 电子 | +0.94% | +0.53% | 436 | 59.9% |'),

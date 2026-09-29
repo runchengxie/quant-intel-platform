@@ -4,8 +4,11 @@ const TABLE_COLUMNS = {
   '八、高成交核心票 TOP10': ['代码', '成交额', '涨跌'],
 };
 
-export function formatEvidenceLine(section, text) {
-  const columns = TABLE_COLUMNS[section];
+type EvidenceSection = keyof typeof TABLE_COLUMNS;
+
+export function formatEvidenceLine(section: string, text: string): string {
+  if (!(section in TABLE_COLUMNS)) return text;
+  const columns = TABLE_COLUMNS[section as EvidenceSection];
   if (!columns || !/^\|.*\|$/.test(text.trim())) return text;
   const cells = text.trim().slice(1, -1).split('|').map((cell) => cell.trim());
   if (cells.length !== columns.length || cells.every((cell) => /^:?-+:?$/.test(cell))) return text;
