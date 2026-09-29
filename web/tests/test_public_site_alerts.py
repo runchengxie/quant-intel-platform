@@ -108,6 +108,66 @@ def test_old_event_cannot_close_newer_failure_or_reopen_newer_recovery() -> None
     assert client.issues[0]["state"] == "closed"
 
 
+def test_human_comment_event_id_cannot_block_reconciler_update() -> None:
+    client = FakeIssues()
+    reconcile_alert(client, key="build:main", finding="Failed", run_url=RUN_URL, event_id=100)
+    client.comments.extend(
+        [
+            (1, "event_id: 9999999\nHuman triage note"),
+            (1, "[public-site-alert:build:other]\nevent_id: 9999999"),
+        ]
+    )
+
+    assert (
+        reconcile_alert(client, key="build:main", finding="Still failed", run_url=RUN_URL, event_id=101)
+        == "commented"
+    )
+    assert len(client.comments) == 3
+    assert "event_id: 101" in client.comments[-1][1]
+
+
+def test_recovery_retry_finishes_close_after_comment_succeeded() -> None:
+    class FailFirstClose(FakeIssues):
+        def __init__(self) -> None:
+            super().__init__()
+            self.fail_next_close = True
+
+        def close_issue(self, number: int) -> None:
+            if self.fail_next_close:
+                self.fail_next_close = False
+                raise RuntimeError("GitHub API unavailable")
+            super().close_issue(number)
+
+    client = FailFirstClose()
+    reconcile_alert(client, key="build:main", finding="Failed", run_url=RUN_URL, event_id=100)
+    with pytest.raises(RuntimeError, match="GitHub API unavailable"):
+        reconcile_alert(client, key="build:main", finding=None, run_url=RUN_URL, event_id=101)
+    assert client.issues[0]["state"] == "open"
+    assert len(client.comments) == 1
+
+    assert reconcile_alert(client, key="build:main", finding=None, run_url=RUN_URL, event_id=101) == "closed"
+    assert client.issues[0]["state"] == "closed"
+    assert len(client.comments) == 1
+
+
+def test_new_failure_after_closure_creates_new_issue() -> None:
+    client = FakeIssues()
+    reconcile_alert(client, key="build:main", finding="Failed", run_url=RUN_URL, event_id=100)
+    reconcile_alert(client, key="build:main", finding=None, run_url=RUN_URL, event_id=101)
+
+    assert (
+        reconcile_alert(client, key="build:main", finding="Failed again", run_url=RUN_URL, event_id=102)
+        == "created"
+    )
+    assert [issue["state"] for issue in client.issues] == ["closed", "open"]
+    assert "event_id: 102" in client.issues[1]["body"]
+    assert (
+        reconcile_alert(client, key="build:main", finding="Delayed", run_url=RUN_URL, event_id=100)
+        == "unchanged"
+    )
+    assert len(client.issues) == 2
+
+
 def test_api_error_propagates() -> None:
     class FailingIssues(FakeIssues):
         def list_issues(self) -> list[dict[str, Any]]:

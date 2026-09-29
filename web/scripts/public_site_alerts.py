@@ -113,7 +113,11 @@ def _latest_issue(client: IssueClient, marker: str) -> tuple[dict[str, Any] | No
             raise RuntimeError("GitHub Issues API returned invalid issue data")
         recorded = max(
             [_event_id(issue.get("body"))]
-            + [_event_id(comment.get("body")) for comment in client.list_comments(number)]
+            + [
+                _event_id(comment.get("body"))
+                for comment in client.list_comments(number)
+                if marker in str(comment.get("body", "")).splitlines()
+            ]
         )
         if recorded >= latest_event:
             latest_issue, latest_event = issue, recorded
