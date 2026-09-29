@@ -521,6 +521,7 @@ def _build_news_full_md(news_sections: list[dict[str, Any]], news_text: str) -> 
 
 def _write_digest_report_outputs(
     date_str: str,
+    *,
     html: str,
     news_text: str,
     themes: list[dict[str, object]],
@@ -542,6 +543,7 @@ def _write_digest_report_outputs(
 
 def _write_digest_card(
     date_str: str,
+    *,
     degraded: bool,
     summary_lines: list[str],
     news_preview: list[str],
@@ -623,20 +625,20 @@ def run(argv: list[str] | None = None) -> int:
     html = _render_report(_build_env(), payload)
     summary_lines = _write_digest_report_outputs(
         str(date_str),
-        html,
-        news_text,
-        themes,
-        actions,
-        degraded,
+        html=html,
+        news_text=news_text,
+        themes=themes,
+        actions=actions,
+        degraded=degraded,
     )
     _write_digest_card(
         str(date_str),
-        degraded,
-        summary_lines,
-        _build_news_preview(ai_updates),
-        _build_stock_preview(theme_details),
-        news_sections,
-        news_text,
+        degraded=degraded,
+        summary_lines=summary_lines,
+        news_preview=_build_news_preview(ai_updates),
+        stock_preview=_build_stock_preview(theme_details),
+        news_sections=news_sections,
+        news_text=news_text,
     )
 
     _finish_run(

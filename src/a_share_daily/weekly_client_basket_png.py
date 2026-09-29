@@ -104,12 +104,20 @@ def _render_holdings(ax, artifact: BasketArtifact, theme: ReportTheme) -> None:
         for index, position in enumerate(rows, start=1):
             y = rule_y - (index - 0.5) * row_height
             _render_holding_row(
-                ax, index, position, y, row_height, len(rows), theme, cjk, cjk_heavy
+                ax,
+                index=index,
+                position=position,
+                y=y,
+                row_height=row_height,
+                row_count=len(rows),
+                theme=theme,
+                cjk=cjk,
+                cjk_heavy=cjk_heavy,
             )
 
 
 def _render_holding_row(
-    ax, index, position, y, row_height, row_count, theme, cjk, cjk_heavy
+    ax, *, index, position, y, row_height, row_count, theme, cjk, cjk_heavy
 ) -> None:
     ax.text(
         0.03,
