@@ -109,6 +109,8 @@ def _overlay_astro_pages(root: Path, output: Path, report_ids: set[str]) -> None
         if (built / "_astro").is_dir():
             shutil.copytree(built / "_astro", output / "_astro", dirs_exist_ok=True)
         shutil.copy2(built / "index.html", output / "index.html")
+        if (built / "404.html").is_file():
+            shutil.copy2(built / "404.html", output / "404.html")
 
 
 def _read_index(path: Path, schema: str, key: str) -> tuple[dict, list[dict]]:
