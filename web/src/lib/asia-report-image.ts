@@ -90,8 +90,10 @@ function sixDimensionBars(draw: SvgDraw, rows: DimensionRow[]): void {
   }
 }
 
-const INK = '#34271f';
-const MUTED = '#715f52';
+const REPORT_BG = 'var(--report-bg, #fff9f2)';
+const INK = 'var(--report-ink, #34271f)';
+const MUTED = 'var(--report-muted, #715f52)';
+const REPORT_LINE = 'var(--report-line, #d9c7b6)';
 const UP = '#b64d33';
 const DOWN = '#5c7182';
 const TRACK = '#efe2d5';
@@ -249,11 +251,11 @@ export function buildAsiaReportSvg(report: EveningReport, charts: ChartCard[], m
     '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="__HEIGHT__" viewBox="0 0 960 __HEIGHT__" role="img">',
     `<title>${escapeText(report.date)} 亚洲市场收盘图文复盘</title>`,
     '<desc>包含亚洲市场收盘摘要、市场广度、资金流向、市场温度、周度变化及关键来源。</desc>',
-    '<rect width="960" height="__HEIGHT__" fill="#fff9f2"/>',
-    `<text x="54" y="60" fill="#34271f" font-family="sans-serif" font-size="28" font-weight="700">${escapeText(report.date)} 亚洲市场收盘复盘</text>`,
-    `<text x="54" y="88" fill="#715f52" font-family="sans-serif" font-size="14">北京时间 19:00 目标版 · 以报告实际生成时间和数据日期为准${report.generation_mode === 'backfill' ? ' · 历史补报' : ''}</text>`,
+    `<rect width="960" height="__HEIGHT__" fill="${REPORT_BG}"/>`,
+    `<text x="54" y="60" fill="${INK}" font-family="sans-serif" font-size="28" font-weight="700">${escapeText(report.date)} 亚洲市场收盘复盘</text>`,
+    `<text x="54" y="88" fill="${MUTED}" font-family="sans-serif" font-size="14">北京时间 19:00 目标版 · 以报告实际生成时间和数据日期为准${report.generation_mode === 'backfill' ? ' · 历史补报' : ''}</text>`,
   ];
-  const addText = (value: string, color = '#34271f', size = 15) => {
+  const addText = (value: string, color = INK, size = 15) => {
     for (const line of wrapText(value)) {
       parts.push(`<text x="54" y="${y}" fill="${color}" font-family="sans-serif" font-size="${size}">${escapeText(line)}</text>`);
       y += 23;
@@ -261,7 +263,7 @@ export function buildAsiaReportSvg(report: EveningReport, charts: ChartCard[], m
   };
   const addHeading = (heading: string) => {
     y += 14;
-    parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="20" font-weight="700">${escapeText(heading)}</text>`);
+    parts.push(`<text x="54" y="${y}" fill="${INK}" font-family="sans-serif" font-size="20" font-weight="700">${escapeText(heading)}</text>`);
     y += 32;
   };
   const draw: SvgDraw = {
@@ -305,7 +307,7 @@ export function buildAsiaReportSvg(report: EveningReport, charts: ChartCard[], m
       key, title: chartTitles[key], status: 'missing', points: [], reason: '暂无可公开数据',
     };
     addHeading(`${chartTitles[key]} · ${statusTitles[chart.status] || '缺项'}`);
-    if (chart.reason) addText(chart.reason, '#715f52', 13);
+    if (chart.reason) addText(chart.reason, MUTED, 13);
     const points = usablePoints(chart);
     if (!points.length) {
       if (!chart.reason) addText('暂无通过审核的公开数据。', MUTED, 13);
@@ -338,13 +340,13 @@ export function buildAsiaReportSvg(report: EveningReport, charts: ChartCard[], m
   const sources = [...new Set(validPoints.map((point) => `${point.source_label} · ${sourceDomain(point.source_url)}`))];
   if (sources.length) {
     addHeading('关键来源');
-    for (const source of sources) addText(source, '#715f52', 12);
-    addText('完整来源链接见网页报告。', '#715f52', 12);
+    for (const source of sources) addText(source, MUTED, 12);
+    addText('完整来源链接见网页报告。', MUTED, 12);
   }
   y += 28;
-  parts.push(`<line x1="54" y1="${y}" x2="906" y2="${y}" stroke="#d9c7b6"/>`);
+    parts.push(`<line x1="54" y1="${y}" x2="906" y2="${y}" stroke="${REPORT_LINE}"/>`);
   y += 26;
-  parts.push(`<text x="54" y="${y}" fill="#715f52" font-family="sans-serif" font-size="12">缺少的数据会标为缺项。完整数值、方法和来源见网页报告。市场信息仅供研究参考。</text>`);
+  parts.push(`<text x="54" y="${y}" fill="${MUTED}" font-family="sans-serif" font-size="12">缺少的数据会标为缺项。完整数值、方法和来源见网页报告。市场信息仅供研究参考。</text>`);
   parts.push('</svg>');
   return parts.join('').replaceAll('__HEIGHT__', String(y + 28))
     .replaceAll('font-family="sans-serif"', `font-family="${FONT}"`);

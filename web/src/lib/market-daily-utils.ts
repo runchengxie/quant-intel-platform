@@ -344,6 +344,12 @@ function wrapSvgText(value: unknown, width = 52): string[] {
   return lines;
 }
 
+const REPORT_BG = 'var(--report-bg, #fff9f2)';
+const REPORT_INK = 'var(--report-ink, #34271f)';
+const REPORT_MUTED = 'var(--report-muted, #715f52)';
+const REPORT_TRACK = 'var(--report-track, #f2e7dc)';
+const REPORT_LINE = 'var(--report-line, #d9c7b6)';
+
 export function buildMarketDailyChartSvg(summary: MarketDailySummary): string | null {
   const font = "'Source Han Sans CN', 'Noto Sans CJK SC', 'Noto Sans SC', 'PingFang SC', sans-serif";
   const charts = buildMarketDailyCharts(summary);
@@ -354,12 +360,12 @@ export function buildMarketDailyChartSvg(summary: MarketDailySummary): string | 
     `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="__HEIGHT__" viewBox="0 0 960 __HEIGHT__" role="img">`,
     `<title>${escapeSvgText(summary.date)} 美东交易日市场图文复盘</title>`,
     `<desc>展示已核实的行情图解、市场解读、经济数据和关键来源。</desc>`,
-    `<rect width="960" height="__HEIGHT__" fill="#fff9f2"/>`,
-    `<text x="54" y="62" fill="#34271f" font-family="sans-serif" font-size="28" font-weight="700">${escapeSvgText(summary.date)} 美东交易日</text>`,
-    `<text x="54" y="91" fill="#715f52" font-family="sans-serif" font-size="15">美股收盘复盘${summary.historicalBackfill ? " · 事后整理" : ""} · 图解、解读与来源</text>`,
+    `<rect width="960" height="__HEIGHT__" fill="${REPORT_BG}"/>`,
+    `<text x="54" y="62" fill="${REPORT_INK}" font-family="sans-serif" font-size="28" font-weight="700">${escapeSvgText(summary.date)} 美东交易日</text>`,
+    `<text x="54" y="91" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="15">美股收盘复盘${summary.historicalBackfill ? " · 事后整理" : ""} · 图解、解读与来源</text>`,
   ];
   for (const chart of charts) {
-    parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="19" font-weight="700">${escapeSvgText(chart.title)}（${escapeSvgText(chart.unit)}）</text>`);
+      parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="19" font-weight="700">${escapeSvgText(chart.title)}（${escapeSvgText(chart.unit)}）</text>`);
     y += 34;
     for (const row of chart.rows) {
       const equity = summary.equityRows.find((item) => row.id === `equity.${item.symbol.toLowerCase()}.change_percent`);
@@ -371,23 +377,23 @@ export function buildMarketDailyChartSvg(summary: MarketDailySummary): string | 
       const width = Math.round(row.width * (chart.kind === "level" ? 4.3 : 2.15));
       const barX = row.side === "negative" ? center - width : center;
       const color = row.side === "negative" ? "#5c7182" : "#b64d33";
-      parts.push(`<text x="54" y="${y + 5}" fill="#34271f" font-family="sans-serif" font-size="16" font-weight="600">${escapeSvgText(row.label)}</text>`);
-      parts.push(`<rect x="350" y="${y - 13}" width="430" height="18" rx="3" fill="#f2e7dc"/>`);
+        parts.push(`<text x="54" y="${y + 5}" fill="${REPORT_INK}" font-family="sans-serif" font-size="16" font-weight="600">${escapeSvgText(row.label)}</text>`);
+        parts.push(`<rect x="350" y="${y - 13}" width="430" height="18" rx="3" fill="${REPORT_TRACK}"/>`);
       parts.push(`<rect x="${barX}" y="${y - 11}" width="${width}" height="14" rx="2" fill="${color}"/>`);
       parts.push(`<line x1="${center}" y1="${y - 16}" x2="${center}" y2="${y + 8}" stroke="#5d4c40" stroke-width="1"/>`);
-      parts.push(`<text x="800" y="${y + 5}" fill="#34271f" font-family="monospace" font-size="16" font-weight="700">${escapeSvgText(row.valueText)}</text>`);
-      parts.push(`<text x="54" y="${y + 25}" fill="#715f52" font-family="sans-serif" font-size="12">观测日 ${escapeSvgText(row.observationDate)}${close ? ` · ${escapeSvgText(close)}` : ""} · ${escapeSvgText(row.sourceLabel)}</text>`);
+        parts.push(`<text x="800" y="${y + 5}" fill="${REPORT_INK}" font-family="monospace" font-size="16" font-weight="700">${escapeSvgText(row.valueText)}</text>`);
+        parts.push(`<text x="54" y="${y + 25}" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="12">观测日 ${escapeSvgText(row.observationDate)}${close ? ` · ${escapeSvgText(close)}` : ""} · ${escapeSvgText(row.sourceLabel)}</text>`);
       y += 58;
     }
     y += 20;
   }
   if (laggedRates.length) {
-    parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="19" font-weight="700">美债较早观测值</text>`);
+    parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="19" font-weight="700">美债较早观测值</text>`);
     y += 30;
     for (const row of laggedRates) {
       const level = row.levelValue === null ? "收益率暂缺" : `${row.levelValue.toFixed(2)}%`;
       const change = row.changeValue === null ? "日变动暂缺" : `${row.changeValue >= 0 ? "+" : ""}${row.changeValue.toFixed(2)} bp`;
-      parts.push(`<text x="54" y="${y}" fill="#715f52" font-family="sans-serif" font-size="14">${escapeSvgText(row.label)}：${escapeSvgText(level)} · ${escapeSvgText(change)} · 观测日 ${escapeSvgText(row.observationDate)}，非报告日</text>`);
+        parts.push(`<text x="54" y="${y}" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="14">${escapeSvgText(row.label)}：${escapeSvgText(level)} · ${escapeSvgText(change)} · 观测日 ${escapeSvgText(row.observationDate)}，非报告日</text>`);
       y += 27;
     }
     y += 12;
@@ -395,11 +401,11 @@ export function buildMarketDailyChartSvg(summary: MarketDailySummary): string | 
   const addSection = (title: string, paragraphs: string[]) => {
     if (!paragraphs.length) return;
     y += 15;
-    parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="20" font-weight="700">${escapeSvgText(title)}</text>`);
+      parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="20" font-weight="700">${escapeSvgText(title)}</text>`);
     y += 32;
     for (const paragraph of paragraphs) {
       for (const line of wrapSvgText(paragraph)) {
-        parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="15">${escapeSvgText(line)}</text>`);
+          parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="15">${escapeSvgText(line)}</text>`);
         y += 23;
       }
       y += 9;
@@ -414,8 +420,8 @@ export function buildMarketDailyChartSvg(summary: MarketDailySummary): string | 
   const domains = [...new Set(urls.map((url) => new URL(url).hostname))];
   addSection("关键来源", [...domains.map((domain) => `· ${domain}`), "完整来源链接见网页报告。"]);
   const height = y + 55;
-  parts.push(`<line x1="54" y1="${height - 48}" x2="906" y2="${height - 48}" stroke="#d9c7b6"/>`);
-  parts.push(`<text x="54" y="${height - 22}" fill="#715f52" font-family="sans-serif" font-size="12">市场有风险，投资需谨慎。</text>`);
+  parts.push(`<line x1="54" y1="${height - 48}" x2="906" y2="${height - 48}" stroke="${REPORT_LINE}"/>`);
+  parts.push(`<text x="54" y="${height - 22}" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="12">市场有风险，投资需谨慎。</text>`);
   parts.push("</svg>");
   return parts.join("").replaceAll("__HEIGHT__", String(height))
     .replaceAll('font-family="sans-serif"', `font-family="${font}"`)
