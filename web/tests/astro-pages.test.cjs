@@ -4,7 +4,6 @@ const { readFileSync, existsSync, cpSync, writeFileSync, mkdtempSync, rmSync, re
 const { execFileSync } = require('node:child_process');
 const path = require('node:path');
 const vm = require('node:vm');
-const { createHash } = require('node:crypto');
 
 const root = path.join(__dirname, '..');
 
@@ -47,7 +46,10 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   assert.match(index, /07:00 美股收盘复盘/);
   assert.match(index, /19:00 亚洲市场收盘复盘/);
   assert.doesNotMatch(index, /晚报与历史晨报|旧晨报保留归档|id="kind-filter"|id="date-filter"/);
-  assert.doesNotMatch(index, /历史亚洲收盘复盘/);
+  const latestEveningDate = reports.filter((row) => row.kind === 'evening').map((row) => row.date).sort().at(-1);
+  const hasVisualHistory = reports.some((row) => row.kind === 'evening' && row.date >= '2026-09-25' && row.date < latestEveningDate);
+  if (hasVisualHistory) assert.match(index, /历史亚洲收盘复盘/);
+  else assert.doesNotMatch(index, /历史亚洲收盘复盘/);
   assert.match(index, /市场驱动/);
   assert.match(index, /阅读全文与数据质量说明/);
   assert.match(index, /核对来源链接/);
@@ -76,8 +78,9 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   assert.ok(chart.includes(`观测日 ${usDate}`));
   const asia = index.match(/id="asia-daily-chart">([\s\S]*?)<\/div>/)?.[1];
   const latestEvening = reports.filter((row) => row.kind === 'evening').sort((a, b) => b.date.localeCompare(a.date))[0];
-  const eveningMarkdown = readFileSync(path.join(root, `artifacts/public/${latestEvening.source_url}`));
-  const eveningHash = createHash('sha256').update(eveningMarkdown).digest('hex');
+  const eveningHash = execFileSync('python', ['-c', 'import hashlib,json,sys; row=json.load(sys.stdin); print(hashlib.sha256(json.dumps(row,ensure_ascii=False,sort_keys=True,separators=(",",":")).encode()).hexdigest())'], {
+    input: JSON.stringify(latestEvening), encoding: 'utf8',
+  }).trim();
   assert.ok(index.includes(`data-report-content-hash="${eveningHash}"`));
   assert.ok(asia);
   assert.match(asia, /亚洲市场图表/);
