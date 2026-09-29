@@ -346,7 +346,9 @@ def build_evening_summary(
             title,
             "",
             f"{generated_label}: {generated.strftime('%Y-%m-%d %H:%M')}",
-            f"Generation method: {method_text}" if selected_locale == "en-US" else f"生成方式: {method_text}",
+            f"Generation method: {method_text}"
+            if selected_locale == "en-US"
+            else f"生成方式: {method_text}",
         ],
         _render_evening_market_temperature(review_payload),
         _render_evening_news(news_payload),
