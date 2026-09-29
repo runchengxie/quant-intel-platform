@@ -359,7 +359,7 @@ def test_latest_run_lookup_uses_exact_branch_and_completed_state(monkeypatch: py
 
 def test_latest_run_lookup_fails_closed_on_incomplete_paginated_run(monkeypatch: pytest.MonkeyPatch) -> None:
     def fake_api_open(request: Request, timeout: int) -> io.BytesIO:
-        if "page=1" in request.full_url:
+        if request.full_url.endswith("page=1"):
             runs = [
                 {
                     "id": index,
