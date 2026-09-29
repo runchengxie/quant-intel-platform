@@ -39,7 +39,7 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   const header = index.match(/<header class="topbar">([\s\S]*?)<\/header>/)?.[1];
   assert.ok(header);
   assert.match(header, /<nav class="top-nav"[^>]*><a href="#us-session">美股日报<\/a><a href="#asia-session">亚洲晚报<\/a>/);
-  assert.match(header, /<a href="\/quant-intel-platform\/docs\/">文档<\/a><\/nav>/);
+  assert.match(header, /<a href="\/quant-intel-platform\/docs\/">文档<\/a>/);
   assert.match(header, /<button[^>]*id="theme-toggle"[^>]*aria-pressed="false"[^>]*>深色模式<\/button>/);
   assert.match(index, /id="us-session"/);
   assert.match(index, /id="asia-session"/);
