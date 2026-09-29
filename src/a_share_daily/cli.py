@@ -114,6 +114,12 @@ def _add_morning_commands(sub: argparse._SubParsersAction) -> None:
         default=os.environ.get("A_SHARE_REPORT_THEME", "research_editorial"),
         help="Report theme shared with weekly and evening reports",
     )
+    report.add_argument(
+        "--locale",
+        choices=("en-US", "zh-CN"),
+        default=os.environ.get("MARKET_INTEL_LOCALE", "zh-CN"),
+        help="Human-facing report locale; artifact schemas remain language-neutral",
+    )
 
 
 def _add_watch_command(sub: argparse._SubParsersAction) -> None:
@@ -332,7 +338,7 @@ def _cmd_morning_report(args: argparse.Namespace) -> int | None:
 
     manifest = load_json(args.manifest)
     news = load_json(args.news)
-    output = render_morning_report(manifest, news, theme=args.theme)
+    output = render_morning_report(manifest, news, theme=args.theme, locale=args.locale)
     write_report(args.out, output)
     print(output)
     return _maybe_send_feishu(output, args)
