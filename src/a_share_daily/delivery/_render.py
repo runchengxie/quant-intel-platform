@@ -317,7 +317,7 @@ def _render_evening_next_watch(review: Mapping[str, Any]) -> list[str]:
     return lines
 
 
-def build_evening_summary(
+def build_evening_summary(  # noqa: PLR0913 - locale is an explicit presentation boundary
     trade_date: str,
     *,
     review_payload: Mapping[str, Any],
