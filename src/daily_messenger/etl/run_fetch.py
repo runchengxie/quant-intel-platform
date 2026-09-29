@@ -527,6 +527,7 @@ def _fetch_calendar_events(
 
 def _fetch_news_events(
     api_keys: dict[str, Any],
+    *,
     ai_feeds: list[str],
     arxiv_params: dict[str, Any],
     arxiv_throttle: float,
@@ -565,6 +566,7 @@ def _fetch_news_events(
 
 def _fetch_events_payload(
     trading_day: str,
+    *,
     api_keys: dict[str, Any],
     ai_feeds: list[str],
     arxiv_params: dict[str, Any],
@@ -574,7 +576,12 @@ def _fetch_events_payload(
 ) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     events = _fetch_calendar_events(trading_day, api_keys, statuses)
     news_events, ai_updates = _fetch_news_events(
-        api_keys, ai_feeds, arxiv_params, arxiv_throttle, logger, statuses
+        api_keys,
+        ai_feeds=ai_feeds,
+        arxiv_params=arxiv_params,
+        arxiv_throttle=arxiv_throttle,
+        logger=logger,
+        statuses=statuses,
     )
     events.extend(news_events)
     if events:
@@ -585,6 +592,7 @@ def _fetch_events_payload(
 
 def _write_etl_outputs(
     paths: _EtlPaths,
+    *,
     trading_day: str,
     market_payload: dict[str, Any],
     normalized_events: list[dict[str, Any]],
@@ -664,12 +672,12 @@ def run(argv: list[str] | None = None) -> int:
     btc_data, btc_ok = _fetch_btc_payload(api_keys, trading_day, previous_btc, statuses)
     normalized_events, normalized_ai_updates = _fetch_events_payload(
         trading_day,
-        api_keys,
-        ai_feeds,
-        arxiv_params,
-        arxiv_throttle,
-        logger,
-        statuses,
+        api_keys=api_keys,
+        ai_feeds=ai_feeds,
+        arxiv_params=arxiv_params,
+        arxiv_throttle=arxiv_throttle,
+        logger=logger,
+        statuses=statuses,
     )
     overall_ok = market_ok and sentiment_ok and btc_ok
 
@@ -680,12 +688,12 @@ def run(argv: list[str] | None = None) -> int:
     }
     status_payload = _write_etl_outputs(
         paths,
-        trading_day,
-        market_payload,
-        normalized_events,
-        normalized_ai_updates,
-        statuses,
-        overall_ok,
+        trading_day=trading_day,
+        market_payload=market_payload,
+        normalized_events=normalized_events,
+        normalized_ai_updates=normalized_ai_updates,
+        statuses=statuses,
+        overall_ok=overall_ok,
     )
     _log_etl_statuses(logger, statuses, status_payload)
     paths.marker.touch(exist_ok=True)
