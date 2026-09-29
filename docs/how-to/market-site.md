@@ -28,3 +28,9 @@ python3 -m http.server 8000 --directory "$preview_root"
 - 亚洲收盘解读先尝试本机 Codex，再按已配置密钥尝试 DeepSeek、Gemini、MiniMax。连续晚报可用最新晚报与前次晚报形成对照。历史晨晚报配对仍可阅读。
 
 私有部署的配置、回执和恢复步骤在 `quant-intel-deploy/docs/market-pages-publisher.md`。网站内部的开发细节见 [`web/docs/technical-guide.md`](https://github.com/runchengxie/quant-intel-platform/blob/main/web/docs/technical-guide.md)。
+
+## 线上快照新鲜度
+
+公开网站的亚洲晚报索引是 [reports.json](https://runchengxie.github.io/quant-intel-platform/data/reports.json)，美股日报是 [market_daily_report.json](https://runchengxie.github.io/quant-intel-platform/data/market_daily_report.json)。检查应在运行时读取这两个线上 JSON，分别核对最近报告的市场日期和原始生成时间；静态构建时的健康信息不能代表当前状态。
+
+任一报告超过 96 小时、快照无法读取或时间字段无效时，需要人工核查。96 小时只是保守提醒阈值；长假或其他休市可能触发提醒，不能据此断言发布失败，也不应阻塞网站部署。
