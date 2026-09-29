@@ -33,8 +33,8 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           <div class="section-heading"><span class="eyebrow">Latest publications</span><h2 id="reports-title">Reports</h2></div>
           <div class="report-list">
             {market && <article class="report-tile"><div class="report-meta"><time>{market.date}</time><span>U.S. daily report</span></div><h3><a href={`${base}/reports/${market.date}-market-daily.md`}>U.S. market close review</a></h3><p>Structured market facts, interpretation, and source links.</p></article>}
-            {latestEvening && <article class="report-tile"><div class="report-meta"><time>{latestEvening.date}</time><span>Asia evening report</span></div><h3><a href={`${base}/reports/${latestEvening.id}/`}>{latestEvening.title}</a></h3><p>{latestEvening.summary}</p></article>}
-            {latestMorning && <article class="report-tile"><div class="report-meta"><time>{latestMorning.date}</time><span>Morning report</span></div><h3><a href={`${base}/reports/${latestMorning.id}/`}>{latestMorning.title}</a></h3><p>{latestMorning.summary}</p></article>}
+            {latestEvening && <article class="report-tile"><div class="report-meta"><time>{latestEvening.date}</time><span>Asia evening report</span></div><h3><a href={`${base}/en/reports/${latestEvening.id}/`}>{latestEvening.title}</a></h3><p>{latestEvening.summary}</p></article>}
+            {latestMorning && <article class="report-tile"><div class="report-meta"><time>{latestMorning.date}</time><span>Morning report</span></div><h3><a href={`${base}/en/reports/${latestMorning.id}/`}>{latestMorning.title}</a></h3><p>{latestMorning.summary}</p></article>}
           </div>
           {!market && !latestEvening && !latestMorning && <p class="empty">No public reports are currently available.</p>}
         </section>
