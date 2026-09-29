@@ -92,7 +92,11 @@ def _overlay_astro_pages(root: Path, output: Path, report_ids: set[str]) -> None
                 timeout=180,
             )
         except (OSError, subprocess.CalledProcessError, subprocess.TimeoutExpired) as exc:
-            raise ValueError("Astro static build failed") from exc
+            detail = ""
+            if isinstance(exc, subprocess.CalledProcessError):
+                detail = (exc.stderr or exc.stdout or "").strip()[-2000:]
+            suffix = f": {detail}" if detail else ""
+            raise ValueError(f"Astro static build failed{suffix}") from exc
         if not (built / "index.html").is_file():
             raise ValueError("Astro index is missing")
         for report_id in report_ids:
