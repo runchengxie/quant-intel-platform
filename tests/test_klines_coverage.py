@@ -4,6 +4,8 @@
 不触碰 init_history / incremental_fetch 的联网编排（含 time.sleep）。
 """
 
+from datetime import timedelta
+
 import pandas as pd
 import pytest
 
@@ -11,9 +13,9 @@ from daily_messenger.crypto import klines
 
 
 def test_parse_lookback_units():
-    assert klines.parse_lookback("7d") == pd.Timedelta(days=7)
-    assert klines.parse_lookback("12h") == pd.Timedelta(hours=12)
-    assert klines.parse_lookback("30m") == pd.Timedelta(minutes=30)
+    assert klines.parse_lookback("7d") == timedelta(days=7)
+    assert klines.parse_lookback("12h") == timedelta(hours=12)
+    assert klines.parse_lookback("30m") == timedelta(minutes=30)
 
 
 def test_parse_lookback_invalid_unit():

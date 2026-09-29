@@ -88,7 +88,7 @@ def enrich_cashflow_portfolio(
         item = dict(row)
         symbol = str(item.get("symbol") or "").strip().upper()
         item["name"] = str(names.get(symbol) or item.get("name") or "").strip()
-        item["industry"] = str(industries.get(symbol) or item.get("industry") or "æªåç±»").strip()
+        item["industry"] = str(industries.get(symbol) or item.get("industry") or "未分类").strip()
         targets.append(item)
     enriched["targets"] = targets
     enriched["instrument_snapshot"] = str(path)
@@ -109,7 +109,7 @@ def _industry_breakdown(
     totals: dict[str, float] = {}
     counts: dict[str, int] = {}
     for row in targets:
-        industry = str(row.get("industry") or "æªåç±»")
+        industry = str(row.get("industry") or "未分类")
         totals[industry] = totals.get(industry, 0.0) + float(row.get(weight_field, 0.0))
         counts[industry] = counts.get(industry, 0) + 1
     return sorted(
@@ -128,20 +128,20 @@ def render_cashflow_portfolio_markdown(artifact: Mapping[str, Any]) -> str:
     new_count = sum(bool(row.get("is_new")) for row in targets)
     industries = _industry_breakdown(targets)
     lines = [
-        "ð ç°éæµè´¨éç­ç¥ï½ç ç©¶ç»åå¿«ç§",
+        "📊 现金流质量策略｜研究组合快照",
         "",
-        "**RESEARCH ONLY Â· RECONSTRUCTED PIT Â· ä¸æææèµå»ºè®®**",
+        "**RESEARCH ONLY · RECONSTRUCTED PIT · 不构成投资建议**",
         "",
-        f"ä¿¡å·ï¼{_date_dash(artifact['source_date'])} æ¶ç â {_date_dash(artifact['signal_date'])} å¼ç",
-        f"ç­ç¥ï¼`{artifact['strategy_id']}`",
-        f"PIT è´¨éï¼**{pit_quality} PIT**",
-        f"åéæ°ï¼{artifact.get('candidate_count', 'n/a')}ï½å¥éæ°ï¼{artifact.get('selected_count', len(targets))}ï½"
-        f"Top5 æéï¼{top5_weight:.1%}ï½æå¤§åæéï¼{max_weight:.1%}",
-        f"æ¬æ¬¡æ°å¢ï¼{new_count} åªï½åç§°æ å°ï¼{artifact.get('named_targets', 'æªåºå®')}",
+        f"信号：{_date_dash(artifact['source_date'])} 收盘 → {_date_dash(artifact['signal_date'])} 开盘",
+        f"策略：`{artifact['strategy_id']}`",
+        f"PIT 质量：**{pit_quality} PIT**",
+        f"候选数：{artifact.get('candidate_count', 'n/a')}｜入选数：{artifact.get('selected_count', len(targets))}｜"
+        f"Top5 权重：{top5_weight:.1%}｜最大单权重：{max_weight:.1%}",
+        f"本次新增：{new_count} 只｜名称映射：{artifact.get('named_targets', '未固定')}",
         "",
-        "### è¡ä¸åå¸",
+        "### 行业分布",
         "",
-        f"è¡ä¸æ°ï¼{len(industries)}",
+        f"行业数：{len(industries)}",
         "| Industry | Holdings | Weight |",
         "|---|---:|---:|",
         *[
@@ -149,26 +149,26 @@ def render_cashflow_portfolio_markdown(artifact: Mapping[str, Any]) -> str:
             for industry, weight, count in industries[:10]
         ],
         "",
-        "### ç»åæä»",
+        "### 组合持仓",
         "",
         "| Rank | Company | Code | Target weight |",
         "|---:|---|---|---:|",
     ]
     for row in targets:
         lines.append(
-            f"| {int(row.get('selection_rank', 0))} | {row.get('name') or 'â'} | "
+            f"| {int(row.get('selection_rank', 0))} | {row.get('name') or '—'} | "
             f"{str(row.get('symbol', '')).split('.')[0]} | {float(row['target_weight']):.1%} |"
         )
     lines.extend(
         [
             "",
             "```text",
-            "ç°éæµç¹å¾ â è´¨é/åé·é±ç­é â FCF capped weights â ç ç©¶ç»å",
-            "      â              â                  â                 â",
+            "现金流特征 → 质量/反陷阱筛选 → FCF capped weights → 研究组合",
+            "      ✓              ✓                  ✓                 ✓",
             "```",
             "",
-            "â ï¸ **ç ç©¶å¿«ç§**ï¼ä½¿ç¨ reconstructed PITï¼`eligible_for_live=false`ã",
-            "ç»æå¯è½åå«åå²ä¿®è®¢åå·®ï¼ä¸æææèµå»ºè®®æå®çæä»¤ã",
+            "⚠️ **研究快照**：使用 reconstructed PIT；`eligible_for_live=false`。",
+            "结果可能包含历史修订偏差，不构成投资建议或实盘指令。",
         ]
     )
     return "\n".join(lines) + "\n"
@@ -186,18 +186,18 @@ def _render_executable_markdown(
     cash_amount = float(artifact.get("cash_amount", portfolio_value - invested_amount))
     industries = _industry_breakdown(targets, "actual_weight")
     lines = [
-        "ð ç°éæµè´¨éç­ç¥ï½å¯æ§è¡ç»åå¿«ç§",
+        "📊 现金流质量策略｜可执行组合快照",
         "",
-        "**RESEARCH ONLY Â· RECONSTRUCTED PIT Â· ä¸æææèµå»ºè®®**",
+        "**RESEARCH ONLY · RECONSTRUCTED PIT · 不构成投资建议**",
         "",
-        f"ä¿¡å·ï¼{_date_dash(artifact['source_date'])} æ¶ç â {_date_dash(artifact['signal_date'])} å¼ç",
-        f"ä»·æ ¼æ¥æï¼{_date_dash(artifact.get('price_date', artifact['source_date']))}ï½ç­ç¥ï¼`{artifact['strategy_id']}`",
-        f"åèèµéï¼Â¥{portfolio_value:,.0f}ï½æå¥ï¼Â¥{invested_amount:,.0f} ({invested_amount / portfolio_value:.1%})ï½"
-        f"ç°éï¼Â¥{cash_amount:,.0f} ({cash_amount / portfolio_value:.1%})",
-        f"ç ç©¶åéï¼{artifact.get('candidate_count', 'n/a')}ï½å¯æ§è¡æä»ï¼{len(targets)}ï½"
-        f"æå¤§åè¡ï¼{max(float(row.get('actual_weight', 0.0)) for row in targets):.1%}",
+        f"信号：{_date_dash(artifact['source_date'])} 收盘 → {_date_dash(artifact['signal_date'])} 开盘",
+        f"价格日期：{_date_dash(artifact.get('price_date', artifact['source_date']))}｜策略：`{artifact['strategy_id']}`",
+        f"参考资金：¥{portfolio_value:,.0f}｜投入：¥{invested_amount:,.0f} ({invested_amount / portfolio_value:.1%})｜"
+        f"现金：¥{cash_amount:,.0f} ({cash_amount / portfolio_value:.1%})",
+        f"研究候选：{artifact.get('candidate_count', 'n/a')}｜可执行持仓：{len(targets)}｜"
+        f"最大单股：{max(float(row.get('actual_weight', 0.0)) for row in targets):.1%}",
         "",
-        "### è¡ä¸åå¸",
+        "### 行业分布",
         "",
         "| Industry | Holdings | Actual weight |",
         "|---|---:|---:|",
@@ -206,36 +206,36 @@ def _render_executable_markdown(
             for industry, weight, count in industries[:10]
         ],
         "",
-        "### å¯æ§è¡æä»",
+        "### 可执行持仓",
         "",
-        "| Rank | Company | Code | Shares | Target amount | Actual amount | Actual weight | æéåå·® |",
+        "| Rank | Company | Code | Shares | Target amount | Actual amount | Actual weight | 权重偏差 |",
         "|---:|---|---|---:|---:|---:|---:|---:|",
     ]
     for row in targets:
         lines.append(
-            f"| {int(row.get('selection_rank', 0))} | {row.get('name') or 'â'} | "
+            f"| {int(row.get('selection_rank', 0))} | {row.get('name') or '—'} | "
             f"{str(row.get('symbol', '')).split('.')[0]} | {int(row.get('shares', 0)):,} | "
-            f"Â¥{float(row.get('target_amount', 0.0)):,.0f} | "
-            f"Â¥{float(row.get('actual_amount', 0.0)):,.0f} | "
+            f"¥{float(row.get('target_amount', 0.0)):,.0f} | "
+            f"¥{float(row.get('actual_amount', 0.0)):,.0f} | "
             f"{float(row.get('actual_weight', 0.0)):.1%} | "
             f"{float(row.get('weight_deviation', 0.0)):+.1%} |"
         )
     skipped = artifact.get("skipped", [])
     if skipped:
-        lines.extend(["", "### è·³è¿è¯æ­", "", "| Code | Reason |", "|---|---|"])
+        lines.extend(["", "### 跳过诊断", "", "| Code | Reason |", "|---|---|"])
         lines.extend(
-            f"| {item.get('symbol', 'â')} | {item.get('reason', 'â')} |" for item in skipped
+            f"| {item.get('symbol', '—')} | {item.get('reason', '—')} |" for item in skipped
         )
     lines.extend(
         [
             "",
             "```text",
-            "Top 50 research ranking â lot rounding â executable research portfolio",
-            "             â                  â                    â",
+            "Top 50 research ranking → lot rounding → executable research portfolio",
+            "             ✓                  ✓                    ✓",
             "```",
             "",
-            "â ï¸ **ç ç©¶å¿«ç§**ï¼ä½¿ç¨ reconstructed PITï¼`eligible_for_live=false`ã",
-            "å®éè¡æ°ä»ç¨äºç ç©¶æ¨¡æï¼ä¸ææå®çæä»¤ã",
+            "⚠️ **研究快照**：使用 reconstructed PIT；`eligible_for_live=false`。",
+            "实际股数仅用于研究模拟，不构成实盘指令。",
         ]
     )
     return "\n".join(lines) + "\n"
@@ -313,7 +313,7 @@ def _add_cashflow_status(
     status_ax.text(
         0.0,
         0.45,
-        "â RESEARCH ONLY",
+        "● RESEARCH ONLY",
         color=style.warning,
         fontsize=10,
         fontproperties=style.cjk,
@@ -322,8 +322,8 @@ def _add_cashflow_status(
     status_ax.text(
         0.20,
         0.45,
-        f"åé {status.artifact.get('candidate_count', 'n/a')}  Â·  å¥é {len(status.targets)}  Â·  "
-        f"Top5 {sum(status.weights[:5]):.1f}%  Â·  Max {max(status.weights):.1f}%",
+        f"候选 {status.artifact.get('candidate_count', 'n/a')}  ·  入选 {len(status.targets)}  ·  "
+        f"Top5 {sum(status.weights[:5]):.1f}%  ·  Max {max(status.weights):.1f}%",
         color=style.foreground,
         fontsize=10,
         fontproperties=style.cjk,
@@ -355,7 +355,7 @@ def render_cashflow_portfolio_png(artifact: Mapping[str, Any], output_path: str 
     style = _PortfolioChartStyle(ACCENT, BG, FG, MUTED, YELLOW, cjk, style_plot_axes)
 
     labels = [
-        f"{row.get('name') or 'â'}\n{str(row.get('symbol', '')).split('.')[0]}" for row in targets
+        f"{row.get('name') or '—'}\n{str(row.get('symbol', '')).split('.')[0]}" for row in targets
     ]
     weights = [float(row["target_weight"]) * 100 for row in targets]
     colors = [ACCENT if index < 5 else "#7aa9e8" for index in range(len(targets))]
@@ -376,11 +376,11 @@ def render_cashflow_portfolio_png(artifact: Mapping[str, Any], output_path: str 
     )
     add_report_header(
         fig,
-        kicker="CASHFLOW QUALITY Â· RESEARCH SNAPSHOT",
-        title="ç°éæµè´¨éç­ç¥ï½ç ç©¶ç»å",
+        kicker="CASHFLOW QUALITY · RESEARCH SNAPSHOT",
+        title="现金流质量策略｜研究组合",
         subtitle=(
-            f"{_date_dash(artifact['source_date'])} æ¶ç â {_date_dash(artifact['signal_date'])} å¼ç"
-            " Â· reconstructed PIT Â· ä»ä¾ç ç©¶è§å¯"
+            f"{_date_dash(artifact['source_date'])} 收盘 → {_date_dash(artifact['signal_date'])} 开盘"
+            " · reconstructed PIT · 仅供研究观察"
         ),
     )
     _add_cashflow_status(fig, grid, _CashflowChartStatus(artifact, targets, weights), style)
@@ -397,7 +397,7 @@ def render_cashflow_portfolio_png(artifact: Mapping[str, Any], output_path: str 
     industry_labels = [row[0] for row in industry_rows][::-1]
     industry_weights = [row[1] * 100 for row in industry_rows][::-1]
     industry_counts = [row[2] for row in industry_rows][::-1]
-    industry_ax.set_title("è¡ä¸åå¸ Â· Top 8", loc="left", fontproperties=cjk, color=FG)
+    industry_ax.set_title("行业分布 · Top 8", loc="left", fontproperties=cjk, color=FG)
     _draw_cashflow_industries(
         industry_ax,
         industry_labels,
@@ -408,7 +408,7 @@ def render_cashflow_portfolio_png(artifact: Mapping[str, Any], output_path: str 
     fig.text(
         0.06,
         0.025,
-        "ä½¿ç¨ reconstructed PITï¼å¯è½å­å¨åå²ä¿®è®¢åå·®ï¼ä»ä¾ç ç©¶è§å¯ï¼ä¸æææèµå»ºè®®ã",
+        "使用 reconstructed PIT；可能存在历史修订偏差；仅供研究观察，不构成投资建议。",
         fontsize=9,
         color=MUTED,
         fontproperties=cjk,
@@ -524,7 +524,7 @@ def _add_executable_status(
     status_ax.text(
         0.0,
         0.62,
-        "â RESEARCH ONLY",
+        "● RESEARCH ONLY",
         color=style.warning,
         fontsize=10,
         fontproperties=style.cjk,
@@ -533,7 +533,7 @@ def _add_executable_status(
     status_ax.text(
         0.18,
         0.62,
-        f"æä» {len(status.targets)}  Â·  æå¥ {status.invested_amount / status.portfolio_value:.1%}  Â· ç°é {status.cash_amount / status.portfolio_value:.1%}  Â· "
+        f"持仓 {len(status.targets)}  ·  投入 {status.invested_amount / status.portfolio_value:.1%}  · 现金 {status.cash_amount / status.portfolio_value:.1%}  · "
         f"Max {max(float(row.get('actual_weight', 0.0)) for row in status.targets):.1%}",
         color=style.foreground,
         fontsize=10,
@@ -596,11 +596,11 @@ def _render_executable_png(
     )
     add_report_header(
         fig,
-        kicker="CASHFLOW QUALITY Â· EXECUTABLE RESEARCH SNAPSHOT",
-        title="ç°éæµè´¨éç­ç¥ï½å¯æ§è¡ç»å",
+        kicker="CASHFLOW QUALITY · EXECUTABLE RESEARCH SNAPSHOT",
+        title="现金流质量策略｜可执行组合",
         subtitle=(
-            f"{_date_dash(artifact['source_date'])} æ¶ç â {_date_dash(artifact['signal_date'])} å¼ç"
-            f" Â· ä»·æ ¼ {_date_dash(artifact.get('price_date', artifact['source_date']))} Â· reconstructed PIT"
+            f"{_date_dash(artifact['source_date'])} 收盘 → {_date_dash(artifact['signal_date'])} 开盘"
+            f" · 价格 {_date_dash(artifact.get('price_date', artifact['source_date']))} · reconstructed PIT"
         ),
     )
     _add_executable_status(
@@ -630,7 +630,7 @@ def _render_executable_png(
     fig.text(
         0.06,
         0.035,
-        "ä½¿ç¨ reconstructed PITï¼å®éè¡æ°ä¸ºç ç©¶æ¨¡æï¼eligible_for_live=falseï¼ä¸æææèµå»ºè®®ã",
+        "使用 reconstructed PIT；实际股数为研究模拟；eligible_for_live=false；不构成投资建议。",
         fontsize=9,
         color=MUTED,
         fontproperties=cjk,

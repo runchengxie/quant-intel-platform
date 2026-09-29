@@ -26,5 +26,5 @@
 :root[data-theme="dark"] .notes-list article,:root[data-theme="dark"] .secondary-report{border-color:#40352d}
 :root[data-theme="dark"] .market-chart,:root[data-theme="dark"] .market-chart-graphic{border-color:#514237}:root[data-theme="dark"] .market-chart-heading button{background:#30251f;border-color:#7c5844;color:#e2a487}
 @media(max-width:900px){.index-grid,.asset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:600px){.top-actions{gap:10px}.top-nav{gap:14px;margin-right:10px}.top-nav a{font-size:12px}.index-grid,.asset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.market-stat{padding:11px}.market-stat strong{font-size:18px}}
+@media(max-width:600px){.top-actions{gap:10px}.top-nav{gap:14px;margin-right:12px}.top-nav a{font-size:12px}.index-grid,.asset-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.market-stat{padding:11px}.market-stat strong{font-size:18px}}
 @media(max-width:900px){.shell{grid-template-columns:1fr;gap:25px;padding-top:30px}.sidebar{position:static}.sidebar h1{font-size:30px}.report-list,.chart-grid{grid-template-columns:1fr}.panel{padding:20px}.report-body{padding:20px}.report-heading h1{font-size:31px}}@media(max-width:600px){.topbar{padding:0 16px}.top-note{display:none}.shell,.report-shell{padding-left:16px;padding-right:16px}.hero h2{font-size:30px}.footer{padding-left:16px;padding-right:16px}}
