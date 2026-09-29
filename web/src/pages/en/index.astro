@@ -1,62 +1,57 @@
 ---
 import '../../styles/site.css';
 import '../../styles/editorial.css';
-import { loadReports, loadMarketDaily } from '../../lib/reports.ts';
+import '../../styles/research-language.css';
+import { loadReports, loadSummaries, loadMarketDaily, loadLatestInsight, loadChart, loadMarkdown, VISUAL_REPORT_START_DATE } from '../../lib/reports.ts';
+import { formatEvidenceLine } from '../../lib/evidence.ts';
+import { buildEveningNotes } from '../../lib/evening-notes.ts';
+import marketDailyUtils from '../../lib/market-daily-utils.ts';
+import { buildAsiaReportSvg } from '../../lib/asia-report-image.ts';
 import { localePath } from '../../lib/locale.ts';
 
 const reports = loadReports();
+const summaries = loadSummaries(reports).sort((a, b) => b.date.localeCompare(a.date));
+const eveningNotes = buildEveningNotes(reports);
+const eveningNoteDates = new Set(eveningNotes.map((row) => row.date));
+const displayNotes = [...eveningNotes, ...summaries.filter((row) => !eveningNoteDates.has(row.date))].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5);
+const latestEvening = reports.filter((row) => row.kind === 'evening').sort((a, b) => b.date.localeCompare(a.date))[0];
+const latestEveningDate = latestEvening?.date;
+const eveningHistory = reports.filter((row) => row.kind === 'evening' && row.date >= VISUAL_REPORT_START_DATE && row.id !== latestEvening?.id);
+const latestEveningMarkdown = latestEvening ? loadMarkdown(latestEvening) : null;
+const asiaReportSvg = latestEvening && latestEveningMarkdown ? buildAsiaReportSvg(latestEvening, loadChart(latestEvening.id), latestEveningMarkdown) : null;
 const market = loadMarketDaily();
-const latestEvening = reports.find((report) => report.kind === 'evening');
-const latestMorning = reports.find((report) => report.kind === 'morning');
+const marketChartSummary = market?.publication === 'public' ? marketDailyUtils.summarizeMarketDaily(market) : null;
+const marketChartSvg = marketChartSummary ? marketDailyUtils.buildMarketDailyChartSvg(marketChartSummary) : null;
+const sourceRows = marketChartSummary?.rows || [];
+const sourceLinks = [...new Map(sourceRows.map((row) => [row.sourceUrl, { href: row.sourceUrl, label: row.sourceLabel, context: row.label }])).values()];
+const insight = loadLatestInsight();
+const evidenceById = new Map((insight?.evidence || []).map((row) => [row.id, row]));
+const citedEvidence = (ids) => (ids || []).map((id) => evidenceById.get(id)).filter(Boolean);
+const timestampLabel = (value) => { const date = new Date(value); return Number.isNaN(date.getTime()) ? 'time unavailable' : new Intl.DateTimeFormat('en-US', { timeZone: 'Asia/Shanghai', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(date); };
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 ---
 <!doctype html>
 <html lang="en-US">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f4f0e8" />
-    <meta name="description" content="Quant Market Intel: public, source-linked daily market reports." />
-    <title>Quant Market Intel</title>
-    <script is:inline>
-      try {
-        const saved = localStorage.getItem('market-intel-theme');
-        document.documentElement.dataset.theme = saved === 'light' || saved === 'dark'
-          ? saved : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      } catch {
-        document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
-      }
-    </script>
+    <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="theme-color" content="#f4f0e8" />
+    <meta name="description" content="Quant Market Intel: daily U.S. and Asian market reports with source dates and evidence links." /><title>Quant Market Intel</title>
+    <script is:inline>try { const saved = localStorage.getItem('market-intel-theme'); document.documentElement.dataset.theme = saved === 'light' || saved === 'dark' ? saved : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'; } catch { document.documentElement.dataset.theme = 'light'; }</script>
   </head>
   <body>
     <header class="topbar">
       <a class="brand" href={localePath('en-US', base)}><span class="brand-mark">Q</span><span>QUANT <b>MARKET INTEL</b></span></a>
-      <nav class="top-nav" aria-label="Primary navigation"><a href="#reports">Reports</a><a href={`${base}/docs/`}>Documentation</a><a href={localePath('zh-CN', base)}>中文</a></nav>
+      <nav class="top-nav" aria-label="Primary navigation"><a href="#us-session">U.S. daily</a><a href="#asia-session">Asia evening</a>{eveningHistory.length > 0 && <a href="#reports-title">History</a>}<a href={`${base}/docs/`}>Documentation</a><a href={localePath('zh-CN', base)}>中文</a></nav>
       <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">Dark mode</button>
-      <script is:inline>
-        const dark = document.documentElement.dataset.theme === 'dark';
-        const button = document.querySelector('#theme-toggle');
-        button.setAttribute('aria-pressed', String(dark));
-        button.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
-      </script>
+      <script is:inline>const dark = document.documentElement.dataset.theme === 'dark'; const button = document.querySelector('#theme-toggle'); button.setAttribute('aria-pressed', String(dark)); button.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');</script>
     </header>
-    <main class="shell">
-      <div class="content">
-        <section class="hero">
-          <div class="hero-copy"><span class="eyebrow">Public daily market intelligence</span><h1>Quant Market Intel</h1><p>Structured U.S. and Asian market reports with source dates, evidence links, and explicit data-quality boundaries.</p></div>
-        </section>
-        <section class="panel" id="reports" aria-labelledby="reports-title">
-          <div class="section-heading"><span class="eyebrow">Latest publications</span><h2 id="reports-title">Reports</h2></div>
-          <div class="report-list">
-            {market && <article class="report-tile"><div class="report-meta"><time>{market.date}</time><span>U.S. daily report</span></div><h3><a href={`${base}/reports/${market.date}-market-daily.md`}>U.S. market close review</a></h3><p>Structured market facts, interpretation, and source links.</p></article>}
-            {latestEvening && <article class="report-tile"><div class="report-meta"><time>{latestEvening.date}</time><span>Asia evening report</span></div><h3><a href={`${base}/en/reports/${latestEvening.id}/`}>{latestEvening.title}</a></h3><p>{latestEvening.summary}</p></article>}
-            {latestMorning && <article class="report-tile"><div class="report-meta"><time>{latestMorning.date}</time><span>Morning report</span></div><h3><a href={`${base}/en/reports/${latestMorning.id}/`}>{latestMorning.title}</a></h3><p>{latestMorning.summary}</p></article>}
-          </div>
-          {!market && !latestEvening && !latestMorning && <p class="empty">No public reports are currently available.</p>}
-        </section>
-        <section class="panel"><div class="section-heading"><h2>Reading boundary</h2></div><p>Reports are for research and information organization. Machine-readable artifacts remain language-neutral; this page is an English presentation layer over the same public evidence.</p></section>
-      </div>
-    </main>
+    <main class="shell"><div class="content">
+      <section class="hero"><div class="hero-copy"><span class="eyebrow">Public daily market intelligence</span><h1>Quant Market Intel</h1><p>Structured U.S. and Asian market reports with source dates, evidence links, and explicit data-quality boundaries.</p></div><nav class="session-nav" aria-label="Latest publications"><a href="#us-session"><span>Latest U.S. daily report</span><strong>{market?.date || 'Pending'}</strong><small>07:00 · Beijing time</small></a><a href="#asia-session"><span>Latest Asia evening report</span><strong>{latestEveningDate || 'Pending'}</strong><small>19:00 · Beijing time</small></a></nav></section>
+      <section class="panel" id="us-session" aria-labelledby="market-title"><div class="section-heading"><span class="eyebrow">Latest U.S. daily report · {market?.date || 'Pending'}</span><h2 id="market-title">07:00 U.S. market close review</h2></div>{market?.markdown ? <><p class="section-note">The report date is {market.date}. The image and facts below use only verified market data and preserve source dates.</p>{marketChartSvg ? <div class="market-brief"><div class="market-chart-graphic market-report-graphic" id="market-daily-chart" set:html={marketChartSvg} /><details class="secondary-report market-sources"><summary>Check source links ({sourceLinks.length})</summary><ul>{sourceLinks.map((source) => <li>{source.context} · <a href={source.href} target="_blank" rel="noreferrer">{source.label}</a></li>)}</ul></details></div> : <p class="empty">No verified U.S. chart is currently available.</p>}<div class="link-row report-actions"><a href={`${base}/reports/${market.date}-market-daily.md`}>Source Markdown</a>{market.hasCitationFreeMarkdown && <a href={`${base}/reports/${market.date}-market-daily-no-citations.md`}>Reading copy</a>}<a href={`${base}/reports/${market.date}-market-daily.txt`}>Plain text</a></div></> : <p class="empty">No public U.S. daily report is currently available.</p>}</section>
+      <section id="asia-session" class="session-group" aria-labelledby="asia-session-title"><section class="panel"><div class="section-heading"><span class="eyebrow">Latest Asia evening report · {latestEveningDate || 'Pending'}</span><h2 id="asia-session-title">19:00 Asia market close review</h2></div>{latestEvening ? <><p class="section-note">The report date is {latestEvening.date}. The source-language report remains available for full evidence review.</p>{asiaReportSvg ? <div class="market-chart-graphic market-report-graphic" id="asia-daily-chart" set:html={asiaReportSvg} /> : <p>{latestEvening.summary}</p>}<div class="link-row report-actions"><a href={`${base}/en/reports/${latestEvening.id}/`}>Read full report</a><a href={`${base}/${latestEvening.source_url}`}>Source Markdown</a></div></> : <p class="empty">No public Asia evening report is currently available.</p>}</section>
+      <section class="panel" aria-labelledby="insight-title"><div class="section-heading"><h2 id="insight-title">Market interpretation and validation</h2></div>{insight?.analysis?.overview?.text ? <><p class="section-note">{insight.date} · data through {timestampLabel(insight.as_of)} · generated {timestampLabel(insight.generated_at)} Beijing time.</p><p>{insight.analysis.overview.text}</p><details><summary>View supporting evidence</summary><ul>{citedEvidence(insight.analysis.overview.evidence_ids).map((item) => <li><a href={`${base}/en/reports/${item.report_id}/`}>{item.section}</a>: {formatEvidenceLine(item.section, item.text)}</li>)}</ul></details></> : <p class="empty">No validated market interpretation is currently available.</p>}</section></section>
+      <section class="panel" aria-labelledby="summary-title"><div class="section-heading"><h2 id="summary-title">Recent evening notes</h2></div>{displayNotes.length ? <div class="notes-list">{displayNotes.map((row) => <article><time>{row.date}</time>{row.source === 'evening' && <a href={`${base}/en/reports/${row.reportId}/`}>Evening facts · evidence</a>}<p>{row.text}</p></article>)}</div> : <p class="empty">No notes are currently available.</p>}</section>
+      {eveningHistory.length > 0 && <section class="reports-section" aria-labelledby="reports-title"><div class="section-heading"><h2 id="reports-title">Historical Asia close reviews</h2></div><div class="report-list">{eveningHistory.map((report) => <article class="report-tile"><div class="report-meta"><time>{report.date}</time><span>Asia evening report</span></div><h3><a href={`${base}/en/reports/${report.id}/`}>{report.title}</a></h3><p>{report.summary}</p><div class="link-row"><a href={`${base}/en/reports/${report.id}/`}>Read visual review</a></div></article>)}</div></section>}
+    </div></main>
     <footer class="footer"><span>QUANT MARKET INTEL</span><span>For research reference only</span></footer>
     <script>
       const themeToggle = document.querySelector('#theme-toggle');
@@ -64,7 +59,6 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       const applyTheme = (theme) => {
         document.documentElement.dataset.theme = theme;
         themeToggle.setAttribute('aria-pressed', String(theme === 'dark'));
-        themeToggle.textContent = 'Dark mode';
         themeToggle.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
       };
       let savedTheme = null;
