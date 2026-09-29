@@ -20,6 +20,10 @@ files:
     classification: public
     action: retain
     reason: framework runtime, contracts, rendering, validation, and generic delivery code
+  - path: schemas/public/
+    classification: public
+    action: retain
+    reason: language-neutral schemas for public artifact handoffs
   - path: tests/
     classification: public
     action: retain
