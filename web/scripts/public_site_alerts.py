@@ -2,17 +2,26 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import os
 import re
+from datetime import UTC, datetime
+from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
 from urllib.parse import quote, urlencode, urlsplit
 from urllib.request import Request, urlopen
 
+try:
+    from .public_site_freshness import evaluate_public_snapshots, fetch_public_snapshots
+except ImportError:
+    from public_site_freshness import evaluate_public_snapshots, fetch_public_snapshots
+
 LABEL = "public-site-alert"
 _EVENT_RE = re.compile(r"(?m)^event_id: ([0-9]+)$")
 _MAX_FINDING = 400
+PAGES_BASE = "https://runchengxie.github.io/quant-intel-platform"
 
 
 class IssueClient:
@@ -23,6 +32,7 @@ class IssueClient:
         if not token or len(parts) != 2 or not all(parts):
             raise ValueError("GITHUB_TOKEN and GITHUB_REPOSITORY are required")
         self._token = token
+        self._repository = repository
         self._base = "https://api.github.com/repos/" + "/".join(quote(part, safe="") for part in parts)
 
     @classmethod
@@ -69,6 +79,27 @@ class IssueClient:
 
     def list_comments(self, number: int) -> list[dict[str, Any]]:
         return self._list_pages(f"/issues/{number}/comments")
+
+    def latest_workflow_run(self, branch: str) -> dict[str, Any] | None:
+        """Read the latest completed Public website run for the exact branch."""
+        query = urlencode({"branch": branch, "status": "completed", "per_page": 100})
+        response = self._request("GET", f"/actions/workflows/public-site.yml/runs?{query}")
+        if not isinstance(response, dict) or not isinstance(response.get("workflow_runs"), list):
+            raise RuntimeError("GitHub Actions API returned invalid run data")
+        runs = response["workflow_runs"]
+        matching = [
+            run
+            for run in runs
+            if isinstance(run, dict)
+            and run.get("head_branch") == branch
+            and isinstance(run.get("head_repository"), dict)
+            and run["head_repository"].get("full_name") == self._repository
+            and run.get("status") == "completed"
+            and isinstance(run.get("id"), int)
+        ]
+        if not matching:
+            return None
+        return max(matching, key=lambda run: run["id"])
 
     def create_issue(self, *, title: str, body: str, labels: list[str]) -> dict[str, Any]:
         response = self._request("POST", "/issues", {"title": title, "body": body, "labels": labels})
@@ -159,3 +190,108 @@ def reconcile_alert(
         return "commented"
     client.create_issue(title=f"Public site alert {marker}", body=body, labels=[LABEL])
     return "created"
+
+
+def _run_url(repository: str, run_id: int) -> str:
+    if re.fullmatch(r"[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+", repository) is None or run_id <= 0:
+        raise ValueError("valid GITHUB_REPOSITORY and run ID are required")
+    return f"https://github.com/{repository}/actions/runs/{run_id}"
+
+
+def _branch_allowed(branch: object) -> bool:
+    return isinstance(branch, str) and (
+        branch == "main"
+        or (branch.startswith("automation/pages-") and len(branch) > len("automation/pages-"))
+    )
+
+
+def _alert(
+    client: IssueClient, *, key: str, finding: str | None, repository: str, run_id: int, dry_run: bool
+) -> str:
+    url = _run_url(repository, run_id)
+    if dry_run:
+        return "would-create" if finding is not None else "would-close"
+    return reconcile_alert(client, key=key, finding=finding, run_url=url, event_id=run_id)
+
+
+def process_workflow_event(
+    client: IssueClient, event: dict[str, Any], *, repository: str, dry_run: bool = False
+) -> str:
+    """Reconcile only completed, eligible Public website runs."""
+    run = event.get("workflow_run")
+    if not isinstance(run, dict) or event.get("action") != "completed":
+        return "ignored"
+    branch = run.get("head_branch")
+    if (
+        run.get("name") != "Public website"
+        or not _branch_allowed(branch)
+        or run.get("status") != "completed"
+        or run.get("conclusion") not in {"success", "failure"}
+    ):
+        return "ignored"
+    head_repository = run.get("head_repository")
+    if not isinstance(head_repository, dict) or head_repository.get("full_name") != repository:
+        return "ignored"
+    run_id = run.get("id")
+    if not isinstance(run_id, int) or run_id <= 0:
+        raise ValueError("workflow_run.id must be positive")
+    latest = None if dry_run else client.latest_workflow_run(branch)
+    if latest is not None and latest["id"] > run_id:
+        if latest.get("conclusion") not in {"success", "failure"}:
+            return "ignored"
+        run = latest
+        run_id = latest["id"]
+    finding = (
+        "Public website build failed; review the linked Actions run."
+        if run["conclusion"] == "failure"
+        else None
+    )
+    return _alert(
+        client, key=f"build:{branch}", finding=finding, repository=repository, run_id=run_id, dry_run=dry_run
+    )
+
+
+def process_freshness_event(
+    client: IssueClient, *, repository: str, run_id: int, dry_run: bool = False
+) -> list[str]:
+    """Evaluate live public snapshots and reconcile each independent stream."""
+    reports, us_report = fetch_public_snapshots(PAGES_BASE)
+    findings = evaluate_public_snapshots(reports, us_report, now=datetime.now(UTC))
+    return [
+        _alert(
+            client,
+            key=f"freshness:{item['key']}",
+            finding=item["summary"] if item["status"] != "ok" else None,
+            repository=repository,
+            run_id=run_id,
+            dry_run=dry_run,
+        )
+        for item in findings
+    ]
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Monitor public site publication and freshness")
+    parser.add_argument("--mode", required=True, choices=("freshness", "workflow"))
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args(argv)
+    event_path = os.environ.get("GITHUB_EVENT_PATH")
+    if not event_path:
+        raise ValueError("GITHUB_EVENT_PATH is required")
+    event = json.loads(Path(event_path).read_text(encoding="utf-8"))
+    if not isinstance(event, dict):
+        raise ValueError("GitHub event must be a JSON object")
+    repository = os.environ.get("GITHUB_REPOSITORY", "")
+    run_id = int(os.environ.get("GITHUB_RUN_ID", "0"))
+    client = IssueClient("dry-run-token", repository) if args.dry_run else IssueClient.from_environment()
+    if args.mode == "workflow":
+        result = process_workflow_event(client, event, repository=repository, dry_run=args.dry_run)
+        print(f"Workflow monitor: {result}")
+    else:
+        results = process_freshness_event(client, repository=repository, run_id=run_id, dry_run=args.dry_run)
+        print("Freshness monitor: " + ", ".join(results))
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
