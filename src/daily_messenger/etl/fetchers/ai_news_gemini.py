@@ -27,6 +27,7 @@ from .ai_news_common import (
 
 def _call_gemini_generate_content(
     model: str,
+    *,
     api_key: str,
     prompt: str,
     enable_network: bool,

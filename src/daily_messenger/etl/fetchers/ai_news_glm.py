@@ -30,6 +30,7 @@ from .ai_news_common import (
 
 def _call_glm_chat_completions(
     model: str,
+    *,
     api_key: str,
     prompt: str,
     enable_network: bool,

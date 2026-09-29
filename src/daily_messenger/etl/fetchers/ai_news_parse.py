@@ -58,40 +58,41 @@ def _call_ai_news_provider(settings: _AiNewsSettings, token: str, prompt: str) -
     if settings.provider == AI_NEWS_PROVIDER_GLM:
         payload = _an._call_glm_chat_completions(
             settings.model,
-            token,
-            prompt,
-            settings.enable_network,
-            settings.timeout,
-            settings.thinking,
-            settings.direct_connection,
+            api_key=token,
+            prompt=prompt,
+            enable_network=settings.enable_network,
+            timeout=settings.timeout,
+            thinking=settings.thinking,
+            direct_connection=settings.direct_connection,
         )
         return _an._extract_glm_text(payload)
     if settings.provider == AI_NEWS_PROVIDER_ALIYUN:
         payload = _an._call_aliyun_chat_completions(
             settings.model,
-            token,
-            prompt,
-            settings.enable_network,
-            settings.timeout,
-            settings.base_url,
-            settings.search_strategy,
-            settings.direct_connection,
+            api_key=token,
+            prompt=prompt,
+            enable_network=settings.enable_network,
+            timeout=settings.timeout,
+            base_url=settings.base_url,
+            search_strategy=settings.search_strategy,
+            direct_connection=settings.direct_connection,
         )
         return _an._extract_glm_text(payload)
 
     payload = _an._call_gemini_generate_content(
         settings.model,
-        token,
-        prompt,
-        settings.enable_network,
-        settings.timeout,
-        settings.direct_connection,
+        api_key=token,
+        prompt=prompt,
+        enable_network=settings.enable_network,
+        timeout=settings.timeout,
+        direct_connection=settings.direct_connection,
     )
     return _an._extract_gemini_text(payload)
 
 
 def _try_ai_news_provider(
     spec: _MarketNewsSpec,
+    *,
     target_day: datetime,
     beijing_now: datetime,
     settings: _AiNewsSettings,
@@ -169,6 +170,7 @@ def _parse_market_news_response(
 
 def _build_ai_news_update(
     spec: _MarketNewsSpec,
+    *,
     target_day: datetime,
     beijing_now: datetime,
     settings: _AiNewsSettings,
@@ -204,6 +206,7 @@ def _build_ai_news_update(
 
 def _fetch_ai_news_for_market(
     spec: _MarketNewsSpec,
+    *,
     now_utc: datetime,
     beijing_now: datetime,
     settings_chain: list[_AiNewsSettings],
@@ -216,11 +219,11 @@ def _fetch_ai_news_for_market(
     for settings in settings_chain:
         response_text = _try_ai_news_provider(
             spec,
-            target_day,
-            beijing_now,
-            settings,
-            key_queues.get(settings.provider, deque()),
-            error_messages,
+            target_day=target_day,
+            beijing_now=beijing_now,
+            settings=settings,
+            key_queue=key_queues.get(settings.provider, deque()),
+            error_messages=error_messages,
         )
         if not response_text:
             continue
@@ -231,7 +234,12 @@ def _fetch_ai_news_for_market(
             continue
 
         update = _build_ai_news_update(
-            spec, target_day, beijing_now, settings, parsed, error_messages
+            spec,
+            target_day=target_day,
+            beijing_now=beijing_now,
+            settings=settings,
+            parsed=parsed,
+            error_messages=error_messages,
         )
         if logger:
             log(
@@ -313,11 +321,11 @@ def _fetch_ai_market_news(
 
         update, status = _fetch_ai_news_for_market(
             spec,
-            now_utc,
-            beijing_now,
-            settings_chain,
-            key_queues,
-            logger,
+            now_utc=now_utc,
+            beijing_now=beijing_now,
+            settings_chain=settings_chain,
+            key_queues=key_queues,
+            logger=logger,
         )
         if update is not None:
             updates.append(update)

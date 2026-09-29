@@ -5,6 +5,7 @@ from __future__ import annotations
 import random
 import time
 from collections.abc import Iterable
+from dataclasses import dataclass
 from typing import Any
 
 import requests
@@ -28,35 +29,19 @@ def sleep_exact(seconds: float) -> None:
         time.sleep(seconds)
 
 
+@dataclass
 class RetryPolicy:
-    retries: int
-    backoff_start: float
-    backoff_factor: float
-    jitter: float
-    status_forcelist: set[int]
-    max_sleep: float
-    per_request_timeout: float
-    hard_deadline: float | None
+    retries: int = 3
+    backoff_start: float = 0.6
+    backoff_factor: float = 2.0
+    jitter: float = 0.3
+    status_forcelist: Iterable[int] = (408, 409, 425, 429, 500, 502, 503, 504)
+    max_sleep: float = 8.0
+    per_request_timeout: float = REQUEST_TIMEOUT
+    hard_deadline: float | None = 20.0
 
-    def __init__(
-        self,
-        retries: int = 3,
-        backoff_start: float = 0.6,
-        backoff_factor: float = 2.0,
-        jitter: float = 0.3,
-        status_forcelist: Iterable[int] = (408, 409, 425, 429, 500, 502, 503, 504),
-        max_sleep: float = 8.0,
-        per_request_timeout: float = REQUEST_TIMEOUT,
-        hard_deadline: float | None = 20.0,
-    ) -> None:
-        self.retries = retries
-        self.backoff_start = backoff_start
-        self.backoff_factor = backoff_factor
-        self.jitter = jitter
-        self.status_forcelist = set(status_forcelist)
-        self.max_sleep = max_sleep
-        self.per_request_timeout = per_request_timeout
-        self.hard_deadline = hard_deadline
+    def __post_init__(self) -> None:
+        self.status_forcelist = set(self.status_forcelist)
 
 
 RETRY_DEFAULT = RetryPolicy()
@@ -77,6 +62,7 @@ def _exceeds_deadline(policy: RetryPolicy, start: float, sleep_seconds: float) -
 
 def _process_response(
     resp: requests.Response,
+    *,
     policy: RetryPolicy,
     attempt: int,
     delay: float,
@@ -120,6 +106,7 @@ def _process_response(
 
 def _attempt_request(
     own_session: requests.Session,
+    *,
     method: str,
     url: str,
     params: dict[str, Any] | None,
@@ -150,7 +137,14 @@ def _attempt_request(
             raise RuntimeError(f"HTTP 请求失败（已重试 {attempt - 1} 次）: {exc}") from exc
         _backoff_and_sleep(policy, delay, start)
         return True, None, delay * policy.backoff_factor
-    return _process_response(resp, policy, attempt, delay, start, after_each_sleep)
+    return _process_response(
+        resp,
+        policy=policy,
+        attempt=attempt,
+        delay=delay,
+        start=start,
+        after_each_sleep=after_each_sleep,
+    )
 
 
 def request_json(
@@ -181,16 +175,16 @@ def request_json(
             attempt += 1
             retry, payload, delay = _attempt_request(
                 own_session,
-                method,
-                url,
-                params,
-                json_body,
-                hdrs,
-                policy,
-                attempt,
-                delay,
-                start,
-                after_each_sleep,
+                method=method,
+                url=url,
+                params=params,
+                json_body=json_body,
+                hdrs=hdrs,
+                policy=policy,
+                attempt=attempt,
+                delay=delay,
+                start=start,
+                after_each_sleep=after_each_sleep,
             )
             if not retry:
                 return payload

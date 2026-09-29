@@ -33,12 +33,12 @@ def test_glm_direct_connection_disables_requests_env_proxy(monkeypatch) -> None:
 
     ai_news._call_glm_chat_completions(
         "glm-test",
-        "key",
-        "prompt",
-        True,
-        5.0,
-        "enabled",
-        True,
+        api_key="key",
+        prompt="prompt",
+        enable_network=True,
+        timeout=5.0,
+        thinking="enabled",
+        direct_connection=True,
     )
 
     assert calls[0]["trust_env"] is False
