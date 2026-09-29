@@ -329,6 +329,10 @@ files:
     classification: split
     action: sanitize
     reason: describe public framework and link to private deployment boundary
+  - path: README.zh-CN.md
+    classification: split
+    action: sanitize
+    reason: Chinese companion for the public framework README
   - path: config/api_keys.json.example
     classification: public
     action: retain
