@@ -455,7 +455,15 @@ def test_fetch_events_payload_with_events(module, monkeypatch):
             [{"title": "AI", "provider": "glm"}],
         ),
     )
-    events, ai = module._fetch_events_payload("2026-07-27", {}, [], {}, 0.0, None, [])
+    events, ai = module._fetch_events_payload(
+        "2026-07-27",
+        api_keys={},
+        ai_feeds=[],
+        arxiv_params={},
+        arxiv_throttle=0.0,
+        logger=None,
+        statuses=[],
+    )
     assert len(events) == 2
     assert ai[0]["source"] == "glm"
 
@@ -469,5 +477,7 @@ def test_fetch_news_events_skips_ai(module, monkeypatch):
         _fetch_ai_rss_events=([], [ok_status]),
         _fetch_arxiv_events=([], ok_status),
     )
-    events, ai = module._fetch_news_events({}, [], {}, 0.0, None, [])
+    events, ai = module._fetch_news_events(
+        {}, ai_feeds=[], arxiv_params={}, arxiv_throttle=0.0, logger=None, statuses=[]
+    )
     assert events == [] and ai == []
