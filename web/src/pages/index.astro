@@ -8,6 +8,7 @@ import { formatEvidenceLine } from '../lib/evidence.ts';
 import { buildEveningNotes } from '../lib/evening-notes.ts';
 import marketDailyUtils from '../lib/market-daily-utils.js';
 import { buildAsiaReportSvg } from '../lib/asia-report-image.mjs';
+import { localePath } from '../lib/locale.ts';
 
 const reports = loadReports();
 const summaries = loadSummaries(reports).sort((a, b) => b.date.localeCompare(a.date));
@@ -78,7 +79,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     </script>
   </head>
   <body>
-    <header class="topbar"><a class="brand" href={`${base}/`}><span class="brand-mark">Q</span><span>QUANT <b>MARKET INTEL</b></span></a><nav class="top-nav" aria-label="主导航"><a href="#us-session">美股日报</a><a href="#asia-session">亚洲晚报</a>{eveningHistory.length > 0 && <a href="#reports-title">历史晚报</a>}<a href={`${base}/docs/`}>文档</a></nav><button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">深色</button></header>
+    <header class="topbar"><a class="brand" href={`${base}/`}><span class="brand-mark">Q</span><span>QUANT <b>MARKET INTEL</b></span></a><nav class="top-nav" aria-label="主导航"><a href="#us-session">美股日报</a><a href="#asia-session">亚洲晚报</a>{eveningHistory.length > 0 && <a href="#reports-title">历史晚报</a>}<a href={`${base}/docs/`}>文档</a><a href={localePath('en-US', base)}>English</a></nav><button class="theme-toggle" id="theme-toggle" type="button" aria-label="切换深色模式" aria-pressed="false">深色</button></header>
     <main class="shell">
       <div class="content">
         <section class="hero"><div class="hero-copy"><span class="eyebrow">每日两份公开日报</span><h1>Quant 市场情报</h1><p>每天梳理美股和亚洲市场的收盘行情，附上变化说明、数据日期和来源。</p></div><nav class="session-nav" aria-label="最新日报"><a href="#us-session"><span>最新美股日报</span><strong>{market?.date || '待更新'}</strong><small>07:00 · 北京时间</small></a><a href="#asia-session"><span>最新亚洲晚报</span><strong>{latestEveningDate || '待更新'}</strong><small>19:00 · 北京时间</small></a></nav></section>
