@@ -370,6 +370,7 @@ def test_real_site_build_overlays_astro_pages_and_keeps_downloads(tmp_path: Path
     assert ('id="reports-title"' in index) is has_visual_history
     assert 'id="kind-filter"' not in index
     assert (output / f"reports/{report_id}/index.html").is_file()
+    assert (output / "en/index.html").is_file()
     market = json.loads((output / "data/market_daily_report.json").read_text(encoding="utf-8"))
     market_date = market["run_id"].removeprefix("daily-")
     assert f"/quant-intel-platform/reports/{market_date}-market-daily-no-citations.md" in index
