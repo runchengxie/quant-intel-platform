@@ -59,3 +59,23 @@ def test_render_shows_reviewed_summary_even_when_section_has_facts():
     assert "市场日报（2026-09-23）" in text
     assert "标普收跌 0.8%" in text
     assert "核实截至" in text
+
+
+def test_render_markdown_supports_english_shell_without_translating_source_facts():
+    report = DailyReport(
+        schema_version="1.0",
+        as_of=datetime(2026, 9, 24, 9, tzinfo=UTC),
+        generated_at=datetime(2026, 9, 24, 9, tzinfo=UTC),
+        run_id="daily-2026-09-23",
+        sections=(ReportSection("market", "市场表现"),),
+        quality_summary={"status": "degraded"},
+        missing_sources=("quotes",),
+    )
+
+    text = render_markdown(report, locale="en-US")
+
+    assert "# Market report (2026-09-23)" in text
+    assert "## Market performance" in text
+    assert "Data status: degraded" in text
+    assert "## Data gaps" in text
+    assert "暂无已校验内容。" not in text
