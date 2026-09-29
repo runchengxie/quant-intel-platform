@@ -220,7 +220,9 @@ class GenerationTests(unittest.TestCase):
                 result = run(rp, p / "insights.json", api_key="test", generator=lambda *args: analysis())
             self.assertEqual("retrospective", result["insights"][0]["generation_mode"])
 
-    def test_generation_cache_revision_and_append_only_archive(self):
+    @patch("market_intel_commentary.generate_insights.datetime", wraps=datetime)
+    def test_generation_cache_revision_and_append_only_archive(self, clock):
+        clock.now.return_value = datetime.fromisoformat("2026-09-15T08:00:00+08:00")
         with tempfile.TemporaryDirectory() as directory:
             p = Path(directory)
             rp, ip = p / "reports.json", p / "insights.json"
