@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const { readFileSync, existsSync, cpSync, writeFileSync, mkdtempSync, rmSync, readdirSync } = require('node:fs');
 const { execFileSync } = require('node:child_process');
 const path = require('node:path');
+const vm = require('node:vm');
 
 const root = path.join(__dirname, '..');
 
@@ -35,6 +36,11 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   assert.ok(index.includes('href="/quant-intel-platform/docs/"'));
   assert.ok(!index.includes('/market-intel-pages/'));
   assert.match(index, /id="theme-toggle"/);
+  const header = index.match(/<header class="topbar">([\s\S]*?)<\/header>/)?.[1];
+  assert.ok(header);
+  assert.match(header, /<nav class="top-nav"[^>]*><a href="#us-session">美股日报<\/a><a href="#asia-session">亚洲晚报<\/a>/);
+  assert.match(header, /<a href="\/quant-intel-platform\/docs\/">文档<\/a>/);
+  assert.match(header, /<button[^>]*id="theme-toggle"[^>]*aria-pressed="false"[^>]*>深色模式<\/button>/);
   assert.match(index, /id="us-session"/);
   assert.match(index, /id="asia-session"/);
   assert.match(index, /07:00 美股收盘复盘/);
@@ -75,6 +81,11 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   const styles = readdirSync(path.join(root, 'dist/_astro')).filter((name) => name.endsWith('.css'))
     .map((name) => readFileSync(path.join(root, `dist/_astro/${name}`), 'utf8')).join('\n');
   assert.match(styles, /:root\[data-theme=?"?dark/);
+  const topNavRules = [...styles.matchAll(/\.top-nav\{([^}]*)\}/g)].map((match) => match[1]);
+  const homeTopNav = topNavRules.find((rule) => rule.includes('margin-right:24px'));
+  assert.ok(homeTopNav, 'compiled home site has top navigation styles');
+  assert.ok(Number(homeTopNav.match(/gap:(\d+)px/)?.[1]) >= 36, 'top navigation links have generous spacing');
+  assert.ok(Number(homeTopNav.match(/margin-right:(\d+)px/)?.[1]) >= 20, 'navigation has space before the theme button');
   const report = path.join(root, `dist/reports/${reportId}/index.html`);
   assert.ok(existsSync(report));
   const html = readFileSync(report, 'utf8');
@@ -88,6 +99,66 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   assert.match(index, /<a href="https:\/\/home\.treasury\.gov[^"]*"[^>]*>美国财政部<\/a>/);
   assert.doesNotMatch(index, /\| 流动性 \|/);
   assert.match(html, /<table>/);
+});
+
+test('home theme button keeps a stable label, toggles both ways, and restores the saved choice', () => {
+  const source = readFileSync(path.join(root, 'src/pages/index.astro'), 'utf8');
+  const script = source.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
+  assert.ok(script, 'home theme controller exists');
+  const saved = new Map();
+  const storage = {
+    getItem: (key) => saved.get(key) ?? null,
+    setItem: (key, value) => saved.set(key, value),
+  };
+  const load = (localStorage) => {
+    const events = {};
+    const attrs = {};
+    const button = {
+      textContent: '深色模式',
+      setAttribute: (name, value) => { attrs[name] = value; },
+      addEventListener: (name, handler) => { events[name] = handler; },
+    };
+    const document = {
+      documentElement: { dataset: {} },
+      querySelector: () => button,
+      querySelectorAll: () => [],
+    };
+    vm.runInNewContext(script, { document, localStorage, window: {
+      matchMedia: () => ({ matches: false, addEventListener: () => {} }),
+    } });
+    return { button, attrs, events, document };
+  };
+  const page = load(storage);
+  assert.equal(page.document.documentElement.dataset.theme, 'light');
+  assert.equal(page.attrs['aria-pressed'], 'false');
+  page.events.click();
+  assert.equal(page.document.documentElement.dataset.theme, 'dark');
+  assert.equal(page.attrs['aria-pressed'], 'true');
+  assert.equal(page.button.textContent, '深色模式');
+  assert.equal(storage.getItem('market-intel-theme'), 'dark');
+  const reloaded = load(storage);
+  assert.equal(reloaded.document.documentElement.dataset.theme, 'dark');
+  assert.equal(reloaded.attrs['aria-pressed'], 'true');
+  reloaded.events.click();
+  assert.equal(reloaded.document.documentElement.dataset.theme, 'light');
+  assert.equal(storage.getItem('market-intel-theme'), 'light');
+});
+
+test('home theme remains usable when browser storage is unavailable', () => {
+  const source = readFileSync(path.join(root, 'src/pages/index.astro'), 'utf8');
+  const script = source.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
+  const events = {};
+  const document = {
+    documentElement: { dataset: { theme: 'light' } },
+    querySelector: () => ({ setAttribute: () => {}, addEventListener: (name, handler) => { events[name] = handler; } }),
+    querySelectorAll: () => [],
+  };
+  const localStorage = { getItem: () => { throw new Error('blocked'); }, setItem: () => { throw new Error('blocked'); } };
+  assert.doesNotThrow(() => vm.runInNewContext(script, { document, localStorage, window: {
+    matchMedia: () => ({ matches: false, addEventListener: () => {} }),
+  } }));
+  assert.doesNotThrow(() => events.click());
+  assert.equal(document.documentElement.dataset.theme, 'dark');
 });
 
 test('new Asian evening reports build a visual history while old direct links remain available', () => {
