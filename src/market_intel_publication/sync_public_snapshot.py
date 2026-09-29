@@ -143,11 +143,17 @@ def sync_snapshot(root: Path, archive_dir: Path) -> None:
             raise ValueError(f"archived report Markdown is missing: {report['source_url']}")
 
     _publish_snapshot(
-        root, archive_dir, all_reports, all_summaries, incoming_report_index, incoming_summary_index
+        root=root,
+        archive_dir=archive_dir,
+        all_reports=all_reports,
+        all_summaries=all_summaries,
+        incoming_report_index=incoming_report_index,
+        incoming_summary_index=incoming_summary_index,
     )
 
 
-def _publish_snapshot(  # noqa: PLR0913 - preserve the tested snapshot interface
+def _publish_snapshot(  # noqa: PLR0913 - private helper keeps the snapshot publication contract
+    *,
     root: Path,
     archive_dir: Path,
     all_reports: list[dict],

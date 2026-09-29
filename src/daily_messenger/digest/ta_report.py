@@ -104,7 +104,7 @@ def _coerce_float(raw: str | float | int) -> float:
     return float(raw)
 
 
-def fetch_candles(
+def fetch_candles(  # noqa: PLR0917 - preserve module API compatibility
     instrument: str,
     granularity: str,
     token: str,

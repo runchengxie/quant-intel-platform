@@ -109,11 +109,20 @@ def import_reports(root: Path, manifest_path: Path, archive_dir: Path, *, apply=
     result = {"changed": len(changed), "report_ids": sorted(incoming), "applied": False}
     if not apply or not changed:
         return result
-    _apply_import(root, archive_dir, incoming, markdown, index, existing, changed)
+    _apply_import(
+        root=root,
+        archive_dir=archive_dir,
+        incoming=incoming,
+        markdown=markdown,
+        index=index,
+        existing=existing,
+        changed=changed,
+    )
     return {**result, "applied": True}
 
 
-def _apply_import(  # noqa: PLR0913 - preserve the tested publication interface
+def _apply_import(  # noqa: PLR0913 - private helper keeps the staged publication contract
+    *,
     root: Path,
     archive_dir: Path,
     incoming: dict,

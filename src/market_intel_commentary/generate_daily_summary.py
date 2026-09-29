@@ -251,7 +251,7 @@ def require_model_key(value: str | None) -> str:
     return value
 
 
-def run(  # noqa: PLR0913 - preserve tested migration interface
+def run(  # noqa: PLR0913, PLR0917 - preserve tested CLI interface
     reports_path: Path,
     summaries_path: Path,
     output_path: Path,

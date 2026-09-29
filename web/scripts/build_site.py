@@ -72,6 +72,23 @@ def copy_public_charts(root: Path, output: Path, report_ids: set[str]) -> list[s
     return copied
 
 
+def _copy_localized_astro_pages(built: Path, output: Path, report_ids: set[str], locale: str) -> None:
+    """Copy one locale's Astro entrypoint and report pages."""
+    entry = built / locale / "index.html"
+    if not entry.is_file():
+        raise ValueError(f"Astro {locale} index is missing")
+    destination = output / locale / "index.html"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(entry, destination)
+    for report_id in report_ids:
+        source = built / locale / "reports" / report_id / "index.html"
+        if not source.is_file():
+            raise ValueError(f"Astro {locale} report page missing: {report_id}")
+        destination = output / locale / "reports" / report_id / "index.html"
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, destination)
+
+
 def _overlay_astro_pages(root: Path, output: Path, report_ids: set[str]) -> None:
     """Build Astro against the already validated public snapshot."""
     if not (root / "package.json").is_file():
@@ -106,6 +123,7 @@ def _overlay_astro_pages(root: Path, output: Path, report_ids: set[str]) -> None
             destination = output / "reports" / report_id / "index.html"
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
+        _copy_localized_astro_pages(built, output, report_ids, "en")
         if (built / "_astro").is_dir():
             shutil.copytree(built / "_astro", output / "_astro", dirs_exist_ok=True)
         shutil.copy2(built / "index.html", output / "index.html")

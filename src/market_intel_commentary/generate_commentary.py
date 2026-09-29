@@ -16,8 +16,8 @@ from .generate_insights import run as run_insight
 FALLBACK_ORDER = ("deepseek", "gemini", "minimax")
 
 
-def _try_codex(  # noqa: PLR0913 - preserve tested migration interface
-    reports: Path, summaries: Path, insights: Path, archive: Path, work_dir: Path, cli: Path
+def _try_codex(  # noqa: PLR0913 - private helper keeps the explicit Codex artifact contract
+    *, reports: Path, summaries: Path, insights: Path, archive: Path, work_dir: Path, cli: Path
 ) -> dict[str, str]:
     try:
         status = run_codex(reports, summaries, insights, archive, work_dir, cli)
@@ -45,7 +45,16 @@ def run(  # noqa: PLR0913 - preserve tested migration interface
 ) -> dict:
     attempts: list[dict[str, str]] = []
     if codex_cli is not None:
-        attempts.append(_try_codex(reports, summaries, insights, archive, work_dir, codex_cli))
+        attempts.append(
+            _try_codex(
+                reports=reports,
+                summaries=summaries,
+                insights=insights,
+                archive=archive,
+                work_dir=work_dir,
+                cli=codex_cli,
+            )
+        )
         if attempts[-1]["status"].startswith(("generated", "reused")):
             return {"status": "ready", "provider": "codex", "attempts": attempts}
     for provider in FALLBACK_ORDER:
