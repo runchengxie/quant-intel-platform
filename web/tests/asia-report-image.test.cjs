@@ -17,6 +17,8 @@ test('Asia report image combines the evening framework, five local chart states 
   ];
   const markdown = '## 一、市场状态\n- 状态: 偏冷。\n### 核心矛盾\n- 市场分歧。\n### 明日验证\n- 观察广度。\n### 三、市场总览\n上涨 1200 家。';
   const svg = buildAsiaReportSvg(report, charts, markdown);
+  assert.match(svg, /fill="var\(--report-bg/);
+  assert.match(svg, /fill="var\(--report-ink/);
   assert.match(svg, /亚洲市场收盘复盘/);
   assert.match(svg, /市场分歧/);
   assert.match(svg, /观察广度/);

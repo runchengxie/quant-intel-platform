@@ -7,6 +7,11 @@
   --desk-line: #d8d0c3;
   --desk-accent: #b64d33;
   --desk-decline: #5c7182;
+  --report-bg: #fff9f2;
+  --report-ink: #34271f;
+  --report-muted: #715f52;
+  --report-track: #f2e7dc;
+  --report-line: #d9c7b6;
   --font-heading: "Source Han Sans CN", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC", sans-serif;
   --font-body: "Source Han Sans CN", "Noto Sans CJK SC", "Noto Sans SC", "PingFang SC", sans-serif;
   --font-mono: ui-monospace, "SFMono-Regular", "Cascadia Code", monospace;
@@ -34,13 +39,13 @@ a:hover { color: var(--desk-accent); }
 .brand { gap: 10px; color: var(--desk-ink); font: 700 13px var(--font-body); letter-spacing: .02em; }
 .brand b { font-weight: 500; }
 .brand-mark { width: 29px; height: 29px; border-radius: 0; background: var(--desk-ink); font: 600 17px var(--font-heading); }
-.top-nav { display: flex; gap: 28px; margin-left: auto; }
+.top-nav { display: flex; flex-shrink: 0; gap: 36px; margin-left: auto; margin-right: 40px; }
 .top-nav a { color: var(--desk-muted); font-size: 13px; font-weight: 500; text-decoration: none; }
 .top-nav a:hover, .top-nav a:focus-visible { color: var(--desk-accent); }
 .top-note { color: var(--desk-muted); font-size: 12px; }
 .docs-link { color: var(--desk-ink); font-size: 13px; font-weight: 500; }
 .docs-link:hover { color: var(--desk-accent); }
-.theme-toggle { border-color: var(--desk-line); border-radius: 0; background: transparent; color: var(--desk-muted); font: 11px var(--font-mono); }
+.theme-toggle { flex-shrink: 0; border-color: var(--desk-line); border-radius: 0; background: transparent; color: var(--desk-muted); font: 11px var(--font-mono); }
 .theme-toggle:hover { border-color: var(--desk-accent); color: var(--desk-accent); }
 
 .shell { display: block; max-width: 1180px; padding-top: 36px; padding-bottom: 80px; }
@@ -81,7 +86,7 @@ a:hover { color: var(--desk-accent); }
 .market-stat span { color: var(--desk-ink); font-size: 13px; font-weight: 500; }
 .market-stat small { color: var(--desk-muted); font-size: 11px; }
 .market-trend-bar span { border-radius: 0; }
-.market-chart-graphic, .market-empty, .watchpoint { border-color: var(--desk-line); border-radius: 0; background: var(--desk-paper); }
+.market-chart-graphic, .market-empty, .watchpoint { border-color: var(--desk-line); border-radius: 0; background: var(--report-bg); }
 .market-table th, .market-table td, .markdown-body th, .markdown-body td { border-color: var(--desk-line); }
 .market-table thead th, .markdown-body th { background: #eee8de; color: var(--desk-muted); }
 .secondary-report, .notes-list article { border-color: var(--desk-line); }
@@ -122,6 +127,11 @@ a:hover { color: var(--desk-accent); }
   --desk-accent: #e28a70;
   --desk-accent-soft: #2d2524;
   --desk-decline: #a8bed1;
+  --report-bg: #1b2128;
+  --report-ink: #edf0f2;
+  --report-muted: #9aa4ae;
+  --report-track: #2d353e;
+  --report-line: #3b424a;
   color-scheme: dark;
 }
 :root[data-theme="dark"] .topbar, :root[data-theme="dark"] .panel,
@@ -136,7 +146,7 @@ a:hover { color: var(--desk-accent); }
 :root[data-theme="dark"] .brand-mark { background: var(--desk-accent); color: #15191e; }
 :root[data-theme="dark"] .hero { background: transparent; }
 :root[data-theme="dark"] .session-nav a, :root[data-theme="dark"] .market-chart-graphic,
-:root[data-theme="dark"] .market-empty, :root[data-theme="dark"] .watchpoint { border-color: var(--desk-line); background: transparent; }
+:root[data-theme="dark"] .market-empty, :root[data-theme="dark"] .watchpoint { border-color: var(--desk-line); background: var(--report-bg); }
 :root[data-theme="dark"] .session-nav strong, :root[data-theme="dark"] .hero h1 { color: var(--desk-ink); }
 :root[data-theme="dark"] .session-nav a:hover { background: var(--desk-accent-soft); }
 :root[data-theme="dark"] .market-table thead th, :root[data-theme="dark"] .markdown-body th { background: #20272f; color: var(--desk-muted); }
@@ -154,7 +164,7 @@ a:hover { color: var(--desk-accent); }
   .topbar { height: auto; min-height: 60px; flex-wrap: wrap; gap: 0; padding-top: 10px; padding-bottom: 10px; }
   .brand { font-size: 11px; }
   .brand b { display: none; }
-  .top-nav { order: 3; width: 100%; gap: 20px; margin-top: 11px; overflow-x: auto; white-space: nowrap; }
+  .top-nav { order: 3; width: 100%; gap: 20px; margin-top: 11px; margin-right: 0; overflow-x: auto; white-space: nowrap; }
   .top-nav a { font-size: 12px; }
   .shell { padding-top: 24px; }
   .hero { padding-top: 24px; padding-bottom: 22px; }

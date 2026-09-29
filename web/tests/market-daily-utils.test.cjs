@@ -44,6 +44,8 @@ test("a verified same-day Treasury level alone still produces a sourced image", 
   });
   assert.ok(summary);
   const svg = buildMarketDailyChartSvg(summary);
+  assert.match(svg, /fill="var\(--report-bg/);
+  assert.match(svg, /fill="var\(--report-ink/);
   assert.match(svg, /4\.25%/);
   assert.match(svg, /2026-09-24/);
   assert.match(svg, /FRED/);

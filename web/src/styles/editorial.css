@@ -93,7 +93,7 @@
 .market-trend-bar:hover span { filter: brightness(.78); }
 .market-chart { scroll-margin-top: 68px; }
 .market-chart > summary { font-size: 16px; }
-.market-chart-graphic { background: #fff9f2; }
+.market-chart-graphic { background: var(--report-bg, #fff9f2); }
 .market-chart-graphic svg { min-width: 680px; }
 .market-table td:nth-child(2), .market-table td:nth-child(3) { font-variant-numeric: tabular-nums; }
 
