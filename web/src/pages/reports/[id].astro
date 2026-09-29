@@ -5,7 +5,7 @@ import '../../styles/research-language.css';
 import ChartCards from '../../components/ChartCards.astro';
 import { loadReports, loadMarkdown, loadChart } from '../../lib/reports.ts';
 import { renderMarkdown } from '../../lib/markdown.ts';
-import { buildAsiaReportSvg } from '../../lib/asia-report-image.mjs';
+import { buildAsiaReportSvg } from '../../lib/asia-report-image.ts';
 import { localePath } from '../../lib/locale.ts';
 
 export function getStaticPaths() {
