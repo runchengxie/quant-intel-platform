@@ -153,7 +153,9 @@ def _load_history(path: Path, history_url: str | None) -> tuple[list[dict], str 
     return history, history_warning
 
 
-def _generate_with_fallback(generator, context, prompt, provider, model, api_keys, attempts):  # noqa: PLR0913 - preserve tested migration interface
+def _generate_with_fallback(  # noqa: PLR0913 - private helper keeps the explicit provider contract
+    *, generator, context, prompt, provider, model, api_keys, attempts
+):
     last_error = None
     for api_key in api_keys:
         # A model can produce one invalid JSON claim while the next completion
@@ -240,7 +242,13 @@ def _update_history(  # noqa: PLR0913 - preserve tested migration interface
         attempts = [0]
         try:
             analysis = _generate_with_fallback(
-                generator, context, prompt, provider, model, api_keys, attempts
+                generator=generator,
+                context=context,
+                prompt=prompt,
+                provider=provider,
+                model=model,
+                api_keys=api_keys,
+                attempts=attempts,
             )
             identity = hashlib.sha256(
                 json.dumps([fingerprint, analysis, now], sort_keys=True).encode()
