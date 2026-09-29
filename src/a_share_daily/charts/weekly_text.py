@@ -88,7 +88,7 @@ def _format_trade_date(raw: str) -> str:
     return f"{int(raw[4:6])}月{int(raw[6:8])}日"
 
 
-def generate_weekly_text(
+def generate_weekly_text(  # noqa: PLR0917 - preserve public positional compatibility
     week_daily: dict[str, pd.DataFrame],
     week_limits: dict[str, int],
     week_moneyflow: dict[str, float],

@@ -92,6 +92,7 @@ def _draw_turnover_panel(ax, turnover_df: pd.DataFrame) -> None:
 
 def _draw_sentiment_panel(
     ax,
+    *,
     up: int,
     down: int,
     flat: int,
@@ -202,7 +203,7 @@ def _draw_margin_panel(ax, margin_df: pd.DataFrame) -> None:
     )
 
 
-def generate_dashboard(
+def generate_dashboard(  # noqa: PLR0917 - preserve public positional compatibility
     daily,
     limit_up_count: int,
     max_board: int,
@@ -238,7 +239,15 @@ def generate_dashboard(
 
     # ── Panel 3: 情绪指标 ──
     ax3 = fig.add_axes((0.04, 0.09, 0.40, 0.24), facecolor="none")
-    _draw_sentiment_panel(ax3, up, down, flat, avg_pct, limit_up_count, max_board)
+    _draw_sentiment_panel(
+        ax3,
+        up=up,
+        down=down,
+        flat=flat,
+        avg_pct=avg_pct,
+        limit_up_count=limit_up_count,
+        max_board=max_board,
+    )
     add_card(ax3)
 
     # ── Panel 4: 融资余额 ──

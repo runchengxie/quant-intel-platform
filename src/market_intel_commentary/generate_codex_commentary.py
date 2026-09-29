@@ -134,7 +134,7 @@ def _codex_analysis(context: dict, cli: Path, work_dir: Path, repo: Path) -> dic
         return validate_analysis(json.loads(output.read_text(encoding="utf-8")), context)
 
 
-def run(  # noqa: PLR0913 - preserve tested migration interface
+def run(  # noqa: PLR0913, PLR0917 - preserve tested CLI interface
     reports: Path, summaries: Path, insights: Path, archive: Path, work_dir: Path, cli: Path
 ) -> str:
     repo = Path(__file__).resolve().parent
