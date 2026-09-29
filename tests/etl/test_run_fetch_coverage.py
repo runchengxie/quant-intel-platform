@@ -146,13 +146,13 @@ def test_merge_sentiment_source_ok(module):
     statuses: list = []
     ok = module._merge_sentiment_source(
         data,
-        {"a": 1},
-        FetchStatus(name="x", ok=True, message="ok"),
-        {},
-        "fb_key",
-        "fb_status",
-        "使用上一期",
-        statuses,
+        payload={"a": 1},
+        status=FetchStatus(name="x", ok=True, message="ok"),
+        previous_sentiment={},
+        fallback_key="fb_key",
+        fallback_status_name="fb_status",
+        fallback_message="使用上一期",
+        statuses=statuses,
     )
     assert ok is True
     assert data == {"a": 1}
@@ -164,13 +164,13 @@ def test_merge_sentiment_source_fallback(module):
     statuses: list = []
     ok = module._merge_sentiment_source(
         data,
-        None,
-        FetchStatus(name="x", ok=False, message="bad"),
-        {"fb_key": {"old": 9}},
-        "fb_key",
-        "fb_status",
-        "使用上一期",
-        statuses,
+        payload=None,
+        status=FetchStatus(name="x", ok=False, message="bad"),
+        previous_sentiment={"fb_key": {"old": 9}},
+        fallback_key="fb_key",
+        fallback_status_name="fb_status",
+        fallback_message="使用上一期",
+        statuses=statuses,
     )
     assert ok is False
     assert data == {"fb_key": {"old": 9}}
@@ -183,13 +183,13 @@ def test_merge_sentiment_source_no_fallback(module):
     statuses: list = []
     ok = module._merge_sentiment_source(
         data,
-        None,
-        FetchStatus(name="x", ok=False, message="bad"),
-        {},
-        "fb_key",
-        "fb_status",
-        "使用上一期",
-        statuses,
+        payload=None,
+        status=FetchStatus(name="x", ok=False, message="bad"),
+        previous_sentiment={},
+        fallback_key="fb_key",
+        fallback_status_name="fb_status",
+        fallback_message="使用上一期",
+        statuses=statuses,
     )
     assert ok is False
     assert data == {}
@@ -455,7 +455,15 @@ def test_fetch_events_payload_with_events(module, monkeypatch):
             [{"title": "AI", "provider": "glm"}],
         ),
     )
-    events, ai = module._fetch_events_payload("2026-07-27", {}, [], {}, 0.0, None, [])
+    events, ai = module._fetch_events_payload(
+        "2026-07-27",
+        api_keys={},
+        ai_feeds=[],
+        arxiv_params={},
+        arxiv_throttle=0.0,
+        logger=None,
+        statuses=[],
+    )
     assert len(events) == 2
     assert ai[0]["source"] == "glm"
 
@@ -469,5 +477,7 @@ def test_fetch_news_events_skips_ai(module, monkeypatch):
         _fetch_ai_rss_events=([], [ok_status]),
         _fetch_arxiv_events=([], ok_status),
     )
-    events, ai = module._fetch_news_events({}, [], {}, 0.0, None, [])
+    events, ai = module._fetch_news_events(
+        {}, ai_feeds=[], arxiv_params={}, arxiv_throttle=0.0, logger=None, statuses=[]
+    )
     assert events == [] and ai == []

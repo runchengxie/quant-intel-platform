@@ -126,6 +126,7 @@ def fetch() -> tuple[dict[str, dict[str, object]], FetchStatus]:
 
 def _merge_sentiment_source(
     sentiment_data: dict[str, Any],
+    *,
     payload: dict[str, Any] | None,
     status: Any,
     previous_sentiment: dict[str, Any],
@@ -154,23 +155,23 @@ def _fetch_sentiment_payload(
     put_call_payload, put_call_status = _cboe_putcall_fetch()
     put_call_ok = _merge_sentiment_source(
         sentiment_data,
-        put_call_payload,
-        put_call_status,
-        previous_sentiment,
-        "put_call",
-        "cboe_put_call_fallback",
-        "使用上一期 Put/Call 数据",
-        statuses,
+        payload=put_call_payload,
+        status=put_call_status,
+        previous_sentiment=previous_sentiment,
+        fallback_key="put_call",
+        fallback_status_name="cboe_put_call_fallback",
+        fallback_message="使用上一期 Put/Call 数据",
+        statuses=statuses,
     )
     aaii_payload, aaii_status = fetch()
     aaii_ok = _merge_sentiment_source(
         sentiment_data,
-        aaii_payload,
-        aaii_status,
-        previous_sentiment,
-        "aaii",
-        "aaii_sentiment_fallback",
-        "使用上一期 AAII 数据",
-        statuses,
+        payload=aaii_payload,
+        status=aaii_status,
+        previous_sentiment=previous_sentiment,
+        fallback_key="aaii",
+        fallback_status_name="aaii_sentiment_fallback",
+        fallback_message="使用上一期 AAII 数据",
+        statuses=statuses,
     )
     return sentiment_data, put_call_ok and aaii_ok
