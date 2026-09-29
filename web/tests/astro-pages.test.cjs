@@ -188,12 +188,15 @@ test('English entry restores theme and keeps its button synchronized when storag
   const source = readFileSync(path.join(root, 'src/pages/en/index.astro'), 'utf8');
   const head = source.match(/<head>([\s\S]*?)<\/head>/)?.[1];
   const bootstrap = head?.match(/<script is:inline>\s*([\s\S]*?)<\/script>/)?.[1];
+  const header = source.match(/<header class="topbar">([\s\S]*?)<\/header>/)?.[1];
+  const initialButtonSync = header?.match(/<script is:inline>\s*([\s\S]*?)<\/script>/)?.[1];
   const controller = source.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
   assert.ok(bootstrap, 'English pre-paint theme bootstrap exists');
+  assert.ok(initialButtonSync, 'English button state is synchronized as the header parses');
   assert.ok(controller, 'English theme controller exists');
   const run = ({ stored = null, denied = false, dark = false } = {}) => {
     const rootElement = { dataset: {} };
-    const attrs = {};
+    const attrs = { 'aria-pressed': 'false', 'aria-label': 'Switch to dark mode' };
     const events = {};
     const mediaEvents = {};
     const button = {
@@ -221,11 +224,15 @@ test('English entry restores theme and keeps its button synchronized when storag
     const window = { matchMedia: () => media };
     vm.runInNewContext(bootstrap, { document, localStorage, matchMedia: window.matchMedia });
     const beforeController = rootElement.dataset.theme;
+    vm.runInNewContext(initialButtonSync, { document });
+    const buttonBeforeController = { ...attrs };
     vm.runInNewContext(controller, { document, localStorage, window });
-    return { rootElement, attrs, events, mediaEvents, media, button, beforeController, saved: () => stored };
+    return { rootElement, attrs, events, mediaEvents, media, button, beforeController, buttonBeforeController, saved: () => stored };
   };
   const restored = run({ stored: 'dark' });
   assert.equal(restored.beforeController, 'dark');
+  assert.equal(restored.buttonBeforeController['aria-pressed'], 'true');
+  assert.equal(restored.buttonBeforeController['aria-label'], 'Switch to light mode');
   assert.equal(restored.attrs['aria-pressed'], 'true');
   assert.equal(restored.attrs['aria-label'], 'Switch to light mode');
   restored.media.matches = false;
@@ -238,6 +245,13 @@ test('English entry restores theme and keeps its button synchronized when storag
   assert.equal(restored.attrs['aria-label'], 'Switch to dark mode');
   assert.equal(restored.button.textContent, 'Dark mode');
   assert.equal(restored.saved(), 'light');
+  const invalid = run({ stored: 'sepia' });
+  assert.equal(invalid.beforeController, 'light');
+  invalid.media.matches = true;
+  invalid.mediaEvents.change();
+  assert.equal(invalid.rootElement.dataset.theme, 'dark');
+  assert.equal(invalid.attrs['aria-pressed'], 'true');
+  assert.equal(invalid.attrs['aria-label'], 'Switch to light mode');
   const denied = run({ denied: true });
   assert.equal(denied.beforeController, 'light');
   denied.events.click();
