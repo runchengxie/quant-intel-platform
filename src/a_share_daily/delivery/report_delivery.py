@@ -632,7 +632,7 @@ def run(argv: list[str] | None = None) -> int:
     evening.add_argument(
         "--locale",
         choices=("en-US", "zh-CN"),
-        default=os.environ.get("MARKET_INTEL_LOCALE", "zh-CN"),
+        default=os.environ.get("MARKET_INTEL_LOCALE", "en-US"),
         help="Human-facing summary locale; artifact contracts remain language-neutral",
     )
     args = parser.parse_args(argv)

@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Final
 
 SUPPORTED_LOCALES: Final[tuple[str, ...]] = ("en-US", "zh-CN")
-DEFAULT_LOCALE: Final[str] = "zh-CN"
+DEFAULT_LOCALE: Final[str] = "en-US"
 
 
 def normalize_locale(value: str | None) -> str:

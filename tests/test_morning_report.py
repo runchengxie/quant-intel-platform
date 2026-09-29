@@ -72,6 +72,7 @@ def test_morning_report_uses_structured_facts_only() -> None:
         manifest,
         news,
         generated_at=datetime(2026, 6, 30, 7, 0),
+        locale="zh-CN",
     )
 
     assert "未使用自由写作流程" in text

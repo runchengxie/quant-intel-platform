@@ -101,6 +101,7 @@ def test_build_evening_summary_uses_structured_facts(monkeypatch: pytest.MonkeyP
         news_payload=news,
         manifest_payload=manifest,
         generated_at=datetime(2026, 6, 30, 18, 0),
+        locale="zh-CN",
     )
 
     assert "亚洲市场收盘复盘（2026-06-30）" in text
