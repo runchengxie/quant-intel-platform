@@ -125,6 +125,16 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   assert.match(html, /<table>/);
 });
 
+test('English home uses the same report sections and responsive shell as Chinese home', () => {
+  const english = readFileSync(path.join(root, 'src/pages/en/index.astro'), 'utf8');
+  for (const marker of ['class="shell"', 'class="session-nav"', 'id="us-session"', 'id="asia-session"', 'id="market-daily-chart"', 'id="asia-daily-chart"', 'class="reports-section"']) {
+    assert.ok(english.includes(marker), `English home is missing ${marker}`);
+  }
+  assert.match(english, /<html lang="en-US">/);
+  assert.match(english, /U\.S\. market close review/);
+  assert.match(english, /Asia market close review/);
+});
+
 test('home theme button keeps a stable label, toggles both ways, and restores the saved choice', () => {
   const source = readFileSync(path.join(root, 'src/pages/index.astro'), 'utf8');
   const script = source.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
