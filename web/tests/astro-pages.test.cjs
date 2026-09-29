@@ -81,10 +81,11 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   const styles = readdirSync(path.join(root, 'dist/_astro')).filter((name) => name.endsWith('.css'))
     .map((name) => readFileSync(path.join(root, `dist/_astro/${name}`), 'utf8')).join('\n');
   assert.match(styles, /:root\[data-theme=?"?dark/);
-  const topNav = styles.match(/\.top-nav\{([^}]*)\}/)?.[1];
-  assert.ok(topNav, 'compiled site has top navigation styles');
-  assert.ok(Number(topNav.match(/gap:(\d+)px/)?.[1]) >= 36, 'top navigation links have generous spacing');
-  assert.ok(Number(topNav.match(/margin-right:(\d+)px/)?.[1]) >= 20, 'navigation has space before the theme button');
+  const topNavRules = [...styles.matchAll(/\.top-nav\{([^}]*)\}/g)].map((match) => match[1]);
+  const homeTopNav = topNavRules.find((rule) => rule.includes('margin-right:24px'));
+  assert.ok(homeTopNav, 'compiled home site has top navigation styles');
+  assert.ok(Number(homeTopNav.match(/gap:(\d+)px/)?.[1]) >= 36, 'top navigation links have generous spacing');
+  assert.ok(Number(homeTopNav.match(/margin-right:(\d+)px/)?.[1]) >= 20, 'navigation has space before the theme button');
   const report = path.join(root, `dist/reports/${reportId}/index.html`);
   assert.ok(existsSync(report));
   const html = readFileSync(report, 'utf8');
