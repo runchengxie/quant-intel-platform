@@ -15,6 +15,7 @@ from typing import Any
 from a_share_daily.freshness import render_freshness_section
 from a_share_daily.global_leadlag import GLOBAL_LEAD_LAG_INSTRUMENTS, INDEX_LABELS
 from a_share_daily.report_theme import get_report_theme
+from ops_common.locale import normalize_locale
 
 NEWS_MARKET_ORDER = ("cn", "jp", "kr", "us")
 NEWS_MARKET_LABELS = {"cn": "A股", "jp": "日股", "kr": "韩股", "us": "美股"}
@@ -385,7 +386,9 @@ def render_morning_report(
     *,
     generated_at: datetime | None = None,
     theme: str = "research_editorial",
+    locale: str = "zh-CN",
 ) -> str:
+    selected_locale = normalize_locale(locale)
     generated = generated_at or datetime.now()
     date_text = str(
         manifest.get("date_dash") or manifest.get("date") or generated.strftime("%Y-%m-%d")
@@ -396,15 +399,28 @@ def render_morning_report(
     assert isinstance(cross, Mapping)
     news = news or {}
     selected_theme = get_report_theme(theme)
-    freshness_title = "7. 数据质量"
+    freshness_title = "7. Data quality" if selected_locale == "en-US" else "7. 数据质量"
+    title = (
+        f"# Asia pre-open / U.S. post-close ({date_text})"
+        if selected_locale == "en-US"
+        else f"# 亚洲市场盘前 / 美股市场盘后（{date_text}）"
+    )
+    generated_label = "Generated at" if selected_locale == "en-US" else "生成时间"
+    theme_label = "Report theme" if selected_locale == "en-US" else "报告主题"
+    method_label = "Generation method" if selected_locale == "en-US" else "生成方式"
+    method_text = (
+        "Structured market-intel facts + rule templates; no free-form writing."
+        if selected_locale == "en-US"
+        else "market-intel 结构化事实 + 规则模板；未使用自由写作流程。"
+    )
 
     sections: list[list[str]] = [
         [
-            f"# 亚洲市场盘前 / 美股市场盘后（{date_text}）",
+            title,
             "",
-            f"生成时间: {generated.strftime('%Y-%m-%d %H:%M')}",
-            f"报告主题: {selected_theme.label}",
-            "生成方式: market-intel 结构化事实 + 规则模板；未使用自由写作流程。",
+            f"{generated_label}: {generated.strftime('%Y-%m-%d %H:%M')}",
+            f"{theme_label}: {selected_theme.label}",
+            f"{method_label}: {method_text}",
         ],
         _render_news_section(news),
         _render_us_section(cross),
@@ -420,4 +436,15 @@ def render_morning_report(
         if lines:
             lines.append("")
         lines.extend(section)
-    return "\n".join(lines).rstrip() + "\n"
+    output = "\n".join(lines).rstrip() + "\n"
+    if selected_locale == "en-US":
+        for source, translated in {
+            "## 1. 隔夜要闻": "## 1. Overnight headlines",
+            "## 2. 美股隔夜回顾": "## 2. U.S. overnight review",
+            "## 3. 亚洲市场速览": "## 3. Asia market snapshot",
+            "## 4. 跨市场传导信号": "## 4. Cross-market transmission",
+            "## 5. A股盘前热点预判": "## 5. A-share pre-open themes",
+            "## 6. 宏观环境": "## 6. Macro environment",
+        }.items():
+            output = output.replace(source, translated)
+    return output

@@ -83,6 +83,20 @@ def test_morning_report_uses_structured_facts_only() -> None:
     assert "VIX 恐慌指数" in text
 
 
+def test_morning_report_supports_english_presentation_locale() -> None:
+    text = render_morning_report(
+        {"date_dash": "2026-06-30", "cross_market": {}},
+        {},
+        generated_at=datetime(2026, 6, 30, 7, 0),
+        locale="en-US",
+    )
+
+    assert text.startswith("# Asia pre-open / U.S. post-close (2026-06-30)")
+    assert "## 1. Overnight headlines" in text
+    assert "## 7. Data quality" in text
+    assert "Generation method: Structured market-intel facts" in text
+
+
 def test_morning_report_marks_empty_hotsector_and_stale_macro() -> None:
     manifest = {
         "date": "20260630",
