@@ -22,6 +22,7 @@ RUN_ID = re.compile(r"daily-(\d{4}-\d{2}-\d{2})\Z")
 
 class _NoRedirectHandler(HTTPRedirectHandler):
     def redirect_request(self, req, fp, code, msg, headers, newurl):
+        del req, fp, code, msg, headers, newurl
         return None
 
 
