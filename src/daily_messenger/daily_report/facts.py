@@ -15,6 +15,7 @@ def _now() -> datetime:
 
 def _fact(
     fact_id: str,
+    *,
     metric: str,
     instrument: str | None,
     value: Any,
@@ -52,14 +53,14 @@ def build_market_facts(raw_payloads: Mapping[str, Any], *, as_of: datetime) -> l
             facts.append(
                 _fact(
                     f"treasury.{normalized}.change_bp",
-                    "yield_change",
-                    normalized,
-                    row["change_bp"],
-                    row.get("previous"),
-                    row["change_bp"],
-                    "basis_points",
-                    "treasury",
-                    as_of,
+                    metric="yield_change",
+                    instrument=normalized,
+                    value=row["change_bp"],
+                    previous=row.get("previous"),
+                    change=row["change_bp"],
+                    unit="basis_points",
+                    source="treasury",
+                    as_of=as_of,
                 )
             )
     quotes = raw_payloads.get("quotes")
@@ -84,21 +85,31 @@ def build_market_facts(raw_payloads: Mapping[str, Any], *, as_of: datetime) -> l
                 fact_id, metric, unit = f"quote.{symbol_text.lower()}.value", "quote", None
                 source = "quotes"
             facts.append(
-                _fact(fact_id, metric, symbol_text, value, previous, value, unit, source, as_of)
+                _fact(
+                    fact_id,
+                    metric=metric,
+                    instrument=symbol_text,
+                    value=value,
+                    previous=previous,
+                    change=value,
+                    unit=unit,
+                    source=source,
+                    as_of=as_of,
+                )
             )
     for source_name, payload in raw_payloads.items():
         if isinstance(payload, Exception):
             facts.append(
                 _fact(
                     f"source.{source_name}.status",
-                    "source_status",
-                    None,
-                    "degraded",
-                    None,
-                    None,
-                    None,
-                    source_name,
-                    as_of,
+                    metric="source_status",
+                    instrument=None,
+                    value="degraded",
+                    previous=None,
+                    change=None,
+                    unit=None,
+                    source=source_name,
+                    as_of=as_of,
                     quality="degraded",
                 )
             )

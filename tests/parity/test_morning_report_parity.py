@@ -11,7 +11,9 @@ def test_morning_report_keeps_date_and_required_sections() -> None:
         "cross_market": {"us_stocks": {"SPY": {"close": 1, "pct_chg": 0.2}}},
     }
 
-    report = render_morning_report(manifest, {}, generated_at=datetime(2026, 9, 9, 7, 0))
+    report = render_morning_report(
+        manifest, {}, generated_at=datetime(2026, 9, 9, 7, 0), locale="zh-CN"
+    )
 
     assert report.startswith("# 亚洲市场盘前 / 美股市场盘后（2026-09-08）")
     for section in (

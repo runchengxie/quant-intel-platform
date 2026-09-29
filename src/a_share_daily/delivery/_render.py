@@ -324,7 +324,7 @@ def build_evening_summary(  # noqa: PLR0913 - locale is an explicit presentation
     news_payload: Mapping[str, Any],
     manifest_payload: Mapping[str, Any],
     generated_at: datetime | None = None,
-    locale: str = "zh-CN",
+    locale: str = "en-US",
 ) -> str:
     """Build the deterministic evening summary message."""
     selected_locale = normalize_locale(locale)

@@ -117,7 +117,7 @@ def _add_morning_commands(sub: argparse._SubParsersAction) -> None:
     report.add_argument(
         "--locale",
         choices=("en-US", "zh-CN"),
-        default=os.environ.get("MARKET_INTEL_LOCALE", "zh-CN"),
+        default=os.environ.get("MARKET_INTEL_LOCALE", "en-US"),
         help="Human-facing report locale; artifact schemas remain language-neutral",
     )
 

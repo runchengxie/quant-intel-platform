@@ -5,7 +5,7 @@ from ops_common.locale import normalize_locale
 
 @pytest.mark.parametrize(
     ("value", "expected"),
-    [(None, "zh-CN"), ("zh", "zh-CN"), ("zh_cn", "zh-CN"), ("en", "en-US"), ("en-US", "en-US")],
+    [(None, "en-US"), ("zh", "zh-CN"), ("zh_cn", "zh-CN"), ("en", "en-US"), ("en-US", "en-US")],
 )
 def test_normalize_locale(value: str | None, expected: str) -> None:
     assert normalize_locale(value) == expected

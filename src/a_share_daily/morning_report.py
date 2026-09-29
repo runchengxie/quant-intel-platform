@@ -386,7 +386,7 @@ def render_morning_report(
     *,
     generated_at: datetime | None = None,
     theme: str = "research_editorial",
-    locale: str = "zh-CN",
+    locale: str = "en-US",
 ) -> str:
     selected_locale = normalize_locale(locale)
     generated = generated_at or datetime.now()
