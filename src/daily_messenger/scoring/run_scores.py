@@ -30,6 +30,15 @@ SCORE_HISTORY_PATH = STATE_DIR / "score_history.json"
 
 PUT_CALL_HISTORY_LIMIT = 252
 AAII_HISTORY_LIMIT = 104
+EVIDENCE_LEVELS = frozenset(
+    {
+        "descriptive",
+        "research_candidate",
+        "oos_supported",
+        "portfolio_eligible",
+        "execution_eligible",
+    }
+)
 
 
 @dataclass
@@ -42,6 +51,11 @@ class ThemeScore:
     breakdown_detail: dict[str, dict[str, object]] = field(default_factory=dict)
     weights: dict[str, float] = field(default_factory=dict)
     meta: dict[str, object] = field(default_factory=dict)
+    evidence_level: str = "descriptive"
+
+    def __post_init__(self) -> None:
+        if self.evidence_level not in EVIDENCE_LEVELS:
+            raise ValueError(f"unsupported evidence level: {self.evidence_level}")
 
     def to_dict(self) -> dict[str, object]:
         detail_payload: dict[str, dict[str, object]] = {}
@@ -65,6 +79,7 @@ class ThemeScore:
             "weights": {k: float(v) for k, v in self.weights.items()},
             "meta": self.meta,
             "degraded": self.degraded,
+            "evidence_level": self.evidence_level,
         }
 
 
