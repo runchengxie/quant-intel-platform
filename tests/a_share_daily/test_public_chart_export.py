@@ -11,6 +11,7 @@ import pytest
 
 from a_share_daily import cli
 from a_share_daily.charts.public_export import export_candidate
+from a_share_daily.charts.public_extract import extract_evening_review_points
 from a_share_daily.evening_manifest import build_evening_manifest
 
 
@@ -90,6 +91,93 @@ def test_evening_export_has_separate_identity(manifest_fixture: dict):
     assert evening["charts"][3]["title"] == "市场温度计"
     assert evening["charts"][3]["status"] == "missing"
     assert evening["charts"][3]["points"] == []
+
+
+def test_evening_review_points_use_hot_concept_top5_and_six_dimensions() -> None:
+    review = {
+        "date": "20260929",
+        "hot_sectors": {
+            "top_by_change": [
+                {"name": "租售同权", "pct_change": 3.95},
+                {"name": "房地产供改", "pct_change": 3.86},
+                {"name": "AI营销", "pct_change": 3.83},
+                {"name": "房地产开发", "pct_change": 3.81},
+                {"name": "GEO概念", "pct_change": 3.41},
+                {"name": "不应展示", "pct_change": 3.40},
+            ]
+        },
+        "market_temperature": {
+            "heat_score": 59.5,
+            "fragility_score": 20.1,
+            "dimensions": {
+                "liquidity": {"label": "流动性", "score": 1.3},
+                "breadth": {"label": "广度", "score": 60.4},
+                "profit_effect": {"label": "赚钱效应", "score": 54.5},
+                "loss_risk": {"label": "亏钱风险", "score": 7.7},
+                "trend_confirmation": {"label": "趋势确认", "score": 76.4},
+                "rotation_quality": {"label": "轮动质量", "score": 80.1},
+            },
+        },
+    }
+
+    points = extract_evening_review_points(review, "20260929")
+
+    assert [item["label"] for item in points["topic"]] == [
+        "租售同权",
+        "房地产供改",
+        "AI营销",
+        "房地产开发",
+        "GEO概念",
+    ]
+    assert [item["value"] for item in points["topic"]] == [3.95, 3.86, 3.83, 3.81, 3.41]
+    assert [item["label"] for item in points["sentiment"]] == [
+        "流动性",
+        "广度",
+        "赚钱效应",
+        "亏钱风险",
+        "趋势确认",
+        "轮动质量",
+    ]
+    assert points["sentiment"][3]["unit"] == "观察分（风险）"
+    assert points["sentiment"][0]["source_label"] == "Tushare A股晚报六维观察"
+
+
+def test_evening_review_points_reject_wrong_date() -> None:
+    with pytest.raises(ValueError, match="date"):
+        extract_evening_review_points({"date": "20260928"}, "20260929")
+
+
+def test_evening_manifest_promotes_review_points_to_public_candidate(
+    manifest_fixture: dict,
+) -> None:
+    review = {
+        "date": "20260918",
+        "hot_sectors": {
+            "top_by_change": [{"name": f"概念{i}", "pct_change": float(i)} for i in range(5, 0, -1)]
+        },
+        "market_temperature": {
+            "dimensions": {
+                key: {"label": label, "score": 50.0}
+                for key, label in (
+                    ("liquidity", "流动性"),
+                    ("breadth", "广度"),
+                    ("profit_effect", "赚钱效应"),
+                    ("loss_risk", "亏钱风险"),
+                    ("trend_confirmation", "趋势确认"),
+                    ("rotation_quality", "轮动质量"),
+                )
+            }
+        },
+    }
+    evening_manifest = build_evening_manifest(
+        manifest_fixture, expected_date="20260918", review_payload=review
+    )
+    evening = export_candidate(evening_manifest, date="20260918", kind="evening")
+    cards = {card["key"]: card for card in evening["charts"]}
+    assert cards["topic"]["status"] == "ok"
+    assert cards["topic"]["points"][0]["label"] == "概念5"
+    assert cards["sentiment"]["status"] == "ok"
+    assert len(cards["sentiment"]["points"]) == 6
 
 
 def test_error_is_not_promoted_to_ok_even_with_retained_points(manifest_fixture: dict):

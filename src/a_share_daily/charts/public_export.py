@@ -79,10 +79,14 @@ def _chart_card(
         and errors.get(key)
         == f"moneyflow_ths {target.strftime('%Y%m%d')} 暂缺，使用最新可用 {moneyflow_day.strftime('%Y%m%d')}"
     )
+    evening_temperature_points = key == "sentiment" and all(
+        isinstance(point, Mapping) and point.get("source_label") == "Tushare A股晚报六维观察"
+        for point in points
+    )
     if key in skipped:
         status, reason, points = "skipped", "上游明确跳过该图表", []
-    elif kind == "evening" and key == "sentiment":
-        status, reason, points = "missing", "晚报市场温度计尚无同口径已核实点集", []
+    elif kind == "evening" and key == "sentiment" and not evening_temperature_points:
+        status, reason, points = "missing", "晚报六维观察尚无同口径已核实点集", []
     elif key in failed or not points or key not in ok | degraded:
         status, reason, points = "missing", "图表数据或可核实来源缺失", []
     elif key in errors and not known_fallback:
