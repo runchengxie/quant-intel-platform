@@ -21,9 +21,9 @@ def _artifact() -> dict[str, object]:
         "candidate_count": 58,
         "selected_count": 3,
         "targets": [
-            {"symbol": "000001.SZ", "name": "ç²", "selection_rank": 1, "target_weight": 0.5},
-            {"symbol": "000002.SZ", "name": "ä¹", "selection_rank": 2, "target_weight": 0.3},
-            {"symbol": "000003.SZ", "name": "ä¸", "selection_rank": 3, "target_weight": 0.2},
+            {"symbol": "000001.SZ", "name": "甲", "selection_rank": 1, "target_weight": 0.5},
+            {"symbol": "000002.SZ", "name": "乙", "selection_rank": 2, "target_weight": 0.3},
+            {"symbol": "000003.SZ", "name": "丙", "selection_rank": 3, "target_weight": 0.2},
         ],
     }
 
@@ -34,7 +34,7 @@ def test_portfolio_markdown_contains_real_holdings_and_pit_warning() -> None:
     assert "000001" in markdown
     assert "50.0%" in markdown
     assert "RECONSTRUCTED PIT" in markdown
-    assert "ç ç©¶å¿«ç§" in markdown
+    assert "研究快照" in markdown
     assert "eligible_for_live=false" in markdown
 
 
@@ -45,8 +45,8 @@ def test_portfolio_can_enrich_company_names_from_pinned_instrument_snapshot(tmp_
     pd.DataFrame(
         {
             "symbol": ["000001.SZ", "000002.SZ"],
-            "name": ["å¹³å®é¶è¡", "ä¸ç§A"],
-            "industry": ["é¶è¡", "å¨å½å°äº§"],
+            "name": ["平安银行", "万科A"],
+            "industry": ["银行", "全国地产"],
         }
     ).to_parquet(instruments, index=False)
 
@@ -54,10 +54,10 @@ def test_portfolio_can_enrich_company_names_from_pinned_instrument_snapshot(tmp_
     markdown = render_cashflow_portfolio_markdown(enriched)
 
     assert enriched["instrument_snapshot"] == str(instruments.resolve())
-    assert enriched["targets"][0]["name"] == "å¹³å®é¶è¡"
-    assert enriched["targets"][0]["industry"] == "é¶è¡"
-    assert "å¹³å®é¶è¡" in markdown
-    assert "ä¸ç§A" in markdown
+    assert enriched["targets"][0]["name"] == "平安银行"
+    assert enriched["targets"][0]["industry"] == "银行"
+    assert "平安银行" in markdown
+    assert "万科A" in markdown
     assert enriched["instrument_snapshot_sha256"]
 
 
@@ -65,13 +65,13 @@ def test_portfolio_markdown_contains_industry_breakdown() -> None:
     artifact = _artifact()
     artifact["targets"] = [
         {**row, "industry": industry}
-        for row, industry in zip(artifact["targets"], ["é¶è¡", "é¶è¡", "å»è¯"], strict=True)
+        for row, industry in zip(artifact["targets"], ["银行", "银行", "医药"], strict=True)
     ]
 
     markdown = render_cashflow_portfolio_markdown(artifact)
 
-    assert "è¡ä¸åå¸" in markdown
-    assert "é¶è¡" in markdown
+    assert "行业分布" in markdown
+    assert "银行" in markdown
     assert "80.0%" in markdown
 
 
@@ -113,7 +113,7 @@ def _executable_artifact() -> dict[str, object]:
         }
         for row, industry, price, target, shares, actual in zip(
             artifact["targets"],
-            ["é¶è¡", "é¶è¡", "å»è¯"],
+            ["银行", "银行", "医药"],
             [20.0, 40.0, 50.0],
             [250_000.0, 150_000.0, 100_000.0],
             [12_500, 3_700, 2_000],
@@ -127,10 +127,10 @@ def _executable_artifact() -> dict[str, object]:
 def test_executable_markdown_contains_tradeability_diagnostics() -> None:
     markdown = render_cashflow_portfolio_markdown(_executable_artifact())
 
-    assert "å¯æ§è¡ç»å" in markdown
-    assert "ç°é" in markdown
-    assert "å®éè¡æ°" in markdown
-    assert "æéåå·®" in markdown
+    assert "可执行组合" in markdown
+    assert "现金" in markdown
+    assert "实际股数" in markdown
+    assert "权重偏差" in markdown
     assert "missing_price" in markdown
 
 
