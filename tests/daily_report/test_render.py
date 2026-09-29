@@ -17,7 +17,7 @@ def test_render_markdown_includes_sections_and_degraded_status():
         run_id="run",
         quality_summary={"status": "degraded"},
     )
-    text = render_markdown(report)
+    text = render_markdown(report, locale="zh-CN")
     assert "市场表现" in text
     assert "degraded" in text
 
@@ -55,7 +55,7 @@ def test_render_shows_reviewed_summary_even_when_section_has_facts():
             ),
         ),
     )
-    text = render_markdown(report)
+    text = render_markdown(report, locale="zh-CN")
     assert "市场日报（2026-09-23）" in text
     assert "标普收跌 0.8%" in text
     assert "核实截至" in text
