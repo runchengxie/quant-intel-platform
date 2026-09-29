@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 test('paired facts with one source render one link, while distinct sources remain visible', async () => {
-  const { uniqueFactSources } = await import('../src/lib/market-sources.mjs');
+  const { uniqueFactSources } = await import('../src/lib/market-sources.ts');
   const treasury = 'https://home.treasury.gov/resource-center/data-chart-center/interest-rates';
   const fred = 'https://fred.stlouisfed.org/series/DGS2';
   assert.deepEqual(uniqueFactSources([{ source_url: treasury }, { source_url: treasury }]), [
@@ -14,7 +14,7 @@ test('paired facts with one source render one link, while distinct sources remai
 });
 
 test('crypto source links retain provider names', async () => {
-  const { uniqueFactSources } = await import('../src/lib/market-sources.mjs');
+  const { uniqueFactSources } = await import('../src/lib/market-sources.ts');
   assert.deepEqual(uniqueFactSources([
     { source_url: 'https://www.coingecko.com/en/coins/bitcoin' },
     { source_url: 'https://www.kraken.com/prices/bitcoin' },
@@ -22,7 +22,7 @@ test('crypto source links retain provider names', async () => {
 });
 
 test('reviewed historical index source names the publisher', async () => {
-  const { uniqueFactSources } = await import('../src/lib/market-sources.mjs');
+  const { uniqueFactSources } = await import('../src/lib/market-sources.ts');
   assert.equal(uniqueFactSources([{
     id: 'index.spx.change_percent',
     source_url: 'https://www-cdn.abcnews.com/Business/wireStory/example',

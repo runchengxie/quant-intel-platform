@@ -24,6 +24,8 @@ test('legacy page reads public data and reports from the site root', () => {
 });
 
 test('Astro emits a readable recent-report site with Asian market chart states', () => {
+  const chartCards = readFileSync(path.join(root, 'src/components/ChartCards.astro'), 'utf8');
+  assert.match(chartCards, /ChartIsland\.tsx/);
   execFileSync('npm', ['run', 'build'], { cwd: root, stdio: 'pipe' });
   const index = readFileSync(path.join(root, 'dist/index.html'), 'utf8');
   const reports = JSON.parse(readFileSync(path.join(root, 'artifacts/public/data/reports.json'), 'utf8')).reports;
@@ -103,6 +105,7 @@ test('new Asian evening reports build a visual history while old direct links re
       cpSync(path.join(fixture, 'reports/2026-09-24-evening.md'), path.join(fixture, `reports/${id}.md`));
       const chart = JSON.parse(readFileSync(path.join(fixture, 'data/charts/2026-09-24-evening.json'), 'utf8'));
       chart.report_id = id;
+      chart.date = date;
       writeFileSync(path.join(fixture, `data/charts/${id}.json`), JSON.stringify(chart));
     }
     writeFileSync(indexFile, JSON.stringify(reportIndex));

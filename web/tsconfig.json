@@ -1,0 +1,10 @@
+{
+  "extends": "astro/tsconfigs/strict",
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": false,
+    "strict": true,
+    "noEmit": true
+  },
+  "exclude": ["src/pages/**", "src/components/ChartCards.astro"]
+}

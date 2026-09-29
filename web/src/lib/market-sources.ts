@@ -1,7 +1,17 @@
-export const factSource = (fact) => {
+export interface FactLike {
+  id?: string;
+  source_url?: string;
+}
+
+export interface FactSource {
+  href: string;
+  label: string;
+}
+
+export const factSource = (fact: FactLike | null | undefined): FactSource | null => {
   const href = fact?.source_url;
-  if (!/^https:\/\//.test(href || '')) return null;
-  const id = fact.id || '';
+  if (typeof href !== 'string' || !/^https:\/\//.test(href)) return null;
+  const id = fact?.id || '';
   const label = href.startsWith('https://home.treasury.gov/') ? '美国财政部'
     : href.startsWith('https://fred.stlouisfed.org/') ? 'FRED'
       : href.startsWith('https://finance.yahoo.com/') ? 'Yahoo Finance'
@@ -13,7 +23,7 @@ export const factSource = (fact) => {
   return { href, label };
 };
 
-export const uniqueFactSources = (facts) => {
-  const sources = facts.map(factSource).filter(Boolean);
+export const uniqueFactSources = (facts: FactLike[]): FactSource[] => {
+  const sources = facts.map(factSource).filter((source): source is FactSource => source !== null);
   return sources.filter((source, index) => sources.findIndex((item) => item.href === source.href) === index);
 };

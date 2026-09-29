@@ -29,3 +29,22 @@ test('US daily history loads five dated public markdown reports in date order', 
     rmSync(root, { recursive: true });
   }
 });
+
+test('static chart loader rejects malformed public chart payloads', async () => {
+  const root = mkdtempSync(path.join(tmpdir(), 'invalid-chart-payload-'));
+  const previous = process.env.ASTRO_DATA_ROOT;
+  try {
+    mkdirSync(path.join(root, 'data/charts'), { recursive: true });
+    writeFileSync(path.join(root, 'data/charts/2026-09-24-evening.json'), JSON.stringify({
+      publication: 'public', report_id: '2026-09-24-evening', charts: [],
+    }));
+    process.env.ASTRO_DATA_ROOT = root;
+    const { loadChart } = await import('../src/lib/reports.mjs');
+
+    assert.throws(() => loadChart('2026-09-24-evening'), /unreviewed or mismatched/);
+  } finally {
+    if (previous === undefined) delete process.env.ASTRO_DATA_ROOT;
+    else process.env.ASTRO_DATA_ROOT = previous;
+    rmSync(root, { recursive: true });
+  }
+});
