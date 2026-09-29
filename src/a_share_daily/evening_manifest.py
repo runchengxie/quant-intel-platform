@@ -25,7 +25,10 @@ def _normalise_date(value: Any) -> str:
 
 
 def build_evening_manifest(
-    source_payload: Mapping[str, Any], *, expected_date: str
+    source_payload: Mapping[str, Any],
+    *,
+    expected_date: str,
+    review_payload: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Convert the morning chart-generation payload into an evening manifest."""
     actual_date = _normalise_date(source_payload.get("date"))
@@ -37,10 +40,40 @@ def build_evening_manifest(
     manifest["pipeline"] = "evening"
     manifest["report_kind"] = "evening"
     manifest["source_pipeline"] = "morning_chart_generation"
+    if review_payload is not None:
+        from .charts.public_extract import extract_evening_review_points
+
+        points = extract_evening_review_points(review_payload, target_date)
+        charts = dict(manifest.get("charts", {}))
+        public_points = dict(charts.get("public_points", {}))
+        public_points.update(points)
+        charts["public_points"] = public_points
+        charts["ok"] = sorted(set(charts.get("ok", [])) | {"topic", "sentiment"})
+        charts["failed"] = [
+            key for key in charts.get("failed", []) if key not in {"topic", "sentiment"}
+        ]
+        charts["skipped"] = [
+            key for key in charts.get("skipped", []) if key not in {"topic", "sentiment"}
+        ]
+        errors = dict(charts.get("errors", {}))
+        errors.pop("topic", None)
+        errors.pop("sentiment", None)
+        charts["errors"] = errors
+        manifest["charts"] = charts
+        manifest["public_chart_sources"] = {
+            "topic": "东方财富概念板块（Tushare 授权数据）",
+            "sentiment": "Tushare A股晚报六维观察",
+        }
     return manifest
 
 
-def write_evening_manifest(source_path: Path, output_path: Path, *, expected_date: str) -> None:
+def write_evening_manifest(
+    source_path: Path,
+    output_path: Path,
+    *,
+    expected_date: str,
+    review_path: Path | None = None,
+) -> None:
     """Read a chart-generation payload and atomically publish an evening manifest."""
     try:
         payload = json.loads(source_path.read_text(encoding="utf-8"))
@@ -49,7 +82,17 @@ def write_evening_manifest(source_path: Path, output_path: Path, *, expected_dat
     if not isinstance(payload, Mapping):
         raise ValueError(f"chart-generation manifest must be an object: {source_path}")
 
-    manifest = build_evening_manifest(payload, expected_date=expected_date)
+    review_payload = None
+    if review_path is not None:
+        try:
+            review_payload = json.loads(review_path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError) as exc:
+            raise ValueError(f"invalid evening review: {review_path}: {exc}") from exc
+        if not isinstance(review_payload, Mapping):
+            raise ValueError(f"evening review must be an object: {review_path}")
+    manifest = build_evening_manifest(
+        payload, expected_date=expected_date, review_payload=review_payload
+    )
     output_path.parent.mkdir(parents=True, exist_ok=True)
     temporary_path: Path | None = None
     try:
@@ -76,8 +119,11 @@ def main() -> int:
     parser.add_argument("--source", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--date", required=True)
+    parser.add_argument("--review-json", type=Path)
     args = parser.parse_args()
-    write_evening_manifest(args.source, args.output, expected_date=args.date)
+    write_evening_manifest(
+        args.source, args.output, expected_date=args.date, review_path=args.review_json
+    )
     return 0
 
 

@@ -696,6 +696,7 @@ def _build_scores_payload(
 
 def _write_scoring_outputs(
     trading_day: str,
+    *,
     history: dict[str, list[float]],
     scores_payload: Mapping[str, object],
     themes_history: dict[str, object],
@@ -772,11 +773,11 @@ def run(argv: list[str] | None = None) -> int:
     )
     _write_scoring_outputs(
         trading_day,
-        history,
-        scores_payload,
-        themes_history,
-        actions,
-        state_path,
+        history=history,
+        scores_payload=scores_payload,
+        themes_history=themes_history,
+        actions=actions,
+        state_path=state_path,
     )
 
     _log_theme_scores(logger, themes)
