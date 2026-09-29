@@ -1,0 +1,194 @@
+import { readFile } from 'node:fs/promises';
+import { expect, test, type Locator, type Page } from '@playwright/test';
+
+const base = '/quant-intel-platform';
+const routes = [
+  {
+    name: 'English', path: `${base}/en/`, language: 'en-US',
+    requiredLinks: [
+      { label: 'Reports', href: '#reports' },
+      { label: 'Documentation', href: `${base}/docs/` },
+      { label: '中文', href: `${base}/?locale=zh-CN` },
+    ],
+  },
+  {
+    name: 'Chinese', path: `${base}/?locale=zh-CN`, language: 'zh-CN',
+    requiredLinks: [
+      { label: '美股日报', href: '#us-session' },
+      { label: '亚洲晚报', href: '#asia-session' },
+      { label: '文档', href: `${base}/docs/` },
+      { label: 'English', href: `${base}/en/` },
+    ],
+  },
+];
+
+async function rect(locator: Locator) {
+  const box = await locator.boundingBox();
+  expect(box, 'header control must have a visible rectangle').not.toBeNull();
+  return box!;
+}
+
+function overlap(a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }) {
+  return a.x < b.x + b.width && b.x < a.x + a.width
+    && a.y < b.y + b.height && b.y < a.y + a.height;
+}
+
+function rectangleGap(a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }) {
+  const horizontal = Math.max(0, a.x - b.x - b.width, b.x - a.x - a.width);
+  const vertical = Math.max(0, a.y - b.y - b.height, b.y - a.y - a.height);
+  return Math.hypot(horizontal, vertical);
+}
+
+function brightness(color: string) {
+  const channels = color.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  expect(channels, `expected a resolved RGB color, got ${color}`).not.toBeNull();
+  return Number(channels![1]) * 0.2126 + Number(channels![2]) * 0.7152 + Number(channels![3]) * 0.0722;
+}
+
+async function chartColors(page: Page, selector: string) {
+  const svg = page.locator(selector);
+  await expect(svg, `expected report SVG at ${selector}`).toBeVisible();
+  return svg.evaluate((node) => {
+    const root = getComputedStyle(node);
+    const container = node.closest('.market-chart-graphic');
+    const background = node.querySelector('rect');
+    const text = node.querySelector('text');
+    if (!container || !background || !text) throw new Error('report graphic is missing its container, background or text');
+    const probe = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+    node.append(probe);
+    probe.style.fill = root.getPropertyValue('--report-bg').trim();
+    const expectedBg = getComputedStyle(probe).fill;
+    probe.style.fill = root.getPropertyValue('--report-ink').trim();
+    const expectedInk = getComputedStyle(probe).fill;
+    probe.remove();
+    return {
+      bg: getComputedStyle(background).fill,
+      ink: getComputedStyle(text).fill,
+      containerBg: getComputedStyle(container).backgroundColor,
+      expectedBg,
+      expectedInk,
+    };
+  });
+}
+
+for (const width of [390, 768, 1280]) {
+  for (const route of routes) {
+    test(`${route.name} header and theme at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await page.emulateMedia({ colorScheme: 'light' });
+      await page.goto(route.path);
+      await expect(page.locator('html')).toHaveAttribute('lang', route.language);
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+      const brand = page.locator('.topbar .brand');
+      const nav = page.locator('.topbar .top-nav');
+      const links = nav.locator('a');
+      const toggle = page.locator('#theme-toggle');
+      expect(await links.count(), `${route.name} must keep its required navigation links`).toBeGreaterThanOrEqual(route.requiredLinks.length);
+      for (const { label, href } of route.requiredLinks) {
+        const link = nav.getByRole('link', { name: label, exact: true });
+        await expect(link, `${route.name} navigation needs ${label}`).toHaveCount(1);
+        await expect(link).toHaveAttribute('href', href);
+        await expect(link).toBeVisible();
+      }
+      await expect(toggle).toBeVisible();
+      const controls = [brand, ...await links.all(), toggle];
+      const boxes = await Promise.all(controls.map(rect));
+      if (width >= 768) {
+        for (const [index, box] of boxes.entries()) {
+          expect(box.x, `header control ${index} stays in viewport at ${width}px`).toBeGreaterThanOrEqual(0);
+          expect(box.x + box.width, `header control ${index} stays in viewport at ${width}px`).toBeLessThanOrEqual(width);
+        }
+      }
+      for (let i = 0; i < boxes.length; i++) {
+        for (let j = i + 1; j < boxes.length; j++) {
+          expect(overlap(boxes[i], boxes[j]), `header controls ${i} and ${j} overlap at ${width}px`).toBe(false);
+        }
+      }
+      for (let i = 1; i < await links.count(); i++) {
+        const previous = await rect(links.nth(i - 1));
+        const current = await rect(links.nth(i));
+        if (Math.abs(previous.y - current.y) < 2) {
+          expect(current.x - previous.x - previous.width, `navigation links ${i - 1}/${i} need 12px`).toBeGreaterThanOrEqual(12);
+        }
+      }
+      const lastLink = await rect(links.last());
+      const themeButton = await rect(toggle);
+      const finalGap = rectangleGap(lastLink, themeButton);
+      console.log(`${route.name} ${width}px final nav-to-theme gap: ${finalGap.toFixed(2)}px`);
+      expect(finalGap, `${route.name} final navigation link to theme button gap at ${width}px: ${finalGap.toFixed(2)}px`).toBeGreaterThanOrEqual(12);
+      // Every navigation target must remain reachable at phone width, including overflowed links.
+      for (const link of await links.all()) {
+        await link.scrollIntoViewIfNeeded();
+        await expect(link).toBeInViewport();
+      }
+      await expect(toggle).toBeInViewport();
+      const lightColors = [];
+      if (route.name === 'Chinese') {
+        for (const selector of ['#market-daily-chart svg', '#asia-daily-chart svg']) {
+          const colors = await chartColors(page, selector);
+          expect(colors.bg, `${selector} background follows light theme`).toBe(colors.expectedBg);
+          expect(colors.ink, `${selector} text follows light theme`).toBe(colors.expectedInk);
+          expect(colors.containerBg, `${selector} visible container follows light theme`).toBe(colors.bg);
+          lightColors.push(colors);
+        }
+      }
+      await toggle.click();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+      await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+      await page.reload();
+      await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+      await expect(toggle).toHaveAttribute('aria-pressed', 'true');
+      if (route.name === 'Chinese') {
+        for (const [index, selector] of ['#market-daily-chart svg', '#asia-daily-chart svg'].entries()) {
+          const colors = await chartColors(page, selector);
+          expect(colors.bg, `${selector} background follows dark theme`).toBe(colors.expectedBg);
+          expect(colors.ink, `${selector} text follows dark theme`).toBe(colors.expectedInk);
+          expect(colors.containerBg, `${selector} visible container follows dark theme`).toBe(colors.bg);
+          expect(colors.bg, `${selector} background must change between themes`).not.toBe(lightColors[index].bg);
+          expect(colors.ink, `${selector} text must change between themes`).not.toBe(lightColors[index].ink);
+          expect(brightness(lightColors[index].bg), `${selector} light background must be brighter`).toBeGreaterThan(brightness(colors.bg));
+          expect(brightness(lightColors[index].ink), `${selector} dark text must be brighter`).toBeLessThan(brightness(colors.ink));
+        }
+      }
+    });
+  }
+}
+
+test('Chinese PNG background matches the displayed Asia report', async ({ page }) => {
+  await page.goto(`${base}/?locale=zh-CN`);
+  await page.locator('#theme-toggle').click();
+  const colors = await chartColors(page, '#asia-daily-chart svg');
+  expect(colors.bg).toBe(colors.expectedBg);
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#download-asia-report').click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/-asia-daily-report\.png$/);
+  const bytes = await readFile(await download.path());
+  const pixel = await page.evaluate(async (base64) => {
+    const picture = new Image();
+    picture.src = `data:image/png;base64,${base64}`;
+    await picture.decode();
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = 1;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('canvas unavailable');
+    context.drawImage(picture, 0, 0);
+    return Array.from(context.getImageData(0, 0, 1, 1).data);
+  }, bytes.toString('base64'));
+  const expected = await page.evaluate((color) => {
+    const canvas = document.createElement('canvas');
+    const context = canvas.getContext('2d')!;
+    context.fillStyle = color;
+    context.fillRect(0, 0, 1, 1);
+    return Array.from(context.getImageData(0, 0, 1, 1).data);
+  }, colors.bg);
+  expect(pixel).toEqual(expected);
+});
+
+test('historical evening report loads with a visible graphic and resolved colors', async ({ page }) => {
+  await page.goto(`${base}/reports/2026-09-28-evening/`);
+  await expect(page.locator('.report-heading h1')).toBeVisible();
+  const colors = await chartColors(page, '#asia-daily-chart svg');
+  expect(colors.bg).toBe(colors.expectedBg);
+  expect(colors.ink).toBe(colors.expectedInk);
+});
