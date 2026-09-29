@@ -166,11 +166,11 @@ def test_fetch_news_events_can_skip_ai_market_news(monkeypatch, load_run_fetch):
 
     events, ai_updates = module._fetch_news_events(
         {},
-        [],
-        {},
-        0,
-        module.setup_logger("test"),
-        statuses,
+        ai_feeds=[],
+        arxiv_params={},
+        arxiv_throttle=0,
+        logger=module.setup_logger("test"),
+        statuses=statuses,
     )
 
     assert events == []
