@@ -363,7 +363,11 @@ def test_real_site_build_overlays_astro_pages_and_keeps_downloads(tmp_path: Path
     index_data = json.loads((output / "data/reports.json").read_text(encoding="utf-8"))
     report_id = index_data["reports"][0]["id"]
     index = (output / "index.html").read_text(encoding="utf-8")
-    assert 'id="reports-title"' not in index
+    evening_dates = [row["date"] for row in index_data["reports"] if row["kind"] == "evening"]
+    has_visual_history = bool(evening_dates) and any(
+        "2026-09-25" <= day < max(evening_dates) for day in evening_dates
+    )
+    assert ('id="reports-title"' in index) is has_visual_history
     assert 'id="kind-filter"' not in index
     assert (output / f"reports/{report_id}/index.html").is_file()
     market = json.loads((output / "data/market_daily_report.json").read_text(encoding="utf-8"))
