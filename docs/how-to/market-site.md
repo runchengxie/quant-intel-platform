@@ -20,6 +20,19 @@ python3 -m http.server 8000 --directory "$preview_root"
 
 打开 <http://localhost:8000/quant-intel-platform/>。构建器会重新创建指定输出目录，不要把业务资料目录作为 `--output`。
 
+## 浏览器回归检查
+
+在 `web/` 安装依赖后，安装 Chromium 并运行公开样本站点的浏览器检查：
+
+```bash
+cd web
+npm ci
+npx playwright install chromium
+npm run test:browser
+```
+
+该命令先构建 Astro 站点，再在本机预览中检查英文入口 `/quant-intel-platform/en/` 和中文入口 `/quant-intel-platform/?locale=zh-CN` 的三档宽度、导航、主题持久化、报告 SVG、PNG 下载及历史晚报。CI 的 build job 使用 `npx playwright install --with-deps chromium`；检查失败时上传 `web/test-results/` 中的截图与重试 trace，PR 构建不会部署 Pages。截图和 trace 只包含仓库公开样本。
+
 ## 内容从哪里来
 
 - `web/artifacts/public/` 保存完成公开审核的近期数据和报告。构建后下载路径仍是 `/data/`、`/reports/`。

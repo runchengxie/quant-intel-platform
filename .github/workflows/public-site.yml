@@ -49,6 +49,21 @@ jobs:
           npm test
           node --check src/legacy/app.js
           python scripts/build_site.py --output "${{ runner.temp }}/website-check"
+      - name: Install Chromium for browser checks
+        working-directory: web
+        run: npx playwright install --with-deps chromium
+      - name: Check public site in Chromium
+        id: browser
+        working-directory: web
+        run: npm run test:browser
+      - name: Upload browser failure artifacts
+        if: failure() && steps.browser.outcome == 'failure'
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-site-browser-failure
+          path: web/test-results/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Build market website
         working-directory: web
         env:
