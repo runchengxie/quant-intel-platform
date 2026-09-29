@@ -111,6 +111,7 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   assert.match(homeTopNav, /flex-shrink:0/);
   const report = path.join(root, `dist/reports/${reportId}/index.html`);
   assert.ok(existsSync(report));
+  assert.ok(existsSync(path.join(root, 'dist/404.html')));
   const html = readFileSync(report, 'utf8');
   assert.match(html, /id="asia-daily-chart"/);
   assert.match(html, /阅读完整报告与来源/);
