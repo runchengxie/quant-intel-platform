@@ -503,6 +503,7 @@ def deliver_evening(args: argparse.Namespace) -> int:
         review_payload=_load_json(args.review_json),
         news_payload=_load_json(args.news),
         manifest_payload=manifest_payload,
+        locale=getattr(args, "locale", "zh-CN"),
     )
     _write_text(summary_path, summary)
     artifacts = [
@@ -628,6 +629,12 @@ def run(argv: list[str] | None = None) -> int:
     evening.add_argument("--news", required=True, help="Evening news JSON path")
     evening.add_argument("--manifest", required=True, help="Evening manifest JSON path")
     evening.add_argument("--chart", action="append", help="Chart image path; may be repeated")
+    evening.add_argument(
+        "--locale",
+        choices=("en-US", "zh-CN"),
+        default=os.environ.get("MARKET_INTEL_LOCALE", "zh-CN"),
+        help="Human-facing summary locale; artifact contracts remain language-neutral",
+    )
     args = parser.parse_args(argv)
     if args.command == "morning":
         return deliver_morning(args)

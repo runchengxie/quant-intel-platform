@@ -20,6 +20,7 @@ from a_share_daily.delivery._format import (
     _list,
 )
 from a_share_daily.freshness import render_freshness_section
+from ops_common.locale import normalize_locale
 
 NEWS_MARKET_ORDER = ("cn", "jp", "kr", "us")
 NEWS_MARKET_LABELS = {"cn": "A股", "jp": "日股", "kr": "韩股", "us": "美股"}
@@ -316,23 +317,38 @@ def _render_evening_next_watch(review: Mapping[str, Any]) -> list[str]:
     return lines
 
 
-def build_evening_summary(
+def build_evening_summary(  # noqa: PLR0913 - locale is an explicit presentation boundary
     trade_date: str,
     *,
     review_payload: Mapping[str, Any],
     news_payload: Mapping[str, Any],
     manifest_payload: Mapping[str, Any],
     generated_at: datetime | None = None,
+    locale: str = "zh-CN",
 ) -> str:
     """Build the deterministic evening summary message."""
+    selected_locale = normalize_locale(locale)
     generated = generated_at or datetime.now()
-    freshness_title = "7. 数据质量"
+    freshness_title = "7. Data quality" if selected_locale == "en-US" else "7. 数据质量"
+    title = (
+        f"# Asia market close review ({_date_dash(trade_date)})"
+        if selected_locale == "en-US"
+        else f"# 亚洲市场收盘复盘（{_date_dash(trade_date)}）"
+    )
+    generated_label = "Generated at" if selected_locale == "en-US" else "生成时间"
+    method_text = (
+        "Structured market-intel facts + rule templates; no free-form writing."
+        if selected_locale == "en-US"
+        else "market-intel 结构化事实 + 规则模板；未使用自由写作流程。"
+    )
     sections = [
         [
-            f"# 亚洲市场收盘复盘（{_date_dash(trade_date)}）",
+            title,
             "",
-            f"生成时间: {generated.strftime('%Y-%m-%d %H:%M')}",
-            "生成方式: market-intel 结构化事实 + 规则模板；未使用自由写作流程。",
+            f"{generated_label}: {generated.strftime('%Y-%m-%d %H:%M')}",
+            f"Generation method: {method_text}"
+            if selected_locale == "en-US"
+            else f"生成方式: {method_text}",
         ],
         _render_evening_market_temperature(review_payload),
         _render_evening_news(news_payload),
@@ -348,4 +364,15 @@ def build_evening_summary(
         if lines:
             lines.append("")
         lines.extend(section)
-    return "\n".join(lines).rstrip() + "\n"
+    output = "\n".join(lines).rstrip() + "\n"
+    if selected_locale == "en-US":
+        for source, translated in {
+            "## 1. 市场温度": "## 1. Market temperature",
+            "## 2. 今日要闻": "## 2. Today’s headlines",
+            "## 3. 亚洲市场盘后复盘": "## 3. Asia market close review",
+            "## 4. 跨市场传导": "## 4. Cross-market transmission",
+            "## 5. 宏观环境": "## 5. Macro environment",
+            "## 6. 次日验证": "## 6. Next-session checks",
+        }.items():
+            output = output.replace(source, translated)
+    return output

@@ -126,6 +126,22 @@ def test_build_evening_summary_uses_structured_facts(monkeypatch: pytest.MonkeyP
     assert "因子技术观察" not in text
 
 
+def test_build_evening_summary_supports_english_presentation_locale() -> None:
+    text = report_delivery.build_evening_summary(
+        "20260630",
+        review_payload={},
+        news_payload={},
+        manifest_payload={},
+        generated_at=datetime(2026, 6, 30, 18, 0),
+        locale="en-US",
+    )
+
+    assert text.startswith("# Asia market close review (2026-06-30)")
+    assert "## 1. Market temperature" in text
+    assert "## 7. Data quality" in text
+    assert "Generation method: Structured market-intel facts" in text
+
+
 def test_build_evening_summary_renders_ai_news_errors(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
