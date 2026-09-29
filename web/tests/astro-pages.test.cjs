@@ -4,6 +4,7 @@ const { readFileSync, existsSync, cpSync, writeFileSync, mkdtempSync, rmSync, re
 const { execFileSync } = require('node:child_process');
 const path = require('node:path');
 const vm = require('node:vm');
+const { createHash } = require('node:crypto');
 
 const root = path.join(__dirname, '..');
 
@@ -60,6 +61,7 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   const currentUs = usSection.slice(0, usSection.indexOf('class="market-history"'));
   const usReport = JSON.parse(readFileSync(path.join(root, 'artifacts/public/data/market_daily_report.json'), 'utf8'));
   const usDate = usReport.run_id.slice(6);
+  assert.ok(currentUs.includes(`data-report-content-hash="${usReport.content_hash}"`));
   assert.ok(currentUs.includes(`reports/${usDate}-market-daily.md">Markdown 原文`));
   assert.ok(currentUs.includes(`reports/${usDate}-market-daily-no-citations.md">Markdown 阅读版`));
   assert.ok(currentUs.includes(`reports/${usDate}-market-daily.txt">纯文本报告`));
@@ -73,6 +75,10 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   assert.match(chart, /关键来源/);
   assert.ok(chart.includes(`观测日 ${usDate}`));
   const asia = index.match(/id="asia-daily-chart">([\s\S]*?)<\/div>/)?.[1];
+  const latestEvening = reports.filter((row) => row.kind === 'evening').sort((a, b) => b.date.localeCompare(a.date))[0];
+  const eveningMarkdown = readFileSync(path.join(root, `artifacts/public/${latestEvening.source_url}`));
+  const eveningHash = createHash('sha256').update(eveningMarkdown).digest('hex');
+  assert.ok(index.includes(`data-report-content-hash="${eveningHash}"`));
   assert.ok(asia);
   assert.match(asia, /亚洲市场图表/);
   assert.match(asia, /综合盘面/);
