@@ -164,7 +164,7 @@ a:hover { color: var(--desk-accent); }
   .topbar { height: auto; min-height: 60px; flex-wrap: wrap; gap: 0; padding-top: 10px; padding-bottom: 10px; }
   .brand { font-size: 11px; }
   .brand b { display: none; }
-  .top-nav { order: 3; width: 100%; gap: 20px; margin-top: 11px; margin-right: 0; overflow-x: auto; white-space: nowrap; }
+  .top-nav { order: 3; width: 100%; gap: 20px; margin-top: 12px; margin-right: 0; overflow-x: auto; white-space: nowrap; }
   .top-nav a { font-size: 12px; }
   .shell { padding-top: 24px; }
   .hero { padding-top: 24px; padding-bottom: 22px; }

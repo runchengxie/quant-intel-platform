@@ -18,14 +18,27 @@ function overlap(a: { x: number; y: number; width: number; height: number }, b: 
     && a.y < b.y + b.height && b.y < a.y + a.height;
 }
 
+function rectangleGap(a: { x: number; y: number; width: number; height: number }, b: { x: number; y: number; width: number; height: number }) {
+  const horizontal = Math.max(0, a.x - b.x - b.width, b.x - a.x - a.width);
+  const vertical = Math.max(0, a.y - b.y - b.height, b.y - a.y - a.height);
+  return Math.hypot(horizontal, vertical);
+}
+
+function brightness(color: string) {
+  const channels = color.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)/);
+  expect(channels, `expected a resolved RGB color, got ${color}`).not.toBeNull();
+  return Number(channels![1]) * 0.2126 + Number(channels![2]) * 0.7152 + Number(channels![3]) * 0.0722;
+}
+
 async function chartColors(page: Page, selector: string) {
   const svg = page.locator(selector);
   await expect(svg, `expected report SVG at ${selector}`).toBeVisible();
   return svg.evaluate((node) => {
     const root = getComputedStyle(node);
+    const container = node.closest('.market-chart-graphic');
     const background = node.querySelector('rect');
     const text = node.querySelector('text');
-    if (!background || !text) throw new Error('report SVG is missing background or text');
+    if (!container || !background || !text) throw new Error('report graphic is missing its container, background or text');
     const probe = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
     node.append(probe);
     probe.style.fill = root.getPropertyValue('--report-bg').trim();
@@ -36,6 +49,7 @@ async function chartColors(page: Page, selector: string) {
     return {
       bg: getComputedStyle(background).fill,
       ink: getComputedStyle(text).fill,
+      containerBg: getComputedStyle(container).backgroundColor,
       expectedBg,
       expectedInk,
     };
@@ -75,17 +89,25 @@ for (const width of [390, 768, 1280]) {
           expect(current.x - previous.x - previous.width, `navigation links ${i - 1}/${i} need 12px`).toBeGreaterThanOrEqual(12);
         }
       }
+      const lastLink = await rect(links.last());
+      const themeButton = await rect(toggle);
+      const finalGap = rectangleGap(lastLink, themeButton);
+      console.log(`${route.name} ${width}px final nav-to-theme gap: ${finalGap.toFixed(2)}px`);
+      expect(finalGap, `${route.name} final navigation link to theme button gap at ${width}px: ${finalGap.toFixed(2)}px`).toBeGreaterThanOrEqual(12);
       // Every navigation target must remain reachable at phone width, including overflowed links.
       for (const link of await links.all()) {
         await link.scrollIntoViewIfNeeded();
         await expect(link).toBeInViewport();
       }
       await expect(toggle).toBeInViewport();
+      const lightColors = [];
       if (route.name === 'Chinese') {
         for (const selector of ['#market-daily-chart svg', '#asia-daily-chart svg']) {
           const colors = await chartColors(page, selector);
           expect(colors.bg, `${selector} background follows light theme`).toBe(colors.expectedBg);
           expect(colors.ink, `${selector} text follows light theme`).toBe(colors.expectedInk);
+          expect(colors.containerBg, `${selector} visible container follows light theme`).toBe(colors.bg);
+          lightColors.push(colors);
         }
       }
       await toggle.click();
@@ -95,10 +117,15 @@ for (const width of [390, 768, 1280]) {
       await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
       await expect(toggle).toHaveAttribute('aria-pressed', 'true');
       if (route.name === 'Chinese') {
-        for (const selector of ['#market-daily-chart svg', '#asia-daily-chart svg']) {
+        for (const [index, selector] of ['#market-daily-chart svg', '#asia-daily-chart svg'].entries()) {
           const colors = await chartColors(page, selector);
           expect(colors.bg, `${selector} background follows dark theme`).toBe(colors.expectedBg);
           expect(colors.ink, `${selector} text follows dark theme`).toBe(colors.expectedInk);
+          expect(colors.containerBg, `${selector} visible container follows dark theme`).toBe(colors.bg);
+          expect(colors.bg, `${selector} background must change between themes`).not.toBe(lightColors[index].bg);
+          expect(colors.ink, `${selector} text must change between themes`).not.toBe(lightColors[index].ink);
+          expect(brightness(lightColors[index].bg), `${selector} light background must be brighter`).toBeGreaterThan(brightness(colors.bg));
+          expect(brightness(lightColors[index].ink), `${selector} dark text must be brighter`).toBeLessThan(brightness(colors.ink));
         }
       }
     });
