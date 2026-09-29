@@ -3,7 +3,7 @@ export type Locale = typeof SUPPORTED_LOCALES[number];
 
 export const LOCALE_PATHS: Record<Locale, string> = {
   'en-US': '/en/',
-  'zh-CN': '/',
+  'zh-CN': '/?locale=zh-CN',
 };
 
 export function localePath(locale: Locale, base = ''): string {

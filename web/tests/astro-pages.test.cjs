@@ -24,6 +24,15 @@ test('legacy page reads public data and reports from the site root', () => {
   assert.match(app, /source\.href = `\.\.\/\$\{report\.source_url\}`/);
 });
 
+test('public locale contract defaults the root entry to English and keeps Chinese explicit', () => {
+  const locale = readFileSync(path.join(root, 'src/lib/locale.ts'), 'utf8');
+  const home = readFileSync(path.join(root, 'src/pages/index.astro'), 'utf8');
+  assert.match(locale, /'en-US': '\/en\/'/);
+  assert.match(locale, /'zh-CN': '\/\?locale=zh-CN'/);
+  assert.match(home, /get\('locale'\) !== 'zh-CN'/);
+  assert.match(home, /new URL\('en\/', document\.baseURI\)/);
+});
+
 test('Astro emits a readable recent-report site with Asian market chart states', () => {
   const chartCards = readFileSync(path.join(root, 'src/components/ChartCards.astro'), 'utf8');
   assert.match(chartCards, /ChartIsland\.tsx/);

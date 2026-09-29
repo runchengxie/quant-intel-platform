@@ -72,6 +72,11 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <meta name="description" content="Quant 市场情报：每日美股与亚洲市场收盘复盘、市场解读与可核实图表。" />
     <title>Quant 市场情报 · Quant Market Intel</title>
     <script is:inline>
+      if (new URLSearchParams(window.location.search).get('locale') !== 'zh-CN') {
+        window.location.replace(new URL('en/', document.baseURI).pathname + window.location.hash);
+      }
+    </script>
+    <script is:inline>
       try {
         const saved = localStorage.getItem('market-intel-theme');
         document.documentElement.dataset.theme = saved === 'light' || saved === 'dark'
