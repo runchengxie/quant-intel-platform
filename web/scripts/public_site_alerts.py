@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 from urllib.error import HTTPError
 from urllib.parse import quote, urlencode, urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 try:
     from .public_site_freshness import evaluate_public_snapshots, fetch_public_snapshots
@@ -22,6 +22,16 @@ LABEL = "public-site-alert"
 _EVENT_RE = re.compile(r"(?m)^event_id: ([0-9]+)$")
 _MAX_FINDING = 400
 PAGES_BASE = "https://runchengxie.github.io/quant-intel-platform"
+
+
+class _NoRedirectHandler(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        del req, fp, code, msg, headers, newurl
+        raise RuntimeError("GitHub API redirect rejected")
+
+
+def _api_open(request: Request, timeout: int):
+    return build_opener(_NoRedirectHandler()).open(request, timeout=timeout)
 
 
 class IssueClient:
@@ -52,7 +62,7 @@ class IssueClient:
             method=method,
         )
         try:
-            with urlopen(request, timeout=10) as response:
+            with _api_open(request, timeout=10) as response:
                 return json.load(response)
         except HTTPError as error:
             raise RuntimeError(f"GitHub Issues API returned HTTP {error.code}") from None
@@ -82,21 +92,29 @@ class IssueClient:
 
     def latest_workflow_run(self, branch: str) -> dict[str, Any] | None:
         """Read the latest completed Public website run for the exact branch."""
-        query = urlencode({"branch": branch, "status": "completed", "per_page": 100})
-        response = self._request("GET", f"/actions/workflows/public-site.yml/runs?{query}")
-        if not isinstance(response, dict) or not isinstance(response.get("workflow_runs"), list):
-            raise RuntimeError("GitHub Actions API returned invalid run data")
-        runs = response["workflow_runs"]
-        matching = [
-            run
-            for run in runs
-            if isinstance(run, dict)
-            and run.get("head_branch") == branch
-            and isinstance(run.get("head_repository"), dict)
-            and run["head_repository"].get("full_name") == self._repository
-            and run.get("status") == "completed"
-            and isinstance(run.get("id"), int)
-        ]
+        matching: list[dict[str, Any]] = []
+        page = 1
+        while True:
+            query = urlencode({"branch": branch, "status": "completed", "per_page": 100, "page": page})
+            response = self._request("GET", f"/actions/workflows/public-site.yml/runs?{query}")
+            if not isinstance(response, dict) or not isinstance(response.get("workflow_runs"), list):
+                raise RuntimeError("GitHub Actions API returned invalid run data")
+            runs = response["workflow_runs"]
+            for run in runs:
+                if not isinstance(run, dict) or run.get("head_branch") != branch:
+                    continue
+                repository = run.get("head_repository")
+                if not isinstance(repository, dict) or not isinstance(repository.get("full_name"), str):
+                    raise RuntimeError("GitHub Actions API returned incomplete repository data")
+                if (
+                    repository["full_name"] == self._repository
+                    and run.get("status") == "completed"
+                    and isinstance(run.get("id"), int)
+                ):
+                    matching.append(run)
+            if len(runs) < 100:
+                break
+            page += 1
         if not matching:
             return None
         return max(matching, key=lambda run: run["id"])

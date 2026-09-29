@@ -203,7 +203,7 @@ def test_client_encodes_repository_and_query_without_network(monkeypatch: pytest
         assert timeout == 10
         return io.BytesIO(b"[]")
 
-    monkeypatch.setattr("scripts.public_site_alerts.urlopen", fake_urlopen)
+    monkeypatch.setattr("scripts.public_site_alerts._api_open", fake_urlopen)
     assert IssueClient("secret", "owner name/repo name").list_issues() == []
     assert urls == [
         "https://api.github.com/repos/owner%20name/repo%20name/issues?state=all&labels=public-site-alert&per_page=100&page=1"
@@ -215,7 +215,7 @@ def test_client_http_error_omits_response_body(monkeypatch: pytest.MonkeyPatch) 
     def fake_urlopen(request: Request, timeout: int) -> io.BytesIO:
         raise HTTPError(request.full_url, 403, "private diagnostics", {}, io.BytesIO(b"secret report body"))
 
-    monkeypatch.setattr("scripts.public_site_alerts.urlopen", fake_urlopen)
+    monkeypatch.setattr("scripts.public_site_alerts._api_open", fake_urlopen)
     with pytest.raises(RuntimeError, match="GitHub Issues API returned HTTP 403") as error:
         IssueClient("secret", "example/site").list_issues()
     assert "secret report body" not in str(error.value)
@@ -226,7 +226,7 @@ def test_client_transport_error_omits_sensitive_details(monkeypatch: pytest.Monk
     def fake_urlopen(request: Request, timeout: int) -> io.BytesIO:
         raise OSError("private request detail")
 
-    monkeypatch.setattr("scripts.public_site_alerts.urlopen", fake_urlopen)
+    monkeypatch.setattr("scripts.public_site_alerts._api_open", fake_urlopen)
     with pytest.raises(RuntimeError, match="GitHub Issues API request failed") as error:
         IssueClient("secret", "example/site").list_issues()
     assert "private request detail" not in str(error.value)
@@ -349,12 +349,40 @@ def test_latest_run_lookup_uses_exact_branch_and_completed_state(monkeypatch: py
         }
         return io.BytesIO(json.dumps(payload).encode("utf-8"))
 
-    monkeypatch.setattr("scripts.public_site_alerts.urlopen", fake_urlopen)
+    monkeypatch.setattr("scripts.public_site_alerts._api_open", fake_urlopen)
     assert IssueClient("secret", "example/site").latest_workflow_run("main")["id"] == 200
     assert urls == [
         "https://api.github.com/repos/example/site/actions/workflows/public-site.yml/runs?"
-        "branch=main&status=completed&per_page=100"
+        "branch=main&status=completed&per_page=100&page=1"
     ]
+
+
+def test_latest_run_lookup_fails_closed_on_incomplete_paginated_run(monkeypatch: pytest.MonkeyPatch) -> None:
+    def fake_api_open(request: Request, timeout: int) -> io.BytesIO:
+        if "page=1" in request.full_url:
+            runs = [
+                {
+                    "id": index,
+                    "head_branch": "other",
+                    "head_repository": {"full_name": "example/site"},
+                    "status": "completed",
+                }
+                for index in range(100)
+            ]
+        else:
+            runs = [{"id": 999, "head_branch": "main", "status": "completed"}]
+        return io.BytesIO(json.dumps({"workflow_runs": runs}).encode("utf-8"))
+
+    monkeypatch.setattr("scripts.public_site_alerts._api_open", fake_api_open)
+    with pytest.raises(RuntimeError, match="incomplete repository"):
+        IssueClient("secret", "example/site").latest_workflow_run("main")
+
+
+def test_api_client_rejects_redirect_without_forwarding_token() -> None:
+    from scripts.public_site_alerts import _NoRedirectHandler
+
+    with pytest.raises(RuntimeError, match="redirect rejected"):
+        _NoRedirectHandler().redirect_request(None, None, 302, "found", {}, "https://evil.test")
 
 
 def test_freshness_reconciles_stale_and_healthy_findings(monkeypatch: pytest.MonkeyPatch) -> None:
