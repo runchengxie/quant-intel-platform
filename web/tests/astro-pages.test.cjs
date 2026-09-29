@@ -45,6 +45,10 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   assert.ok(index.includes('href="/quant-intel-platform/docs/"'));
   assert.ok(!index.includes('/market-intel-pages/'));
   assert.match(index, /id="theme-toggle"/);
+  const english = readFileSync(path.join(root, 'dist/en/index.html'), 'utf8');
+  assert.match(english, /<button[^>]*id="theme-toggle"[^>]*aria-pressed="false"[^>]*>Dark mode<\/button>/);
+  assert.match(english, /aria-label="Switch to dark mode"/);
+  assert.match(english.slice(0, english.indexOf('</head>')), /market-intel-theme/, 'English theme is initialized before body paint');
   const header = index.match(/<header class="topbar">([\s\S]*?)<\/header>/)?.[1];
   assert.ok(header);
   assert.match(header, /<nav class="top-nav"[^>]*><a href="#us-session">美股日报<\/a><a href="#asia-session">亚洲晚报<\/a>/);
@@ -178,6 +182,81 @@ test('home theme remains usable when browser storage is unavailable', () => {
   } }));
   assert.doesNotThrow(() => events.click());
   assert.equal(document.documentElement.dataset.theme, 'dark');
+});
+
+test('English entry restores theme and keeps its button synchronized when storage is denied or OS theme changes', () => {
+  const source = readFileSync(path.join(root, 'src/pages/en/index.astro'), 'utf8');
+  const head = source.match(/<head>([\s\S]*?)<\/head>/)?.[1];
+  const bootstrap = head?.match(/<script is:inline>\s*([\s\S]*?)<\/script>/)?.[1];
+  const controller = source.match(/<script>\s*([\s\S]*?)<\/script>/)?.[1];
+  assert.ok(bootstrap, 'English pre-paint theme bootstrap exists');
+  assert.ok(controller, 'English theme controller exists');
+  const run = ({ stored = null, denied = false, dark = false } = {}) => {
+    const rootElement = { dataset: {} };
+    const attrs = {};
+    const events = {};
+    const mediaEvents = {};
+    const button = {
+      textContent: 'Dark mode',
+      setAttribute: (name, value) => { attrs[name] = value; },
+      addEventListener: (name, handler) => { events[name] = handler; },
+    };
+    const media = {
+      matches: dark,
+      addEventListener: (name, handler) => { mediaEvents[name] = handler; },
+    };
+    const localStorage = {
+      getItem: (key) => {
+        assert.equal(key, 'market-intel-theme');
+        if (denied) throw new Error('blocked');
+        return stored;
+      },
+      setItem: (key, value) => {
+        assert.equal(key, 'market-intel-theme');
+        if (denied) throw new Error('blocked');
+        stored = value;
+      },
+    };
+    const document = { documentElement: rootElement, querySelector: () => button };
+    const window = { matchMedia: () => media };
+    vm.runInNewContext(bootstrap, { document, localStorage, matchMedia: window.matchMedia });
+    const beforeController = rootElement.dataset.theme;
+    vm.runInNewContext(controller, { document, localStorage, window });
+    return { rootElement, attrs, events, mediaEvents, media, button, beforeController, saved: () => stored };
+  };
+  const restored = run({ stored: 'dark' });
+  assert.equal(restored.beforeController, 'dark');
+  assert.equal(restored.attrs['aria-pressed'], 'true');
+  assert.equal(restored.attrs['aria-label'], 'Switch to light mode');
+  restored.media.matches = false;
+  restored.mediaEvents.change();
+  assert.equal(restored.rootElement.dataset.theme, 'dark');
+  assert.equal(restored.attrs['aria-pressed'], 'true');
+  restored.events.click();
+  assert.equal(restored.rootElement.dataset.theme, 'light');
+  assert.equal(restored.attrs['aria-pressed'], 'false');
+  assert.equal(restored.attrs['aria-label'], 'Switch to dark mode');
+  assert.equal(restored.button.textContent, 'Dark mode');
+  assert.equal(restored.saved(), 'light');
+  const denied = run({ denied: true });
+  assert.equal(denied.beforeController, 'light');
+  denied.events.click();
+  assert.equal(denied.rootElement.dataset.theme, 'dark');
+  assert.equal(denied.attrs['aria-pressed'], 'true');
+  assert.equal(denied.attrs['aria-label'], 'Switch to light mode');
+  denied.media.matches = true;
+  denied.mediaEvents.change();
+  assert.equal(denied.rootElement.dataset.theme, 'dark');
+  assert.equal(denied.attrs['aria-pressed'], 'true');
+  denied.media.matches = false;
+  denied.mediaEvents.change();
+  assert.equal(denied.rootElement.dataset.theme, 'light');
+  assert.equal(denied.attrs['aria-pressed'], 'false');
+  assert.equal(denied.attrs['aria-label'], 'Switch to dark mode');
+  denied.events.click();
+  assert.equal(denied.rootElement.dataset.theme, 'dark');
+  assert.equal(denied.attrs['aria-pressed'], 'true');
+  assert.equal(denied.attrs['aria-label'], 'Switch to light mode');
 });
 
 test('new Asian evening reports build a visual history while old direct links remain available', () => {
