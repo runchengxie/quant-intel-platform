@@ -429,6 +429,7 @@ def _manifest_chart_paths(
 
 def _chart_paths(
     out_dir: Path,
+    *,
     explicit: Sequence[str] | None = None,
     manifest: Mapping[str, Any] | None = None,
     manifest_path: Path | None = None,
@@ -487,8 +488,8 @@ def deliver_evening(args: argparse.Namespace) -> int:
     signal_date = str(manifest_payload.get("signal_date") or args.date)
     chart_paths = _chart_paths(
         out_dir,
-        getattr(args, "chart", None),
-        manifest_payload,
+        explicit=getattr(args, "chart", None),
+        manifest=manifest_payload,
         manifest_path=manifest_path,
         expected_date=args.date,
     )

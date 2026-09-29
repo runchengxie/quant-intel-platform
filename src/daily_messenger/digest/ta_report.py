@@ -228,6 +228,7 @@ def _render_intraday_lines(intraday: Mapping[str, Sequence[Candle]]) -> list[str
 
 def _build_suggestions(
     rsi_value: float,
+    *,
     sma_fast: float,
     sma_slow: float,
     price: float,
@@ -303,11 +304,11 @@ def generate_report_markdown(
     intraday_lines = _render_intraday_lines(intraday)
     suggestions = _build_suggestions(
         rsi_value,
-        sma_fast_value,
-        sma_slow_value,
-        last_price,
-        cfg.thresholds,
-        pivot_hits,
+        sma_fast=sma_fast_value,
+        sma_slow=sma_slow_value,
+        price=last_price,
+        thresholds=cfg.thresholds,
+        pivot_hits=pivot_hits,
     )
 
     report_lines: list[str] = []
@@ -318,13 +319,13 @@ def generate_report_markdown(
     report_lines.append("")
     _render_trend_overview(
         report_lines,
-        cfg,
-        sma_fast_value,
-        sma_slow_value,
-        rsi_value,
-        atr_value,
-        cross_label,
-        trend_label,
+        cfg=cfg,
+        sma_fast_value=sma_fast_value,
+        sma_slow_value=sma_slow_value,
+        rsi_value=rsi_value,
+        atr_value=atr_value,
+        cross_label=cross_label,
+        trend_label=trend_label,
     )
     _render_support_resistance(report_lines, pivot_levels)
 
@@ -350,6 +351,7 @@ def generate_report_markdown(
 
 def _render_trend_overview(
     report_lines: list[str],
+    *,
     cfg: TAReportConfig,
     sma_fast_value: float,
     sma_slow_value: float,

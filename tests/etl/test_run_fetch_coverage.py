@@ -146,13 +146,13 @@ def test_merge_sentiment_source_ok(module):
     statuses: list = []
     ok = module._merge_sentiment_source(
         data,
-        {"a": 1},
-        FetchStatus(name="x", ok=True, message="ok"),
-        {},
-        "fb_key",
-        "fb_status",
-        "使用上一期",
-        statuses,
+        payload={"a": 1},
+        status=FetchStatus(name="x", ok=True, message="ok"),
+        previous_sentiment={},
+        fallback_key="fb_key",
+        fallback_status_name="fb_status",
+        fallback_message="使用上一期",
+        statuses=statuses,
     )
     assert ok is True
     assert data == {"a": 1}
@@ -164,13 +164,13 @@ def test_merge_sentiment_source_fallback(module):
     statuses: list = []
     ok = module._merge_sentiment_source(
         data,
-        None,
-        FetchStatus(name="x", ok=False, message="bad"),
-        {"fb_key": {"old": 9}},
-        "fb_key",
-        "fb_status",
-        "使用上一期",
-        statuses,
+        payload=None,
+        status=FetchStatus(name="x", ok=False, message="bad"),
+        previous_sentiment={"fb_key": {"old": 9}},
+        fallback_key="fb_key",
+        fallback_status_name="fb_status",
+        fallback_message="使用上一期",
+        statuses=statuses,
     )
     assert ok is False
     assert data == {"fb_key": {"old": 9}}
@@ -183,13 +183,13 @@ def test_merge_sentiment_source_no_fallback(module):
     statuses: list = []
     ok = module._merge_sentiment_source(
         data,
-        None,
-        FetchStatus(name="x", ok=False, message="bad"),
-        {},
-        "fb_key",
-        "fb_status",
-        "使用上一期",
-        statuses,
+        payload=None,
+        status=FetchStatus(name="x", ok=False, message="bad"),
+        previous_sentiment={},
+        fallback_key="fb_key",
+        fallback_status_name="fb_status",
+        fallback_message="使用上一期",
+        statuses=statuses,
     )
     assert ok is False
     assert data == {}

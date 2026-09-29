@@ -13,6 +13,9 @@ from .topic import format_topic_label
 from .us_overnight import LABELS, SYMBOLS
 from .weekly_chart import _daily_stats, _weekly_period
 
+_CONCEPT_SOURCE = "https://data.eastmoney.com/bkzj/"
+_TEMPERATURE_SOURCE = "https://tushare.pro/document/2?doc_id=181"
+
 
 def _iso(value: object) -> str:
     text = str(value or "")
@@ -35,6 +38,58 @@ def _point(
         "source_label": source["source_label"],
         "source_url": source["source_url"],
     }
+
+
+def extract_evening_review_points(
+    review: Mapping[str, object], target_date: str
+) -> dict[str, list[dict[str, object]]]:
+    """Extract the two evening-only public chart point sets.
+
+    These points come from the reviewed evening payload, rather than from the
+    older DailyWatch20 topic summary or the generic breadth chart.
+    """
+    review_date = _iso(review.get("date") or review.get("trade_date"))
+    target = _iso(target_date)
+    if review_date != target:
+        raise ValueError(f"review date {review_date!r} != target {target!r}")
+
+    sectors = _mapping(review.get("hot_sectors"), "hot_sectors")
+    raw_top = sectors.get("top_by_change")
+    if not isinstance(raw_top, list):
+        raise ValueError("hot_sectors.top_by_change must be a list")
+    topic_source = {
+        "source_label": "东方财富概念板块（Tushare 授权数据）",
+        "source_url": _CONCEPT_SOURCE,
+    }
+    topic: list[dict[str, object]] = []
+    for item in raw_top[:5]:
+        row = _mapping(item, "hot sector row")
+        topic.append(_point(str(row["name"]), row["pct_change"], "%", review_date, topic_source))
+    if len(topic) < 5:
+        raise ValueError("hot_sectors.top_by_change has fewer than five rows")
+
+    temperature = _mapping(review.get("market_temperature"), "market_temperature")
+    dimensions = _mapping(temperature.get("dimensions"), "market_temperature.dimensions")
+    sentiment: list[dict[str, object]] = []
+    temperature_source = {
+        "source_label": "Tushare A股晚报六维观察",
+        "source_url": _TEMPERATURE_SOURCE,
+    }
+    for key in (
+        "liquidity",
+        "breadth",
+        "profit_effect",
+        "loss_risk",
+        "trend_confirmation",
+        "rotation_quality",
+    ):
+        dimension = _mapping(dimensions.get(key), f"dimension {key}")
+        label = str(dimension.get("label") or key)
+        unit = "观察分（风险）" if key == "loss_risk" else "观察分"
+        sentiment.append(
+            _point(label, dimension.get("score"), unit, review_date, temperature_source)
+        )
+    return {"topic": topic, "sentiment": sentiment}
 
 
 def _frame(value: object, key: str) -> pd.DataFrame:

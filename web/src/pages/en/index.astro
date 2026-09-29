@@ -18,11 +18,27 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     <meta name="theme-color" content="#f4f0e8" />
     <meta name="description" content="Quant Market Intel: public, source-linked daily market reports." />
     <title>Quant Market Intel</title>
+    <script is:inline>
+      try {
+        const saved = localStorage.getItem('market-intel-theme');
+        document.documentElement.dataset.theme = saved === 'light' || saved === 'dark'
+          ? saved : matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      } catch {
+        document.documentElement.dataset.theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+      }
+    </script>
   </head>
   <body>
     <header class="topbar">
       <a class="brand" href={localePath('en-US', base)}><span class="brand-mark">Q</span><span>QUANT <b>MARKET INTEL</b></span></a>
       <nav class="top-nav" aria-label="Primary navigation"><a href="#reports">Reports</a><a href={`${base}/docs/`}>Documentation</a><a href={localePath('zh-CN', base)}>中文</a></nav>
+      <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Switch to dark mode" aria-pressed="false">Dark mode</button>
+      <script is:inline>
+        const dark = document.documentElement.dataset.theme === 'dark';
+        const button = document.querySelector('#theme-toggle');
+        button.setAttribute('aria-pressed', String(dark));
+        button.setAttribute('aria-label', dark ? 'Switch to light mode' : 'Switch to dark mode');
+      </script>
     </header>
     <main class="shell">
       <div class="content">
@@ -42,5 +58,29 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       </div>
     </main>
     <footer class="footer"><span>QUANT MARKET INTEL</span><span>For research reference only</span></footer>
+    <script>
+      const themeToggle = document.querySelector('#theme-toggle');
+      const themeKey = 'market-intel-theme';
+      const applyTheme = (theme) => {
+        document.documentElement.dataset.theme = theme;
+        themeToggle.setAttribute('aria-pressed', String(theme === 'dark'));
+        themeToggle.textContent = 'Dark mode';
+        themeToggle.setAttribute('aria-label', theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode');
+      };
+      let savedTheme = null;
+      try { savedTheme = localStorage.getItem(themeKey); } catch {}
+      const systemTheme = window.matchMedia('(prefers-color-scheme: dark)');
+      applyTheme(savedTheme === 'dark' || savedTheme === 'light' ? savedTheme : systemTheme.matches ? 'dark' : 'light');
+      systemTheme.addEventListener('change', () => {
+        let storedTheme = null;
+        try { storedTheme = localStorage.getItem(themeKey); } catch {}
+        if (storedTheme !== 'dark' && storedTheme !== 'light') applyTheme(systemTheme.matches ? 'dark' : 'light');
+      });
+      themeToggle.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        try { localStorage.setItem(themeKey, next); } catch {}
+        applyTheme(next);
+      });
+    </script>
   </body>
 </html>

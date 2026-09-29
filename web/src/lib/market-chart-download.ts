@@ -1,5 +1,21 @@
 type ChartKind = 'market-daily' | 'asia-daily';
 
+function serializeSvgWithResolvedTheme(svg: SVGElement): string {
+  const clone = svg.cloneNode(true) as SVGElement;
+  if (typeof getComputedStyle === 'function') {
+    try {
+      const computed = getComputedStyle(svg);
+      for (const name of ['--report-bg', '--report-ink', '--report-muted', '--report-track', '--report-line']) {
+        const value = computed.getPropertyValue(name).trim();
+        if (value) clone.style.setProperty(name, value);
+      }
+    } catch {
+      // Keep the SVG's existing light color fallbacks when styles are unavailable.
+    }
+  }
+  return new XMLSerializer().serializeToString(clone);
+}
+
 export async function downloadMarketChartPng(svg: SVGElement, date: string, kind: ChartKind = 'market-daily'): Promise<void> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) throw new Error('无效报告日期');
   if (!['market-daily', 'asia-daily'].includes(kind)) throw new Error('无效报告类型');
@@ -9,7 +25,7 @@ export async function downloadMarketChartPng(svg: SVGElement, date: string, kind
     throw new Error('图表尺寸不可用');
   }
   const scale = Math.min(2, 8192 / width, 8192 / height, Math.sqrt(12_000_000 / (width * height)));
-  const markup = new XMLSerializer().serializeToString(svg);
+  const markup = serializeSvgWithResolvedTheme(svg);
   const sourceUrl = URL.createObjectURL(new Blob([markup], { type: 'image/svg+xml;charset=utf-8' }));
   try {
     const picture = new Image();
