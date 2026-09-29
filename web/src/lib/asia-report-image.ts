@@ -1,15 +1,29 @@
-const escapeText = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
-  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;',
-})[character]);
+import type { ChartCard, ChartPoint } from './chart-data.ts';
 
-function wrapText(value, width = 54) {
+interface EveningReport {
+  kind: 'evening';
+  id: string;
+  date: string;
+  summary: string;
+  generation_mode?: string;
+}
+
+interface DimensionRow { label: string; score: number | null; status?: string; evidence?: string; }
+
+interface SvgDraw { parts: string[]; y: number; text: (value: string, color?: string, size?: number) => void; }
+
+const escapeText = (value: unknown): string => String(value ?? '').replace(/[&<>"']/g, (character) => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&apos;',
+} as Record<string, string>)[character] ?? '');
+
+function wrapText(value: unknown, width = 54): string[] {
   const text = String(value ?? '').replace(/\s+/g, ' ').trim();
   const lines = [];
   for (let start = 0; start < text.length; start += width) lines.push(text.slice(start, start + width));
   return lines;
 }
 
-function sourceDomain(url) {
+function sourceDomain(url: string): string | null {
   try {
     const source = new URL(url);
     return source.protocol === 'https:' ? source.hostname : null;
@@ -18,7 +32,7 @@ function sourceDomain(url) {
   }
 }
 
-function excerpt(markdown, heading, limit = 3) {
+function excerpt(markdown: string, heading: string, limit = 3): string[] {
   const lines = markdown.split('\n');
   const start = lines.findIndex((line) => line.trim() === heading);
   if (start < 0) return [];
@@ -35,7 +49,7 @@ function excerpt(markdown, heading, limit = 3) {
   return result;
 }
 
-function sixDimensionRows(markdown) {
+function sixDimensionRows(markdown: string): DimensionRow[] | null {
   const labels = ['流动性', '广度', '赚钱效应', '亏钱风险', '趋势确认', '轮动质量'];
   const lines = markdown.split('\n');
   const start = lines.findIndex((line) => line.trim() === '### 六维观察');
@@ -55,7 +69,7 @@ function sixDimensionRows(markdown) {
   return labels.map((label) => ({ label, ...found.get(label) }));
 }
 
-function sixDimensionBars(draw, rows) {
+function sixDimensionBars(draw: SvgDraw, rows: DimensionRow[]): void {
   draw.text('观察分越高表示该维度越强；亏钱风险越高，风险越高。', MUTED, 12);
   for (const row of rows) {
     if (row.score === null || row.score === undefined) {
@@ -85,41 +99,44 @@ const FLAT = '#b9a99a';
 const CHART_KEYS = ['dashboard', 'moneyflow', 'topic', 'sentiment', 'weekly_chart'];
 const FONT = "'Source Han Sans CN', 'Noto Sans CJK SC', 'Noto Sans SC', 'PingFang SC', sans-serif";
 
-const formatNumber = (value, digits = 1) => Number(value).toLocaleString('zh-CN', { maximumFractionDigits: digits });
-const textNode = (x, y, value, { size = 13, color = INK, anchor = 'start', weight = '400' } = {}) =>
+const formatNumber = (value: number, digits = 1): string => Number(value).toLocaleString('zh-CN', { maximumFractionDigits: digits });
+interface TextOptions { size?: number; color?: string; anchor?: string; weight?: string; }
+const textNode = (x: number, y: number, value: unknown, { size = 13, color = INK, anchor = 'start', weight = '400' }: TextOptions = {}) =>
   `<text x="${x}" y="${y}" text-anchor="${anchor}" fill="${color}" font-family="sans-serif" font-size="${size}" font-weight="${weight}">${escapeText(value)}</text>`;
-const usablePoints = (chart) => ['ok', 'degraded'].includes(chart.status) && Array.isArray(chart.points)
-  ? chart.points.filter((point) => Number.isFinite(point.value) && sourceDomain(point.source_url)) : [];
+const usablePoints = (chart: ChartCard): ChartPoint[] => ['ok', 'degraded'].includes(chart.status)
+  ? chart.points.filter((point) => Number.isFinite(point.value) && Boolean(sourceDomain(point.source_url))) : [];
 
-function sourceNote(draw, points) {
+function sourceNote(draw: SvgDraw, points: ChartPoint[]): void {
   const dates = [...new Set(points.map((point) => point.observation_date))].sort();
   const sources = [...new Set(points.map((point) => point.source_label))];
   draw.text(`观测日：${dates.length > 1 ? `${dates[0]} 至 ${dates.at(-1)}` : dates[0]} · 来源：${sources.join('、')}`, MUTED, 12);
 }
 
-function breadth(draw, points, title = '市场广度') {
+function breadth(draw: SvgDraw, points: ChartPoint[], title = '市场广度'): boolean {
   const rows = ['上涨家数', '下跌家数', '平盘家数'].map((label) => points.find((point) => point.label === label));
-  if (rows.some((row) => !row) || new Set(rows.map((row) => row.observation_date)).size !== 1) return false;
-  const total = rows.reduce((sum, row) => sum + row.value, 0);
+  if (rows.some((row) => !row)) return false;
+  const presentRows = rows as [ChartPoint, ChartPoint, ChartPoint];
+  if (new Set(presentRows.map((row) => row.observation_date)).size !== 1) return false;
+  const total = presentRows.reduce((sum, row) => sum + row.value, 0);
   if (total <= 0) return false;
   draw.parts.push(textNode(54, draw.y, title, { size: 15, weight: '600' }));
   draw.y += 16;
   let left = 54;
-  for (const [index, row] of rows.entries()) {
+  for (const [index, row] of presentRows.entries()) {
     const width = 852 * row.value / total;
     draw.parts.push(`<rect x="${left}" y="${draw.y}" width="${width}" height="25" fill="${[UP, DOWN, FLAT][index]}"/>`);
     left += width;
   }
   draw.y += 45;
-  draw.parts.push(textNode(54, draw.y, `涨 ${formatNumber(rows[0].value, 0)} 家`, { color: UP }));
-  draw.parts.push(textNode(350, draw.y, `跌 ${formatNumber(rows[1].value, 0)} 家`, { color: DOWN }));
-  draw.parts.push(textNode(650, draw.y, `平 ${formatNumber(rows[2].value, 0)} 家`, { color: MUTED }));
+  draw.parts.push(textNode(54, draw.y, `涨 ${formatNumber(presentRows[0].value, 0)} 家`, { color: UP }));
+  draw.parts.push(textNode(350, draw.y, `跌 ${formatNumber(presentRows[1].value, 0)} 家`, { color: DOWN }));
+  draw.parts.push(textNode(650, draw.y, `平 ${formatNumber(presentRows[2].value, 0)} 家`, { color: MUTED }));
   draw.y += 29;
   return true;
 }
 
-function metricCards(draw, points, labels) {
-  const rows = labels.map((label) => points.find((point) => point.label === label)).filter(Boolean);
+function metricCards(draw: SvgDraw, points: ChartPoint[], labels: string[]): void {
+  const rows = labels.map((label) => points.find((point) => point.label === label)).filter((point): point is ChartPoint => Boolean(point));
   if (!rows.length) return;
   const width = 852 / rows.length;
   for (const [index, point] of rows.entries()) {
@@ -131,7 +148,7 @@ function metricCards(draw, points, labels) {
   draw.y += 78;
 }
 
-function trend(draw, points, prefix, title, unit) {
+function trend(draw: SvgDraw, points: ChartPoint[], prefix: string, title: string, unit: string): boolean {
   const rows = points.filter((point) => point.label.startsWith(`${prefix} `) && point.unit === unit)
     .sort((a, b) => a.observation_date.localeCompare(b.observation_date)).slice(-5);
   if (rows.length < 2) return false;
@@ -158,7 +175,7 @@ function trend(draw, points, prefix, title, unit) {
   return true;
 }
 
-function rankedBars(draw, rows, title, color, width = 400, x = 54) {
+function rankedBars(draw: SvgDraw, rows: ChartPoint[], title: string, color: string, width = 400, x = 54): void {
   if (!rows.length) return;
   draw.parts.push(textNode(x, draw.y, title, { size: 15, weight: '600' }));
   draw.y += 22;
@@ -173,7 +190,7 @@ function rankedBars(draw, rows, title, color, width = 400, x = 54) {
   draw.y += 9;
 }
 
-function fallbackRows(draw, points) {
+function fallbackRows(draw: SvgDraw, points: ChartPoint[]): void {
   if (!points.length) return;
   draw.parts.push(textNode(54, draw.y, '已核实数据', { size: 15, weight: '600' }));
   draw.y += 22;
@@ -189,7 +206,7 @@ function fallbackRows(draw, points) {
   draw.y += 9;
 }
 
-function weekly(draw, points) {
+function weekly(draw: SvgDraw, points: ChartPoint[]): void {
   const byDate = new Map();
   for (const point of points) {
     const match = /^(上涨家数|下跌家数|平盘家数|成交额) (\d{4}-\d{2}-\d{2})$/.exec(point.label);
@@ -223,7 +240,7 @@ function weekly(draw, points) {
   trend(draw, points, '成交额', '成交额走势（亿）', '亿');
 }
 
-export function buildAsiaReportSvg(report, charts, markdown) {
+export function buildAsiaReportSvg(report: EveningReport, charts: ChartCard[], markdown: string): string | null {
   if (report?.kind !== 'evening' || !/^\d{4}-\d{2}-\d{2}-evening$/.test(report.id)
     || report.id !== `${report.date}-evening`
     || !Array.isArray(charts) || typeof markdown !== 'string') return null;
@@ -236,25 +253,25 @@ export function buildAsiaReportSvg(report, charts, markdown) {
     `<text x="54" y="60" fill="#34271f" font-family="sans-serif" font-size="28" font-weight="700">${escapeText(report.date)} 亚洲市场收盘复盘</text>`,
     `<text x="54" y="88" fill="#715f52" font-family="sans-serif" font-size="14">北京时间 19:00 目标版 · 以报告实际生成时间和数据日期为准${report.generation_mode === 'backfill' ? ' · 历史补报' : ''}</text>`,
   ];
-  const addText = (value, color = '#34271f', size = 15) => {
+  const addText = (value: string, color = '#34271f', size = 15) => {
     for (const line of wrapText(value)) {
       parts.push(`<text x="54" y="${y}" fill="${color}" font-family="sans-serif" font-size="${size}">${escapeText(line)}</text>`);
       y += 23;
     }
   };
-  const addHeading = (heading) => {
+  const addHeading = (heading: string) => {
     y += 14;
     parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="20" font-weight="700">${escapeText(heading)}</text>`);
     y += 32;
   };
-  const draw = {
+  const draw: SvgDraw = {
     parts,
     get y() { return y; },
     set y(value) { y = value; },
     text: addText,
   };
   addText(report.summary);
-  for (const [heading, title, limit] of [
+  for (const [heading, title, limit] of ([
     ['## 一、市场状态', '市场状态', 3], ['### 六维观察', '六维观察', 7],
     ['### 核心矛盾', '核心矛盾', 2], ['### 明日验证', '次日观察', 2],
     ['### 昨日验证复盘', '昨日验证', 2], ['### 二、指数总览', '指数总览', 4],
@@ -264,7 +281,7 @@ export function buildAsiaReportSvg(report, charts, markdown) {
     ['### 八、高成交核心票 TOP10', '高成交个股', 4],
     ['### 九、热门概念 TOP5', '热门概念', 4], ['### 十、极端异动', '极端异动', 3],
     ['### 数据完整度与校准', '数据完整度与校准', 3],
-  ]) {
+  ] as Array<[string, string, number]>)) {
     if (heading === '### 六维观察') {
       const rows = sixDimensionRows(markdown);
       if (rows) {
@@ -273,18 +290,21 @@ export function buildAsiaReportSvg(report, charts, markdown) {
       }
       continue;
     }
-    const lines = excerpt(markdown, heading, limit);
+    const lines = excerpt(markdown, heading, limit as number);
     if (lines.length) {
       addHeading(title);
       for (const line of lines) addText(line);
     }
   }
   addHeading('亚洲市场图表');
-  const validPoints = [];
-  const chartTitles = { dashboard: '综合盘面', moneyflow: '资金流向', topic: '热点概念', sentiment: '市场温度', weekly_chart: '周度概览' };
+  const validPoints: ChartPoint[] = [];
+  const chartTitles: Record<string, string> = { dashboard: '综合盘面', moneyflow: '资金流向', topic: '热点概念', sentiment: '市场温度', weekly_chart: '周度概览' };
+  const statusTitles: Record<string, string> = { ok: '已核实', degraded: '部分缺项', missing: '缺项', skipped: '跳过' };
   for (const key of CHART_KEYS) {
-    const chart = charts.find((item) => item.key === key) || { status: 'missing', points: [], reason: '暂无可公开数据' };
-    addHeading(`${chartTitles[key]} · ${({ ok: '已核实', degraded: '部分缺项', missing: '缺项', skipped: '跳过' })[chart.status] || '缺项'}`);
+    const chart: ChartCard = charts.find((item) => item.key === key) || {
+      key, title: chartTitles[key], status: 'missing', points: [], reason: '暂无可公开数据',
+    };
+    addHeading(`${chartTitles[key]} · ${statusTitles[chart.status] || '缺项'}`);
     if (chart.reason) addText(chart.reason, '#715f52', 13);
     const points = usablePoints(chart);
     if (!points.length) {

@@ -6,8 +6,8 @@ import { loadReports, loadSummaries, loadMarketDaily, loadMarketDailyHistory, lo
 import { renderMarkdown } from '../lib/markdown.ts';
 import { formatEvidenceLine } from '../lib/evidence.ts';
 import { buildEveningNotes } from '../lib/evening-notes.ts';
-import marketDailyUtils from '../lib/market-daily-utils.js';
-import { buildAsiaReportSvg } from '../lib/asia-report-image.mjs';
+import marketDailyUtils from '../lib/market-daily-utils.ts';
+import { buildAsiaReportSvg } from '../lib/asia-report-image.ts';
 
 const reports = loadReports();
 const summaries = loadSummaries(reports).sort((a, b) => b.date.localeCompare(a.date));

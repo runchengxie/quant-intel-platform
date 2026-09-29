@@ -4,7 +4,7 @@ const { readFileSync } = require('node:fs');
 const path = require('node:path');
 
 test('Asia report image combines the evening framework, five local chart states and sources', async () => {
-  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.mjs');
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.ts');
   const report = { id: '2026-09-25-evening', kind: 'evening', date: '2026-09-25', summary: '亚洲市场收盘。' };
   const charts = [
     { key: 'dashboard', title: '综合仪表盘', status: 'ok', points: [
@@ -28,7 +28,7 @@ test('Asia report image combines the evening framework, five local chart states 
 });
 
 test('real evening data uses breadth, trend and money flow visuals without overnight US quotes', async () => {
-  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.mjs');
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.ts');
   const publicRoot = path.join(__dirname, '../artifacts/public');
   const reportId = '2026-09-24-evening';
   const report = JSON.parse(readFileSync(path.join(publicRoot, 'data/reports.json'), 'utf8'))
@@ -51,7 +51,7 @@ test('real evening data uses breadth, trend and money flow visuals without overn
 });
 
 test('six-dimensional chart rejects invalid scores and escapes evidence', async () => {
-  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.mjs');
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.ts');
   const report = { id: '2026-09-25-evening', kind: 'evening', date: '2026-09-25', summary: '' };
   const markdown = '### 六维观察\n| 维度 | 观察分 | 状态 | 证据 |\n|---|---:|---|---|\n'
     + '| 流动性 | 75 | 较强 | 成交额改善 <script> |\n'
@@ -65,7 +65,7 @@ test('six-dimensional chart rejects invalid scores and escapes evidence', async 
 });
 
 test('six-dimensional chart accepts escaped evidence pipes but rejects non-decimal scores', async () => {
-  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.mjs');
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.ts');
   const report = { id: '2026-09-25-evening', kind: 'evening', date: '2026-09-25', summary: '' };
   const markdown = '### 六维观察\n| 维度 | 观察分 | 状态 | 证据 |\n|---|---:|---|---|\n'
     + '| 流动性 | 30.5 | 偏弱 | 数据 A \\| 数据 B |\n'
@@ -79,7 +79,7 @@ test('six-dimensional chart accepts escaped evidence pipes but rejects non-decim
 });
 
 test('Asia report image escapes public text and rejects a morning identity', async () => {
-  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.mjs');
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.ts');
   const report = { id: '2026-09-25-evening', kind: 'evening', date: '2026-09-25', summary: '<script>alert(1)</script>' };
   assert.match(buildAsiaReportSvg(report, [], ''), /&lt;script&gt;/);
   assert.equal(buildAsiaReportSvg({ ...report, kind: 'morning' }, [], ''), null);
