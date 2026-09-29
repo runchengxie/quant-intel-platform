@@ -2,17 +2,17 @@
   "schema_version": "market_intel_pages.daily_summaries.v1",
   "summaries": [
     {
-      "date": "2026-09-23",
-      "text": "盘面已从此前普涨转向多数个股走弱，成交也在收缩，高成交标的相对偏强还不足以说明整体企稳。",
-      "morning_report_id": "2026-09-23-morning",
-      "evening_report_id": "2026-09-23-evening",
-      "generated_at": "2026-09-24T23:01:24+08:00",
-      "model": "codex-cli",
-      "provider": "codex",
+      "date": "2026-09-28",
+      "text": "市场从偏冷转向偏冷且脆弱，亏钱风险明显抬升，高成交方向承压更重。",
+      "morning_report_id": "2026-09-28-evening",
+      "evening_report_id": "2026-09-24-evening",
+      "generated_at": "2026-09-29T07:53:00+08:00",
+      "model": "deepseek-chat",
+      "provider": "deepseek",
       "prompt_version": "daily-commentary-v1",
-      "fingerprint": "8e2b6da8e13398974a2c48b9fc24c2895bd4ad80b8d8102197f3986fc675d9fb",
-      "source_hash": "c5527c5c8f74e4317440011f32d3eae6f578cbe13eb7a93f4419e9ea2db3be79",
-      "insight_source_hash": "fc70c9134ada02e92315e1f6be7695a972a86964c43e4aa1be404926c44e7bc8"
+      "fingerprint": "588f0945c0ba746bfa84510fe07b23b2f07f5cf02f35a8b49a59035be61e5b25",
+      "source_hash": "5ed73bc09b13fb09594f0521b384bc0038eeaf38eef09432312cb45c8d4fa1bc",
+      "insight_source_hash": "8b6a0b730dc0abe98de119739932ba27ce7d052a9535d6da8ee00a57dd3c43b1"
     }
   ]
 }
