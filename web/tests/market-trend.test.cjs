@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 
 test('five-day trend uses only public same-day observed facts', async () => {
-  const { buildMarketTrend } = await import('../src/lib/market-trend.mjs');
+  const { buildMarketTrend } = await import('../src/lib/market-trend.ts');
   const row = (date, value, observationDate = date, publication = 'public') => ({
     date, publication, facts: [{ id: 'index.spx.change_percent', value, observation_date: observationDate }],
   });
@@ -18,7 +18,7 @@ test('five-day trend uses only public same-day observed facts', async () => {
 });
 
 test('five-day trend rejects non-finite and mismatched facts', async () => {
-  const { buildMarketTrend } = await import('../src/lib/market-trend.mjs');
+  const { buildMarketTrend } = await import('../src/lib/market-trend.ts');
   assert.deepEqual(buildMarketTrend([
     { date: '2026-09-25', publication: 'public', facts: [{
       id: 'index.spx.change_percent', value: 'bad', observation_date: '2026-09-25',

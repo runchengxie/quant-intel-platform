@@ -31,10 +31,10 @@ export default function ChartIsland({ reportId, chartKey }: ChartIslandProps) {
         if (!card || !['ok', 'degraded'].includes(card.status) || !card.points?.length) {
           throw new Error('该图暂无可展示的已审核数据');
         }
-        const { initChart } = await import('../lib/chart-engine.mjs');
+        const { initChart } = await import('../lib/chart-engine.ts');
         if (!active || !container.current) return;
         instance = initChart(container.current);
-        instance.setOption(toOption(card));
+        instance?.setOption(toOption(card));
         observer = new ResizeObserver(() => instance?.resize());
         observer.observe(container.current);
       } catch {

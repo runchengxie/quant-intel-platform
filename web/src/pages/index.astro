@@ -2,10 +2,10 @@
 import '../styles/site.css';
 import '../styles/editorial.css';
 import '../styles/research-language.css';
-import { loadReports, loadSummaries, loadMarketDaily, loadMarketDailyHistory, loadLatestInsight, readJson, loadChart, loadMarkdown, VISUAL_REPORT_START_DATE } from '../lib/reports.mjs';
-import { renderMarkdown } from '../lib/markdown.mjs';
-import { formatEvidenceLine } from '../lib/evidence.mjs';
-import { buildEveningNotes } from '../lib/evening-notes.mjs';
+import { loadReports, loadSummaries, loadMarketDaily, loadMarketDailyHistory, loadLatestInsight, readJson, loadChart, loadMarkdown, VISUAL_REPORT_START_DATE } from '../lib/reports.ts';
+import { renderMarkdown } from '../lib/markdown.ts';
+import { formatEvidenceLine } from '../lib/evidence.ts';
+import { buildEveningNotes } from '../lib/evening-notes.ts';
 import marketDailyUtils from '../lib/market-daily-utils.js';
 import { buildAsiaReportSvg } from '../lib/asia-report-image.mjs';
 
@@ -152,7 +152,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         button.disabled = true;
         status.textContent = '正在生成 PNG…';
         try {
-          const { downloadMarketChartPng } = await import('../lib/market-chart-download.mjs');
+          const { downloadMarketChartPng } = await import('../lib/market-chart-download.ts');
           await downloadMarketChartPng(chart, button.dataset.reportDate, button.dataset.reportKind);
           status.textContent = '图片版 PNG 已生成。';
         } catch {

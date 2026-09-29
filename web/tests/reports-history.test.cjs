@@ -17,7 +17,7 @@ test('US daily history loads five dated public markdown reports in date order', 
     }));
     for (const day of days) writeFileSync(path.join(root, `reports/${day}-market-daily.md`), `# ${day}\n`);
     process.env.ASTRO_DATA_ROOT = root;
-    const { loadMarketDailyHistory } = await import('../src/lib/reports.mjs');
+    const { loadMarketDailyHistory } = await import('../src/lib/reports.ts');
 
     assert.deepEqual(loadMarketDailyHistory().map((row) => [row.date, row.markdown]), [
       ['2026-09-24', '# 2026-09-24\n'],
@@ -39,7 +39,7 @@ test('static chart loader rejects malformed public chart payloads', async () => 
       publication: 'public', report_id: '2026-09-24-evening', charts: [],
     }));
     process.env.ASTRO_DATA_ROOT = root;
-    const { loadChart } = await import('../src/lib/reports.mjs');
+    const { loadChart } = await import('../src/lib/reports.ts');
 
     assert.throws(() => loadChart('2026-09-24-evening'), /unreviewed or mismatched/);
   } finally {

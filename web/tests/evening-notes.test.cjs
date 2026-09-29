@@ -1,9 +1,8 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 
-const { buildEveningNotes } = require('../src/lib/evening-notes.mjs');
-
-test('evening-only notes use reported state and breadth without a morning source', () => {
+test('evening-only notes use reported state and breadth without a morning source', async () => {
+  const { buildEveningNotes } = await import('../src/lib/evening-notes.ts');
   const reports = [{
     id: '2026-09-28-evening', date: '2026-09-28', kind: 'evening',
     sections: [
@@ -17,7 +16,8 @@ test('evening-only notes use reported state and breadth without a morning source
   }]);
 });
 
-test('evening-only notes ignore old mornings, old evenings, and missing facts', () => {
+test('evening-only notes ignore old mornings, old evenings, and missing facts', async () => {
+  const { buildEveningNotes } = await import('../src/lib/evening-notes.ts');
   assert.deepEqual(buildEveningNotes([
     { id: 'old', date: '2026-09-24', kind: 'evening', sections: [] },
     { id: 'morning', date: '2026-09-28', kind: 'morning', sections: [] },

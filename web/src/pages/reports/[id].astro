@@ -3,8 +3,8 @@ import '../../styles/site.css';
 import '../../styles/editorial.css';
 import '../../styles/research-language.css';
 import ChartCards from '../../components/ChartCards.astro';
-import { loadReports, loadMarkdown, loadChart } from '../../lib/reports.mjs';
-import { renderMarkdown } from '../../lib/markdown.mjs';
+import { loadReports, loadMarkdown, loadChart } from '../../lib/reports.ts';
+import { renderMarkdown } from '../../lib/markdown.ts';
 import { buildAsiaReportSvg } from '../../lib/asia-report-image.mjs';
 
 export function getStaticPaths() {
@@ -45,7 +45,7 @@ const chartSources = [...new Map((charts || []).flatMap((chart) => (chart.points
         button.disabled = true;
         status.textContent = '正在生成 PNG…';
         try {
-          const { downloadMarketChartPng } = await import('../../lib/market-chart-download.mjs');
+          const { downloadMarketChartPng } = await import('../../lib/market-chart-download.ts');
           await downloadMarketChartPng(chart, button.dataset.reportDate, button.dataset.reportKind);
           status.textContent = '图片版 PNG 已生成。';
         } catch {
