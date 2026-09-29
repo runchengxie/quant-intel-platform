@@ -3,8 +3,23 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 
 const base = '/quant-intel-platform';
 const routes = [
-  { name: 'English', path: `${base}/en/` },
-  { name: 'Chinese', path: `${base}/?locale=zh-CN` },
+  {
+    name: 'English', path: `${base}/en/`, language: 'en-US',
+    requiredLinks: [
+      { label: 'Reports', href: '#reports' },
+      { label: 'Documentation', href: `${base}/docs/` },
+      { label: '中文', href: `${base}/?locale=zh-CN` },
+    ],
+  },
+  {
+    name: 'Chinese', path: `${base}/?locale=zh-CN`, language: 'zh-CN',
+    requiredLinks: [
+      { label: '美股日报', href: '#us-session' },
+      { label: '亚洲晚报', href: '#asia-session' },
+      { label: '文档', href: `${base}/docs/` },
+      { label: 'English', href: `${base}/en/` },
+    ],
+  },
 ];
 
 async function rect(locator: Locator) {
@@ -62,12 +77,19 @@ for (const width of [390, 768, 1280]) {
       await page.setViewportSize({ width, height: 900 });
       await page.emulateMedia({ colorScheme: 'light' });
       await page.goto(route.path);
+      await expect(page.locator('html')).toHaveAttribute('lang', route.language);
       await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
       const brand = page.locator('.topbar .brand');
       const nav = page.locator('.topbar .top-nav');
       const links = nav.locator('a');
       const toggle = page.locator('#theme-toggle');
-      await expect(links.first()).toBeVisible();
+      expect(await links.count(), `${route.name} must keep its required navigation links`).toBeGreaterThanOrEqual(route.requiredLinks.length);
+      for (const { label, href } of route.requiredLinks) {
+        const link = nav.getByRole('link', { name: label, exact: true });
+        await expect(link, `${route.name} navigation needs ${label}`).toHaveCount(1);
+        await expect(link).toHaveAttribute('href', href);
+        await expect(link).toBeVisible();
+      }
       await expect(toggle).toBeVisible();
       const controls = [brand, ...await links.all(), toggle];
       const boxes = await Promise.all(controls.map(rect));
