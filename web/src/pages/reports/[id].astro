@@ -6,6 +6,7 @@ import ChartCards from '../../components/ChartCards.astro';
 import { loadReports, loadMarkdown, loadChart } from '../../lib/reports.ts';
 import { renderMarkdown } from '../../lib/markdown.ts';
 import { buildAsiaReportSvg } from '../../lib/asia-report-image.mjs';
+import { localePath } from '../../lib/locale.ts';
 
 export function getStaticPaths() {
   return loadReports().map((report) => ({ params: { id: report.id }, props: { report } }));
@@ -25,7 +26,7 @@ const chartSources = [...new Map((charts || []).flatMap((chart) => (chart.points
 <html lang="zh-CN">
     <head><meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" /><meta name="theme-color" content="#f4f0e8" /><title>{report.title} · Quant 市场情报</title></head>
   <body>
-    <header class="topbar"><a class="brand" href={`${base}/`}><span class="brand-mark">Q</span><span>QUANT <b>MARKET INTEL</b></span></a><div class="top-actions"><span class="top-note">{report.kind === 'morning' ? '晨报' : '晚报'} · {report.date}</span><a class="docs-link" href={`${base}/docs/`}>方法与文档</a></div></header>
+    <header class="topbar"><a class="brand" href={`${base}/`}><span class="brand-mark">Q</span><span>QUANT <b>MARKET INTEL</b></span></a><div class="top-actions"><span class="top-note">{report.kind === 'morning' ? '晨报' : '晚报'} · {report.date}</span><a class="docs-link" href={`${base}/docs/`}>方法与文档</a><a class="docs-link" href={localePath('en-US', base)}>English</a></div></header>
     <main class="report-shell">
       <nav class="crumb"><a href={`${base}/`}>← 返回日报首页</a></nav>
       <div class="report-heading"><span class="eyebrow">{report.kind === 'morning' ? '历史晨报' : '亚洲市场晚报'}</span><h1>{report.title}</h1><p>{report.summary}</p>{report.generation_mode === 'backfill' && <p class="backfill-note">这份报告是后续补发的，生成时间见报告正文。</p>}<a class="source-link" href={`${base}/${report.source_url}`}>查看 Markdown 原文</a></div>
