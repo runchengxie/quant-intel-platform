@@ -54,7 +54,11 @@
 }
 ```
 
-必需字段：`date`、`degraded`、`themes[]`（含 `name`、`label`、`total`、`breakdown`、`weights`）。
+必需字段：`date`、`degraded`、`themes[]`（含 `name`、`label`、`total`、`breakdown`、`weights`、
+`evidence_level`）。`evidence_level` 默认是 `descriptive`，允许值为
+`descriptive`、`research_candidate`、`oos_supported`、`portfolio_eligible`、
+`execution_eligible`。日报评分默认只属于描述性观察；进入组合或执行决策前，必须由研究层单独
+生成并审核对应的策略 artifact，不能因为分数达到阈值就自动晋升。
 
 可选字段：`breakdown_detail`、`meta`、`sentiment`、`config_version`。
 

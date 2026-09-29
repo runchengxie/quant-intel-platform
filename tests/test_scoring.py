@@ -26,6 +26,19 @@ def test_score_ai_produces_weighted_total():
 
     assert degraded_result.degraded
     assert math.isclose(degraded_result.total, result.total, rel_tol=1e-9)
+    assert result.evidence_level == "descriptive"
+    assert result.to_dict()["evidence_level"] == "descriptive"
+
+
+def test_theme_score_rejects_unknown_evidence_level():
+    with pytest.raises(ValueError, match="unsupported evidence level"):
+        scoring.ThemeScore(
+            name="ai",
+            label="AI",
+            total=50,
+            breakdown={},
+            evidence_level="unverified",
+        )
 
 
 def test_score_magnificent7_uses_theme_metrics():
