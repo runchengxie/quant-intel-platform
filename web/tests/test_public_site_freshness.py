@@ -3,10 +3,15 @@
 import io
 import json
 from datetime import datetime
+from email.message import Message
+from types import SimpleNamespace
 from urllib.error import URLError
+from urllib.request import HTTPSHandler, Request, build_opener
+from urllib.response import addinfourl
 
 import pytest
 
+from scripts import public_site_freshness
 from scripts.public_site_freshness import evaluate_public_snapshots, fetch_public_snapshots
 
 NOW = datetime.fromisoformat("2026-09-30T12:00:00+08:00")
@@ -117,6 +122,11 @@ def test_asia_generation_just_over_96_hours_requires_review():
     assert result["asia"]["status"] == "review"
 
 
+def test_asia_generation_one_second_in_future_is_unavailable():
+    result = findings(reports=asia(generated="2026-09-30 12:00:01"))
+    assert result["asia"]["status"] == "unavailable"
+
+
 def test_naive_check_time_is_rejected():
     with pytest.raises(ValueError, match="timezone"):
         findings(now=datetime(2026, 9, 30, 12))
@@ -142,7 +152,9 @@ def test_fetch_uses_only_fixed_pages_urls_and_bounded_reads(monkeypatch):
         payload = asia() if request.full_url.endswith("/reports.json") else us()
         return Response(json.dumps(payload).encode(), request.full_url)
 
-    monkeypatch.setattr("scripts.public_site_freshness.urlopen", open_url)
+    monkeypatch.setattr(
+        public_site_freshness, "build_opener", lambda *handlers: SimpleNamespace(open=open_url)
+    )
     reports, us_report = fetch_public_snapshots("https://example.test/project/", max_bytes=1000)
     assert reports == asia()
     assert us_report == us()
@@ -175,13 +187,48 @@ def test_redirected_snapshot_is_unavailable_before_response_body_is_read(monkeyp
         payload = asia() if request.full_url.endswith("/reports.json") else us()
         return OriginalResponse(json.dumps(payload).encode(), request.full_url)
 
-    monkeypatch.setattr("scripts.public_site_freshness.urlopen", open_url)
+    monkeypatch.setattr(
+        public_site_freshness, "build_opener", lambda *handlers: SimpleNamespace(open=open_url)
+    )
     reports, us_report = fetch_public_snapshots("https://example.test/project")
     result = findings(reports, us_report)
     redirected_key = "asia" if redirected_name == "reports.json" else "us"
     other_key = "us" if redirected_key == "asia" else "asia"
     assert result[redirected_key]["status"] == "unavailable"
     assert result[other_key]["status"] == "ok"
+
+
+def test_redirect_is_rejected_without_requesting_redirect_target(monkeypatch):
+    seen = []
+    base = "https://example.test/project"
+    first = base + "/data/reports.json"
+    second = base + "/data/market_daily_report.json"
+
+    class FakeHTTPSHandler(HTTPSHandler):
+        def https_open(self, request: Request):
+            seen.append(request.full_url)
+            headers = Message()
+            if request.full_url == first:
+                headers["Location"] = "https://other.example.test/private"
+                response = addinfourl(io.BytesIO(b"redirect body"), headers, request.full_url, code=302)
+                response.msg = "Found"
+                return response
+            payload = us() if request.full_url == second else {"private": "should never fetch"}
+            response = addinfourl(
+                io.BytesIO(json.dumps(payload).encode()), headers, request.full_url, code=200
+            )
+            response.msg = "OK"
+            return response
+
+    def fake_build_opener(*handlers):
+        return build_opener(FakeHTTPSHandler(), *handlers)
+
+    monkeypatch.setattr(public_site_freshness, "build_opener", fake_build_opener)
+    reports, us_report = fetch_public_snapshots(base)
+    assert seen == [first, second]
+    result = findings(reports, us_report)
+    assert result["asia"]["status"] == "unavailable"
+    assert result["us"]["status"] == "ok"
 
 
 @pytest.mark.parametrize("fault", ["network", "oversize", "json", "array"])
@@ -209,7 +256,9 @@ def test_fetch_failure_yields_availability_finding_without_exposing_response(mon
             return Response(raw, request.full_url)
         return Response(json.dumps(us()).encode(), request.full_url)
 
-    monkeypatch.setattr("scripts.public_site_freshness.urlopen", open_url)
+    monkeypatch.setattr(
+        public_site_freshness, "build_opener", lambda *handlers: SimpleNamespace(open=open_url)
+    )
     reports, us_report = fetch_public_snapshots("https://example.test/project", max_bytes=200)
     result = findings(reports, us_report)
     assert result["asia"]["status"] == "unavailable"

@@ -7,7 +7,7 @@ import re
 from datetime import date, datetime, time
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener
 from zoneinfo import ZoneInfo
 
 try:
@@ -18,6 +18,11 @@ except ImportError:
 
 US_TZ = ZoneInfo("America/New_York")
 RUN_ID = re.compile(r"daily-(\d{4}-\d{2}-\d{2})\Z")
+
+
+class _NoRedirectHandler(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        return None
 
 
 def _finding(key: str, status: str) -> dict[str, str]:
@@ -41,12 +46,17 @@ def _asia_status(reports: dict, now: datetime, max_age_hours: int) -> str:
         latest_date = max(row["date"] for row in evenings)
         latest = [row for row in evenings if row["date"] == latest_date]
         result = health_report({"reports": latest}, now=now, max_age_hours=max_age_hours)
+        source_time = result["latest_source_generated_at"]
+        generated = datetime.fromisoformat(source_time) if source_time else None
     except (KeyError, TypeError, ValueError, AttributeError):
+        return "unavailable"
+    if generated is not None and generated > now:
         return "unavailable"
     if result["status"] == "stale":
         return "review"
     if result["status"] == "calendar_unverified":
-        generated = datetime.fromisoformat(result["latest_source_generated_at"])
+        if generated is None:
+            return "unavailable"
         if (now - generated).total_seconds() > max_age_hours * 3600:
             return "review"
         return "ok"
@@ -107,11 +117,12 @@ def fetch_public_snapshots(
     if timeout_seconds <= 0 or max_bytes <= 0:
         raise ValueError("timeout_seconds and max_bytes must be positive")
     base = base_url.rstrip("/")
+    opener = build_opener(_NoRedirectHandler())
     snapshots = []
     for filename in ("reports.json", "market_daily_report.json"):
         request = Request(f"{base}/data/{filename}", headers={"Accept": "application/json"})
         try:
-            with urlopen(request, timeout=timeout_seconds) as response:
+            with opener.open(request, timeout=timeout_seconds) as response:
                 if response.geturl() != request.full_url:
                     snapshots.append({})
                     continue
