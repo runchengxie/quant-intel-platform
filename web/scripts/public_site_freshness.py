@@ -46,6 +46,9 @@ def _asia_status(reports: dict, now: datetime, max_age_hours: int) -> str:
     if result["status"] == "stale":
         return "review"
     if result["status"] == "calendar_unverified":
+        generated = datetime.fromisoformat(result["latest_source_generated_at"])
+        if (now - generated).total_seconds() > max_age_hours * 3600:
+            return "review"
         return "ok"
     return "unavailable"
 
@@ -109,6 +112,9 @@ def fetch_public_snapshots(
         request = Request(f"{base}/data/{filename}", headers={"Accept": "application/json"})
         try:
             with urlopen(request, timeout=timeout_seconds) as response:
+                if response.geturl() != request.full_url:
+                    snapshots.append({})
+                    continue
                 raw = response.read(max_bytes + 1)
             if len(raw) > max_bytes:
                 snapshots.append({})

@@ -112,6 +112,11 @@ def test_long_market_closure_warns_for_review_without_claiming_publication_faile
     assert all("failed" not in item["summary"].lower() for item in result.values())
 
 
+def test_asia_generation_just_over_96_hours_requires_review():
+    result = findings(reports=asia(generated="2026-09-26 11:59:59"))
+    assert result["asia"]["status"] == "review"
+
+
 def test_naive_check_time_is_rejected():
     with pytest.raises(ValueError, match="timezone"):
         findings(now=datetime(2026, 9, 30, 12))
@@ -121,6 +126,13 @@ def test_fetch_uses_only_fixed_pages_urls_and_bounded_reads(monkeypatch):
     seen = []
 
     class Response(io.BytesIO):
+        def __init__(self, payload, url):
+            super().__init__(payload)
+            self.url = url
+
+        def geturl(self):
+            return self.url
+
         def read(self, size=-1):
             assert size == 1001
             return super().read(size)
@@ -128,7 +140,7 @@ def test_fetch_uses_only_fixed_pages_urls_and_bounded_reads(monkeypatch):
     def open_url(request, timeout):
         seen.append((request.full_url, timeout))
         payload = asia() if request.full_url.endswith("/reports.json") else us()
-        return Response(json.dumps(payload).encode())
+        return Response(json.dumps(payload).encode(), request.full_url)
 
     monkeypatch.setattr("scripts.public_site_freshness.urlopen", open_url)
     reports, us_report = fetch_public_snapshots("https://example.test/project/", max_bytes=1000)
@@ -140,9 +152,49 @@ def test_fetch_uses_only_fixed_pages_urls_and_bounded_reads(monkeypatch):
     ]
 
 
+@pytest.mark.parametrize("redirected_name", ["reports.json", "market_daily_report.json"])
+def test_redirected_snapshot_is_unavailable_before_response_body_is_read(monkeypatch, redirected_name):
+    class RedirectResponse(io.BytesIO):
+        def geturl(self):
+            return "https://other.example.test/sensitive.json"
+
+        def read(self, size=-1):
+            pytest.fail("redirected response body must not be read")
+
+    class OriginalResponse(io.BytesIO):
+        def __init__(self, payload, url):
+            super().__init__(payload)
+            self.url = url
+
+        def geturl(self):
+            return self.url
+
+    def open_url(request, timeout):
+        if request.full_url.endswith("/" + redirected_name):
+            return RedirectResponse(b"private body")
+        payload = asia() if request.full_url.endswith("/reports.json") else us()
+        return OriginalResponse(json.dumps(payload).encode(), request.full_url)
+
+    monkeypatch.setattr("scripts.public_site_freshness.urlopen", open_url)
+    reports, us_report = fetch_public_snapshots("https://example.test/project")
+    result = findings(reports, us_report)
+    redirected_key = "asia" if redirected_name == "reports.json" else "us"
+    other_key = "us" if redirected_key == "asia" else "asia"
+    assert result[redirected_key]["status"] == "unavailable"
+    assert result[other_key]["status"] == "ok"
+
+
 @pytest.mark.parametrize("fault", ["network", "oversize", "json", "array"])
 def test_fetch_failure_yields_availability_finding_without_exposing_response(monkeypatch, fault):
     secret = "sensitive response content"
+
+    class Response(io.BytesIO):
+        def __init__(self, payload, url):
+            super().__init__(payload)
+            self.url = url
+
+        def geturl(self):
+            return self.url
 
     def open_url(request, timeout):
         if request.full_url.endswith("/reports.json"):
@@ -154,8 +206,8 @@ def test_fetch_failure_yields_availability_finding_without_exposing_response(mon
                 if payload
                 else (b"{" + secret.encode() if fault == "json" else b"[]")
             )
-            return io.BytesIO(raw)
-        return io.BytesIO(json.dumps(us()).encode())
+            return Response(raw, request.full_url)
+        return Response(json.dumps(us()).encode(), request.full_url)
 
     monkeypatch.setattr("scripts.public_site_freshness.urlopen", open_url)
     reports, us_report = fetch_public_snapshots("https://example.test/project", max_bytes=200)
