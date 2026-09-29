@@ -47,6 +47,7 @@ def _year_ago_value(rows: list[FredObservation], current: FredObservation) -> fl
 
 def _fact(
     fact_id: str,
+    *,
     metric: str,
     series_id: str,
     value: float,
@@ -123,14 +124,14 @@ def _rate_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, dict[str, 
             facts.append(
                 _fact(
                     f"treasury.{tenor}.level_percent",
-                    "yield_level",
-                    series_id,
-                    current,
-                    previous,
-                    None,
-                    "percent",
-                    rows[-1].date,
-                    "ok"
+                    metric="yield_level",
+                    series_id=series_id,
+                    value=current,
+                    previous=previous,
+                    change=None,
+                    unit="percent",
+                    observation_date=rows[-1].date,
+                    quality="ok"
                     if rows[-1].date == as_of.astimezone(NEW_YORK).date().isoformat()
                     else "lagged",
                 )
@@ -138,14 +139,14 @@ def _rate_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, dict[str, 
             facts.append(
                 _fact(
                     f"treasury.{tenor}.change_bp",
-                    "yield_change",
-                    series_id,
-                    (current - previous) * 100,
-                    None,
-                    (current - previous) * 100,
-                    "basis_points",
-                    rows[-1].date,
-                    "ok"
+                    metric="yield_change",
+                    series_id=series_id,
+                    value=(current - previous) * 100,
+                    previous=None,
+                    change=(current - previous) * 100,
+                    unit="basis_points",
+                    observation_date=rows[-1].date,
+                    quality="ok"
                     if rows[-1].date == as_of.astimezone(NEW_YORK).date().isoformat()
                     else "lagged",
                 )
@@ -177,13 +178,13 @@ def fetch_us_macro_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, d
             facts.append(
                 _fact(
                     f"macro.{name}",
-                    name,
-                    series_id,
-                    value,
-                    previous,
-                    None,
-                    unit,
-                    current.date,
+                    metric=name,
+                    series_id=series_id,
+                    value=value,
+                    previous=previous,
+                    change=None,
+                    unit=unit,
+                    observation_date=current.date,
                 )
             )
         except (FredFetchError, ValueError):
