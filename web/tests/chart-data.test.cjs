@@ -56,3 +56,14 @@ test('chart option has units, signed values, a zero line and tooltip source date
   assert.match(option.tooltip.formatter({ dataIndex: 0 }), /\+1\.2 %.*2026-09-18/s);
   assert.match(option.tooltip.formatter({ dataIndex: 1 }), /−2 %/);
 });
+
+test('mixed-unit cards never compare counts and turnover on the same axis', async () => {
+  const { toOption } = await import('../src/lib/chart-data.ts');
+  const card = { title: '综合盘面', points: [
+    { label: '上涨家数', value: 2567, unit: '家' },
+    { label: '成交额', value: 14500, unit: '亿' },
+  ] };
+  assert.deepEqual(toOption(card).series[0].data.map(row => row.value), [2567]);
+  assert.deepEqual(toOption(card, '亿').series[0].data.map(row => row.value), [14500]);
+  assert.equal(toOption(card, '亿').yAxis.name, '亿');
+});

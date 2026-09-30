@@ -98,9 +98,17 @@ export function signedValue(value: number, unit: string): string {
   return `${sign}${Math.abs(value).toLocaleString('zh-CN', { maximumFractionDigits: 2 })} ${unit}`;
 }
 
-export function toOption(card: ChartCard): EChartsOption {
-  const points = card.points;
-  const units = [...new Set(points.map((point) => point.unit))];
+function axisUnit(unit: string): string {
+  return unit.startsWith('观察分') ? '观察分' : unit;
+}
+
+export function chartUnits(card: ChartCard): string[] {
+  return [...new Set(card.points.map((point) => axisUnit(point.unit)))];
+}
+
+export function toOption(card: ChartCard, selectedUnit?: string): EChartsOption {
+  const unit = selectedUnit || chartUnits(card)[0];
+  const points = card.points.filter((point) => axisUnit(point.unit) === unit);
   return {
     animation: false,
     aria: { enabled: true, description: `${card.title}。逐项数值和来源见图下方表格。` },
@@ -113,7 +121,7 @@ export function toOption(card: ChartCard): EChartsOption {
       return `${escapeHtml(point.label)}<br>${escapeHtml(signedValue(point.value, point.unit))}<br>观测日 ${escapeHtml(point.observation_date)}<br>${escapeHtml(point.source_label)}`;
     } },
     xAxis: { type: 'category', data: points.map((point) => point.label), axisLabel: { rotate: points.length > 5 ? 35 : 0, interval: 0 } },
-    yAxis: { type: 'value', name: units.length === 1 ? units[0] : '原始数值（单位见悬停）', axisLine: { show: true } },
+    yAxis: { type: 'value', name: unit, ...(unit === '观察分' ? { min: 0, max: 100 } : {}), axisLine: { show: true } },
     dataZoom: points.length > 8 ? [{ type: 'slider', start: 0, end: Math.min(100, 800 / points.length) }] : [],
     series: [{ name: card.title, type: 'bar', data: points.map((point) => ({
       value: point.value,
