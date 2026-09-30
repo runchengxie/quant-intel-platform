@@ -1,30 +1,35 @@
 ---
 import { loadChart } from '../lib/reports.ts';
 import ChartIsland from './ChartIsland.tsx';
+import { toEnglishPresentation } from '../lib/english-content.ts';
 
-const { reportId } = Astro.props;
+const { reportId, locale = 'zh' } = Astro.props;
 const cards = loadChart(reportId).filter((card) => card.key !== 'us_overnight');
 const formatValue = (point) => `${Number(point.value).toLocaleString('zh-CN', { maximumFractionDigits: 2 })} ${point.unit}`;
+const present = (value) => locale === 'en' ? toEnglishPresentation(String(value || '')) : value;
+const labels = locale === 'en'
+  ? { eyebrow: 'Market charts', heading: 'Asian market charts', note: 'This section shows public data reviewed item by item. Missing data is labelled explicitly.', status: { ok: 'Verified', degraded: 'Degraded', missing: 'Missing', skipped: 'Skipped' }, values: 'View values and sources', metric: 'Metric', value: 'Value', date: 'Observation date', source: 'Source' }
+  : { eyebrow: '行情图表', heading: '亚洲市场图表', note: '这里展示已逐项核实的公开数据。缺少的数据会标为缺项。', status: { ok: '已核实', degraded: '降级', missing: '缺项', skipped: '跳过' }, values: '查看数值与来源', metric: '指标', value: '数值', date: '观测日', source: '来源' };
 ---
 <section class="charts-section" aria-labelledby="chart-heading">
-  <div class="section-heading"><span class="eyebrow">行情图表</span><h2 id="chart-heading">亚洲市场图表</h2></div>
-  <p class="section-note">这里展示已逐项核实的公开数据。缺少的数据会标为缺项。</p>
+  <div class="section-heading"><span class="eyebrow">{labels.eyebrow}</span><h2 id="chart-heading">{labels.heading}</h2></div>
+  <p class="section-note">{labels.note}</p>
   <div class="chart-grid">
     {cards.map((card) => (
       <article class="chart-card" data-chart-key={card.key} data-chart-status={card.status}>
         <div class="chart-head">
-          <h3>{card.title}</h3>
-          <span class:list={['status-pill', card.status]}>{({ ok: '已核实', degraded: '降级', missing: '缺项', skipped: '跳过' })[card.status] || '缺项'}</span>
+          <h3>{present(card.title)}</h3>
+          <span class:list={['status-pill', card.status]}>{labels.status[card.status] || labels.status.missing}</span>
         </div>
-        {card.reason && <p class="chart-reason">{card.reason}</p>}
+        {card.reason && <p class="chart-reason">{present(card.reason)}</p>}
         {card.points.length > 0 && <ChartIsland reportId={reportId} chartKey={card.key} client:visible />}
         {card.points.length > 0 && (
           <details class="chart-values">
-            <summary>查看数值与来源</summary>
+            <summary>{labels.values}</summary>
             <div class="table-scroll"><table>
-              <thead><tr><th scope="col">指标</th><th scope="col">数值</th><th scope="col">观测日</th><th scope="col">来源</th></tr></thead>
+              <thead><tr><th scope="col">{labels.metric}</th><th scope="col">{labels.value}</th><th scope="col">{labels.date}</th><th scope="col">{labels.source}</th></tr></thead>
               <tbody>{card.points.map((point) => (
-                <tr><th scope="row">{point.label}</th><td>{formatValue(point)}</td><td>{point.observation_date}</td><td><a href={point.source_url} target="_blank" rel="noopener noreferrer">{point.source_label}</a></td></tr>
+                <tr><th scope="row">{present(point.label)}</th><td>{formatValue(point)}</td><td>{point.observation_date}</td><td><a href={point.source_url} target="_blank" rel="noopener noreferrer">{present(point.source_label)}</a></td></tr>
               ))}</tbody>
             </table></div>
           </details>
