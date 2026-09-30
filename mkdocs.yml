@@ -103,7 +103,7 @@ nav:
       - Maintenance scripts: maintenance-scripts.en.md
       - Roadmap: roadmap.en.md
       - New-machine setup: new-machine-setup.en.md
-      - Code-quality audit: code-quality-audit-findings.md
+      - Code-quality audit record: code-quality-audit-findings.en.md
   - Analysis and research:
       - A-share factor signals: a-share-factor-signals.md
       - Hotspot composite: hotspot-composite.en.md
