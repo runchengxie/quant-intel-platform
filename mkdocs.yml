@@ -107,7 +107,7 @@ nav:
   - Analysis and research:
       - A-share factor signals: a-share-factor-signals.md
       - Hotspot composite: hotspot-composite.en.md
-      - ETL/report refactor plan: refactor-plan-etl-report.md
+      - ETL/report refactor record: refactor-plan-etl-report.en.md
       - Platform publication: platform-publication.en.md
       - Hermes workflow: hermes-agent-workflow.en.md
       - Cashflow shadow delivery: cashflow-feishu-shadow.en.md
