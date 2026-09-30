@@ -192,3 +192,30 @@ test('historical evening report loads with a visible graphic and resolved colors
   expect(colors.bg).toBe(colors.expectedBg);
   expect(colors.ink).toBe(colors.expectedInk);
 });
+
+test('report locale switch preserves the report and provides shareable locale routes', async ({ page }) => {
+  const reportId = '2026-09-28-evening';
+  const chineseRoute = `${base}/reports/${reportId}/`;
+  const englishRoute = `${base}/en/reports/${reportId}/`;
+
+  await page.goto(chineseRoute);
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');
+  await expect(page.locator('.report-heading h1')).toBeVisible();
+  await expect(page.locator('.top-note')).toContainText('2026-09-28');
+  await expect(page.getByRole('link', { name: 'English', exact: true }))
+    .toHaveAttribute('href', englishRoute);
+  await page.getByRole('link', { name: 'English', exact: true }).click();
+
+  await expect(page).toHaveURL(new RegExp(`${reportId}/$`));
+  await expect(page.locator('html')).toHaveAttribute('lang', 'en-US');
+  await expect(page.locator('.report-heading h1')).toBeVisible();
+  await expect(page.locator('.top-note')).toContainText('2026-09-28');
+  await expect(page.getByRole('link', { name: '中文', exact: true }))
+    .toHaveAttribute('href', chineseRoute);
+  await page.getByRole('link', { name: '中文', exact: true }).click();
+
+  await expect(page).toHaveURL(new RegExp(`${reportId}/$`));
+  await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');
+  await expect(page.locator('.report-heading h1')).toBeVisible();
+  await expect(page.locator('.top-note')).toContainText('2026-09-28');
+});
