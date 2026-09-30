@@ -26,6 +26,19 @@
       "fingerprint": "49145dcaa55c4f7399f794207280fe2ca232f15adc531add3431250682306251",
       "source_hash": "91e5473aa6d6513e9cf081f92313ff21202290226072d10ee1785bf546751bd0",
       "insight_source_hash": "0ec1676fc4d65bdd53e3dc6247488ebec699eb2c277b93cca4ff2473244839ae"
+    },
+    {
+      "date": "2026-09-30",
+      "text": "市场状态从温和活跃转为中性偏冷，指数层面分化，个股广度明显走弱。",
+      "morning_report_id": "2026-09-30-evening",
+      "evening_report_id": "2026-09-29-evening",
+      "generated_at": "2026-09-30T18:45:37+08:00",
+      "model": "deepseek-chat",
+      "provider": "deepseek",
+      "prompt_version": "daily-commentary-v1",
+      "fingerprint": "ce22158ca64809973985bc6d6987e0f026fdb9757bcd8da518eacec60cde1bcd",
+      "source_hash": "8b3b0a7164e74ca54af1090452655448e4d07231d60cd2de187a4ad76335667b",
+      "insight_source_hash": "36cdcd1222dfb357a1a582181ca23291461e948e5a7787ee68b29266eaec6e6b"
     }
   ]
 }
