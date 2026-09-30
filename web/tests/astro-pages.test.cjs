@@ -48,6 +48,8 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   const english = readFileSync(path.join(root, 'dist/en/index.html'), 'utf8');
   assert.match(english, /<button[^>]*id="theme-toggle"[^>]*aria-pressed="false"[^>]*>Dark mode<\/button>/);
   assert.match(english, /aria-label="Switch to dark mode"/);
+  assert.doesNotMatch(english, /亚洲市场收盘复盘|目标日期|六维观察|市场状态/);
+  assert.match(english, /Asia market close review|Target date|Six-dimension observation|Market state/);
   assert.match(english.slice(0, english.indexOf('</head>')), /market-intel-theme/, 'English theme is initialized before body paint');
   const header = index.match(/<header class="topbar">([\s\S]*?)<\/header>/)?.[1];
   assert.ok(header);
@@ -123,6 +125,13 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   assert.match(index, /<a href="https:\/\/home\.treasury\.gov[^"]*"[^>]*>美国财政部<\/a>/);
   assert.doesNotMatch(index, /\| 流动性 \|/);
   assert.match(html, /<table>/);
+});
+
+test('English report pages translate source-language presentation text', () => {
+  execFileSync('npm', ['run', 'build'], { cwd: root, stdio: 'pipe' });
+  const englishReport = readFileSync(path.join(root, 'dist/en/reports/2026-09-29-evening/index.html'), 'utf8');
+  assert.doesNotMatch(englishReport, /亚洲市场收盘复盘|六维观察|热门概念|市场状态/);
+  assert.match(englishReport, /Asia market close review|Six-dimension observation|Hot concepts|Market state/);
 });
 
 test('English home uses the same report sections and responsive shell as Chinese home', () => {
