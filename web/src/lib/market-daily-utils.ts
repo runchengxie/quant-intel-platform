@@ -71,8 +71,12 @@ const ALPACA_STOCK_BARS_URL = "https://docs.alpaca.markets/us/reference/stockbar
 const CORE_EQUITIES = new Set(["MSFT", "AAPL", "NVDA", "AMZN", "GOOGL", "META"]);
 const MARKET_DAILY_GAPS: Record<string, string> = {
   rates_lag: "美债收益率当日变动", quotes: "指数行情", research: "研究解释", fred: "部分 FRED 数据",
-  cross_asset: "布伦特、金银或比特币行情",
+  cross_asset: "部分跨资产行情",
   equities: "部分美股个股行情",
+};
+const CROSS_ASSET_GAPS: Record<string, string> = {
+  brent: "布伦特期货行情", gold: "黄金期货行情", silver: "白银期货行情",
+  bitcoin: "比特币期货行情",
 };
 const MARKET_DAILY_CLAIM_SECTIONS = [
   ["market", "市场表现"], ["drivers", "市场驱动因素"], ["movers", "主要个股"],
@@ -221,7 +225,15 @@ export function summarizeMarketDaily(payload: unknown): MarketDailySummary | nul
   })).filter((section) => section.claims.length);
   const gaps = (payload.missing_sources ?? [])
     .filter((item) => Object.hasOwn(MARKET_DAILY_GAPS, item))
-    .map((item) => MARKET_DAILY_GAPS[item]);
+    .flatMap((item) => {
+      if (item !== "cross_asset") return [MARKET_DAILY_GAPS[item]];
+      const unavailable = Object.entries(CROSS_ASSET_GAPS)
+        .filter(([asset]) => !rows.some((row) => row.id === `cross_asset.${asset}.close`)
+          || !rows.some((row) => row.id === `cross_asset.${asset}.change_percent`))
+        .map(([, label]) => label);
+      // A reported quality issue still needs disclosure even when pairs exist.
+      return unavailable.length ? unavailable : [MARKET_DAILY_GAPS[item]];
+    });
   for (const tenor of ["2y", "5y", "10y", "30y"]) {
     const level = rows.find((row) => row.id === `treasury.${tenor}.level_percent`);
     const change = rows.find((row) => row.id === `treasury.${tenor}.change_bp`);

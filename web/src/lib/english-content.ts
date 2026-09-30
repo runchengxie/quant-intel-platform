@@ -1,4 +1,9 @@
 const PHRASES: Array<[string, string]> = [
+  ['布伦特期货行情', 'Brent futures prices'],
+  ['黄金期货行情', 'Gold futures prices'],
+  ['白银期货行情', 'Silver futures prices'],
+  ['比特币期货行情', 'Bitcoin futures prices'],
+  ['部分跨资产行情', 'some cross-asset prices'],
   ['展示已核实的行情图解、市场解读、经济数据和关键来源', 'Shows verified market charts, interpretation, economic data, and key sources'],
   ['亚洲市场收盘复盘', 'Asia market close review'],
   ['亚洲市场收盘复盘（', 'Asia market close review ('],

@@ -1,6 +1,30 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { summarizeMarketDaily, formatMarketDailyStatus, buildMarketDailyCharts, buildMarketDailyChartSvg } = require("../src/lib/market-daily-utils.ts");
+const { toEnglishPresentation } = require("../src/lib/english-content.ts");
+
+test("asset-specific gap labels remain readable in the English report", () => {
+  assert.equal(toEnglishPresentation("尚缺：比特币期货行情"), "Missing: Bitcoin futures prices");
+  assert.equal(toEnglishPresentation("尚缺：部分跨资产行情"), "Missing: some cross-asset prices");
+});
+
+test("partial cross-asset gap names missing futures without hiding available spot", () => {
+  const futures = [["brent", "BZ%3DF", "USD/barrel"], ["gold", "GC%3DF", "USD/troy_ounce"], ["silver", "SI%3DF", "USD/troy_ounce"]].flatMap(([asset, ticker, unit]) => [
+    { id: `cross_asset.${asset}.close`, metric: "commodity_close", value: 100, unit },
+    { id: `cross_asset.${asset}.change_percent`, metric: "daily_return", value: 1, unit: "percent" },
+  ].map((fact) => ({ ...fact, source: "Yahoo Finance", source_url: `https://finance.yahoo.com/quote/${ticker}/history/`, quality: "ok", observation_date: "2026-09-24" })));
+  const spot = [
+    { id: "cross_asset.bitcoin_spot.close", metric: "crypto_spot_close", value: 83000, unit: "USD/bitcoin" },
+    { id: "cross_asset.bitcoin_spot.change_percent", metric: "daily_return", value: 1, unit: "percent" },
+  ].map((fact) => ({ ...fact, source: "Financial Modeling Prep", source_url: "https://site.financialmodelingprep.com/developer/docs/stable/cryptocurrency-historical-price-eod-full", instrument: "BTC/USD cryptocurrency EOD (FMP BTCUSD)", quality: "ok", observation_date: "2026-09-24" }));
+  const summary = summarizeMarketDaily({ schema_version: "1.0", run_id: "daily-2026-09-24", missing_sources: ["research", "cross_asset"], facts: [...futures, ...spot] });
+  assert.ok(summary);
+  assert.deepEqual(summary.gaps, ["研究解释", "比特币期货行情"]);
+  assert.equal(summary.crossAssetRows.length, 4);
+  const svg = buildMarketDailyChartSvg(summary);
+  assert.match(svg, /尚缺：比特币期货行情/);
+  assert.doesNotMatch(svg, /尚缺：布伦特、金银或比特币行情/);
+});
 
 test("market daily keeps the observation date and lagged yield state", () => {
   const summary = summarizeMarketDaily({
