@@ -174,158 +174,115 @@ const PHRASES: Array<[string, string]> = [
   ['来源', 'Source'],
 ];
 
-const PHRASE_PATTERN = new RegExp(PHRASES.map(([source]) => source.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|'), 'g');
 
-/** Translate public presentation text without altering facts, dates, URLs, or source identifiers. */
+const COMPLETE_TERMS: Array<[string, string]> = [
+  ['市场状态从温和活跃转为中性偏冷，指数层面分化，个股广度明显走弱', 'The market shifted from moderately active to neutral-to-cool; indexes diverged and stock breadth weakened markedly'],
+  ['市场状态中性偏冷', 'Market state: neutral to cool'],
+  ['市场广度', 'Market breadth'], ['综合仪表盘', 'Market breadth dashboard'],
+  ['资金流向图', 'Money flow'], ['热点概念图', 'Hot concepts'], ['市场温度计', 'Market temperature'],
+  ['涨跌停榜单', 'price-limit list'], ['至', 'to'],
+  ['下一观察日上涨家数占比高于当前值，才算广度开始修复', 'Breadth starts to recover only if the advancing stock share exceeds its current level on the next observation day'],
+  ['生成时间', 'Generation time'], ['报告生成方式', 'Report generation method'],
+  ['周三 盘后点评', 'Wednesday after-market review'], ['维度', 'Dimension'],
+  ['昨日验证复盘', 'Prior-day validation review'], ['科创50', 'STAR Market 50'],
+  ['沪深300', 'CSI 300'], ['中证500', 'CSI 500'], ['中证1000', 'CSI 1000'],
+  ['站上 VWAP 比例', 'Above-VWAP share'], ['日内振幅中位数', 'Median intraday range'], ['收盘位置', 'Close position'],
+  ['美容护理', 'Beauty and personal care'], ['农林牧渔', 'Agriculture, forestry and fisheries'],
+  ['公用事业', 'Utilities'], ['其他', 'Other'], ['煤炭', 'Coal'], ['交通运输', 'Transportation'],
+  ['机械设备', 'Machinery'], ['纺织服饰', 'Textiles and apparel'],
+  ['一、', 'I. '], ['二、', 'II. '], ['三、', 'III. '], ['四、', 'IV. '], ['五、', 'V. '],
+  ['六、', 'VI. '], ['七、', 'VII. '], ['八、', 'VIII. '], ['九、', 'IX. '], ['十、', 'X. '],
+  ['行业层面多数上涨，但个股广度没有同步确认', 'Most sectors advanced, but stock breadth did not confirm the move'],
+  ['下一观察日上涨个股家数占比高于当前值，才算广度开始修复', 'Breadth starts to recover only if the advancing stock share exceeds its current level on the next observation day'],
+  ['融资余额最新观测日早于上一交易日，保留原始观测日', 'The latest financing-balance observation predates the previous session; original observation dates are preserved'],
+  ['融资余额非最新交易日；保留实际观测日。', 'Financing balances are not from the latest session; actual observation dates are preserved.'],
+  ['本期仅含', 'This edition includes only '],
+  ['个可用交易日', ' available sessions'],
+  ['逐点保留实际观测日，不补造缺失交易日', 'Actual observation dates are retained for each point; missing sessions are not fabricated'],
+  ['保留实际观测日，不补造缺失交易日', 'Actual observation dates are retained; missing sessions are not fabricated'],
+  ['上涨率', 'Advancing share'], ['个股中位涨跌', 'Median stock return'],
+  ['成交额加权涨跌', 'Turnover-weighted return'], ['成交额加权与中位数偏离', 'Turnover-weighted return minus median'],
+  ['高成交标的相对偏强', 'High-turnover stocks were relatively stronger'],
+  ['成交额分位', 'Turnover percentile'], ['成交额/历史中位', 'Turnover / historical median'],
+  ['历史中位', 'historical median'], ['站上VWAP占比', 'Above-VWAP share'],
+  ['涨幅超5%占比', 'Share gaining over 5%'], ['跌幅超5%占比', 'Share falling over 5%'],
+  ['上涨指数占比', 'Advancing index share'], ['指数中位涨跌', 'Median index return'],
+  ['上涨行业占比', 'Advancing sector share'], ['行业中位涨跌', 'Median sector return'],
+  ['领涨集中度', 'Leader concentration'], ['中性偏冷', 'Neutral to cool'],
+  ['偏弱', 'Somewhat weak'], ['较弱', 'Weak'], ['较强', 'Strong'], ['偏强', 'Somewhat strong'],
+  ['中性', 'Neutral'], ['低风险', 'Low risk'], ['已核实', 'Verified'],
+  ['部分缺项', 'Degraded'], ['逐点审核未通过，本期不公开该图数据', 'Point review did not pass; this chart is withheld for this edition'],
+  ['主力净流入', 'Major net inflows'], ['主力净流出', 'Major net outflows'],
+  ['净流入', 'Net inflows'], ['净流出', 'Net outflows'],
+  ['平均涨跌', 'Average return'], ['涨停家数', 'Limit-up stocks'],
+  ['上涨家数', 'Advancing stocks'], ['下跌家数', 'Declining stocks'], ['平盘家数', 'Unchanged stocks'],
+  ['融资余额走势', 'Financing-balance trend'], ['融资余额', 'Financing balance'],
+  ['近几日涨跌分布', 'Recent return distribution'], ['成交额走势（亿）', 'Turnover trend (CNY 100m)'],
+  ['近5个可用交易日概览', 'Recent available-session overview'],
+  ['近5个工作日可用数据概览', 'Available data in the last five weekdays'],
+  ['已核实数据', 'Verified data'], ['热点权重', 'Hot-concept values'],
+  ['Tushare A 股日线', 'Tushare A-share daily prices'],
+  ['Tushare 涨跌停榜单', 'Tushare price-limit list'],
+  ['Tushare 连板天梯', 'Tushare consecutive limit-up rankings'],
+  ['Tushare 融资融券交易汇总', 'Tushare margin-financing summary'],
+  ['Tushare 同花顺资金流', 'Tushare THS money flow'],
+  ['Tushare A股晚报六维观察', 'Tushare A-share evening six-dimension observation'],
+  ['东方财富概念板块（Tushare 授权数据）', 'Eastmoney concept sectors (data authorized through Tushare)'],
+  ['mRNA概念', 'mRNA theme'], ['重组蛋白', 'Recombinant proteins'], ['玉米', 'Corn'], ['转基因', 'Genetically modified crops'],
+  ['医药生物', 'Pharmaceuticals and biotechnology'], ['食品饮料', 'Food and beverages'], ['银行', 'Banking'],
+  ['房地产', 'Real estate'], ['传媒', 'Media'], ['计算机', 'Computers'],
+  ['电力设备', 'Power equipment'], ['通信', 'Telecom'], ['有色金属', 'Nonferrous metals'],
+  ['环保', 'Environmental services'], ['电子', 'Electronics'], ['钢铁', 'Steel'], ['石油石化', 'Oil and petrochemicals'],
+  ['行业', 'Industry'], ['家数', 'Stock count'], ['证据', 'Evidence'], ['条件', 'Condition'],
+  ['全市场中位数涨跌', 'Median market return'], ['涨停数', 'Limit-up count'],
+  ['总成交', 'Total turnover'], ['涨停', 'Limit-up'], ['跌停', 'Limit-down'],
+  ['大单资金代理', 'Large-order money-flow proxy'], ['成交额', 'Turnover'],
+  ['亿元', 'CNY 100m'], ['亿', 'CNY 100m'], ['万亿', 'CNY trillion'], ['家', ' stocks'],
+  ['观察分（风险）', 'observation score (risk)'],
+  ['板', ' consecutive limit-up sessions'], ['涨', 'advancing'], ['跌', 'declining'], ['平', 'unchanged'],
+  ['均涨跌', 'Average return'], ['涨跌', 'Return'], ['涨幅', 'Return'], ['跌幅', 'Decline'],
+  ['热度、脆弱度与六维分数均为市场状态观察分，不直接映射仓位，也不构成交易指令', 'Heat, fragility, and six-dimension scores are market-state observation scores; they do not map directly to position sizing or constitute trading instructions'],
+  ['观察分越高表示该维度越强；亏钱风险越高，风险越高', 'Higher scores indicate stronger dimensions; a higher loss-risk score indicates greater risk'],
+  ['赚钱效应、亏钱风险存在缺项，观察分按可用指标重加权', 'Profit effect and loss risk have missing inputs; observation scores were reweighted using available metrics'],
+  ['校准: 暂定观察刻度（未回测）。', 'Calibration: provisional observation scale (not backtested).'],
+  ['行业 / 均涨跌 / 中位数 / 家数 / 上涨率', 'Industry / average return / median / stock count / advancing share'],
+  ['完整来源链接见网页报告', 'Full source links are available in the web report'],
+  ['警告', 'Warning'], ['暂定观察刻度', 'provisional observation scale'], ['未回测', 'not backtested'],
+  ['亚洲市场收盘图文复盘', 'Asia market close review'],
+  ['包含亚洲市场收盘摘要、市场广度、资金流向、市场温度、周度变化及关键来源', 'Includes the Asia close summary, market breadth, money flow, market temperature, weekly changes, and key sources'],
+];
+
+const dictionary = new Map<string, string>([...PHRASES, ...COMPLETE_TERMS]);
+const terms = [...dictionary.keys()].sort((left, right) => right.length - left.length);
+const letter = /\p{L}/u;
+
+function translatePlain(value: string): string {
+  let result = '';
+  let offset = 0;
+  while (offset < value.length) {
+    const source = terms.find((term) => value.startsWith(term, offset)
+      && (!letter.test(term[0]) || offset === 0 || !letter.test(value[offset - 1]))
+      && (!letter.test(term.at(-1) || '') || !letter.test(value[offset + term.length] || '')));
+    if (source) {
+      result += dictionary.get(source);
+      offset += source.length;
+    } else {
+      // Preserve unknown contiguous Chinese names/prose intact, never translate a
+      // familiar character inside a company name or an unreviewed sentence.
+      const original = value.slice(offset).match(/^[\p{L}_]+/u)?.[0] || value[offset];
+      result += original;
+      offset += original.length;
+    }
+  }
+  return result.replace(/；/g, '; ').replace(/：/g, ': ').replace(/。/g, '. ')
+    .replace(/，/g, ', ').replace(/、/g, ', ').replace(/（/g, ' (').replace(/）/g, ')');
+}
+
+/** Translate presentation text only; preserve facts, source names, links and SVG attributes. */
 export function toEnglishPresentation(value: string): string {
-  const exact = value
-    .replace(/热度、脆弱度与六维分数均为市场状态观察分，不直接映射仓位，也不构成交易指令/g, 'Heat, fragility, and six-dimension scores are market-state observation scores; they do not map directly to position sizing or constitute trading instructions')
-    .replace(/观察分越高表示该维度越强；亏钱风险越高，风险越高/g, 'Higher scores indicate stronger dimensions; a higher loss-risk score indicates greater risk')
-    .replace(/警告[:：]\s*赚钱效应、亏钱风险存在缺项，观察分按可用指标重加权/g, 'Warning: profit effect and loss risk have missing inputs; observation scores were reweighted using available metrics')
-    .replace(/市场从前一日的偏冷脆弱转为温和活跃，指数与行业普遍收涨，但成交额继续收缩，上涨质量仍待确认/g, 'The market shifted from the prior day\'s cool and fragile state to moderately active; indexes and sectors broadly gained, but turnover continued to contract and advance quality remains unconfirmed')
-    .replace(/亚洲市场收盘图文复盘/g, 'Asia market close review')
-    .replace(/包含亚洲市场收盘摘要、市场广度、资金流向、市场温度、周度变化及关键来源/g, 'Includes the Asia close summary, market breadth, money flow, market temperature, weekly changes, and key sources')
-    .replace(/北京时间 19:00 目标版 · 以报告实际生成时间和数据日期为准/g, '19:00 Beijing time target edition · based on the actual report generation time and data date')
-    .replace(/近几日涨跌分布/g, 'Recent return distribution')
-    .replace(/涨跌分布/g, 'Return distribution')
-    .replace(/成交额走势（亿）/g, 'Turnover trend (100m)')
-    .replace(/成交额/g, 'turnover')
-    .replace(/市场广度/g, 'market breadth')
-    .replace(/关键来源/g, 'key sources')
-    .replace(/市场温度/g, 'market temperature')
-    .replace(/周度变化/g, 'weekly changes');
-  return exact.replace(PHRASE_PATTERN, (match) => PHRASES.find(([source]) => source === match)?.[1] || match)
-    // A few source records omit spaces or vary punctuation. Keep this second pass
-    // deliberately limited to report labels and explanatory prose; proper nouns
-    // such as Chinese company and concept names remain source-faithful.
-    .replace(/(\d+)年期美债/g, '$1-year Treasury')
-    .replace(/热度、脆弱度与六维分数均为市场状态观察分，不直接映射仓位，也不构成交易指令/g, 'Heat, fragility, and six-dimension scores are market-state observation scores; they do not map directly to position sizing or constitute trading instructions')
-    .replace(/观察分越高表示该维度越强；亏钱风险越高，风险越高/g, 'Higher scores indicate stronger dimensions; a higher loss-risk score indicates greater risk')
-    .replace(/警告[:：]\s*赚钱效应、亏钱风险存在缺项，观察分按可用指标重加权/g, 'Warning: profit effect and loss risk have missing inputs; observation scores were reweighted using available metrics')
-    .replace(/市场从前一日的偏冷脆弱转为温和活跃，指数与行业普遍收涨，但成交额继续收缩，上涨质量仍待确认/g, 'The market shifted from the prior day\'s cool and fragile state to moderately active; indexes and sectors broadly gained, but turnover continued to contract and advance quality remains unconfirmed')
-    .replace(/上涨率/g, 'up rate')
-    .replace(/站上VWAP占比/g, 'above-VWAP share')
-    .replace(/站上日内均价/g, 'above intraday VWAP')
-    .replace(/成交额加权涨跌/g, 'turnover-weighted return')
-    .replace(/成交额加权与中位数偏离/g, 'turnover-weighted return minus median')
-    .replace(/高成交标的/g, 'high-volume names')
-    .replace(/净流入/g, 'net inflow')
-    .replace(/净流出/g, 'net outflow')
-    .replace(/领涨集中度/g, 'leader concentration')
-    .replace(/收盘上涨家数占优/g, 'advancers outnumbered decliners at the close')
-    .replace(/上涨质量/g, 'advance quality')
-    .replace(/下一观察日/g, 'next observation day')
-    .replace(/条件/g, 'condition')
-    .replace(/维度/g, 'dimension')
-    .replace(/证据/g, 'evidence')
-    .replace(/状态/g, 'status')
-    .replace(/较弱/g, 'weak')
-    .replace(/偏强/g, 'strong')
-    .replace(/中性/g, 'neutral')
-    .replace(/低风险/g, 'low risk')
-    .replace(/较强/g, 'strong')
-    .replace(/收益率/g, 'yield')
-    .replace(/当日变动/g, 'daily change')
-    .replace(/日涨跌/g, 'daily return')
-    .replace(/收盘涨跌/g, 'close return')
-    .replace(/涨跌停/g, 'price limits')
-    .replace(/涨停数/g, 'limit-up count')
-    .replace(/上涨行业占比/g, 'share of advancing sectors')
-    .replace(/行业中位涨跌/g, 'sector median return')
-    .replace(/指数中位涨跌/g, 'index median return')
-    .replace(/中位数涨跌/g, 'median return')
-    .replace(/涨幅超5%占比/g, 'share gaining over 5%')
-    .replace(/跌幅超5%占比/g, 'share falling over 5%')
-    .replace(/涨停率/g, 'limit-up rate')
-    .replace(/跌停率/g, 'limit-down rate')
-    .replace(/风险/g, 'risk')
-    .replace(/历史中位/g, 'historical median')
-    .replace(/分位/g, 'percentile')
-    .replace(/占比/g, 'share')
-    .replace(/净流入/g, 'net inflow')
-    .replace(/净流出/g, 'net outflow')
-    .replace(/加权涨跌/g, 'weighted return')
-    .replace(/偏离/g, 'difference')
-    .replace(/涨跌/g, 'return')
-    .replace(/上涨/g, 'advancing')
-    .replace(/下跌/g, 'declining')
-    .replace(/平盘/g, 'flat')
-    .replace(/家数/g, 'count')
-    .replace(/资金动向/g, 'Money flow')
-    .replace(/大单资金代理/g, 'Large-order money-flow proxy')
-    .replace(/融资融券/g, 'Margin financing')
-    .replace(/行业板块/g, 'Industry sectors')
-    .replace(/高成交个股/g, 'High-volume stocks')
-    .replace(/涨跌/g, 'return')
-    .replace(/图表/g, 'charts')
-    .replace(/图解/g, 'charts')
-    .replace(/行情charts/g, 'market charts')
-    .replace(/Economic data/g, 'economic data')
-    .replace(/年期美债/g, '-year Treasury')
-    .replace(/科创50/g, 'STAR Market 50')
-    .replace(/全市场/g, 'all-market')
-    .replace(/中位数/g, 'median')
-    .replace(/中位/g, 'median')
-    .replace(/超5%/g, 'over 5%')
-    .replace(/涨停/g, 'limit-up')
-    .replace(/跌停/g, 'limit-down')
-    .replace(/大单/g, 'large-order')
-    .replace(/标的/g, 'names')
-    .replace(/一、/g, 'I. ')
-    .replace(/昨日验证复盘/g, 'Prior-day validation review')
-    .replace(/站上 VWAP 比例/g, 'Above-VWAP share')
-    .replace(/位置/g, 'position')
-    .replace(/指标/g, 'metric')
-    .replace(/数 \/ Up率/g, 'count / up rate')
-    .replace(/数/g, 'count')
-    .replace(/率/g, 'rate')
-    .replace(/综合仪表盘/g, 'Market breadth dashboard')
-    .replace(/市场从前一日的Cool脆弱/g, 'The market shifted from the prior day\'s cool and fragile')
-    .replace(/质量仍待确认/g, 'advance quality remains unconfirmed')
-    .replace(/构volume易指令/g, 'constitute trading instructions')
-    .replace(/不直接映射仓位/g, 'do not map directly to position sizing')
-    .replace(/市场状态/g, 'market state')
-    .replace(/展示已核实的/g, 'Shows verified ')
-    .replace(/经济数据和关键来源/g, 'economic data and key sources')
-    .replace(/加权与mediandifference/g, 'weighted return minus median')
-    .replace(/高volumenames相对strong/g, 'high-volume names were relatively strong')
-    .replace(/生成时间/g, 'Generation time')
-    .replace(/报告Generation method/g, 'Report generation method')
-    .replace(/房地产/g, 'Real estate')
-    .replace(/传媒/g, 'Media')
-    .replace(/计算机/g, 'Computers')
-    .replace(/电力设备/g, 'Power equipment')
-    .replace(/通信/g, 'Telecom')
-    .replace(/有色金属/g, 'Nonferrous metals')
-    .replace(/环保/g, 'Environmental services')
-    .replace(/电子/g, 'Electronics')
-    .replace(/钢铁/g, 'Steel')
-    .replace(/石油石化/g, 'Oil and petrochemicals')
-    .replace(/缺项/g, 'missing')
-    .replace(/经济数据/g, 'economic data')
-    .replace(/关键来源/g, 'key sources')
-    .replace(/完整Source链接见网页报告/g, 'Full source links are available in the web report')
-    .replace(/报告Generation method/g, 'Report generation method')
-    .replace(/周度变化/g, 'weekly changes')
-    .replace(/市场Breadth/g, 'market breadth')
-    .replace(/Money flow/g, 'money flow')
-    .replace(/Market temperature/g, 'market temperature')
-    .replace(/行情图解/g, 'market charts')
-    .replace(/市场解读/g, 'market interpretation')
-    .replace(/数据日期/g, 'Data date')
-    .replace(/报告生成时间/g, 'Report generation time')
-    .replace(/二、/g, 'II. ')
-    .replace(/三、/g, 'III. ')
-    .replace(/四、/g, 'IV. ')
-    .replace(/五、/g, 'V. ')
-    .replace(/六、/g, 'VI. ')
-    .replace(/七、/g, 'VII. ')
-    .replace(/八、/g, 'VIII. ')
-    .replace(/九、/g, 'IX. ')
-    .replace(/十、/g, 'X. ')
-    .replace(/Target date\s+(\d{4}-\d{2}-\d{2})；Source report generated at\s+([^。]+)（Beijing time）。/g, 'Target date $1; source report generated at $2 (Beijing time).')
-    .replace(/（([^）]+)）/g, ' ($1)')
-    .replace(/；/g, '; ')
-    .replace(/。/g, '. ')
-    .replace(/：/g, ': ');
+  if (/^\s*<svg\b/.test(value)) {
+    return value.replace(/<(?:[^"'>]|"[^"]*"|'[^']*')*>|[^<]+/g, (part) => part.startsWith('<') ? part : toEnglishPresentation(part));
+  }
+  return value.split(/(https?:\/\/[^\s<>"']+|\]\([^\n)]+\))/g)
+    .map((part) => /^(?:https?:\/\/|\]\()/.test(part) ? part : translatePlain(part)).join('');
 }

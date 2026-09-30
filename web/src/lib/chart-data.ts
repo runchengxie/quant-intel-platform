@@ -2,6 +2,7 @@ import type {
   EChartsOption,
   TooltipComponentFormatterCallbackParams,
 } from 'echarts';
+import { toEnglishPresentation } from './english-content.ts';
 
 const BASE = '/quant-intel-platform';
 
@@ -106,24 +107,25 @@ export function chartUnits(card: ChartCard): string[] {
   return [...new Set(card.points.map((point) => axisUnit(point.unit)))];
 }
 
-export function toOption(card: ChartCard, selectedUnit?: string): EChartsOption {
+export function toOption(card: ChartCard, selectedUnit?: string, locale: 'zh' | 'en' = 'zh'): EChartsOption {
+  const present = (value: string) => locale === 'en' ? toEnglishPresentation(value) : value;
   const unit = selectedUnit || chartUnits(card)[0];
   const points = card.points.filter((point) => axisUnit(point.unit) === unit);
   return {
     animation: false,
-    aria: { enabled: true, description: `${card.title}。逐项数值和来源见图下方表格。` },
+    aria: { enabled: true, description: locale === 'en' ? `${present(card.title)}. Values and sources appear in the table below.` : `${card.title}。逐项数值和来源见图下方表格。` },
     color: ['#b64d33'],
-    legend: { show: true, data: [card.title], bottom: 0 },
+    legend: { show: true, data: [present(card.title)], bottom: 0 },
     grid: { left: 54, right: 30, top: 38, bottom: points.length > 8 ? 96 : 72, containLabel: true },
     tooltip: { trigger: 'item', formatter: (params: TooltipComponentFormatterCallbackParams) => {
       const item = Array.isArray(params) ? params[0] : params;
       const point = points[item.dataIndex ?? 0];
-      return `${escapeHtml(point.label)}<br>${escapeHtml(signedValue(point.value, point.unit))}<br>观测日 ${escapeHtml(point.observation_date)}<br>${escapeHtml(point.source_label)}`;
+      return `${escapeHtml(present(point.label))}<br>${escapeHtml(signedValue(point.value, present(point.unit)))}<br>${locale === 'en' ? 'Observed' : '观测日'} ${escapeHtml(point.observation_date)}<br>${escapeHtml(present(point.source_label))}`;
     } },
-    xAxis: { type: 'category', data: points.map((point) => point.label), axisLabel: { rotate: points.length > 5 ? 35 : 0, interval: 0 } },
-    yAxis: { type: 'value', name: unit, ...(unit === '观察分' ? { min: 0, max: 100 } : {}), axisLine: { show: true } },
+    xAxis: { type: 'category', data: points.map((point) => present(point.label)), axisLabel: { rotate: points.length > 5 ? 35 : 0, interval: 0 } },
+    yAxis: { type: 'value', name: present(unit), ...(unit === '观察分' ? { min: 0, max: 100 } : {}), axisLine: { show: true } },
     dataZoom: points.length > 8 ? [{ type: 'slider', start: 0, end: Math.min(100, 800 / points.length) }] : [],
-    series: [{ name: card.title, type: 'bar', data: points.map((point) => ({
+    series: [{ name: present(card.title), type: 'bar', data: points.map((point) => ({
       value: point.value,
       itemStyle: { color: point.value < 0 ? '#5c7182' : '#b64d33' },
     })), markLine: { silent: true, symbol: 'none', data: [{ yAxis: 0 }] } }],
