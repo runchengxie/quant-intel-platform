@@ -5,8 +5,8 @@ import { toEnglishPresentation } from '../lib/english-content.ts';
 
 const { reportId, locale = 'zh' } = Astro.props;
 const cards = loadChart(reportId).filter((card) => card.key !== 'us_overnight');
-const formatValue = (point) => `${Number(point.value).toLocaleString('zh-CN', { maximumFractionDigits: 2 })} ${point.unit}`;
 const present = (value) => locale === 'en' ? toEnglishPresentation(String(value || '')) : value;
+const formatValue = (point) => `${Number(point.value).toLocaleString(locale === 'en' ? 'en-US' : 'zh-CN', { maximumFractionDigits: 2 })} ${present(point.unit)}`;
 const labels = locale === 'en'
   ? { eyebrow: 'Market charts', heading: 'Asian market charts', note: 'This section shows public data reviewed item by item. Missing data is labelled explicitly.', status: { ok: 'Verified', degraded: 'Degraded', missing: 'Missing', skipped: 'Skipped' }, values: 'View values and sources', metric: 'Metric', value: 'Value', date: 'Observation date', source: 'Source' }
   : { eyebrow: '行情图表', heading: '亚洲市场图表', note: '这里展示已逐项核实的公开数据。缺少的数据会标为缺项。', status: { ok: '已核实', degraded: '降级', missing: '缺项', skipped: '跳过' }, values: '查看数值与来源', metric: '指标', value: '数值', date: '观测日', source: '来源' };
@@ -22,7 +22,7 @@ const labels = locale === 'en'
           <span class:list={['status-pill', card.status]}>{labels.status[card.status] || labels.status.missing}</span>
         </div>
         {card.reason && <p class="chart-reason">{present(card.reason)}</p>}
-        {card.points.length > 0 && <ChartIsland reportId={reportId} chartKey={card.key} client:visible />}
+        {card.points.length > 0 && <ChartIsland reportId={reportId} chartKey={card.key} locale={locale} client:visible />}
         {card.points.length > 0 && (
           <details class="chart-values">
             <summary>{labels.values}</summary>
