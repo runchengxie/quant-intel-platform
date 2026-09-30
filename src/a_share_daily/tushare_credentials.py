@@ -16,13 +16,13 @@ def _configured(env: Mapping[str, str], name: str) -> bool:
 
 
 def _credential_file_issue(env: Mapping[str, str]) -> str | None:
-    path = Path.home() / ".config/quant-market-data-platform/config.env"
+    path = Path.home() / ".config/richard/projects/quant/quant-market-data-platform/config.env"
     if not path.exists():
         return None
     try:
         metadata = path.lstat()
     except OSError:
-        return "无法读取 quant-market-data-platform/config.env 元数据"
+        return "无法读取 richard/projects/quant/quant-market-data-platform/config.env 元数据"
     if path.is_symlink() or not stat.S_ISREG(metadata.st_mode):
         return "TuShare 凭证文件必须是普通非 symlink 文件"
     if os.name == "nt":
@@ -48,7 +48,8 @@ def credential_health(env: Mapping[str, str]) -> tuple[CredentialStatus, str]:
     if not (proxy_token and proxy_url) and not fallback_token:
         return (
             "warn",
-            "未检测到可用凭证；在 ~/.config/quant-market-data-platform/config.env 配置 TOKEN_2+URL_2，并保留 TOKEN 兜底",
+            "未检测到可用凭证；请在 richard/projects/quant/quant-market-data-platform/config.env "
+            "配置 TOKEN_2+URL_2，并保留 TOKEN 兜底",
         )
 
     if issue := _credential_file_issue(env):
