@@ -78,7 +78,7 @@
 
 已落地：
 
-1. `a-share-daily doctor` 可检查脚本权限、`market-data-platform` 仓库、数据湖、latest 快照、AI key、飞书投递目标、`lark-cli`。`--live` 在 Windows 上额外检查 Task Scheduler，在 Linux 上额外检查 systemd timer，并同时检查 Hermes 定时任务。
+1. `a-share-daily doctor` 可检查脚本权限、`quant-market-data-platform` 仓库、数据湖、latest 快照、AI key、飞书投递目标、`lark-cli`。`--live` 在 Windows 上额外检查 Task Scheduler，在 Linux 上额外检查 systemd timer，并同时检查 Hermes 定时任务。
 2. `refresh_tushare_report_datasets.sh` 负责补抓主题、资金流、概念和涨跌停关键数据。这些接口默认关闭，设置 `A_SHARE_ENABLE_TUSHARE_PREMIUM=1` 后才请求。DailyWatch20 的候选池、研究计算和正式产物均由 `quant-research` / `strategy-pipeline` 负责。本仓只校验、渲染和投递已发布产物。
 3. 根项目 `ty check` 已覆盖全部 `src/` 源码，包括日报 CLI、流水线、data、review、cross-market、charts 与投递。
 4. 流水线层测试已覆盖缺日频核心数据、高权限 TuShare 默认跳过、缺可选 owner artifact 和缺 `moneyflow_ths` 时的返回契约与占位图行为。
@@ -92,6 +92,6 @@
 
 当前维护边界：
 
-1. `market-data-platform` 保持为独立仓库，`market-intel` 通过 `DATA_PLATFORM_ROOT` 只读使用。
+1. `quant-market-data-platform` 保持为独立仓库，`market-intel` 通过 `DATA_PLATFORM_ROOT` 只读使用。
 2. 日报只消费带来源、URL 和发布时间的结构化 `items[]`，新闻自由文本不直接进入正文。
 3. Hermes 继续负责后续点评和解释，事实报告由代码生成和投递。

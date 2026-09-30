@@ -15,7 +15,7 @@ source data
 -> public pages or delivery receipt
 ```
 
-`daily_messenger/` owns global-market ETL, topic scoring, reports, dashboards, and the `dm` CLI. `a_share_daily/` owns A-share reports, published strategy-artifact validation, charts, and delivery. `a_share_analysis/` consumes published research rather than implementing new research algorithms. `tushare_jobs/` is a lightweight report-side compatibility layer; authoritative A-share data belongs to `market-data-platform`.
+`daily_messenger/` owns global-market ETL, topic scoring, reports, dashboards, and the `dm` CLI. `a_share_daily/` owns A-share reports, published strategy-artifact validation, charts, and delivery. `a_share_analysis/` consumes published research rather than implementing new research algorithms. `tushare_jobs/` is a lightweight report-side compatibility layer; authoritative A-share data belongs to `quant-market-data-platform`.
 
 The `web/` application renders the public daily site, downloads, source displays, and `/docs/`. It consumes reviewed public snapshots and does not read production credentials.
 

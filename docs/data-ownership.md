@@ -6,8 +6,8 @@
 
 ## 原则
 
-1. 重型、历史、跨策略复用的数据由 `market-data-platform` 负责。
-2. `market-intel` 不内嵌 `market-data-platform` 源码，也不把它作为子模块。
+1. 重型、历史、跨策略复用的数据由 `quant-market-data-platform` 负责。
+2. `market-intel` 不内嵌 `quant-market-data-platform` 源码，也不把它作为子模块。
 3. `market-intel` 可以保留轻量、报告专用、可持久化的快照。
 4. 最终晨晚报由代码模板渲染。晚报状态、矛盾与验证条件来自确定性计算，大语言模型（LLM）/search 只允许产出带来源的候选新闻。
 5. 无来源、无 URL、无法通过契约校验的新闻不得进入代码化报告。
@@ -16,17 +16,17 @@
 
 | 数据域 | 负责仓库 | `market-intel` 的用法 | 是否允许实时抓取 |
 |---|---|---|---|
-| A 股全量日频、资金流、概念、两融、指数、历史回测输入 | `market-data-platform` | 通过 `DATA_PLATFORM_ROOT/assets/tushare/a_share/` 只读 | 不允许在报告阶段补抓全量 |
-| ETF rotation / hot-sector 原始输入 | `market-data-platform` | 子项目只读 `DATA_PLATFORM_ROOT` | 不允许写回数据湖 |
+| A 股全量日频、资金流、概念、两融、指数、历史回测输入 | `quant-market-data-platform` | 通过 `DATA_PLATFORM_ROOT/assets/tushare/a_share/` 只读 | 不允许在报告阶段补抓全量 |
+| ETF rotation / hot-sector 原始输入 | `quant-market-data-platform` | 子项目只读 `DATA_PLATFORM_ROOT` | 不允许写回数据湖 |
 | DailyWatch20 候选池、策略计算和正式 artifact | `quant-research` / `strategy-pipeline` | `market-intel` 只读并校验 `WATCHLIST20_ROOT` | 由 owner 发布，market-intel 不重算 |
 | 跨市场快照：美股、日韩、商品、宏观、情绪 | `market-intel` | `data-snapshots/cross-market/` 与 `latest/` | 允许快照缺失时兜底，并写回快照 |
 | TuShare 轻量快照 | `market-intel` | `data-snapshots/tushare/`，供备份任务和便携环境读取 | 允许 GitHub Actions 定时轻量抓取 |
 | GLM/Aliyun/Gemini 市场新闻 | `market-intel` | 只消费结构化 `items[]`：`title/source/url/published_at/summary` | 允许联网搜索，未通过校验则跳过 |
 | 晨报/晚报文本 | `market-intel` | Python renderer 生成 Markdown/飞书消息 | 事实与确定性解释由代码生成 |
 
-## `tushare_jobs` 迁移状态（与 `market-data-platform` 重叠收口）
+## `tushare_jobs` 迁移状态（与 `quant-market-data-platform` 重叠收口）
 
-`src/tushare_jobs/` 中部分任务与 `market-data-platform` 数据湖重复，应按 2026-07-29 整合评估
+`src/tushare_jobs/` 中部分任务与 `quant-market-data-platform` 数据湖重复，应按 2026-07-29 整合评估
 报告收回唯一 owner。当前状态：
 
 | 任务 | 与 MDP 关系 | 处置 |
@@ -49,7 +49,7 @@ MDP 现为这些数据集的权威 owner。market-intel 已改为消费
 
 ## 部署约定
 
-`DATA_PLATFORM_ROOT` 指向数据湖根目录。`MDP_DIR` 指向 `market-data-platform` 代码仓库。默认约定：
+`DATA_PLATFORM_ROOT` 指向数据湖根目录。`MDP_DIR` 指向 `quant-market-data-platform` 代码仓库。默认约定：
 
 ```bash
 export DATA_PLATFORM_ROOT=$HOME/data/market-data-platform
@@ -60,7 +60,7 @@ export MDP_DIR=/path/to/quant-market-data-platform
 
 1. `market-intel` 代码可运行。
 2. `MDP_DIR` 指向已 clone 的私有仓库。
-3. `DATA_PLATFORM_ROOT` 指向已刷新过的 market-data-platform 数据目录。
+3. `DATA_PLATFORM_ROOT` 指向已刷新过的 quant-market-data-platform 数据目录。
 
 如果缺少完整数据湖，晨报仍可读取 `data-snapshots/` 中的跨市场和轻量 TuShare 快照。A 股完整分析、热点筛选和图表会降级或明确失败，避免在 `market-intel` 内临时重造全量下载器。
 

@@ -49,15 +49,11 @@ def _default_env(project_root: Path) -> dict[str, str]:
     stable_dir = Path.home() / ".config/richard/shared"
     for env_path in (
         stable_dir / "market-intel.env",
-        stable_dir / "market-data-platform.env",
+        Path.home() / ".config/quant-market-data-platform/config.env",
         project_root / ".env",
         project_root / ".env.local",
     ):
         for key, value in _read_env_file(env_path).items():
-            merged.setdefault(key, value)
-    mdp_dir_raw = merged.get("MDP_DIR", "").strip()
-    if mdp_dir_raw:
-        for key, value in _read_env_file(Path(mdp_dir_raw).expanduser() / ".env.local").items():
             merged.setdefault(key, value)
     return merged
 

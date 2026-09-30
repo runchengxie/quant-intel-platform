@@ -217,15 +217,15 @@ def _check_mdp_dir(env: Mapping[str, str]) -> CheckResult:
     raw = env.get("MDP_DIR", "").strip()
     if not raw:
         return _constants._result(
-            "market-data-platform repo",
+            "quant-market-data-platform repo",
             "warn",
             f"未配置 MDP_DIR。请按 {SETUP_GUIDE} 注入 owner 仓库路径",
         )
     mdp_dir = Path(raw).expanduser()
     if (mdp_dir / "pyproject.toml").exists():
-        return _constants._result("market-data-platform repo", "ok", f"已找到 {mdp_dir}")
+        return _constants._result("quant-market-data-platform repo", "ok", f"已找到 {mdp_dir}")
     return _constants._result(
-        "market-data-platform repo",
+        "quant-market-data-platform repo",
         "warn",
         f"未找到 {mdp_dir}。私有仓库 clone 和 MDP_DIR 配置见 {SETUP_GUIDE}",
     )

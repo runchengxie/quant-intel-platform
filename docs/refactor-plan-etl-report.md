@@ -110,7 +110,7 @@
 ### 质量门禁与 ty 缺口
 
 - 当时 `pyproject.toml` 的 `[tool.ty.src] exclude` 从 `"project_tools/"` 收紧为三个治理工具；后续 CI 迁移已删除 `pre_push_guard.py`，当前排除项见 `pyproject.toml`。ruff 的 `extend-exclude` 不含 `project_tools`。
-- factor_tools 已纳入 ty 检查（原 `src/a_share_analysis/factor_tools/` 的 ty exclude 已移除）。纳入后共 10 个诊断，分两类处理，无遗留。其一为 `market_data_platform` 这一跨仓库外部模块无法解析（`unresolved-import`），该包不在本仓库 `src/` 或 `.venv` 中、且未提供 `py.typed`，故未强行加 source，改为在 `pyproject.toml` 的 `[tool.ty.analysis]` 用 `allowed-unresolved-imports = ["market_data_platform.**"]` 按模块前缀精准放行，不影响对本地问题的检查。其二为 pandas 版本类型漂移导致的返回/参数注解失配（`groupby` 迭代结果、`pd.DatetimeIndex.append` 新返回 `Index`、`DataFrame` 运算返回被 stub 标为 `DataFrame | ndarray | Unknown`），均只调整类型注解并辅以 `cast`，未改动任何运行时逻辑。全程未使用 `# ty: ignore`。
+- factor_tools 已纳入 ty 检查（原 `src/a_share_analysis/factor_tools/` 的 ty exclude 已移除）。纳入后共 10 个诊断，分两类处理，无遗留。其一为 `quant_market_data_platform` 这一跨仓库外部模块无法解析（`unresolved-import`），该包不在本仓库 `src/` 或 `.venv` 中、且未提供 `py.typed`，故未强行加 source，改为在 `pyproject.toml` 的 `[tool.ty.analysis]` 用 `allowed-unresolved-imports = ["quant_market_data_platform.**"]` 按模块前缀精准放行，不影响对本地问题的检查。其二为 pandas 版本类型漂移导致的返回/参数注解失配（`groupby` 迭代结果、`pd.DatetimeIndex.append` 新返回 `Index`、`DataFrame` 运算返回被 stub 标为 `DataFrame | ndarray | Unknown`），均只调整类型注解并辅以 `cast`，未改动任何运行时逻辑。全程未使用 `# ty: ignore`。
 - 复杂度 ratchet（`scripts/dev/maintainability_metrics.py`）原本只统计 `src/scripts/tests`，因子脚本迁入 `src/` 后会拉高 `files_over_800`、`functions_over_100`、`long_lines_over_100` 三项预算。为不放宽仓库全局预算、也不改动已投产脚本逻辑，在 `discover_python_files` 增加与 ty 对齐的 `DEFAULT_EXCLUDES`（`src/a_share_analysis/factor_tools/`），使这次纯搬迁不污染全局复杂度预算。预算常量本身未改动。
 
 ### 补的单测

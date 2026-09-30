@@ -71,7 +71,7 @@ def _write_atomic_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _validate_exchange_overlay(root: Path, *, trade_date: str, exchange: str) -> dict[str, Any]:
-    from market_data_platform.providers.tushare_a_share_mins import (
+    from quant_market_data_platform.providers.tushare_a_share_mins import (
         UNIVERSE_RULE,
         validate_complete_minute_partition,
     )

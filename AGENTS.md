@@ -20,7 +20,7 @@
 - `daily_messenger/`：全球市场 ETL、主题评分、日报、技术分析、Dashboard 与飞书工具；CLI 为 `dm`。
 - `a_share_daily/`：A 股晨晚报、正式策略 artifact 校验、报告组装、图表和投递；CLI 为 `a-share-daily`。
 - `a_share_analysis/`：报告侧分析和已发布研究产物的消费适配。新研究算法不得继续放入这里。
-- `tushare_jobs/`：报告专用轻量任务与兼容导出；权威 A 股数据 owner 为 `market-data-platform`。
+- `tushare_jobs/`：报告专用轻量任务与兼容导出；权威 A 股数据 owner 为 `quant-market-data-platform`。
 - `style_replica_bridge/`：将 owner 回测产物转换为报告 tearsheet。
 - `ops_common/`：环境、投递窗口、freshness、恢复和通知。
 - `web/`：公开日报网站、近期公开快照、下载、来源展示和网站专属测试。根路径发布日报，平台文档发布到 `/docs/`。`web/` 是本仓目录，不是 submodule。
@@ -78,7 +78,7 @@ bash scripts/setup_cron.sh --layer3
 新增代码前先判断 owner：
 
 - 市场资讯抓取、报告内容、渲染、Dashboard、飞书、投递回执、报告窗口、故障恢复 → `market-intel`
-- 市场数据权威资产 → `market-data-platform`
+- 市场数据权威资产 → `quant-market-data-platform`
 - 特征/模型/统计推断 → `alpha-research`
 - 回测、成本、容量、组合与历史成交模拟 → `portfolio-backtester`
 - 策略专用纯计算与冻结研究合同 → `strategy-app`

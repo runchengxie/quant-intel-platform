@@ -137,7 +137,7 @@ exclude = [
 testpaths = ["tests"]
 
 [tool.ty.analysis]
-allowed-unresolved-imports = ["market_data_platform.**"]
+allowed-unresolved-imports = ["quant_market_data_platform.**"]
 
 [tool.coverage.run]
 branch = true
