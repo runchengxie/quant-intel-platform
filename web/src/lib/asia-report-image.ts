@@ -242,7 +242,7 @@ function weekly(draw: SvgDraw, points: ChartPoint[]): void {
   trend(draw, points, '成交额', '成交额走势（亿）', '亿');
 }
 
-export function buildAsiaReportSvg(report: EveningReport, charts: ChartCard[], markdown: string): string | null {
+export function buildAsiaReportSvg(report: EveningReport, charts: ChartCard[], markdown: string, present: (value: string) => string = (value) => value): string | null {
   if (report?.kind !== 'evening' || !/^\d{4}-\d{2}-\d{2}-evening$/.test(report.id)
     || report.id !== `${report.date}-evening`
     || !Array.isArray(charts) || typeof markdown !== 'string') return null;
@@ -256,14 +256,14 @@ export function buildAsiaReportSvg(report: EveningReport, charts: ChartCard[], m
     `<text x="54" y="88" fill="${MUTED}" font-family="sans-serif" font-size="14">北京时间 19:00 目标版 · 以报告实际生成时间和数据日期为准${report.generation_mode === 'backfill' ? ' · 历史补报' : ''}</text>`,
   ];
   const addText = (value: string, color = INK, size = 15) => {
-    for (const line of wrapText(value)) {
+    for (const line of wrapText(present(value))) {
       parts.push(`<text x="54" y="${y}" fill="${color}" font-family="sans-serif" font-size="${size}">${escapeText(line)}</text>`);
       y += 23;
     }
   };
   const addHeading = (heading: string) => {
     y += 14;
-    parts.push(`<text x="54" y="${y}" fill="${INK}" font-family="sans-serif" font-size="20" font-weight="700">${escapeText(heading)}</text>`);
+    parts.push(`<text x="54" y="${y}" fill="${INK}" font-family="sans-serif" font-size="20" font-weight="700">${escapeText(present(heading))}</text>`);
     y += 32;
   };
   const draw: SvgDraw = {
