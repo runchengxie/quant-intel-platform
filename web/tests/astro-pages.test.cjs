@@ -328,42 +328,60 @@ test('new Asian evening reports build a visual history while old direct links re
   }
 });
 
-test('US daily chart is absent when the public report has no eligible market facts', () => {
+test('US daily macro-only edition keeps economic data without inventing market charts', () => {
   const fixture = mkdtempSync(path.join(path.dirname(root), 'market-daily-empty-chart-'));
   try {
     cpSync(path.join(root, 'artifacts/public/data'), path.join(fixture, 'data'), { recursive: true });
     cpSync(path.join(root, 'artifacts/public/reports'), path.join(fixture, 'reports'), { recursive: true });
     const file = path.join(fixture, 'data/market_daily_report.json');
-    const report = JSON.parse(readFileSync(file, 'utf8'));
+    const report = JSON.parse(readFileSync(path.join(__dirname, 'fixtures/market-daily-complete.json'), 'utf8'));
     report.facts = report.facts.filter((fact) => fact.id.startsWith('macro.'));
+    report.claims = [];
+    report.source_status.equities = { quality: 'missing' };
     writeFileSync(file, JSON.stringify(report));
+    writeFileSync(path.join(fixture, 'data/market_daily_reports.json'), JSON.stringify({ schema_version: 'market_intel_pages.us_daily_history.v1', reports: [report] }));
     execFileSync('npm', ['run', 'build', '--', '--outDir', path.join(fixture, 'built')], {
       cwd: root, stdio: 'pipe', env: { ...process.env, ASTRO_DATA_ROOT: fixture },
     });
     const html = readFileSync(path.join(fixture, 'built/index.html'), 'utf8');
-    assert.doesNotMatch(html, /id="market-daily-chart"/);
-    assert.doesNotMatch(html, /id="download-market-chart"/);
+    const chart = html.match(/id="market-daily-chart">([\s\S]*?)<\/div>/)?.[1];
+    assert.ok(chart);
+    assert.match(chart, /经济数据|CPI 同比/);
+    assert.doesNotMatch(chart, /四大指数收盘涨跌|美股个股日涨跌|美债收益率水平|美债收益率当日变动|跨资产日涨跌|BTC\/USD/);
+    assert.match(html, /id="download-market-chart"/);
   } finally {
     rmSync(fixture, { recursive: true, force: true });
   }
 });
 
-test('visual report keeps verified facts, commentary and source links together', () => {
-  const index = readFileSync(path.join(root, 'dist/index.html'), 'utf8');
-  const chart = index.match(/id="market-daily-chart">([\s\S]*?)<\/div>/)?.[1];
-  assert.ok(chart);
-  assert.match(chart, /美债收益率水平/);
-  const report = JSON.parse(readFileSync(path.join(root, 'artifacts/public/data/market_daily_report.json'), 'utf8'));
-  const twoYear = report.facts.find((fact) => fact.id === 'treasury.2y.level_percent');
-  assert.ok(twoYear);
-  const twoYearSection = chart.slice(chart.indexOf('2 年期美债收益率水平'));
-  assert.ok(twoYearSection.slice(0, 600).includes(`${twoYear.value.toFixed(2)}%`));
-  assert.match(chart, /跨资产日涨跌/);
-  assert.match(chart, /BTC\/USD 现货/);
-  assertDriverSectionMatchesReport(chart, report);
-  assert.match(chart, /关键来源/);
-  assert.match(index, /<a href="https:\/\/home\.treasury\.gov[^"]*"[^>]*>美国财政部<\/a>/);
-  assert.match(index, /阅读全文与数据质量说明/);
+test('visual report keeps verified market facts and source links together', () => {
+  const fixture = mkdtempSync(path.join(path.dirname(root), 'market-daily-complete-chart-'));
+  try {
+    cpSync(path.join(root, 'artifacts/public/data'), path.join(fixture, 'data'), { recursive: true });
+    cpSync(path.join(root, 'artifacts/public/reports'), path.join(fixture, 'reports'), { recursive: true });
+    const report = JSON.parse(readFileSync(path.join(__dirname, 'fixtures/market-daily-complete.json'), 'utf8'));
+    writeFileSync(path.join(fixture, 'data/market_daily_report.json'), JSON.stringify(report));
+    writeFileSync(path.join(fixture, 'data/market_daily_reports.json'), JSON.stringify({ schema_version: 'market_intel_pages.us_daily_history.v1', reports: [report] }));
+    execFileSync('npm', ['run', 'build', '--', '--outDir', path.join(fixture, 'built')], {
+      cwd: root, stdio: 'pipe', env: { ...process.env, ASTRO_DATA_ROOT: fixture },
+    });
+    const index = readFileSync(path.join(fixture, 'built/index.html'), 'utf8');
+    const chart = index.match(/id="market-daily-chart">([\s\S]*?)<\/div>/)?.[1];
+    assert.ok(chart);
+    assert.match(chart, /美债收益率水平/);
+    const twoYear = report.facts.find((fact) => fact.id === 'treasury.2y.level_percent');
+    assert.ok(twoYear);
+    const twoYearSection = chart.slice(chart.indexOf('2 年期美债收益率水平'));
+    assert.ok(twoYearSection.slice(0, 600).includes(`${twoYear.value.toFixed(2)}%`));
+    assert.match(chart, /跨资产日涨跌/);
+    assert.match(chart, /BTC\/USD 现货/);
+    assertDriverSectionMatchesReport(chart, report);
+    assert.match(chart, /关键来源/);
+    assert.match(index, /<a href="https:\/\/home\.treasury\.gov[^"]*"[^>]*>美国财政部<\/a>/);
+    assert.match(index, /阅读全文与数据质量说明/);
+  } finally {
+    rmSync(fixture, { recursive: true, force: true });
+  }
 });
 
 test('all visible US daily Markdown editions disclose public source quality', () => {
