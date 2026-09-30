@@ -108,8 +108,14 @@ var marketDailyUtils = (() => {
     quotes: "\u6307\u6570\u884C\u60C5",
     research: "\u7814\u7A76\u89E3\u91CA",
     fred: "\u90E8\u5206 FRED \u6570\u636E",
-    cross_asset: "\u5E03\u4F26\u7279\u3001\u91D1\u94F6\u6216\u6BD4\u7279\u5E01\u884C\u60C5",
+    cross_asset: "\u90E8\u5206\u8DE8\u8D44\u4EA7\u884C\u60C5",
     equities: "\u90E8\u5206\u7F8E\u80A1\u4E2A\u80A1\u884C\u60C5"
+  };
+  var CROSS_ASSET_GAPS = {
+    brent: "\u5E03\u4F26\u7279\u671F\u8D27\u884C\u60C5",
+    gold: "\u9EC4\u91D1\u671F\u8D27\u884C\u60C5",
+    silver: "\u767D\u94F6\u671F\u8D27\u884C\u60C5",
+    bitcoin: "\u6BD4\u7279\u5E01\u671F\u8D27\u884C\u60C5"
   };
   var MARKET_DAILY_CLAIM_SECTIONS = [
     ["market", "\u5E02\u573A\u8868\u73B0"],
@@ -229,7 +235,11 @@ var marketDailyUtils = (() => {
       title,
       claims: claims.filter((claim) => claim.sectionKey === key)
     })).filter((section) => section.claims.length);
-    const gaps = (payload.missing_sources ?? []).filter((item) => Object.hasOwn(MARKET_DAILY_GAPS, item)).map((item) => MARKET_DAILY_GAPS[item]);
+    const gaps = (payload.missing_sources ?? []).filter((item) => Object.hasOwn(MARKET_DAILY_GAPS, item)).flatMap((item) => {
+      if (item !== "cross_asset") return [MARKET_DAILY_GAPS[item]];
+      const unavailable = Object.entries(CROSS_ASSET_GAPS).filter(([asset]) => !rows.some((row) => row.id === `cross_asset.${asset}.close`) || !rows.some((row) => row.id === `cross_asset.${asset}.change_percent`)).map(([, label]) => label);
+      return unavailable.length ? unavailable : [MARKET_DAILY_GAPS[item]];
+    });
     for (const tenor of ["2y", "5y", "10y", "30y"]) {
       const level = rows.find((row) => row.id === `treasury.${tenor}.level_percent`);
       const change = rows.find((row) => row.id === `treasury.${tenor}.change_bp`);
