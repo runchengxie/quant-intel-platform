@@ -88,7 +88,7 @@ nav:
   - Usage and configuration:
       - Configuration: configuration.md
       - CLI reference: cli-reference.en.md
-      - Data-fetch architecture: data-fetch-architecture.en.md
+      - Data-fetch architecture: data-fetch-architecture.md
       - Scoring method: scoring.en.md
       - Technical-analysis method: ta-methodology.en.md
       - Rate limits: rate-limits.en.md
