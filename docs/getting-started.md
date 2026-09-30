@@ -1,54 +1,31 @@
-# 五分钟开始
+# Getting started in five minutes
 
-这篇文档带你完成一次本地安装和离线检查。整个过程不需要市场服务商凭据，也不会发送消息。
+[中文页面](getting-started.zh-CN.md)
 
-## 1. 准备工具
+This guide installs the public framework and runs offline checks. It does not require market-provider credentials and does not send messages.
 
-请先安装：
+## Prerequisites
 
-- Python 3.11、3.12 或 3.13
+- Python 3.11, 3.12, or 3.13
 - Git
-- uv
+- `uv`
+- Node.js and npm when working on `web/`
 
-## 2. 安装项目
+## Install and verify
 
 ```bash
-git clone https://github.com/runchengxie/quant-intel-platform.git
-cd quant-intel-platform
 uv sync --locked --group dev
-```
-
-`uv sync` 会创建本地虚拟环境并安装项目依赖。依赖版本由 `uv.lock` 固定。
-
-## 3. 查看命令
-
-```bash
-uv run dm --help
-uv run marketops --help
-uv run a-share-daily --help
-```
-
-这三个入口分别用于全球市场日报、数据任务和 A 股报告。
-
-## 4. 跑一次测试
-
-```bash
+uv run ruff check .
+uv run ruff format --check .
+uv run ty check
 uv run pytest
+uv run python project_tools/update_cli_help.py --check
 ```
 
-测试使用仓库中的离线 fixture，不访问生产数据。
-
-## 5. 启动文档站
+For the complete repository gate, run:
 
 ```bash
-uv run mkdocs serve
+uv run python project_tools/check_all.py --scope all
 ```
 
-打开终端显示的本地地址，通常是 `http://127.0.0.1:8000/`。
-
-## 下一步
-
-- 想了解整体流程，阅读[核心概念](concepts.md)
-- 想运行日报，阅读[运行市场日报](how-to/run-daily-report.md)
-- 想生成看板，阅读[生成网页看板](how-to/build-dashboard.md)
-- 想配置数据路径，阅读[配置说明](configuration.md)
+The public site consumes reviewed artifacts and static snapshots. Configure private paths explicitly when running production integrations; do not add credentials or runtime output to the repository.

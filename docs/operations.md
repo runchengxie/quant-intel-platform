@@ -1,9 +1,25 @@
-# 运维约定
+# Operations
 
-## 故障语义
+[中文页面](operations.zh-CN.md)
 
-数据不完整或外部服务不可用时，平台会记录降级状态，并在无法安全生成结果时停止后续处理。成功、降级和失败都应写入可检查的回执。
+## Failure semantics
 
-## 部署边界
+When data is incomplete or an external service is unavailable, the platform records a degraded state and stops downstream processing when it cannot safely produce a result. Success, degraded, and failure outcomes must all be represented by inspectable receipts.
 
-主机定时任务、生产凭据、真实投递目标和运行状态由 `quant-intel-deploy` 管理。public 仓库只提供可复用的代码、契约和离线检查。
+## Deployment boundary
+
+Host timers, production credentials, real delivery targets, and runtime state are managed by `quant-intel-deploy`. The public repository provides reusable code, contracts, and offline checks only.
+
+## Recovery and scheduling
+
+Use the documented `dm`, `a-share-daily`, and recovery scripts through stable production paths. Do not point scheduled jobs at temporary worktrees. After changing production paths, reload the relevant systemd units and run the matching offline or shadow smoke test.
+
+## Quality gate
+
+The repository gate is:
+
+```bash
+uv run python project_tools/check_all.py --scope all
+```
+
+It covers tests, lint, type checks, CLI help synchronization, package coverage, scripts, and public-boundary checks. CI does not fetch real market data, call Feishu, or use broker credentials.

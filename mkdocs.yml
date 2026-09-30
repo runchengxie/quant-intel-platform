@@ -1,4 +1,4 @@
-site_name: Quant 市场情报 · 文档
+site_name: Quant Market Intel · Documentation
 site_description: Public framework for market intelligence, reporting, dashboards, and contracts
 site_url: https://runchengxie.github.io/quant-intel-platform/docs/
 repo_url: https://github.com/runchengxie/quant-intel-platform
@@ -13,7 +13,7 @@ exclude_docs: |
 
 theme:
   name: material
-  language: zh
+  language: en
   font: false
   icon:
     logo: material/chart-line
@@ -31,14 +31,14 @@ theme:
       accent: custom
       toggle:
         icon: material/brightness-7
-        name: 切换到深色模式
+        name: Switch to dark mode
     - media: "(prefers-color-scheme: dark)"
       scheme: slate
       primary: custom
       accent: custom
       toggle:
         icon: material/brightness-4
-        name: 切换到浅色模式
+        name: Switch to light mode
 
 plugins:
   - search
@@ -68,50 +68,50 @@ extra:
       name: GitHub
 
 nav:
-  - 日报首页: https://runchengxie.github.io/quant-intel-platform/
-  - 首页: index.md
-  - 入门:
-      - 五分钟开始: getting-started.md
-      - 核心概念: concepts.md
-  - 常见任务:
-      - 运行市场日报: how-to/run-daily-report.md
-      - 生成网页看板: how-to/build-dashboard.md
-      - 市场日报网站: how-to/market-site.md
-      - 增加数据源: how-to/add-data-source.md
-      - 常见问题: faq.md
-  - 了解平台:
-      - 系统架构: architecture.md
-      - 数据所有权: data-ownership.md
-      - 跨仓边界契约: boundary-contract.md
-      - 数据契约: contracts.md
-      - 术语表: glossary.md
-  - 使用与配置:
-      - 快速开始与配置: configuration.md
-      - CLI 参考: cli-reference.md
-      - 数据抓取架构: data-fetch-architecture.md
-      - 评分方法: scoring.md
-      - TA 方法: ta-methodology.md
-      - 频率限制: rate-limits.md
-  - 运维与开发:
-      - 运维说明: operations.md
-      - 测试: testing.md
-      - 工作流: workflows.md
-      - 报告结构: report-structure.md
-      - 网页看板: web-dashboard.md
-      - 日程: daily-schedule.md
-      - 报告投递: report-distribution.md
-      - 维护脚本: maintenance-scripts.md
-      - 路线图: roadmap.md
-      - 新机器设置: new-machine-setup.md
-      - 代码质量审计: code-quality-audit-findings.md
-  - 分析与研究:
-      - A 股因子信号: a-share-factor-signals.md
-      - 热点复合指标: hotspot-composite.md
-      - 重构计划: refactor-plan-etl-report.md
-      - 平台发布: platform-publication.md
-      - Hermes 工作流: hermes-agent-workflow.md
-      - 现金流影子投递: cashflow-feishu-shadow.md
-  - 发布说明:
-      - Public 仓库边界: public-release/public-boundary.md
-      - 发布检查清单: public-release/public-release-checklist.md
-      - 数据来源说明: public-release/data-provenance.md
+  - Daily site: https://runchengxie.github.io/quant-intel-platform/
+  - Home: index.md
+  - Getting started:
+      - Five-minute setup: getting-started.md
+      - Core concepts: concepts.md
+  - Common tasks:
+      - Run the daily report: how-to/run-daily-report.md
+      - Build the web dashboard: how-to/build-dashboard.md
+      - Market report website: how-to/market-site.md
+      - Add a data source: how-to/add-data-source.md
+      - FAQ: faq.md
+  - Understand the platform:
+      - System architecture: architecture.md
+      - Data ownership: data-ownership.md
+      - Cross-repository boundary contract: boundary-contract.md
+      - Artifact contracts: contracts.md
+      - Glossary: glossary.md
+  - Usage and configuration:
+      - Configuration: configuration.md
+      - CLI reference: cli-reference.md
+      - Data-fetch architecture: data-fetch-architecture.md
+      - Scoring method: scoring.md
+      - Technical-analysis method: ta-methodology.md
+      - Rate limits: rate-limits.md
+  - Operations and development:
+      - Operations: operations.md
+      - Testing: testing.md
+      - Workflows: workflows.md
+      - Report structure: report-structure.md
+      - Web dashboard: web-dashboard.md
+      - Daily schedule: daily-schedule.md
+      - Report delivery: report-distribution.md
+      - Maintenance scripts: maintenance-scripts.md
+      - Roadmap: roadmap.md
+      - New-machine setup: new-machine-setup.md
+      - Code-quality audit: code-quality-audit-findings.md
+  - Analysis and research:
+      - A-share factor signals: a-share-factor-signals.md
+      - Hotspot composite: hotspot-composite.md
+      - ETL/report refactor plan: refactor-plan-etl-report.md
+      - Platform publication: platform-publication.md
+      - Hermes workflow: hermes-agent-workflow.md
+      - Cashflow shadow delivery: cashflow-feishu-shadow.md
+  - Release notes:
+      - Public repository boundary: public-release/public-boundary.md
+      - Public release checklist: public-release/public-release-checklist.md
+      - Data provenance: public-release/data-provenance.md
