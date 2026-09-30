@@ -1,3 +1,5 @@
+[English page](daily-schedule.en.md)
+
 # Market Intel 日内调度时间表
 
 本文记录 `market-intel` 当前负责的报告、投递、数据准备和恢复任务。研究算法、因子实验、消融和策略生产逻辑由 `quant-research`、`quant-platform` 和 `strategy-pipeline` 负责。本仓只在必要时通过公开 CLI 恢复正式 artifact。

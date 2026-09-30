@@ -1,5 +1,7 @@
 # 生成网页看板
 
+[English page](build-dashboard.en.md)
+
 ## 最简单的方式
 
 先准备好 `out/` 中的日报数据，然后运行：

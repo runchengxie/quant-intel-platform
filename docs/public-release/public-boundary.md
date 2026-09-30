@@ -1,5 +1,7 @@
 # 公开仓库边界
 
+[English page](public-boundary.en.md)
+
 `quant-intel-platform` 是可复用的公开框架，负责消费版本化的研究和数据产物，校验产物，生成报告和看板，并提供通用投递接口。
 
 以下内容属于 `quant-intel-deploy` 或具体部署环境，不放入 public 仓库：

@@ -1,5 +1,7 @@
 # 常见问题
 
+[English page](faq.en.md)
+
 ## 第一次应该看什么
 
 先看[五分钟开始](getting-started.md)，再看[核心概念](concepts.md)。需要具体操作时，直接查看[常见任务](how-to/run-daily-report.md)。

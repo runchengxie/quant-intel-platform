@@ -1,5 +1,7 @@
 # 投递 Agent 工作流
 
+[English page](hermes-agent-workflow.en.md)
+
 ## 契约
 
 投递 Agent 只负责调用公开入口、传递参数和保存回执。报告内容由平台生成，生产调度与真实投递配置由 `quant-intel-deploy` 管理。

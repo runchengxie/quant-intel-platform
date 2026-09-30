@@ -1,5 +1,7 @@
 # 公开发布检查清单
 
+[English page](public-release-checklist.en.md)
+
 创建或更新公开 GitHub 仓库前，请完成以下检查。生产历史应继续保留在私有仓库，直到全部检查完成。
 
 ## 发布记录

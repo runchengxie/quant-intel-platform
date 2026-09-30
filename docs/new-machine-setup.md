@@ -1,5 +1,7 @@
 # 新机器设置
 
+[English page](new-machine-setup.en.md)
+
 ## 本地开发
 
 安装 Python、uv 和 Git 后，在仓库根目录运行：

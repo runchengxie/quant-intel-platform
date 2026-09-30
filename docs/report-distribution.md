@@ -1,5 +1,7 @@
 # 报告投递约定
 
+[English page](report-distribution.en.md)
+
 ## 公开受众模型
 
 报告可以按 `client`、`internal` 和 `public` 等受众分类。受众目标由部署环境提供，代码仓库只保存分类规则和离线示例。

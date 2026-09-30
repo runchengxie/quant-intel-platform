@@ -1,3 +1,5 @@
+[English page](ta-methodology.en.md)
+
 # 技术分析方法论
 
 本项目对 BTC/USDT 和 XAU/USD 分别实现了独立的技术分析报告生成。两者共享相同的指标体系，使用不同的数据源和计算引擎。

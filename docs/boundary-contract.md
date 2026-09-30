@@ -1,5 +1,7 @@
 # 跨仓边界契约
 
+[English page](boundary-contract.en.md)
+
 本文件是 [data-ownership.md](data-ownership.md) 与 [contracts.md](contracts.md) 的补充，专门收口
 源码与路径耦合这一项。背景见 2026-07-29 的旧工作区与 `market-intel` 整合评估报告：
 两个仓库应继续保持独立，协作只走公开 CLI 与版本化文件契约，仓库路径不得成为正式接口。

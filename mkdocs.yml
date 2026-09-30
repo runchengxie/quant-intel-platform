@@ -74,44 +74,44 @@ nav:
       - Five-minute setup: getting-started.md
       - Core concepts: concepts.md
   - Common tasks:
-      - Run the daily report: how-to/run-daily-report.md
-      - Build the web dashboard: how-to/build-dashboard.md
-      - Market report website: how-to/market-site.md
-      - Add a data source: how-to/add-data-source.md
-      - FAQ: faq.md
+      - Run the daily report: how-to/run-daily-report.en.md
+      - Build the web dashboard: how-to/build-dashboard.en.md
+      - Market report website: how-to/market-site.en.md
+      - Add a data source: how-to/add-data-source.en.md
+      - FAQ: faq.en.md
   - Understand the platform:
       - System architecture: architecture.md
-      - Data ownership: data-ownership.md
-      - Cross-repository boundary contract: boundary-contract.md
+      - Data ownership: data-ownership.en.md
+      - Cross-repository boundary contract: boundary-contract.en.md
       - Artifact contracts: contracts.md
-      - Glossary: glossary.md
+      - Glossary: glossary.en.md
   - Usage and configuration:
       - Configuration: configuration.md
-      - CLI reference: cli-reference.md
-      - Data-fetch architecture: data-fetch-architecture.md
-      - Scoring method: scoring.md
-      - Technical-analysis method: ta-methodology.md
-      - Rate limits: rate-limits.md
+      - CLI reference: cli-reference.en.md
+      - Data-fetch architecture: data-fetch-architecture.en.md
+      - Scoring method: scoring.en.md
+      - Technical-analysis method: ta-methodology.en.md
+      - Rate limits: rate-limits.en.md
   - Operations and development:
       - Operations: operations.md
-      - Testing: testing.md
-      - Workflows: workflows.md
-      - Report structure: report-structure.md
+      - Testing: testing.en.md
+      - Workflows: workflows.en.md
+      - Report structure: report-structure.en.md
       - Web dashboard: web-dashboard.md
-      - Daily schedule: daily-schedule.md
-      - Report delivery: report-distribution.md
-      - Maintenance scripts: maintenance-scripts.md
-      - Roadmap: roadmap.md
-      - New-machine setup: new-machine-setup.md
+      - Daily schedule: daily-schedule.en.md
+      - Report delivery: report-distribution.en.md
+      - Maintenance scripts: maintenance-scripts.en.md
+      - Roadmap: roadmap.en.md
+      - New-machine setup: new-machine-setup.en.md
       - Code-quality audit: code-quality-audit-findings.md
   - Analysis and research:
       - A-share factor signals: a-share-factor-signals.md
-      - Hotspot composite: hotspot-composite.md
+      - Hotspot composite: hotspot-composite.en.md
       - ETL/report refactor plan: refactor-plan-etl-report.md
-      - Platform publication: platform-publication.md
-      - Hermes workflow: hermes-agent-workflow.md
-      - Cashflow shadow delivery: cashflow-feishu-shadow.md
+      - Platform publication: platform-publication.en.md
+      - Hermes workflow: hermes-agent-workflow.en.md
+      - Cashflow shadow delivery: cashflow-feishu-shadow.en.md
   - Release notes:
-      - Public repository boundary: public-release/public-boundary.md
-      - Public release checklist: public-release/public-release-checklist.md
-      - Data provenance: public-release/data-provenance.md
+      - Public repository boundary: public-release/public-boundary.en.md
+      - Public release checklist: public-release/public-release-checklist.en.md
+      - Data provenance: public-release/data-provenance.en.md
