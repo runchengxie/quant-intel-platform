@@ -152,7 +152,7 @@ Layer 3: Windows evening pipeline           19:00  → evening_pipeline.ps1 → 
 | `.github/workflows/cross-market.yml` | Layer 1 GitHub Actions |
 | `scripts/local_fetch_cross_market.sh` | Linux Layer 2 本地脚本 |
 | `scripts/windows/morning_pipeline.ps1` | Windows 晨报入口，内嵌 hotsector 选股预览 |
-| `scripts/windows/evening_pipeline.ps1` | Windows 晚报入口，包含 market-data-platform 刷新 |
+| `scripts/windows/evening_pipeline.ps1` | Windows 晚报入口，包含 quant-market-data-platform 刷新 |
 | `scripts/windows/install_scheduled_tasks.ps1` | 注册 Windows Task Scheduler 任务 |
 | `scripts/windows/preflight.ps1` | Windows 正式任务前 doctor 预检 |
 | `scripts/windows/test_scheduled_tasks.ps1` | Windows 一次性 smoke task |

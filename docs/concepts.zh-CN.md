@@ -35,7 +35,7 @@
 ## 仓库之间如何协作
 
 ```text
-market-data-platform
+quant-market-data-platform
   提供数据
 
 quant-research / quant-platform / strategy-pipeline

@@ -6,7 +6,7 @@
 
 ## 1. 边界总则
 
-- `market-intel` 与 `quant-research`、`quant-platform`、`market-data-platform` 是职责不同的独立系统：
+- `market-intel` 与 `quant-research`、`quant-platform`、`quant-market-data-platform` 是职责不同的独立系统：
   研究侧强调版本锁定、复现与审计，情报侧强调每日调度、联网抓取、投递时效。
 - 双方不直接 import 对方业务源码。跨仓协作只通过：
   - 已安装的公开命令（`marketdata ...`、`strategy ...`、`marketops ...`、`aipick ...`）
@@ -33,7 +33,7 @@
 
 ### 脚本、systemd 和 Windows（本批次已完成收口）
 
-- `scripts/*.sh`（morning、evening、publish、refresh_tushare_daily、weekly_recap、morning_product_supervisor、refresh_tushare_report_datasets）：移除 `MDP_DIR` 默认值，改为强制要求，并统一引用 `$MDP_DIR` 下的 `.env.local`。
+- `scripts/*.sh`（morning、evening、publish、refresh_tushare_daily、weekly_recap、morning_product_supervisor、refresh_tushare_report_datasets）：移除 `MDP_DIR` 默认值，改为强制要求，并从 `~/.config/quant-market-data-platform/config.env` 读取 owner credentials。
 - `scripts/refresh_daily_watch20.sh`：只通过 `QUANT_RESEARCH_ROOT` 和 `MDP_DIR` 调用公开 producer CLI。缺少 news heat 时继续运行，不在本仓重建。
 - `scripts/daily_watch20_delivery.sh`：只校验 `strategy-pipeline` 产出的 DailyWatch20 artifact，再调用本仓渲染/投递入口。
 - `scripts/hotsector_research_handoff.sh`、`scripts/send_hotsector_client_preview.py`：仅保留指向 DailyWatch20 的兼容壳，不再启动历史 hotsector owner。
@@ -77,7 +77,7 @@
 
 `market-intel` 已通过安装依赖锁定 `research-contracts` 的明确 Git 提交，契约校验不再是本仓复制的一套实现。
 
-同理 `src/tushare_jobs/` 中与 `market-data-platform` 数据湖重复的下载任务（如 `stock_st`、`index_weight`、`listed_company` 部分字段）应逐步迁回其唯一 owner。`market-intel` 仅保留报告专用轻量快照（`lightweight_snapshot.py`）与跨市场数据。
+同理 `src/tushare_jobs/` 中与 `quant-market-data-platform` 数据湖重复的下载任务（如 `stock_st`、`index_weight`、`listed_company` 部分字段）应逐步迁回其唯一 owner。`market-intel` 仅保留报告专用轻量快照（`lightweight_snapshot.py`）与跨市场数据。
 
 ### tushare_jobs 重叠任务收口状态
 

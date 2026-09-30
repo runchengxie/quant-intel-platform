@@ -41,7 +41,7 @@ GitHub Pages 是可选分支。私有仓库当前通过 `ENABLE_GITHUB_PAGES=0` 
 
 ### A 股盘后分析
 
-从 market-data-platform 读取 TuShare 日频数据，先形成可审计的市场事实，再生成确定性的市场温度解释层。解释层包含以下内容：
+从 quant-market-data-platform 读取 TuShare 日频数据，先形成可审计的市场事实，再生成确定性的市场温度解释层。解释层包含以下内容：
 
 - 热度与脆弱度分开展示，不混为一谈。
 - 六维固定为流动性、广度、赚钱效应、亏钱风险、趋势确认和轮动质量。

@@ -25,10 +25,10 @@
 | 07:15 工作日 | `a-share-morning-product-supervisor-postflight.timer` | market-intel | 核对 artifact hash、delivery receipt 与幂等补发 |
 | 17:30 | `asia-market-refresh.timer` | 数据桥 | 拉取/消费 A 股日线及亚洲收盘相关数据，为晚报准备事实层 |
 | 18:00 | `a-share-current-publish.timer` | 数据桥 | 生成/验证 A 股 current 契约与报告输入 |
-| 18:20 / 18:40 | `a-share-report-datasets-refresh.timer` | market-data-platform producer | 准备 TuShare 晚报数据并写入日期化 receipt |
+| 18:20 / 18:40 | `a-share-report-datasets-refresh.timer` | quant-market-data-platform producer | 准备 TuShare 晚报数据并写入日期化 receipt |
 | 18:50 工作日 | `hermes-gateway-preflight.timer` | market-intel | 晚报前再次检查 Gateway |
 | 19:00 工作日 | Hermes `evening_pipeline.sh` | market-intel | 发送亚洲盘后 / 美股盘前晚报 |
-| 19:20 / 20:30 | `a-share-report-datasets-refresh.timer` | market-data-platform producer | 晚间回填与次日 freshness 修复 |
+| 19:20 / 20:30 | `a-share-report-datasets-refresh.timer` | quant-market-data-platform producer | 晚间回填与次日 freshness 修复 |
 | 周六 08:15 | `a-share-style-factor-weekly-refresh.timer` | quant-research producer bridge | 调用标准入口发布周度风格因子，本仓不实现因子计算 |
 | 周六 09:00 | Hermes `weekly_recap.sh` | market-intel | 消费已发布周度研究产物并发送周报 |
 | 开机后约 5 分钟，之后每 45 分钟 | `market-intel-scheduled-recovery.timer` | market-intel | 核对数据、报告输入、正式策略 artifact 和投递状态，并按允许列表做有限恢复 |
@@ -50,7 +50,7 @@
 正式链路是：
 
 ```text
-market-data-platform data / report inputs
+quant-market-data-platform data / report inputs
         ↓
 strategy-pipeline: strategy watchlist20 freshness/run
         ↓

@@ -157,7 +157,7 @@ canonical freshness 检查。该 receipt 只冻结 freshness 证据，实际数�
 
 - `MARKET_INTEL_DEPLOY_ROOT` 指向 deploy main checkout；
 - `DATA_PLATFORM_ROOT` 指向 canonical data root；
-- `MDP_DIR` 指向 market-data-platform runtime checkout；
+- `MDP_DIR` 指向 quant-market-data-platform runtime checkout；
 - research owner 指向 quant-research main/release artifact；
 - 不出现 retired workspace、旧 market-intel 或历史 release 目录。
 

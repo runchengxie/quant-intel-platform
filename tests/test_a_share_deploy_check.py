@@ -17,7 +17,7 @@ from a_share_daily.deploy_check import (
     format_results,
     run_checks,
 )
-from a_share_daily.deploy_check.env_helpers import _api_key_flags
+from a_share_daily.deploy_check.env_helpers import _api_key_flags, _default_env
 
 
 def test_report_artifact_health_detects_missing_chart_file_and_failed_delivery(
@@ -308,7 +308,7 @@ def test_run_checks_reports_configured_local_deployment(tmp_path: Path) -> None:
     a_share_root.mkdir(parents=True)
     mdp_dir.mkdir(parents=True)
     hermes_scripts.mkdir(parents=True)
-    (mdp_dir / "pyproject.toml").write_text('[project]\nname = "market-data-platform"\n')
+    (mdp_dir / "pyproject.toml").write_text('[project]\nname = "quant-market-data-platform"\n')
     _write_pipeline_scripts(scripts_dir)
     for name in (
         "morning_pipeline.sh",
@@ -351,7 +351,9 @@ def test_run_checks_reports_configured_local_deployment(tmp_path: Path) -> None:
     assert any(item.name == "AI stock picker key" and "已退休" in item.detail for item in results)
     assert any(item.name == "Hermes script files" and item.status == "ok" for item in results)
     assert any(item.name == "report datasets" and item.status == "ok" for item in results)
-    assert any(item.name == "market-data-platform repo" and item.status == "ok" for item in results)
+    assert any(
+        item.name == "quant-market-data-platform repo" and item.status == "ok" for item in results
+    )
     assert "Summary:" in format_results(results)
 
 
@@ -366,16 +368,17 @@ def test_runtime_project_root_uses_release_when_package_is_non_editable(
     assert _runtime_project_root() == release.resolve()
 
 
-def test_tushare_credentials_require_proxy_url_and_primary_fallback(tmp_path: Path) -> None:
-    mdp_dir = tmp_path / "market-data-platform"
-    mdp_dir.mkdir()
-    credential_file = mdp_dir / ".env.local"
+def test_tushare_credentials_require_proxy_url_and_primary_fallback(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    credential_file = tmp_path / ".config/quant-market-data-platform/config.env"
+    credential_file.parent.mkdir(parents=True)
     credential_file.write_text("# credentials are injected in this test\n", encoding="utf-8")
     credential_file.chmod(0o600)
 
     result = _check_tushare_credentials(
         {
-            "MDP_DIR": str(mdp_dir),
             "TUSHARE_TOKEN_2": "proxy-test-token",
             "TUSHARE_API_URL_2": "https://proxy.invalid",
             "TUSHARE_TOKEN": "fallback-test-token",
@@ -392,6 +395,22 @@ def test_tushare_credentials_reject_unpaired_proxy_without_fallback() -> None:
 
     assert result.status == "fail"
     assert "TUSHARE_API_URL_2" in result.detail
+
+
+def test_default_env_reads_canonical_provider_config_without_legacy_file(
+    tmp_path: Path, monkeypatch
+) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    config_dir = tmp_path / ".config/quant-market-data-platform"
+    config_dir.mkdir(parents=True)
+    (config_dir / "config.env").write_text("TUSHARE_TOKEN=canonical\n", encoding="utf-8")
+    legacy_dir = tmp_path / ".config/richard/shared"
+    legacy_dir.mkdir(parents=True)
+    (legacy_dir / "market-data-platform.env").write_text("TUSHARE_TOKEN=legacy\n", encoding="utf-8")
+
+    values = _default_env(tmp_path / "project")
+
+    assert values["TUSHARE_TOKEN"] == "canonical"
 
 
 def test_run_checks_fails_when_pipeline_scripts_are_missing(tmp_path: Path) -> None:

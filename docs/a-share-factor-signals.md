@@ -48,7 +48,7 @@ uv run python -m a_share_analysis.factor_tools.minute_factor_smoke \
 ```
 
 生产增量入口是 `scripts/refresh_a_share_factor_observation.sh YYYYMMDD`。该入口固定使用
-一次解析出的 `token env + API URL`，并从 `market-data-platform` 的 Python 环境运行，
+一次解析出的 `token env + API URL`，并从 `quant-market-data-platform` 的 Python 环境运行，
 以便 Top200 和其他分钟消费者共用同一额度账本。安全约束如下：
 
 - TuShare SDK 的 `retry_count` 固定为 `1`，`--retries` 只控制外层重试，因此每个物理请求都能单独记账。
