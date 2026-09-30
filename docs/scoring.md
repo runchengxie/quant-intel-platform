@@ -1,3 +1,5 @@
+[English page](scoring.en.md)
+
 # 主题评分方法论
 
 ## 概述

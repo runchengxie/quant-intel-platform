@@ -1,5 +1,7 @@
 # 报告结构
 
+[English page](report-structure.en.md)
+
 ## 公开契约
 
 报告由市场事实、研究产物、解释层和来源信息组成。各部分通过版本化字段交接，具体字段见[产物契约](contracts.md)。

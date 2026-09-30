@@ -1,3 +1,5 @@
+[English page](data-fetch-architecture.en.md)
+
 # 跨市场数据抓取架构
 
 ## 三层保障机制

@@ -1,3 +1,5 @@
+[English page](platform-publication.en.md)
+
 # 研究平台发布产物消费
 
 `market-intel` 可以读取 `quant-research`、`quant-platform` 或 `strategy-pipeline` 生成的 `research.platform-publication.v1` 产物包，不需要引入研究方的实现代码。
