@@ -1,5 +1,7 @@
 # 代码质量审计发现与优化方案
 
+[English page](code-quality-audit-findings.en.md)
+
 本文档汇总 2026-07-31 对 `market-intel` 主项目及三个子模块（a-share-factor-core、ai-stock-picker、hot-sector-screener）的代码质量盘点结果。文档只列方案，不改动代码。
 
 ## 当前状态说明
