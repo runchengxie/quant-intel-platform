@@ -19,6 +19,7 @@ def test_localized_public_pages_link_to_each_other() -> None:
         ("getting-started.md", "getting-started.zh-CN.md"),
         ("concepts.md", "concepts.zh-CN.md"),
         ("architecture.md", "architecture.zh-CN.md"),
+        ("data-fetch-architecture.md", "data-fetch-architecture.zh-CN.md"),
         ("contracts.md", "contracts.zh-CN.md"),
         ("configuration.md", "configuration.zh-CN.md"),
         ("how-to/run-daily-report.en.md", "how-to/run-daily-report.md"),
@@ -60,6 +61,7 @@ def test_localized_public_pages_link_to_each_other() -> None:
 def test_translated_navigation_entries_use_english_canonical_pages() -> None:
     root = Path(__file__).resolve().parents[1]
     config = (root / "mkdocs.yml").read_text(encoding="utf-8")
+    assert "Data-fetch architecture: data-fetch-architecture.md" in config
     for page in (
         "how-to/run-daily-report.en.md",
         "how-to/build-dashboard.en.md",
