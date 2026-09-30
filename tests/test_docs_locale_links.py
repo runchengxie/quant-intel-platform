@@ -44,6 +44,7 @@ def test_localized_public_pages_link_to_each_other() -> None:
         ),
         ("public-release/data-provenance.en.md", "public-release/data-provenance.md"),
         ("roadmap.en.md", "roadmap.md"),
+        ("web-dashboard.en.md", "web-dashboard.md"),
     )
 
     for english, chinese in pairs:
@@ -77,5 +78,6 @@ def test_translated_navigation_entries_use_english_canonical_pages() -> None:
         "public-release/public-release-checklist.en.md",
         "public-release/data-provenance.en.md",
         "roadmap.en.md",
+        "web-dashboard.en.md",
     ):
         assert page in config

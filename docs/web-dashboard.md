@@ -1,5 +1,7 @@
 # 网页看板数据源调研笔记
 
+[English page](web-dashboard.en.md)
+
 > 说明：本文是早期调研笔记，记录复现外部市场全景终端所需的数据源、当前缺口和可选供应商成本。项目自身的静态看板入口是 `dm dashboard`，产物为 `out/web_dashboard.html` 与 `out/web_dashboard_payload.json`。
 
 ## 三句话解读
