@@ -35,7 +35,7 @@
 
 ### 脚本、systemd 和 Windows（本批次已完成收口）
 
-- `scripts/*.sh`（morning、evening、publish、refresh_tushare_daily、weekly_recap、morning_product_supervisor、refresh_tushare_report_datasets）：移除 `MDP_DIR` 默认值，改为强制要求，并从 `~/.config/quant-market-data-platform/config.env` 读取 owner credentials。
+- `scripts/*.sh`（morning、evening、publish、refresh_tushare_daily、weekly_recap、morning_product_supervisor、refresh_tushare_report_datasets）：移除 `MDP_DIR` 默认值，改为强制要求，并从 `~/.config/richard/projects/quant/quant-market-data-platform/config.env` 读取 owner credentials。
 - `scripts/refresh_daily_watch20.sh`：只通过 `QUANT_RESEARCH_ROOT` 和 `MDP_DIR` 调用公开 producer CLI。缺少 news heat 时继续运行，不在本仓重建。
 - `scripts/daily_watch20_delivery.sh`：只校验 `strategy-pipeline` 产出的 DailyWatch20 artifact，再调用本仓渲染/投递入口。
 - `scripts/hotsector_research_handoff.sh`、`scripts/send_hotsector_client_preview.py`：仅保留指向 DailyWatch20 的兼容壳，不再启动历史 hotsector owner。

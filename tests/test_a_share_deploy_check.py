@@ -372,7 +372,9 @@ def test_tushare_credentials_require_proxy_url_and_primary_fallback(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("HOME", str(tmp_path))
-    credential_file = tmp_path / ".config/quant-market-data-platform/config.env"
+    credential_file = (
+        tmp_path / ".config/richard/projects/quant/quant-market-data-platform/config.env"
+    )
     credential_file.parent.mkdir(parents=True)
     credential_file.write_text("# credentials are injected in this test\n", encoding="utf-8")
     credential_file.chmod(0o600)
@@ -397,16 +399,16 @@ def test_tushare_credentials_reject_unpaired_proxy_without_fallback() -> None:
     assert "TUSHARE_API_URL_2" in result.detail
 
 
-def test_default_env_reads_canonical_provider_config_without_legacy_file(
+def test_default_env_reads_canonical_provider_config_without_old_path(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("HOME", str(tmp_path))
-    config_dir = tmp_path / ".config/quant-market-data-platform"
+    config_dir = tmp_path / ".config/richard/projects/quant/quant-market-data-platform"
     config_dir.mkdir(parents=True)
     (config_dir / "config.env").write_text("TUSHARE_TOKEN=canonical\n", encoding="utf-8")
-    legacy_dir = tmp_path / ".config/richard/shared"
+    legacy_dir = tmp_path / ".config/quant-market-data-platform"
     legacy_dir.mkdir(parents=True)
-    (legacy_dir / "market-data-platform.env").write_text("TUSHARE_TOKEN=legacy\n", encoding="utf-8")
+    (legacy_dir / "config.env").write_text("TUSHARE_TOKEN=legacy\n", encoding="utf-8")
 
     values = _default_env(tmp_path / "project")
 

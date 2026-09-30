@@ -49,7 +49,7 @@ def _default_env(project_root: Path) -> dict[str, str]:
     stable_dir = Path.home() / ".config/richard/shared"
     for env_path in (
         stable_dir / "market-intel.env",
-        Path.home() / ".config/quant-market-data-platform/config.env",
+        Path.home() / ".config/richard/projects/quant/quant-market-data-platform/config.env",
         project_root / ".env",
         project_root / ".env.local",
     ):
