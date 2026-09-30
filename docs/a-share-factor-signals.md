@@ -1,5 +1,7 @@
 # A 股外部因子信号试验（历史记录）
 
+[English page](a-share-factor-signals.en.md)
+
 > 本页仅保留迁移历史。因子面板、分钟特征、Hermite 和滚动训练已迁入
 > 相关能力已经迁移到 `quant-research` 与 `strategy-pipeline`。market-intel 不再提供本页所述的产出入口或报告观察入口。
 
