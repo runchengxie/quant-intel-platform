@@ -105,7 +105,7 @@ nav:
       - New-machine setup: new-machine-setup.en.md
       - Code-quality audit record: code-quality-audit-findings.en.md
   - Analysis and research:
-      - A-share factor signals: a-share-factor-signals.md
+      - A-share factor-signal research archive: a-share-factor-signals.en.md
       - Hotspot composite: hotspot-composite.en.md
       - ETL/report refactor record: refactor-plan-etl-report.en.md
       - Platform publication: platform-publication.en.md

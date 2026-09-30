@@ -47,6 +47,7 @@ def test_localized_public_pages_link_to_each_other() -> None:
         ("web-dashboard.en.md", "web-dashboard.md"),
         ("refactor-plan-etl-report.en.md", "refactor-plan-etl-report.md"),
         ("code-quality-audit-findings.en.md", "code-quality-audit-findings.md"),
+        ("a-share-factor-signals.en.md", "a-share-factor-signals.md"),
     )
 
     for english, chinese in pairs:
@@ -83,5 +84,6 @@ def test_translated_navigation_entries_use_english_canonical_pages() -> None:
         "web-dashboard.en.md",
         "refactor-plan-etl-report.en.md",
         "code-quality-audit-findings.en.md",
+        "a-share-factor-signals.en.md",
     ):
         assert page in config
