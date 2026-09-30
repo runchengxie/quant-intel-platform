@@ -32,6 +32,6 @@ test('daily site and documentation share light and dark design tokens', () => {
       assert.equal(site[`--desk-${siteName}`], docs[`--mi-${docsName}`]);
     }
   }
-  assert.match(mkdocs, /scheme: default[\s\S]*切换到深色模式/);
-  assert.match(mkdocs, /scheme: slate[\s\S]*切换到浅色模式/);
+  assert.match(mkdocs, /scheme: default[\s\S]*Switch to dark mode/);
+  assert.match(mkdocs, /scheme: slate[\s\S]*Switch to light mode/);
 });
