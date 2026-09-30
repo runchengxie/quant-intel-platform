@@ -45,6 +45,7 @@ def test_localized_public_pages_link_to_each_other() -> None:
         ("public-release/data-provenance.en.md", "public-release/data-provenance.md"),
         ("roadmap.en.md", "roadmap.md"),
         ("web-dashboard.en.md", "web-dashboard.md"),
+        ("refactor-plan-etl-report.en.md", "refactor-plan-etl-report.md"),
     )
 
     for english, chinese in pairs:
@@ -79,5 +80,6 @@ def test_translated_navigation_entries_use_english_canonical_pages() -> None:
         "public-release/data-provenance.en.md",
         "roadmap.en.md",
         "web-dashboard.en.md",
+        "refactor-plan-etl-report.en.md",
     ):
         assert page in config

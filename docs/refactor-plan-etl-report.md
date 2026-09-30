@@ -1,5 +1,7 @@
 # 重构记录：拆分巨型文件（ETL 与投递）
 
+[English page](refactor-plan-etl-report.en.md)
+
 本文记录 `run_fetch.py` 与 `report_delivery.py` 的拆分进展。拆分目标是在不破坏现有绿色 pre-push 门禁的前提下，按数据源和职责把巨型文件拆成更小的模块，降低单文件复杂度，方便团队协作维护。
 
 ## 当前状态（行数为实测值）
