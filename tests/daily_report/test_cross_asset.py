@@ -80,7 +80,7 @@ def test_cross_asset_wrong_date_and_one_failed_contract_are_missing_without_drop
 
     assert len(facts) == 4
     assert missing == {
-        "GC=F": "RuntimeError: provider unavailable",
+        "GC=F": "provider_unavailable",
         "BTC=F": "observation_date_mismatch",
     }
     assert not any(fact.id.startswith("cross_asset.gold.") for fact in facts)
@@ -106,7 +106,7 @@ def test_missing_dated_contract_does_not_substitute_continuous_fmp(monkeypatch):
     facts, missing = cross_asset.fetch_cross_asset_facts(date(2026, 9, 24))
     by_id = {fact.id: fact for fact in facts}
 
-    assert missing == {"BZ=F": "RuntimeError: Yahoo unavailable"}
+    assert missing == {"BZ=F": "provider_unavailable"}
     assert "cross_asset.brent.close" not in by_id
     assert by_id["cross_asset.gold.close"].source == "Yahoo Finance"
     assert by_id["cross_asset.bitcoin.close"].source == "Yahoo Finance"

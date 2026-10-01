@@ -8,6 +8,7 @@ from urllib.parse import quote
 from daily_messenger.etl.fetchers.quotes import fetch_yahoo_daily_snapshot
 
 from .models import MarketFact
+from .provider_diagnostics import failure_reason
 
 CONTRACTS = (
     ("BZ=F", "brent", "Brent Last Day Financial Futures", "USD/barrel"),
@@ -104,5 +105,5 @@ def fetch_cross_asset_facts(report_date: date) -> tuple[list[MarketFact], dict[s
                 )
             )
         except Exception as exc:  # noqa: BLE001 - each market is an independent optional source
-            missing[symbol] = f"{type(exc).__name__}: {exc}"
+            missing[symbol] = failure_reason(exc)
     return facts, missing

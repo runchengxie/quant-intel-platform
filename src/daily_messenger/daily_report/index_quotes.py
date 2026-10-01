@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 from datetime import UTC, date, datetime
 from urllib.parse import quote
 
 from daily_messenger.etl.fetchers.quotes import fetch_yahoo_daily_snapshot
 
 from .models import MarketFact
+from .provider_diagnostics import failure_reason
+
+logger = logging.getLogger(__name__)
 
 INDICES = (
     ("^GSPC", "spx", "S&P 500"),
@@ -28,7 +32,10 @@ def fetch_index_facts(report_date: date) -> tuple[list[MarketFact], tuple[str, .
                 missing.append(symbol)
                 continue
             snapshots.append((symbol, key, instrument, snapshot))
-        except Exception:  # noqa: BLE001 - one unavailable source degrades the group
+        except Exception as exc:  # noqa: BLE001 - one unavailable source degrades the group
+            logger.warning(
+                "Yahoo index daily bar unavailable for %s: %s", symbol, failure_reason(exc)
+            )
             missing.append(symbol)
     if missing:
         return [], tuple(missing)
