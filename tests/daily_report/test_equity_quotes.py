@@ -1,4 +1,6 @@
-from datetime import date
+from datetime import UTC, date, datetime
+
+import pytest
 
 from daily_messenger.etl.types import QuoteSnapshot
 
@@ -113,3 +115,98 @@ def test_alpaca_sip_snapshot_rejects_iex_and_stale_daily_bars(monkeypatch):
     assert captured["params"]["feed"] == "sip"
     assert snapshot.change_pct == 1.0
     assert snapshot.day == "2026-09-25"
+
+
+@pytest.mark.parametrize(
+    "day,end,prior_stamp,target_stamp",
+    [
+        (
+            date(2026, 9, 30),
+            "2026-09-30T20:00:00+00:00",
+            "2026-09-29T04:00:00Z",
+            "2026-09-30T04:00:00Z",
+        ),
+        (
+            date(2026, 1, 15),
+            "2026-01-15T21:00:00+00:00",
+            "2026-01-14T05:00:00Z",
+            "2026-01-15T05:00:00Z",
+        ),
+    ],
+)
+def test_sip_query_ends_at_completed_regular_close_not_next_midnight(
+    monkeypatch, day, end, prior_stamp, target_stamp
+):
+    from daily_messenger.daily_report import equity_quotes
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 10, 1, 3, tzinfo=UTC)
+
+    monkeypatch.setattr(equity_quotes, "datetime", FixedDateTime)
+
+    def historical(url, *, params, headers):
+        assert params["feed"] == "sip"
+        assert params["end"] == end
+        return {
+            "bars": {
+                "MSFT": [
+                    {"t": prior_stamp, "c": 100},
+                    {"t": target_stamp, "c": 101},
+                ]
+            }
+        }
+
+    monkeypatch.setattr(equity_quotes, "request_json", historical)
+    snapshot = equity_quotes._fetch_alpaca_sip_snapshot("MSFT", day, "key", "secret")
+    assert snapshot.day == day.isoformat()
+    assert snapshot.change_pct == 1
+
+
+@pytest.mark.parametrize("instant", ["2026-09-30T19:59:00+00:00", "2026-09-30T20:14:59+00:00"])
+def test_sip_does_not_query_an_uncompleted_or_recent_close(monkeypatch, instant):
+    from daily_messenger.daily_report import equity_quotes
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime.fromisoformat(instant)
+
+    monkeypatch.setattr(equity_quotes, "datetime", FixedDateTime)
+    monkeypatch.setattr(
+        equity_quotes,
+        "request_json",
+        lambda *a, **k: pytest.fail("no request before close is historical"),
+    )
+    with pytest.raises(ValueError, match="completed"):
+        equity_quotes._fetch_alpaca_sip_snapshot("MSFT", date(2026, 9, 30), "key", "secret")
+
+
+def test_sip_accepts_exactly_fifteen_minutes_after_close(monkeypatch):
+    from daily_messenger.daily_report import equity_quotes
+
+    class FixedDateTime(datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return datetime(2026, 9, 30, 20, 15, tzinfo=UTC)
+
+    monkeypatch.setattr(equity_quotes, "datetime", FixedDateTime)
+    monkeypatch.setattr(
+        equity_quotes,
+        "request_json",
+        lambda *a, **k: {
+            "bars": {
+                "MSFT": [
+                    {"t": "2026-09-29T04:00:00Z", "c": 100},
+                    {"t": "2026-09-30T04:00:00Z", "c": 101},
+                ]
+            }
+        },
+    )
+    assert (
+        equity_quotes._fetch_alpaca_sip_snapshot(
+            "MSFT", date(2026, 9, 30), "key", "secret"
+        ).change_pct
+        == 1
+    )

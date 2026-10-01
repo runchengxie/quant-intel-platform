@@ -4,8 +4,9 @@ from __future__ import annotations
 
 import logging
 import math
-from datetime import UTC, date, datetime, timedelta
+from datetime import UTC, date, datetime, time, timedelta
 from urllib.parse import quote
+from zoneinfo import ZoneInfo
 
 from daily_messenger.etl.config import resolve_api_key
 from daily_messenger.etl.fetchers.quotes import fetch_yahoo_daily_snapshot
@@ -24,13 +25,18 @@ def _fetch_alpaca_sip_snapshot(
     symbol: str, report_date: date, key_id: str, secret: str
 ) -> QuoteSnapshot:
     """Use consolidated SIP raw daily bars; never substitute an IEX-only close."""
+    close_time = datetime.combine(report_date, time(16), ZoneInfo("America/New_York")).astimezone(
+        UTC
+    )
+    if datetime.now(UTC) < close_time + timedelta(minutes=15):
+        raise ValueError("Alpaca SIP regular close is not completed historical data")
     payload = request_json(
         "https://data.alpaca.markets/v2/stocks/bars",
         params={
             "symbols": symbol,
             "timeframe": "1Day",
             "start": (report_date - timedelta(days=7)).isoformat(),
-            "end": (report_date + timedelta(days=1)).isoformat(),
+            "end": close_time.isoformat(),
             "limit": 20,
             "adjustment": "raw",
             "feed": "sip",
