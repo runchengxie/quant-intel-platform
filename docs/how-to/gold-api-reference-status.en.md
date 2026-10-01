@@ -61,13 +61,26 @@ dm research --date YYYY-MM-DD --section market --out /path/to/private/data/resea
 ```
 
 Supported sections are `market`, `drivers`, `macro`, `company_news`, `gainers`
-and `losers`. Single-section mode has a hard 75-second subprocess timeout and
+and `losers`. Single-section mode has a hard 180-second default subprocess timeout and
 rejects payloads outside that section or with more than two candidates. The
 prompt asks for at most two searches and two original-page opens, but this is
 guidance, not a tool-enforced request counter. Candidates still require review;
 empty output does not establish coverage. Omitting `--section` preserves the
-existing broad research mode and its 480-second timeout. Existing production
-jobs are not automatically switched to single-section mode.
+existing broad research mode and its 480-second default timeout. Existing
+production jobs are not automatically switched to single-section mode.
+
+Use `--timeout-seconds 300` for a wider bounded research window, or up to `600`
+for diagnostics. Explicit budgets must be integer seconds from 30 through 600;
+the option overrides either single-section or full mode. Each invocation's
+actual budget is recorded in both the draft and receipt. More time does
+not waive source verification or make empty output complete. The 2026-10-01
+private company-news probe completed in approximately 92 seconds with two
+structurally valid candidates, illustrating why 75 seconds can be insufficient;
+one probe does not establish production reliability.
+
+This budget is per invocation, not a scheduler-wide allowance. Any future
+multi-topic production caller must coordinate its total deadline, retries,
+overlap locks and service timeout separately. No timer changes are made here.
 
 Web research opens original news pages to verify publication time, observation
 date and supporting evidence. This is unrelated to the public report site's
