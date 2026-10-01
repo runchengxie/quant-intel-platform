@@ -18,7 +18,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const markdown = loadMarkdown(report);
 const body = renderMarkdown(toEnglishPresentation(markdown));
 const charts = report.kind === 'evening' ? loadChart(report.id) : null;
-const visualReport = charts ? toEnglishPresentation(buildAsiaReportSvg(report, charts, markdown, toEnglishPresentation)) : null;
+const visualReport = charts ? toEnglishPresentation(buildAsiaReportSvg(report, charts, markdown, toEnglishPresentation, 'en-US')) : null;
 const chartSources = [...new Map((charts || []).flatMap((chart) => (chart.points || [])
   .filter((point) => /^https?:\/\//.test(point.source_url))
   .map((point) => [point.source_url, toEnglishPresentation(point.source_label)]))).entries()];

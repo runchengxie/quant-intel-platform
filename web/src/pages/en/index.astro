@@ -19,7 +19,7 @@ const latestEvening = reports.filter((row) => row.kind === 'evening').sort((a, b
 const latestEveningDate = latestEvening?.date;
 const eveningHistory = reports.filter((row) => row.kind === 'evening' && row.date >= VISUAL_REPORT_START_DATE && row.id !== latestEvening?.id);
 const latestEveningMarkdown = latestEvening ? loadMarkdown(latestEvening) : null;
-const asiaReportSvg = latestEvening && latestEveningMarkdown ? toEnglishPresentation(buildAsiaReportSvg(latestEvening, loadChart(latestEvening.id), latestEveningMarkdown, toEnglishPresentation)) : null;
+const asiaReportSvg = latestEvening && latestEveningMarkdown ? toEnglishPresentation(buildAsiaReportSvg(latestEvening, loadChart(latestEvening.id), latestEveningMarkdown, toEnglishPresentation, 'en-US')) : null;
 const market = loadMarketDaily();
 const marketChartSummary = market?.publication === 'public' ? marketDailyUtils.summarizeMarketDaily(market) : null;
 const marketChartSvg = marketChartSummary ? toEnglishPresentation(marketDailyUtils.buildMarketDailyChartSvg(marketChartSummary)) : null;
