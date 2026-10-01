@@ -1,5 +1,9 @@
 # 仓库开发指南
 
+## PR review 例外
+
+由用户本人提交，或由用户明确委托 agent 完成的 PR，无需单独的人工 review；这是持续有效的授权，不需要逐个 PR 确认，并覆盖本文件中的一般 PR review 要求。必需检查仍须通过，冲突必须解决；不得绕过 GitHub 分支保护或 ruleset 强制要求的审批。
+
 ## 职责边界
 
 `market-intel` 是市场情报、报告、投递和运行保障系统。A 股策略研究、因子计算、模型训练、回测、消融与策略 artifact 生产由 `quant-research`、`quant-platform` 和 `strategy-pipeline` 按职责维护。
