@@ -243,7 +243,16 @@ def _add_daily_report_parser(subparsers: argparse._SubParsersAction) -> None:
             parser.add_argument("--reviewed-draft", help="Private original web-research draft")
             parser.add_argument("--reviewed-decisions", help="Private source-audit decisions")
     research_parser = subparsers.add_parser("research", help="Create a private web research draft")
+    sample_parser = subparsers.add_parser(
+        "metal-sample", help="Save private timestamped metal references"
+    )
+    sample_parser.add_argument("--out", required=True, help="Private output directory outside Git")
     research_parser.add_argument("--date", required=True, help="US trading date (YYYY-MM-DD)")
+    research_parser.add_argument(
+        "--section",
+        choices=["market", "drivers", "macro", "company_news", "gainers", "losers"],
+        help="Research one section with a 75-second timeout and at most two candidates",
+    )
     research_parser.add_argument(
         "--out", required=True, help="Private output directory outside Git"
     )
@@ -497,11 +506,28 @@ def _dispatch_research(args: argparse.Namespace, logger: logging.Logger) -> int:
     try:
         market_date = date.fromisoformat(args.date)
         cutoff = datetime.fromisoformat(args.cutoff) if args.cutoff else datetime.now(UTC)
-        artifact = run_web_research(market_date, Path(args.out), cutoff=cutoff)
+        if args.section:
+            artifact = run_web_research(
+                market_date, Path(args.out), cutoff=cutoff, section=args.section
+            )
+        else:
+            artifact = run_web_research(market_date, Path(args.out), cutoff=cutoff)
     except (ValueError, WebResearchError) as exc:
         log(logger, logging.ERROR, "web_research_failed", reason=str(exc))
         return 2
     log(logger, logging.INFO, "web_research_draft_written", artifact=str(artifact))
+    return 0
+
+
+def _dispatch_metal_sample(args: argparse.Namespace, logger: logging.Logger) -> int:
+    from daily_messenger.daily_report.metal_samples import sample_metals
+
+    try:
+        artifact = sample_metals(Path(args.out))
+    except (ValueError, RuntimeError, OSError):
+        log(logger, logging.ERROR, "metal_sample_failed")
+        return 2
+    log(logger, logging.INFO, "metal_sample_written", artifact=str(artifact))
     return 0
 
 
@@ -511,6 +537,8 @@ def _dispatch(args: argparse.Namespace, logger: logging.Logger) -> int:
 
     if args.command == "research":
         return _dispatch_research(args, logger)
+    if args.command == "metal-sample":
+        return _dispatch_metal_sample(args, logger)
 
     if args.command in {"market-facts", "market-events", "daily-report"}:
         return _dispatch_daily_report(args, logger)

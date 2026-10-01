@@ -7,12 +7,12 @@
 <!-- cli-help:start -->
 ```text
 $ dm --help
-usage: dm [-h] {run,fetch,score,digest,dashboard,state-panel,btc,style-replica,market-facts,market-events,daily-report,research} ...
+usage: dm [-h] {run,fetch,score,digest,dashboard,state-panel,btc,style-replica,market-facts,market-events,daily-report,research,metal-sample} ...
 
 Daily Messenger CLI
 
 positional arguments:
-  {run,fetch,score,digest,dashboard,state-panel,btc,style-replica,market-facts,market-events,daily-report,research}
+  {run,fetch,score,digest,dashboard,state-panel,btc,style-replica,market-facts,market-events,daily-report,research,metal-sample}
     run                 Run ETL, scoring, and digest sequentially
     fetch               Run ETL only
     score               Run scoring only
@@ -25,6 +25,7 @@ positional arguments:
     market-events       Build normalized market events
     daily-report        Build validated market daily report
     research            Create a private web research draft
+    metal-sample        Save private timestamped metal references
 
 options:
   -h, --help            show this help message and exit
