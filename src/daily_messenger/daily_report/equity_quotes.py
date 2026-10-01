@@ -13,6 +13,7 @@ from daily_messenger.etl.http import request_json
 from daily_messenger.etl.types import QuoteSnapshot
 
 from .models import MarketFact
+from .provider_diagnostics import failure_reason
 
 CORE_SYMBOLS = ("MSFT", "AAPL", "NVDA", "AMZN", "GOOGL", "META")
 ALPACA_SOURCE_URL = "https://docs.alpaca.markets/us/reference/stockbars"
@@ -97,15 +98,19 @@ def fetch_equity_facts(
                 or abs(snapshot.change_pct) > 100
             ):
                 snapshot = None
-        except Exception:  # noqa: BLE001 - optional source fallback, no stale publication
-            logger.warning("Yahoo stock daily bar unavailable for %s", symbol)
+        except Exception as exc:  # noqa: BLE001 - optional source fallback, no stale publication
+            logger.warning(
+                "Yahoo stock daily bar unavailable for %s: %s", symbol, failure_reason(exc)
+            )
         if snapshot is None and key_id and secret:
             try:
                 snapshot = _fetch_alpaca_sip_snapshot(symbol, report_date, key_id, secret)
                 source = "Alpaca SIP"
                 url = ALPACA_SOURCE_URL
-            except Exception:  # noqa: BLE001 - omit unavailable optional quote
-                logger.warning("Alpaca SIP stock daily bar unavailable for %s", symbol)
+            except Exception as exc:  # noqa: BLE001 - omit unavailable optional quote
+                logger.warning(
+                    "Alpaca SIP stock daily bar unavailable for %s: %s", symbol, failure_reason(exc)
+                )
         if (
             snapshot is None
             or snapshot.day != report_date.isoformat()
