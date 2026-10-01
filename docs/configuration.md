@@ -18,6 +18,11 @@ A_SHARE_OUTPUT_DIR=/path/to/report/output
 
 Production credentials and real delivery targets must be injected by the deployment environment. Do not commit tokens, private paths, raw data, receipts, or runtime state.
 
+The API-key example reserves the top-level `gold_api` field for
+[gold-api.com](https://gold-api.com/) (not GoldAPI.io). Replace
+`YOUR_GOLD_API_KEY` only in your private JSON credential file. This placeholder
+does not enable a data adapter or change the daily report's pricing convention.
+
 ## Cross-repository roots
 
 Use explicit paths when a workflow invokes an owner CLI:
