@@ -251,7 +251,12 @@ def _add_daily_report_parser(subparsers: argparse._SubParsersAction) -> None:
     research_parser.add_argument(
         "--section",
         choices=["market", "drivers", "macro", "company_news", "gainers", "losers"],
-        help="Research one section with a 75-second timeout and at most two candidates",
+        help="Research one section with a 180-second default timeout and at most two candidates",
+    )
+    research_parser.add_argument(
+        "--timeout-seconds",
+        type=int,
+        help="Research time budget, 30–600 seconds (default: section 180, full 480)",
     )
     research_parser.add_argument(
         "--out", required=True, help="Private output directory outside Git"
@@ -506,7 +511,15 @@ def _dispatch_research(args: argparse.Namespace, logger: logging.Logger) -> int:
     try:
         market_date = date.fromisoformat(args.date)
         cutoff = datetime.fromisoformat(args.cutoff) if args.cutoff else datetime.now(UTC)
-        if args.section:
+        if args.timeout_seconds is not None:
+            artifact = run_web_research(
+                market_date,
+                Path(args.out),
+                cutoff=cutoff,
+                section=args.section,
+                timeout_seconds=args.timeout_seconds,
+            )
+        elif args.section:
             artifact = run_web_research(
                 market_date, Path(args.out), cutoff=cutoff, section=args.section
             )

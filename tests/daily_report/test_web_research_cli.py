@@ -38,11 +38,13 @@ def test_single_section_is_bounded_and_still_needs_review(monkeypatch, tmp_path)
 
     monkeypatch.setattr(web_research.subprocess, "run", fake_run)
     artifact = web_research.run_web_research(MARKET_DATE, tmp_path, cutoff=CUTOFF, section="market")
-    assert captured["timeout"] == 75
+    assert captured["timeout"] == 180
     assert "Only research section market" in captured["prompt"]
     assert "at most two" in captured["prompt"]
     result = json.loads(artifact.read_text())
     assert result["section"] == "market"
+    receipt = json.loads((tmp_path / "receipts" / artifact.name).read_text())
+    assert result["timeout_seconds"] == receipt["timeout_seconds"] == 180
     assert result["candidates"][0]["review_status"] == "needs_review"
 
 
@@ -65,8 +67,8 @@ def test_single_section_rejects_out_of_scope_payload(monkeypatch, tmp_path, rows
 def test_section_cli_forwards_selected_topic(monkeypatch, tmp_path):
     captured = {}
 
-    def fake_research(market_date, output, **kwargs):
-        captured.update(kwargs)
+    def fake_research(market_date, output, *, cutoff, section):
+        captured["section"] = section
         return output / "draft.json"
 
     monkeypatch.setattr(web_research, "run_web_research", fake_research)
@@ -79,13 +81,83 @@ def test_section_cli_forwards_selected_topic(monkeypatch, tmp_path):
 
 def test_section_timeout_keeps_no_success_artifact(monkeypatch, tmp_path):
     def fail(command, **kwargs):
-        assert kwargs["timeout"] == 75
+        assert kwargs["timeout"] == 180
         raise subprocess.TimeoutExpired(command, kwargs["timeout"])
 
     monkeypatch.setattr(web_research.subprocess, "run", fail)
     with pytest.raises(web_research.WebResearchError, match="timed out"):
         web_research.run_web_research(MARKET_DATE, tmp_path, cutoff=CUTOFF, section="macro")
     assert not list(tmp_path.glob("web-research-*.json"))
+
+
+@pytest.mark.parametrize("section,budget", [("market", 600), ("market", 30), (None, 300)])
+def test_explicit_research_budget_is_applied_and_recorded(monkeypatch, tmp_path, section, budget):
+    def fake_run(command, **kwargs):
+        assert kwargs["timeout"] == budget
+        Path(command[command.index("--output-last-message") + 1]).write_text(json.dumps(VALID))
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(web_research.subprocess, "run", fake_run)
+    artifact = web_research.run_web_research(
+        MARKET_DATE, tmp_path, cutoff=CUTOFF, section=section, timeout_seconds=budget
+    )
+    result = json.loads(artifact.read_text())
+    receipt = json.loads((tmp_path / "receipts" / artifact.name).read_text())
+    assert result["timeout_seconds"] == receipt["timeout_seconds"] == budget
+    assert result["review_status"] == "needs_review"
+
+
+@pytest.mark.parametrize("budget", [0, 29, 601, True, 180.5])
+def test_invalid_budget_is_rejected_before_creating_output(monkeypatch, tmp_path, budget):
+    def fail(command, **kwargs):
+        pytest.fail("invalid budget must not launch Codex")
+
+    monkeypatch.setattr(web_research.subprocess, "run", fail)
+    output = tmp_path / "not-created"
+    with pytest.raises(web_research.WebResearchError, match="timeout"):
+        web_research.run_web_research(MARKET_DATE, output, cutoff=CUTOFF, timeout_seconds=budget)
+    assert not output.exists()
+
+
+def test_cli_explicit_budget_reaches_research(monkeypatch, tmp_path):
+    def fake_research(market_date, output, **kwargs):
+        assert kwargs["section"] == "company_news"
+        assert kwargs["timeout_seconds"] == 300
+        return output / "draft.json"
+
+    monkeypatch.setattr(web_research, "run_web_research", fake_research)
+    assert (
+        cli.main(
+            [
+                "research",
+                "--date",
+                "2026-09-18",
+                "--out",
+                str(tmp_path),
+                "--section",
+                "company_news",
+                "--timeout-seconds",
+                "300",
+            ]
+        )
+        == 0
+    )
+
+
+@pytest.mark.parametrize("budget", ["29", "601"])
+def test_cli_invalid_budget_leaves_no_output(monkeypatch, tmp_path, budget):
+    def fail(command, **kwargs):
+        pytest.fail("invalid budget must not launch Codex")
+
+    monkeypatch.setattr(web_research.subprocess, "run", fail)
+    output = tmp_path / "not-created"
+    assert (
+        cli.main(
+            ["research", "--date", "2026-09-18", "--out", str(output), "--timeout-seconds", budget]
+        )
+        == 2
+    )
+    assert not output.exists()
 
 
 def test_runner_requests_live_read_only_search_and_writes_review_draft(monkeypatch, tmp_path):
@@ -135,6 +207,7 @@ def test_runner_requests_live_read_only_search_and_writes_review_draft(monkeypat
     assert receipt["cutoff"] == CUTOFF.isoformat()
     assert receipt["model"] == artifact["model"]
     assert receipt["reasoning_effort"] == artifact["reasoning_effort"] == "medium"
+    assert receipt["timeout_seconds"] == artifact["timeout_seconds"] == 480
     assert receipt["rejected"] == []
 
 

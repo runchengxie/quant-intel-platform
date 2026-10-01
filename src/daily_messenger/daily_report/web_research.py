@@ -9,7 +9,7 @@ import subprocess
 from datetime import UTC, date, datetime, time
 from pathlib import Path
 from tempfile import TemporaryDirectory
-from typing import cast
+from typing import TypedDict, Unpack, cast
 from urllib.parse import urlsplit
 from uuid import uuid4
 from zoneinfo import ZoneInfo
@@ -30,6 +30,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[3]
 MODEL = "gpt-6-sol"
 REASONING_EFFORT = "medium"
 CODEX_TIMEOUT_SECONDS = 480
+SECTION_TIMEOUT_SECONDS = 180
 _SECRET_ASSIGNMENT = re.compile(
     r"(?i)\b(token|api[_-]?key|password|secret|authorization)\s*[:=]\s*\S+"
 )
@@ -37,6 +38,12 @@ _SECRET_ASSIGNMENT = re.compile(
 
 class WebResearchError(RuntimeError):
     """The private research draft could not be generated safely."""
+
+
+class ResearchOverrides(TypedDict, total=False):
+    """Optional bounded runtime overrides; legacy call arguments remain unchanged."""
+
+    timeout_seconds: int
 
 
 def _safe_codex_stderr_tail(stderr: str) -> str:
@@ -258,6 +265,17 @@ def _write_unique_json(path: Path, payload: object) -> None:
         temporary.unlink(missing_ok=True)
 
 
+def _research_timeout(section: str | None, overrides: ResearchOverrides) -> int:
+    if overrides.keys() - {"timeout_seconds"}:
+        raise WebResearchError("unknown research override")
+    timeout_seconds = overrides.get("timeout_seconds")
+    if timeout_seconds is None:
+        return SECTION_TIMEOUT_SECONDS if section else CODEX_TIMEOUT_SECONDS
+    if type(timeout_seconds) is not int or not 30 <= timeout_seconds <= 600:
+        raise WebResearchError("research timeout must be an integer between 30 and 600 seconds")
+    return timeout_seconds
+
+
 def run_web_research(
     market_date: date,
     output_dir: Path,
@@ -265,12 +283,14 @@ def run_web_research(
     cutoff: datetime,
     codex_bin: str = "codex",
     section: str | None = None,
+    **overrides: Unpack[ResearchOverrides],
 ) -> Path:
     """Run live Codex search and write an immutable, review-required draft outside Git."""
     if cutoff.tzinfo is None or cutoff.utcoffset() is None:
         raise WebResearchError("cutoff must be timezone-aware")
     if section is not None and section not in SECTIONS:
         raise WebResearchError("invalid research section")
+    budget = _research_timeout(section, overrides)
     output_path = output_dir.resolve()
     if output_path == PROJECT_ROOT or PROJECT_ROOT in output_path.parents:
         raise WebResearchError("research output must be outside the repository")
@@ -308,7 +328,7 @@ def run_web_research(
                 env=_minimal_codex_env(),
                 capture_output=True,
                 text=True,
-                timeout=75 if section else CODEX_TIMEOUT_SECONDS,
+                timeout=budget,
                 check=False,
             )
         except FileNotFoundError as exc:
@@ -352,6 +372,7 @@ def run_web_research(
         "model": MODEL,
         "reasoning_effort": REASONING_EFFORT,
         "review_status": "needs_review",
+        "timeout_seconds": budget,
         "accepted_count": len(accepted),
         "rejected": rejected,
         "candidates": accepted,
@@ -367,6 +388,7 @@ def run_web_research(
         "rejected_count": len(rejected),
         "rejected": rejected,
         "review_status": "needs_review",
+        "timeout_seconds": budget,
     }
     if section:
         artifact["section"] = section
