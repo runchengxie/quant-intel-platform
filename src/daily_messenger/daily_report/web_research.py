@@ -279,7 +279,18 @@ def run_web_research(
         except FileNotFoundError as exc:
             raise WebResearchError("Codex CLI not found") from exc
         except subprocess.TimeoutExpired as exc:
-            raise WebResearchError("Codex search timed out") from exc
+            stderr = exc.stderr or ""
+            if isinstance(stderr, bytes):
+                stderr = stderr.decode("utf-8", errors="replace")
+            evidence = stderr.lower()
+            routing = "routing discovery failed" in evidence
+            search = "web.run" in evidence or "web search" in evidence
+            # Activity flags are evidence, not a diagnosis; never log captured output.
+            raise WebResearchError(
+                "Codex search timed out; "
+                f"routing_failure_observed={str(routing).lower()}; "
+                f"search_activity_observed={str(search).lower()}"
+            ) from None
         if result.returncode != 0:
             detail = _safe_codex_stderr_tail(result.stderr)
             raise WebResearchError(

@@ -1,5 +1,6 @@
 import json
 import subprocess
+import traceback
 from datetime import UTC, date, datetime
 from pathlib import Path
 
@@ -152,6 +153,32 @@ def test_output_must_be_outside_repository():
         web_research.run_web_research(
             MARKET_DATE, Path(web_research.__file__).resolve().parents[3] / "out", cutoff=CUTOFF
         )
+
+
+@pytest.mark.parametrize(
+    "stderr,routing,search",
+    [
+        (b"ERROR workspace routing discovery failed api_key=secret", True, False),
+        ("tool web.run searching token=secret", False, True),
+        (b"\xff workspace routing discovery failed; web search; api_key=secret", True, True),
+        (None, False, False),
+    ],
+)
+def test_timeout_reports_activity_flags_without_raw_logs(
+    monkeypatch, tmp_path, stderr, routing, search
+):
+    def timed_out(command, **kwargs):
+        raise subprocess.TimeoutExpired(command, kwargs["timeout"], stderr=stderr)
+
+    monkeypatch.setattr(web_research.subprocess, "run", timed_out)
+    with pytest.raises(web_research.WebResearchError) as error:
+        web_research.run_web_research(MARKET_DATE, tmp_path, cutoff=CUTOFF)
+    message = str(error.value)
+    assert f"routing_failure_observed={str(routing).lower()}" in message
+    assert f"search_activity_observed={str(search).lower()}" in message
+    assert "secret" not in message
+    assert "secret" not in "".join(traceback.format_exception(error.value))
+    assert list(tmp_path.glob("web-research-*.json")) == []
 
 
 def test_research_cli_dispatches_requested_market_date_and_private_output(monkeypatch, tmp_path):
