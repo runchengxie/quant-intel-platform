@@ -21,7 +21,7 @@
 ## 本次迁移结论
 
 - 主数据根是 `~/data/quant/quant-market-data-platform`。
-- `~/data/market-data-platform` 是待核对的旧路径；确认数据、服务和消费者迁移完成前，不要删除或覆盖。
+- 旧顶层目录已原样保存在 `~/data/quant/archive/market-data-platform/legacy-top-level-20260928/`，其中的历史锁文件仍保留。活动数据入口使用 `~/data/quant/quant-market-data-platform`；归档副本不作为生产数据源。
 - 代码和调度模板应读取 `DATA_PLATFORM_ROOT`。正式报告、回执和恢复状态默认写入
   `reports/market-intel/` 与 `state/market-intel/`，也可以用对应的细粒度环境变量覆盖。
   未配置数据根目录时，持久化入口会直接报错，不会在代码仓库中创建 `out/` 或 `state/`。
