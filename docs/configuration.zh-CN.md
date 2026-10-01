@@ -4,6 +4,10 @@
 
 配置分为两部分：仓库内的公开默认值，以及部署环境提供的运行参数。
 
+API 密钥示例预留了顶层 `gold_api` 字段，对应
+[gold-api.com](https://gold-api.com/)（不是 GoldAPI.io）。只在私有 JSON
+凭证文件中替换 `YOUR_GOLD_API_KEY`。此占位不会启用数据适配器，也不会改变日报价格口径。
+
 ## 公开安全的环境变量
 
 ```bash
