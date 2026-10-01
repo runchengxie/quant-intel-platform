@@ -215,6 +215,36 @@ def _minimal_codex_env() -> dict[str, str]:
     return {key: value for key, value in os.environ.items() if key in allowed}
 
 
+def _section_prompt(market_date: date, cutoff: datetime, section: str) -> str:
+    return (
+        f"Only research section {section} for US observation date {market_date.isoformat()}. "
+        f"Publication cutoff: {cutoff.isoformat()}. Return at most two candidates. "
+        "Use at most two searches and open at most two original pages; this is a research budget, "
+        "not a quota. Do not explore other sections. Search snippets are discovery leads only. "
+        "Omit inaccessible or unverifiable sources; an empty candidates array is valid. "
+        "Return the supplied JSON schema, with natural Chinese summaries, original HTTP(S) URLs, "
+        "timezone-aware publication timestamps, explicit observation dates and supporting passages "
+        "of at most 160 characters. Never invent numbers, dates, causes or URLs. "
+        "Separate facts from attributed interpretation. Set phase to close, intraday or event; "
+        "close requires publication after 16:00 America/New_York on the observation date. "
+        "Do not infer observation date from publication date or give investment advice."
+    )
+
+
+def _check_section_bounds(payload: object, section: str | None) -> None:
+    if section is None:
+        return
+    if not isinstance(payload, dict):
+        raise WebResearchError("Codex returned invalid candidate container")
+    rows = cast("dict[str, object]", payload).get("candidates")
+    if not isinstance(rows, list):
+        raise WebResearchError("Codex returned invalid candidate container")
+    if len(rows) > 2 or any(
+        not isinstance(row, dict) or row.get("section") != section for row in rows
+    ):
+        raise WebResearchError("Codex exceeded section bounds")
+
+
 def _write_unique_json(path: Path, payload: object) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     temporary = path.with_name(f".{path.name}.{uuid4().hex}.tmp")
@@ -234,10 +264,13 @@ def run_web_research(
     *,
     cutoff: datetime,
     codex_bin: str = "codex",
+    section: str | None = None,
 ) -> Path:
     """Run live Codex search and write an immutable, review-required draft outside Git."""
     if cutoff.tzinfo is None or cutoff.utcoffset() is None:
         raise WebResearchError("cutoff must be timezone-aware")
+    if section is not None and section not in SECTIONS:
+        raise WebResearchError("invalid research section")
     output_path = output_dir.resolve()
     if output_path == PROJECT_ROOT or PROJECT_ROOT in output_path.parents:
         raise WebResearchError("research output must be outside the repository")
@@ -263,7 +296,9 @@ def run_web_research(
             str(schema_path),
             "--output-last-message",
             str(raw_path),
-            _prompt(market_date, cutoff),
+            _section_prompt(market_date, cutoff, section)
+            if section
+            else _prompt(market_date, cutoff),
         ]
         try:
             # The argv shape is fixed, shell=False, and the CLI runs in a private scratch dir.
@@ -273,7 +308,7 @@ def run_web_research(
                 env=_minimal_codex_env(),
                 capture_output=True,
                 text=True,
-                timeout=CODEX_TIMEOUT_SECONDS,
+                timeout=75 if section else CODEX_TIMEOUT_SECONDS,
                 check=False,
             )
         except FileNotFoundError as exc:
@@ -300,6 +335,7 @@ def run_web_research(
             payload = json.loads(raw_path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError) as exc:
             raise WebResearchError("Codex returned invalid JSON") from exc
+    _check_section_bounds(payload, section)
     accepted, rejected = validate_candidates(payload, market_date=market_date, cutoff=cutoff)
     if rejected == ["invalid_payload"]:
         raise WebResearchError("Codex returned invalid candidate container")
@@ -332,6 +368,9 @@ def run_web_research(
         "rejected": rejected,
         "review_status": "needs_review",
     }
+    if section:
+        artifact["section"] = section
+        receipt["section"] = section
     _write_unique_json(artifact_path, artifact)
     _write_unique_json(output_path / "receipts" / artifact_path.name, receipt)
     return artifact_path

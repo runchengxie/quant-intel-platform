@@ -27,6 +27,67 @@ VALID = {
 }
 
 
+def test_single_section_is_bounded_and_still_needs_review(monkeypatch, tmp_path):
+    captured = {}
+
+    def fake_run(command, **kwargs):
+        captured.update(kwargs)
+        captured["prompt"] = command[-1]
+        Path(command[command.index("--output-last-message") + 1]).write_text(json.dumps(VALID))
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(web_research.subprocess, "run", fake_run)
+    artifact = web_research.run_web_research(MARKET_DATE, tmp_path, cutoff=CUTOFF, section="market")
+    assert captured["timeout"] == 75
+    assert "Only research section market" in captured["prompt"]
+    assert "at most two" in captured["prompt"]
+    result = json.loads(artifact.read_text())
+    assert result["section"] == "market"
+    assert result["candidates"][0]["review_status"] == "needs_review"
+
+
+@pytest.mark.parametrize(
+    "rows", [[{**VALID["candidates"][0], "section": "macro"}], VALID["candidates"] * 3]
+)
+def test_single_section_rejects_out_of_scope_payload(monkeypatch, tmp_path, rows):
+    def fake_run(command, **kwargs):
+        Path(command[command.index("--output-last-message") + 1]).write_text(
+            json.dumps({"candidates": rows})
+        )
+        return subprocess.CompletedProcess(command, 0, "", "")
+
+    monkeypatch.setattr(web_research.subprocess, "run", fake_run)
+    with pytest.raises(web_research.WebResearchError, match="section bounds"):
+        web_research.run_web_research(MARKET_DATE, tmp_path, cutoff=CUTOFF, section="market")
+    assert not list(tmp_path.glob("web-research-*.json"))
+
+
+def test_section_cli_forwards_selected_topic(monkeypatch, tmp_path):
+    captured = {}
+
+    def fake_research(market_date, output, **kwargs):
+        captured.update(kwargs)
+        return output / "draft.json"
+
+    monkeypatch.setattr(web_research, "run_web_research", fake_research)
+    assert (
+        cli.main(["research", "--date", "2026-09-18", "--out", str(tmp_path), "--section", "macro"])
+        == 0
+    )
+    assert captured["section"] == "macro"
+
+
+def test_section_timeout_keeps_no_success_artifact(monkeypatch, tmp_path):
+    def fail(command, **kwargs):
+        assert kwargs["timeout"] == 75
+        raise subprocess.TimeoutExpired(command, kwargs["timeout"])
+
+    monkeypatch.setattr(web_research.subprocess, "run", fail)
+    with pytest.raises(web_research.WebResearchError, match="timed out"):
+        web_research.run_web_research(MARKET_DATE, tmp_path, cutoff=CUTOFF, section="macro")
+    assert not list(tmp_path.glob("web-research-*.json"))
+
+
 def test_runner_requests_live_read_only_search_and_writes_review_draft(monkeypatch, tmp_path):
     captured = {}
 

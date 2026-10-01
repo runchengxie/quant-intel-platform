@@ -24,6 +24,48 @@ class MetalReferenceWindow:
     actual_quote_time: datetime | None = None
 
 
+@dataclass(frozen=True)
+class MetalReferenceQuote:
+    """Private USD reference quote with unverified instrument and quotation unit."""
+
+    symbol: str
+    price: float
+    actual_quote_time: datetime
+    retrieved_at: datetime
+
+
+def fetch_reference_quote(symbol: str) -> MetalReferenceQuote:
+    """Read the free latest-price endpoint; never reinterpret its time as a close."""
+    if symbol not in {"XAU", "XAG"}:
+        raise ValueError("Gold API symbol invalid")
+    try:
+        response = requests.get(
+            f"https://api.gold-api.com/price/{symbol}", timeout=12, allow_redirects=False
+        )
+    except requests.RequestException:
+        raise RuntimeError("Gold API request failed") from None
+    if response.status_code != 200:
+        raise RuntimeError(f"Gold API HTTP {response.status_code}")
+    try:
+        payload = response.json()
+    except ValueError:
+        raise RuntimeError("Gold API JSON invalid") from None
+    if (
+        not isinstance(payload, dict)
+        or payload.get("symbol") != symbol
+        or payload.get("currency") != "USD"
+    ):
+        raise RuntimeError("Gold API quote identity invalid")
+    retrieved_at = datetime.now(UTC)
+    try:
+        quote_time = datetime.fromisoformat(payload["updatedAt"])
+    except (KeyError, TypeError, ValueError):
+        raise RuntimeError("Gold API quote time invalid") from None
+    if quote_time.utcoffset() is None or quote_time > retrieved_at:
+        raise RuntimeError("Gold API quote time invalid")
+    return MetalReferenceQuote(symbol, _price(payload.get("price")), quote_time, retrieved_at)
+
+
 def _price(value: object) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         raise RuntimeError("Gold API price invalid")

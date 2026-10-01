@@ -38,3 +38,37 @@ whether the reference is spot, futures, or an exchange settlement.
 
 Keep any verified reference series separate from COMEX dated-contract facts.
 Never use it to silently clear the existing gold/silver futures completeness gaps.
+
+## Private latest-price sampling
+
+```bash
+dm metal-sample --out /path/to/private/data/metal-reference-samples
+```
+
+This reads the free `/price/XAU` and `/price/XAG` endpoints, which do not require
+the historical API key. Each successful invocation saves a new private JSON pair
+with mode `0600`, the provider's actual `updatedAt` and a separate retrieval time.
+Old samples are retained. Invalid identities, non-USD quotes, invalid prices,
+timezone-naive or future timestamps, and partial pairs are rejected. An old
+quote remains explicitly old; successful retrieval does not certify freshness.
+Instrument and quotation unit remain unverified. No production sampler timer
+or public integration is enabled by this command.
+
+## Bounded original-source research
+
+```bash
+dm research --date YYYY-MM-DD --section market --out /path/to/private/data/research
+```
+
+Supported sections are `market`, `drivers`, `macro`, `company_news`, `gainers`
+and `losers`. Single-section mode has a hard 75-second subprocess timeout and
+rejects payloads outside that section or with more than two candidates. The
+prompt asks for at most two searches and two original-page opens, but this is
+guidance, not a tool-enforced request counter. Candidates still require review;
+empty output does not establish coverage. Omitting `--section` preserves the
+existing broad research mode and its 480-second timeout. Existing production
+jobs are not automatically switched to single-section mode.
+
+Web research opens original news pages to verify publication time, observation
+date and supporting evidence. This is unrelated to the public report site's
+loading speed. Market prices continue to use data APIs, not news-page scraping.
