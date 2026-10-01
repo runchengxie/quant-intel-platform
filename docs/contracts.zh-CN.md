@@ -500,7 +500,7 @@ upstream_confidence_score
 示例：
 
 ```bash
-DATA_PLATFORM_ROOT=~/data/market-data-platform \
+DATA_PLATFORM_ROOT=~/data/quant/quant-market-data-platform \
   uv run --project "$QUANT_RESEARCH_ROOT" strategy watchlist20 news-heat-export \
     --source-date 20260710
 ```
@@ -508,7 +508,7 @@ DATA_PLATFORM_ROOT=~/data/market-data-platform \
 ## DailyWatch20 正式选股产物
 
 `market-intel` 只消费该 artifact 并负责展示，不复制模型打分或选股逻辑。默认目录为
-`~/data/market-data-platform/strategy_outputs/watchlist20/latest/`，可用
+`~/data/quant/quant-market-data-platform/strategy_outputs/watchlist20/latest/`，可用
 `WATCHLIST20_ROOT` 覆盖。目录内必须同时存在：
 
 - `watchlist_20.csv`：20 行正式观察池。

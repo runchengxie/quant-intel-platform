@@ -1,7 +1,7 @@
 # 数据目录说明
 
 本机量化数据统一放在 `~/data/quant/`。其中，行情数据平台的主目录是
-`~/data/quant/market-data-platform`。代码仓库通过 `DATA_PLATFORM_ROOT` 读取这个目录，
+`~/data/quant/quant-market-data-platform`。代码仓库通过 `DATA_PLATFORM_ROOT` 读取这个目录，
 不直接依赖本机目录结构。
 
 ## 常用目录
@@ -20,8 +20,8 @@
 
 ## 本次迁移结论
 
-- 主数据根已经迁移到 `~/data/quant/market-data-platform`。
-- 旧的 `~/data/market-data-platform` 目录当前不存在。
+- 主数据根是 `~/data/quant/quant-market-data-platform`。
+- `~/data/market-data-platform` 是待核对的旧路径；确认数据、服务和消费者迁移完成前，不要删除或覆盖。
 - 代码和调度模板应读取 `DATA_PLATFORM_ROOT`。正式报告、回执和恢复状态默认写入
   `reports/market-intel/` 与 `state/market-intel/`，也可以用对应的细粒度环境变量覆盖。
   未配置数据根目录时，持久化入口会直接报错，不会在代码仓库中创建 `out/` 或 `state/`。
@@ -39,8 +39,8 @@
 ## 运行前检查
 
 ```bash
-test -d "${DATA_PLATFORM_ROOT:-$HOME/data/quant/market-data-platform}"
-find "${DATA_PLATFORM_ROOT:-$HOME/data/quant/market-data-platform}" -maxdepth 1 -type d | sort
+test -d "${DATA_PLATFORM_ROOT:-$HOME/data/quant/quant-market-data-platform}"
+find "${DATA_PLATFORM_ROOT:-$HOME/data/quant/quant-market-data-platform}" -maxdepth 1 -type d | sort
 ```
 
 生产调度由 `quant-intel-deploy` 管理。修改数据位置时，先更新部署环境中的
