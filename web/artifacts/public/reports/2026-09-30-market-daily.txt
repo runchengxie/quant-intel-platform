@@ -1,34 +1,57 @@
 美股市场日报｜2026-09-30 美东报告日
-报告生成时间：2026-09-30T22:36:30.909960+00:00；逐项显示原始观测日。
+报告生成时间：2026-10-01T03:37:53.272515+00:00；逐项显示原始观测日。
 
 一、美股市场表现
-- 暂无经核实指数行情。
+- 标普 500 日涨跌：-0.25%（观测日 2026-09-30）
+  来源：https://finance.yahoo.com/quote/%5EGSPC/history/
+- 道指日涨跌：-0.86%（观测日 2026-09-30）
+  来源：https://finance.yahoo.com/quote/%5EDJI/history/
+- 纳指日涨跌：+0.24%（观测日 2026-09-30）
+  来源：https://finance.yahoo.com/quote/%5EIXIC/history/
+- 罗素 2000 日涨跌：-0.39%（观测日 2026-09-30）
+  来源：https://finance.yahoo.com/quote/%5ERUT/history/
 
 二、重点个股
+- MSFT：512.90 美元，+0.77%（观测日 2026-09-30）
+  来源：https://finance.yahoo.com/quote/MSFT/history/
+- AAPL：333.02 美元，+1.10%（观测日 2026-09-30）
+  来源：https://finance.yahoo.com/quote/AAPL/history/
+- NVDA：228.38 美元，+0.51%（观测日 2026-09-30）
+  来源：https://finance.yahoo.com/quote/NVDA/history/
+- AMZN：249.15 美元，+1.01%（观测日 2026-09-30）
+  来源：https://finance.yahoo.com/quote/AMZN/history/
+- GOOGL：344.08 美元，+0.93%（观测日 2026-09-30）
+  来源：https://finance.yahoo.com/quote/GOOGL/history/
+- META：725.18 美元，-1.84%（观测日 2026-09-30）
+  来源：https://finance.yahoo.com/quote/META/history/
 - 暂无经核实内容。
 
 三、美债收益率
-- 2 年期美债收益率日变动：-3.00 bp（观测日 2026-09-29）
-  来源：https://fred.stlouisfed.org/series/DGS2
-- 5 年期美债收益率日变动：+0.00 bp（观测日 2026-09-29）
-  来源：https://fred.stlouisfed.org/series/DGS5
-- 10 年期美债收益率日变动：+2.00 bp（观测日 2026-09-29）
-  来源：https://fred.stlouisfed.org/series/DGS10
-- 30 年期美债收益率日变动：+3.00 bp（观测日 2026-09-29）
-  来源：https://fred.stlouisfed.org/series/DGS30
-- 2 年期美债收益率水平：4.89%（观测日 2026-09-29）
-  来源：https://fred.stlouisfed.org/series/DGS2
-- 5 年期美债收益率水平：5.06%（观测日 2026-09-29）
-  来源：https://fred.stlouisfed.org/series/DGS5
-- 10 年期美债收益率水平：5.26%（观测日 2026-09-29）
-  来源：https://fred.stlouisfed.org/series/DGS10
-- 30 年期美债收益率水平：5.59%（观测日 2026-09-29）
-  来源：https://fred.stlouisfed.org/series/DGS30
+- 2 年期美债收益率日变动：-1.00 bp（观测日 2026-09-30）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 5 年期美债收益率日变动：+3.00 bp（观测日 2026-09-30）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 10 年期美债收益率日变动：+3.00 bp（观测日 2026-09-30）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 30 年期美债收益率日变动：+5.00 bp（观测日 2026-09-30）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 2 年期美债收益率水平：4.88%（观测日 2026-09-30）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 5 年期美债收益率水平：5.09%（观测日 2026-09-30）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 10 年期美债收益率水平：5.29%（观测日 2026-09-30）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
+- 30 年期美债收益率水平：5.64%（观测日 2026-09-30）
+  来源：https://home.treasury.gov/resource-center/data-chart-center/interest-rates/daily-treasury-rates.csv/all/202609?_format=csv&field_tdr_date_value_month=202609&page=&type=daily_treasury_yield_curve
 
 四、跨资产行情
-- BTC/USD 现货收盘：83773.72 美元/BTC（观测日 2026-09-30）
+- 布伦特期货收盘：103.58 美元/桶（观测日 2026-09-30）
+  来源：https://finance.yahoo.com/quote/BZX26.NYM/history/
+- 布伦特日涨跌：+0.96%（观测日 2026-09-30）
+  来源：https://finance.yahoo.com/quote/BZX26.NYM/history/
+- BTC/USD 现货收盘：83458.44 美元/BTC（观测日 2026-09-30）
   来源：https://site.financialmodelingprep.com/developer/docs/stable/cryptocurrency-historical-price-eod-full
-- BTC/USD 现货日涨跌：+0.16%（观测日 2026-09-30）
+- BTC/USD 现货日涨跌：-0.22%（观测日 2026-09-30）
   来源：https://site.financialmodelingprep.com/developer/docs/stable/cryptocurrency-historical-price-eod-full
 
 五、市场驱动因素
@@ -48,6 +71,6 @@
 - 暂无经核实内容。
 
 
-尚缺：指数行情、研究解释、布伦特期货行情、黄金期货行情、白银期货行情、比特币期货行情、部分美股个股行情、美债收益率当日变动。
+尚缺：研究解释、黄金期货行情、白银期货行情、比特币期货行情。
 
 风险提示：市场有风险，投资需谨慎。
