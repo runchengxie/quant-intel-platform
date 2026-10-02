@@ -35,7 +35,7 @@
 
 ### 脚本、systemd 和 Windows（本批次已完成收口）
 
-- `scripts/*.sh`（morning、evening、publish、refresh_tushare_daily、weekly_recap、morning_product_supervisor、refresh_tushare_report_datasets）：移除 `MDP_DIR` 默认值，改为强制要求，并从 `~/.config/richard/projects/quant/quant-market-data-platform/config.env` 读取 owner credentials。
+- `scripts/*.sh`（morning、evening、publish、refresh_tushare_daily、weekly_recap、morning_product_supervisor、refresh_tushare_report_datasets）：移除 `MDP_DIR` 默认值，改为强制要求，并通过已安装的 `marketdata config run` 从 owner 管理的私有 `config.json` 注入凭证。
 - `scripts/refresh_daily_watch20.sh`：只通过 `QUANT_RESEARCH_ROOT` 和 `MDP_DIR` 调用公开 producer CLI。缺少 news heat 时继续运行，不在本仓重建。
 - `scripts/daily_watch20_delivery.sh`：只校验 `strategy-pipeline` 产出的 DailyWatch20 artifact，再调用本仓渲染/投递入口。
 - `scripts/hotsector_research_handoff.sh`、`scripts/send_hotsector_client_preview.py`：仅保留指向 DailyWatch20 的兼容壳，不再启动历史 hotsector owner。
@@ -105,3 +105,15 @@ MDP 现为这些数据集的权威 owner。market-intel 消费
 SHA-256 不匹配、行数不符或请求切片不存在时明确失败，不会回退 TuShare 自抓。
 `force_full_refresh` 也会提示改用 MDP 的公开 CLI。一致性脚本仍可审计历史兼容文件，但不再控制
 是否回退。
+
+
+## Owner JSON configuration
+
+Provider jobs launch through the installed merged data owner CLI:
+`marketdata config run --config "$DATA_PLATFORM_CONFIG" -- COMMAND ARGS...`.
+The selected private schema-v1 JSON owns supplier credentials. This consumer
+never imports the owner's loader or parses the supplier JSON. Doctor helpers
+check selected-file metadata and inherited credential status only. With JSON
+selected, legacy provider env files and provider entries in project env files
+are excluded; other credential owners retain their configuration. Use owner
+`config check` to validate JSON content and run doctor through `config run`.

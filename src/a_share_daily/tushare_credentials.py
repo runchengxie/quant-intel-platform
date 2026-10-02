@@ -15,14 +15,30 @@ def _configured(env: Mapping[str, str], name: str) -> bool:
     return bool(env.get(name, "").strip())
 
 
+def selected_provider_json(env: Mapping[str, str]) -> Path | None:
+    """Select a path for metadata checks without parsing owner credentials."""
+    if "DATA_PLATFORM_CONFIG" in env:
+        return Path(env["DATA_PLATFORM_CONFIG"]).expanduser().absolute()
+    home = Path(env.get("HOME") or Path.home())
+    root = Path(env.get("XDG_CONFIG_HOME") or home / ".config")
+    path = root / "quant-market-data-platform/config.json"
+    return path if path.exists() or path.is_symlink() else None
+
+
 def _credential_file_issue(env: Mapping[str, str]) -> str | None:
-    path = Path.home() / ".config/richard/projects/quant/quant-market-data-platform/config.env"
-    if not path.exists():
+    selected = selected_provider_json(env)
+    if "DATA_PLATFORM_CONFIG" in env and not env["DATA_PLATFORM_CONFIG"].strip():
+        return "DATA_PLATFORM_CONFIG 必须指定私有 JSON 文件"
+    path = (
+        selected
+        or Path.home() / ".config/richard/projects/quant/quant-market-data-platform/config.env"
+    )
+    if selected is None and not path.exists():
         return None
     try:
         metadata = path.lstat()
     except OSError:
-        return "无法读取 richard/projects/quant/quant-market-data-platform/config.env 元数据"
+        return "无法读取市场数据凭证文件元数据，请检查 DATA_PLATFORM_CONFIG"
     if path.is_symlink() or not stat.S_ISREG(metadata.st_mode):
         return "TuShare 凭证文件必须是普通非 symlink 文件"
     if os.name == "nt":
@@ -37,6 +53,8 @@ def _credential_file_issue(env: Mapping[str, str]) -> str | None:
 def credential_health(env: Mapping[str, str]) -> tuple[CredentialStatus, str]:
     """Describe a proxy-first credential chain without exposing any value."""
 
+    if issue := _credential_file_issue(env):
+        return "fail", issue
     proxy_token = _configured(env, "TUSHARE_TOKEN_2")
     proxy_url = _configured(env, "TUSHARE_API_URL_2")
     fallback_token = _configured(env, "TUSHARE_TOKEN")
@@ -48,12 +66,10 @@ def credential_health(env: Mapping[str, str]) -> tuple[CredentialStatus, str]:
     if not (proxy_token and proxy_url) and not fallback_token:
         return (
             "warn",
-            "未检测到可用凭证；请在 richard/projects/quant/quant-market-data-platform/config.env "
-            "配置 TOKEN_2+URL_2，并保留 TOKEN 兜底",
+            "未检测到可用凭证；请通过 owner 的 marketdata config run 使用 DATA_PLATFORM_CONFIG "
+            "指定的私有 JSON，配置 TOKEN_2+URL_2，并保留 TOKEN 兜底",
         )
 
-    if issue := _credential_file_issue(env):
-        return "fail", issue
     if proxy_token and proxy_url and fallback_token:
         return (
             "ok",
