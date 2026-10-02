@@ -8,7 +8,7 @@ import json
 import re
 from collections.abc import Mapping, Sequence
 from dataclasses import asdict, dataclass
-from datetime import date, datetime, timezone
+from datetime import UTC, date, datetime
 from urllib.parse import urlsplit
 
 from daily_messenger.common.market_news import AI_NEWS_MARKET_SPECS
@@ -82,6 +82,23 @@ class AsiaNewsCandidate:
         return "asia." + digest(asdict(self))
 
 
+def _validate_publication(values: dict[str, str], retrieved: datetime) -> None:
+    published = values["published_at"]
+    if values["time_precision"] == "timestamp":
+        if aware_timestamp(published) > retrieved:
+            raise ValueError("publication after retrieval")
+    elif values["time_precision"] == "date":
+        if date.fromisoformat(published).isoformat() != published:
+            raise ValueError("invalid publication date")
+        if (
+            date.fromisoformat(published)
+            > retrieved.astimezone(MARKET_ZONES[values["market"]]).date()
+        ):
+            raise ValueError("publication after retrieval")
+    else:
+        raise ValueError("invalid source time precision")
+
+
 def validate_asia_candidate(payload: Mapping[str, object]) -> AsiaNewsCandidate:
     """Reject unbound source identity or manufactured timestamps."""
     keys = (
@@ -109,36 +126,21 @@ def validate_asia_candidate(payload: Mapping[str, object]) -> AsiaNewsCandidate:
     if not re.fullmatch(r"[a-f0-9]{64}", values["source_sha256"]):
         raise ValueError("invalid source hash")
     retrieved = aware_timestamp(values["retrieved_at"])
-    published = values["published_at"]
-    if values["time_precision"] == "timestamp":
-        if aware_timestamp(published) > retrieved:
-            raise ValueError("publication after retrieval")
-    elif values["time_precision"] == "date":
-        if date.fromisoformat(published).isoformat() != published:
-            raise ValueError("invalid publication date")
-        if (
-            date.fromisoformat(published)
-            > retrieved.astimezone(MARKET_ZONES[values["market"]]).date()
-        ):
-            raise ValueError("publication after retrieval")
-    else:
-        raise ValueError("invalid source time precision")
+    _validate_publication(values, retrieved)
     if values["document_status"] not in {"active", "revised", "cancelled"}:
         raise ValueError("invalid document status")
     event_date, revision = payload.get("event_date"), payload.get("revision_of")
-    if event_date is not None:
-        if (
-            not isinstance(event_date, str)
-            or date.fromisoformat(event_date).isoformat() != event_date
-        ):
-            raise ValueError("invalid event date")
+    if event_date is not None and (
+        not isinstance(event_date, str) or date.fromisoformat(event_date).isoformat() != event_date
+    ):
+        raise ValueError("invalid event date")
     if revision is not None and (
         not isinstance(revision, str) or not re.fullmatch(r"asia\.[a-f0-9]{64}", revision)
     ):
         raise ValueError("invalid revision identity")
     if values["document_status"] == "revised" and revision is None:
         raise ValueError("revised document requires original identity")
-    values["retrieved_at"] = retrieved.astimezone(timezone.utc).isoformat()
+    values["retrieved_at"] = retrieved.astimezone(UTC).isoformat()
     return AsiaNewsCandidate(**values, event_date=event_date, revision_of=revision)
 
 
