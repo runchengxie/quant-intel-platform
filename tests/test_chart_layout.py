@@ -111,6 +111,7 @@ def test_weekly_chart_subtitle_and_breadth_use_report_language(tmp_path, monkeyp
     assert any("上涨日" in text and "/5" in text for text in rendered_text)
     assert "市场广度" in rendered_text
     assert "成交活跃度（相对周均）" in rendered_text
+    assert "近5个交易日复盘" in rendered_text
 
 
 def test_sentiment_chart_uses_breadth_strip_and_metric_language(tmp_path, monkeypatch) -> None:
@@ -160,4 +161,4 @@ def test_dashboard_uses_breadth_strip_and_thin_margin_line(tmp_path, monkeypatch
 
     assert "市场广度" in rendered_text
     assert "涨 50%" in rendered_text
-    assert "融资余额趋势" in rendered_text
+    assert "融资余额趋势（覆盖范围未核实）" in rendered_text

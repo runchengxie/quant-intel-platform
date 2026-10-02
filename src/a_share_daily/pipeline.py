@@ -541,12 +541,15 @@ def _latest_partition_dates(dataset: str, as_of_date: str | None = None) -> list
 
 
 def _recent_margin_data(as_of_date: str | None = None) -> list[dict[str, Any]]:
-    margin_data: list[dict[str, Any]] = []
-    for day in _latest_partition_dates("margin", as_of_date=as_of_date):
-        margin_df = D.read_margin(day)
-        if not margin_df.empty:
-            margin_data.append({"date": day, "rzye": margin_df["rzye"].sum() / 1e8})
-    return margin_data
+    from .charts.margin_history import comparable_margin_rows
+
+    rows = comparable_margin_rows(
+        {
+            day: D.read_margin(day)
+            for day in _latest_partition_dates("margin", as_of_date=as_of_date)
+        }
+    )
+    return [dict(row) for row in rows]
 
 
 def _recent_turnover_data(as_of_date: str | None = None) -> list[dict[str, Any]]:
@@ -631,6 +634,7 @@ def _run_weekly_chart(state: _ChartState) -> tuple[list[str], dict[str, pd.DataF
                 "weekly_chart",
                 {
                     "week_daily": week_daily,
+                    "weekly_expected_dates": week_dates,
                     **_source_inputs(
                         "weekly_chart", state.trade_date, "Tushare A 股日线", _DAILY_SOURCE
                     ),
@@ -676,8 +680,12 @@ def _run_weekly_text(
                 moneyflow = D.read_moneyflow_ths(day)
                 week_mf[day] = float(moneyflow["net_amount"].sum() / 1e4)
             with contextlib.suppress(Exception):
+                from .charts.margin_history import EXCHANGES, comparable_margin_rows
+
                 margin = D.read_margin(day)
-                week_margin[day] = float(margin["rzye"].sum() / 1e8)
+                if set(margin["exchange_id"]) == EXCHANGES:
+                    rows = comparable_margin_rows({day: margin})
+                    week_margin[day] = float(rows[0]["rzye"])
 
         week_gold = _weekly_gold_prices(week_dates)
         text = generate_weekly_text(

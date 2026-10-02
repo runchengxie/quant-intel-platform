@@ -89,6 +89,20 @@ def test_weekly_uses_each_trading_days_date_and_png_aggregate():
     ]
 
 
+def test_weekly_points_expose_missing_expected_open_session():
+    inputs = {
+        "week_daily": {
+            "20260923": pd.DataFrame({"pct_chg": [1.0], "amount": [100000.0]}),
+            "20260930": pd.DataFrame({"pct_chg": [-1.0], "amount": [200000.0]}),
+        },
+        "weekly_expected_dates": ["20260923", "20260924", "20260930"],
+        **metadata("weekly_chart", "2026-09-30"),
+    }
+    points = extract_chart_points("weekly_chart", inputs, "2026-09-30")
+    assert all("缺少开市日 2026-09-24" in point["source_label"] for point in points)
+    assert {point["observation_date"] for point in points} == {"2026-09-23", "2026-09-30"}
+
+
 def test_dashboard_retains_mixed_units_and_component_dates():
     inputs = {
         "daily": pd.DataFrame([{"pct_chg": 1.0}, {"pct_chg": -2.0}]),

@@ -2,6 +2,7 @@ import type { ChartCard, ChartPoint } from './chart-data.ts';
 import { dailyReturn, reportTable, type ReportTable } from './asia-report-tables.ts';
 import { ASIA_IMAGE_LABELS as labels, asiaImageLabel, type Locale } from './locale.ts';
 import { toEnglishPresentation } from './english-content.ts';
+import { renderReportPanel } from './asia-report-panels.ts';
 
 interface EveningReport {
   kind: 'evening';
@@ -354,8 +355,8 @@ export function buildAsiaReportSvg(report: EveningReport, charts: ChartCard[], m
     ['## 一、市场状态', '市场状态', 3], ['### 六维观察', '六维观察', 7],
     ['### 核心矛盾', '核心矛盾', 2], ['### 明日验证', '次日观察', 2],
     ['### 昨日验证复盘', '昨日验证', 2], ['### 二、指数总览', '指数总览', 4],
-    ['### 三、市场总览', '市场总览', 3], ['### 四、涨跌停', '涨跌停', 2],
-    ['### 五、资金动向', '资金动向', 2], ['### 六、融资融券', '融资融券', 2],
+    ['### 三、市场总览', '市场总览', Infinity], ['### 四、涨跌停', '涨跌停', Infinity],
+    ['### 五、资金动向', '资金动向', Infinity], ['### 六、融资融券', '融资融券', 2],
     ['### 七、行业板块 TOP10', '行业板块', 4],
     ['### 八、高成交核心票 TOP10', '高成交个股', 4],
     ['### 九、热门概念 TOP5', '热门概念', 4], ['### 十、极端异动', '极端异动', 3],
@@ -379,6 +380,7 @@ export function buildAsiaReportSvg(report: EveningReport, charts: ChartCard[], m
     if (lines.length) {
       addHeading(title);
       for (const line of lines) addText(line);
+      renderReportPanel(draw, markdown, heading);
     }
   }
   const provenance = markdown.split('\n').filter((line) => /^\*数据:/.test(line.trim()));

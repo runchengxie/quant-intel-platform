@@ -4,6 +4,74 @@ const { readFileSync } = require('node:fs');
 const path = require('node:path');
 
 const evening = { id: '2026-09-30-evening', kind: 'evening', date: '2026-09-30', summary: '' };
+
+test('published overview facts produce signed comparison and disjoint count groups', async () => {
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.ts');
+  const markdown = `### 三、市场总览
+全市场中位数涨跌 [WARN] -0.09% | 成交额加权涨跌 +0.98% | 总成交 1.45万亿
+上涨 2567 家 | 下跌 2824 家 | 平盘 170 家 | 上涨率 46.2%
+### 四、涨跌停
+涨停 56 家 | 跌停 13 家 | 涨幅>5% 148 家 | 跌幅>5% 131 家
+> 最高连板: 7 板
+### 五、资金动向
+大单资金代理 [WARN] -286.86亿 | 净流入 2065 家 / 净流出 3145 家`;
+  const svg = buildAsiaReportSvg(evening, [], markdown);
+  for (const key of ['overview', 'limits', 'flow']) assert.match(svg, new RegExp(`data-report-panel="${key}"`));
+  assert.match(svg, /data-metric="median" data-value="-0.09"/);
+  assert.match(svg, /data-metric="weighted" data-value="0.98"/);
+  assert.match(svg, /data-count="limit-up" data-value="56"/);
+  assert.match(svg, /data-count="over-five" data-value="148"/);
+  assert.match(svg, /data-count="inflow" data-value="2065"/);
+  assert.match(svg, /data-card="turnover"/);
+  assert.match(svg, /data-card="max-board"/);
+  assert.match(svg, /1.45万亿/);
+  assert.match(svg, /-286.86/);
+  assert.doesNotMatch(svg, /NaN|undefined/);
+  const en = buildAsiaReportSvg(evening, [], markdown, value => value, 'en-US');
+  assert.match(en, /Turnover-weighted return/);
+  assert.match(en, /Large-order flow proxy/);
+});
+
+test('malformed overview remains visible without invented chart metrics', async () => {
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.ts');
+  const svg = buildAsiaReportSvg(evening, [], '### 三、市场总览\n全市场中位数涨跌 N/A | 成交额加权涨跌 N/A');
+  assert.match(svg, /N\/A/);
+  assert.doesNotMatch(svg, /data-metric=/);
+});
+
+test('panels support the existing money formatter units and zero', async () => {
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.ts');
+  for (const value of ['9000.00亿', '1.00万亿', '1000.00万', '0']) {
+    const svg = buildAsiaReportSvg(evening, [], `### 三、市场总览\n全市场中位数涨跌 -0.09% | 成交额加权涨跌 +0.98% | 总成交 ${value}\n上涨 1 家 | 下跌 1 家 | 平盘 0 家 | 上涨率 50.0%`);
+    assert.match(svg, /data-report-panel="overview"/);
+  }
+  for (const value of ['-0', '+1.00万', '+1.00万亿', '-286.86亿']) {
+    const svg = buildAsiaReportSvg(evening, [], `### 五、资金动向\n大单资金代理 ${value} | 净流入 1 家 / 净流出 2 家`);
+    assert.match(svg, /data-report-panel="flow"/);
+  }
+});
+
+test('invalid turnover and inconsistent breadth remain text without graphics', async () => {
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.ts');
+  for (const [amount, rate] of [['-1.45万亿', '50.0'], ['1.45万亿', '999.0'], ['1.45万亿', '20.0']]) {
+    const svg = buildAsiaReportSvg(evening, [], `### 三、市场总览\n全市场中位数涨跌 -0.09% | 成交额加权涨跌 +0.98% | 总成交 ${amount}\n上涨 1 家 | 下跌 1 家 | 平盘 0 家 | 上涨率 ${rate}%\n第三行\n无法解析第四行`);
+    assert.doesNotMatch(svg, /data-report-panel="overview"/);
+    assert.match(svg, /无法解析第四行/);
+  }
+});
+
+test('English financing disclosures expose partial and unknown coverage without Chinese', async () => {
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.ts');
+  for (const scope of ['部分交易所，覆盖 SSE', '全市场，覆盖 BSE/SSE/SZSE', '部分交易所，覆盖 未核实']) {
+    const charts = [{ key: 'dashboard', title: '综合盘面', status: 'degraded', reason: '融资余额仅覆盖部分交易所，保留一致范围和实际观测日', points: [
+      { label: '融资余额 2026-09-29', value: 90, unit: '亿', observation_date: '2026-09-29', source_label: `Tushare 融资融券交易汇总（${scope}）`, source_url: 'https://tushare.pro' },
+      { label: '融资余额 2026-09-30', value: 91, unit: '亿', observation_date: '2026-09-30', source_label: `Tushare 融资融券交易汇总（${scope}）`, source_url: 'https://tushare.pro' },
+    ] }];
+    const svg = buildAsiaReportSvg(evening, charts, '', value => value, 'en-US');
+    assert.match(svg, /Covered exchanges/);
+    assert.doesNotMatch(svg, /部分交易所|融资融券交易汇总|未核实|全市场|保留一致/);
+  }
+});
 const facts = `### 二、指数总览
 上证指数: 3842.19 [OK] +0.31% | 成交 6793.99亿
 科创50: 1530.01 [WARN] -2.51% | 成交 718.79亿

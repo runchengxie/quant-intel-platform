@@ -190,7 +190,7 @@ def generate_weekly_chart(
     )
     add_report_header(
         fig,
-        title="本周市场复盘",
+        title=f"近{len(stats_df)}个交易日复盘",
         kicker=f"{period_start:%m/%d}–{ref_date:%m/%d} · A股周报",
         subtitle=summary,
     )
