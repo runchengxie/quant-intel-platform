@@ -35,7 +35,7 @@ include = ["scripts", "tools"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["."]
+pythonpath = [".", "../src"]
 addopts = "--cov=scripts --cov=../src/market_intel_commentary --cov=../src/market_intel_publication --cov-branch --cov-report=term-missing --cov-fail-under=85"
 
 [tool.coverage.run]

@@ -1,5 +1,6 @@
 ---
 import '../styles/site.css';
+import AsiaNews from '../components/AsiaNews.astro';
 import '../styles/editorial.css';
 import '../styles/research-language.css';
 import { loadReports, loadSummaries, loadMarketDaily, loadMarketDailyHistory, loadLatestInsight, readJson, loadChart, loadMarkdown, VISUAL_REPORT_START_DATE } from '../lib/reports.ts';
@@ -107,6 +108,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
           <section class="panel"><div class="section-heading"><span class="eyebrow">最新亚洲晚报 · {latestEveningDate || '待更新'}</span><h2 id="asia-session-title">19:00 亚洲市场收盘复盘</h2></div>
             {latestEvening ? <><p class="section-note">报告日期：{latestEvening.date}。晚报计划于北京时间 19:00 发布，实际生成时间和数据日期见报告正文。</p><div class="link-row report-actions"><a href={`${base}/reports/${latestEvening.id}/`}>阅读完整报告</a>{asiaReportSvg && <button type="button" id="download-asia-report" data-report-image data-report-date={latestEvening.date} data-report-kind="asia-daily" data-report-content-hash={latestEveningContentHash} data-chart-target="#asia-daily-chart svg" data-status-target="#asia-chart-download-status">下载图片版 PNG</button>}</div><p id="asia-chart-download-status" class="section-note" role="status" aria-live="polite"></p>{asiaReportSvg ? <div class="market-chart-graphic market-report-graphic" id="asia-daily-chart" set:html={asiaReportSvg} /> : <p>{latestEvening.summary}</p>}<details class="secondary-report"><summary>查看数据和来源</summary><div class="link-row"><a href={`${base}/reports/${latestEvening.id}/`}>完整报告与图表来源</a><a href={`${base}/${latestEvening.source_url}`}>Markdown 原文</a></div></details></> : <p class="empty">暂未取得可公开的亚洲收盘复盘。</p>}
           </section>
+        <AsiaNews reportId={latestEvening?.id} locale="zh-CN" />
         <section class="panel" aria-labelledby="insight-title"><div class="section-heading"><h2 id="insight-title">{insightArchived ? '历史市场解读与验证' : '市场解读与验证'}</h2></div>
           {insightArchived && <p class="backfill-note">这篇解读依据停用前的晨晚报生成，日期早于最新晚报。最新行情请查看上方晚报和下方事实提要。</p>}
           {insight?.analysis?.overview?.text ? <>

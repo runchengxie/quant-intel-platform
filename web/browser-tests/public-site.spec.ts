@@ -22,6 +22,19 @@ const routes = [
   },
 ];
 
+test('both locales separate China and Hong Kong news and preserve factual charts when no evidence is published', async ({ page }) => {
+  for (const route of routes) {
+    await page.goto(route.path);
+    const news = page.locator('[data-asia-news]');
+    await expect(news).toBeVisible();
+    await expect(news).toHaveAttribute('data-news-status', 'missing');
+    await expect(news.locator('[data-news-market="cn"]')).toBeVisible();
+    await expect(news.locator('[data-news-market="hk"]')).toBeVisible();
+    await expect(page.locator('#asia-daily-chart svg')).toBeVisible();
+    if (route.language === 'en-US') await expect(news).not.toContainText('暂无');
+  }
+});
+
 async function rect(locator: Locator) {
   const box = await locator.boundingBox();
   expect(box, 'header control must have a visible rectangle').not.toBeNull();

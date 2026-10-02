@@ -1,0 +1,179 @@
+"""Bounded original-document intake for existing market-news adapter results."""
+
+from __future__ import annotations
+
+import hashlib
+import signal
+import threading
+import time
+from collections.abc import Callable, Mapping, Sequence
+from contextlib import contextmanager
+from dataclasses import dataclass
+from datetime import datetime
+from urllib.parse import urlsplit
+
+import requests
+
+from .asia_news_contract import AsiaNewsCandidate, secure_source_url, validate_asia_candidate
+
+DEFAULT_HOSTS = {"www.sse.com.cn", "www.szse.cn", "www.hkexnews.hk", "www.hkex.com.hk"}
+DOCUMENT_LIMIT = 2 * 1024 * 1024
+ATTEMPT_SECONDS = 30
+
+
+@contextmanager
+def _attempt_budget():
+    """Linux CLI transport deadline, including headers and blocked body reads.
+
+    Fail closed outside the main thread or when another alarm owns the process.
+    Never replace another caller's timer or leave our handler installed.
+    """
+    if (
+        not hasattr(signal, "setitimer")
+        or threading.current_thread() is not threading.main_thread()
+    ):
+        raise ValueError("bounded fetching requires a main-thread Unix CLI")
+    if signal.getitimer(signal.ITIMER_REAL) != (0.0, 0.0):
+        raise ValueError("request deadline timer already in use")
+    previous = signal.getsignal(signal.SIGALRM)
+
+    def expired(_signum, _frame):
+        raise ValueError("source request timeout")
+
+    signal.signal(signal.SIGALRM, expired)
+    try:
+        signal.setitimer(signal.ITIMER_REAL, ATTEMPT_SECONDS)
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
+
+
+@dataclass(frozen=True)
+class CollectionContext:
+    collector_identity: str
+    allowed_hosts: frozenset[str] = frozenset()
+
+
+def _allowed_url(url: str, hosts: set[str]) -> str:
+    secure_source_url(url)
+    if urlsplit(url).hostname not in hosts:
+        raise ValueError("source host not allowed")
+    return url
+
+
+@dataclass(frozen=True)
+class BoundedDocumentFetcher:
+    """No redirects; each request budget includes streamed body reading."""
+
+    allowed_hosts: set[str]
+    request: Callable = requests.get
+
+    def __call__(self, url: str) -> bytes:
+        _allowed_url(url, self.allowed_hosts)
+        for attempt in range(2):
+            try:
+                return self._attempt(url)
+            except (OSError, requests.RequestException):
+                if attempt == 1:
+                    raise ValueError("source fetch failed") from None
+        raise ValueError("source fetch failed")
+
+    def _attempt(self, url: str) -> bytes:
+        with _attempt_budget():
+            return self._read_response(url)
+
+    def _read_response(self, url: str) -> bytes:
+        deadline = time.monotonic() + ATTEMPT_SECONDS
+        with self.request(url, stream=True, timeout=(10, 30), allow_redirects=False) as response:
+            if 300 <= response.status_code < 400:
+                raise ValueError("source redirect rejected")
+            response.raise_for_status()
+            body = bytearray()
+            for chunk in response.iter_content(chunk_size=65536):
+                if time.monotonic() > deadline:
+                    raise ValueError("source request timeout")
+                body.extend(chunk)
+                if len(body) > DOCUMENT_LIMIT:
+                    raise ValueError("source document exceeds size limit")
+            if not body:
+                raise ValueError("empty source document")
+            return bytes(body)
+
+
+def _collect_one(
+    item: Mapping[str, object],
+    *,
+    market: str,
+    retrieved_at: datetime,
+    fetch_document: Callable[[str], bytes],
+    context: CollectionContext,
+) -> AsiaNewsCandidate:
+    url = item.get("source_url", item.get("url"))
+    if not isinstance(url, str):
+        raise ValueError("source URL missing")
+    _allowed_url(url, DEFAULT_HOSTS | set(context.allowed_hosts))
+    # Validate metadata before requesting a document. Model approval fields are ignored.
+    payload = {
+        **item,
+        "source_url": url,
+        "publisher": item.get("publisher", item.get("source")),
+        "language": item.get("language", "zh-CN"),
+        "time_precision": item.get(
+            "time_precision",
+            "date"
+            if isinstance(item.get("published_at"), str) and len(str(item["published_at"])) == 10
+            else "timestamp",
+        ),
+        "document_status": item.get("document_status", "active"),
+        "schema_version": "market_intel.asia_news_candidate.v1",
+        "market": market,
+        "retrieved_at": retrieved_at.isoformat(),
+        "collector_identity": context.collector_identity,
+        "source_sha256": "0" * 64,
+    }
+    validate_asia_candidate(payload)
+    body = fetch_document(url)
+    if not isinstance(body, bytes) or not body or len(body) > DOCUMENT_LIMIT:
+        raise ValueError("invalid source bytes")
+    payload["source_sha256"] = hashlib.sha256(body).hexdigest()
+    return validate_asia_candidate(payload)
+
+
+def collect_asia_candidates(
+    items: Sequence[Mapping[str, object]],
+    *,
+    market: str,
+    retrieved_at: datetime,
+    fetch_document: Callable[[str], bytes],
+    context: CollectionContext,
+) -> tuple[list[AsiaNewsCandidate], list[dict[str, str]]]:
+    """Adapt explicitly dated existing results; caller retains fetched bytes externally.
+
+    A custom callback must bound its own I/O like BoundedDocumentFetcher. This
+    function only validates returned bytes; it cannot interrupt arbitrary callbacks.
+    """
+    candidates: list[AsiaNewsCandidate] = []
+    receipts: list[dict[str, str]] = []
+    seen: set[str] = set()
+    for index, item in enumerate(items):
+        try:
+            candidate = _collect_one(
+                item,
+                market=market,
+                retrieved_at=retrieved_at,
+                fetch_document=fetch_document,
+                context=context,
+            )
+        except (ValueError, TypeError, KeyError, OSError, requests.RequestException):
+            receipts.append(
+                {"index": str(index), "status": "rejected", "reason": "source_fetch_failed"}
+            )
+            continue
+        if candidate.evidence_id in seen:
+            receipts.append({"index": str(index), "status": "duplicate"})
+            continue
+        seen.add(candidate.evidence_id)
+        candidates.append(candidate)
+        receipts.append({"index": str(index), "status": "needs_review"})
+    return candidates, receipts

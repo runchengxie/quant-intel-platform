@@ -33,6 +33,7 @@ except ImportError:
     from pipeline_health import health_report
     from public_paths import public_snapshot_root, safe_public_report_path
 
+from market_intel_publication.asia_news_contract import public_asia_projection
 
 REPORT_SCHEMA = "market_intel_pages.reports.v1"
 SUMMARY_SCHEMA = "market_intel_pages.daily_summaries.v1"
@@ -70,6 +71,30 @@ def copy_public_charts(root: Path, output: Path, report_ids: set[str]) -> list[s
         destination.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
         copied.append(report_id)
     return copied
+
+
+def copy_public_asia_news(root: Path, output: Path, reports: list[dict]) -> None:
+    directory = public_snapshot_root(root) / "data/asia_news"
+    if directory.is_symlink():
+        raise ValueError("unsafe public news directory")
+    for row in reports:
+        source = directory / f"{row['id']}.json"
+        if not source.exists():
+            if row.get("asia_news_sha256"):
+                raise ValueError("indexed Asia news missing")
+            continue
+        if source.is_symlink() or not source.is_file():
+            raise ValueError("unsafe public news source")
+        payload = public_asia_projection(
+            json.loads(source.read_text(encoding="utf-8")),
+            report_id=row["id"],
+            report_sha256=hashlib.sha256((output / row["source_url"]).read_bytes()).hexdigest(),
+        )
+        if row.get("asia_news_sha256") and row["asia_news_sha256"] != payload["content_sha256"]:
+            raise ValueError("indexed Asia news hash mismatch")
+        destination = output / "data/asia_news" / source.name
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        destination.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 def _copy_localized_astro_pages(built: Path, output: Path, report_ids: set[str], locale: str) -> None:
@@ -292,6 +317,7 @@ def _build_site_contents(root: Path, output: Path, summaries_path: Path | None =
         destination = output / source_url
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
+    copy_public_asia_news(root, output, reports)
     _overlay_astro_pages(root, output, {str(report["id"]) for report in reports})
 
 
