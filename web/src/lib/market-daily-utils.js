@@ -40,8 +40,40 @@ var marketDailyUtils = (() => {
   var US_REPORT_LABELS = {
     btcSpotGap: ["\u6BD4\u7279\u5E01\u73B0\u8D27\u884C\u60C5", "Bitcoin spot prices"],
     btcFuturesGap: ["\u6BD4\u7279\u5E01\u671F\u8D27\u884C\u60C5", "Bitcoin futures prices"],
-    optionalUnavailable: ["\u53EF\u9009\u6570\u636E\u672A\u63D0\u4F9B\uFF1A", "Optional data unavailable: "]
+    optionalUnavailable: ["\u53EF\u9009\u6570\u636E\u672A\u63D0\u4F9B\uFF1A", "Optional data unavailable: "],
+    researchContext: ["\u5DF2\u6838\u5B9E\u89E3\u8BFB", "Reviewed interpretation"],
+    downloadPng: ["\u4E0B\u8F7D\u56FE\u7247\u7248 PNG", "Download PNG"],
+    pngGenerating: ["\u6B63\u5728\u751F\u6210 PNG\u2026", "Generating PNG\u2026"],
+    pngDone: ["\u56FE\u7247\u7248 PNG \u5DF2\u751F\u6210\u3002", "PNG generated."],
+    pngFailed: ["PNG \u751F\u6210\u5931\u8D25\u3002\u8BF7\u76F4\u63A5\u9605\u8BFB\u7F51\u9875\u62A5\u544A\u3002", "PNG generation failed. Read the web report instead."],
+    recentReports: ["\u8FD1\u671F\u7F8E\u80A1\u62A5\u544A", "Recent U.S. reports"],
+    generated: ["\u751F\u6210\u65F6\u95F4", "Generated"],
+    drivers: ["\u5E02\u573A\u9A71\u52A8\u56E0\u7D20", "Market drivers"],
+    macroNews: ["\u7ECF\u6D4E\u6570\u636E\u4E0E\u7F8E\u8054\u50A8\u52A8\u6001", "Economic releases and Federal Reserve updates"],
+    companyNews: ["\u516C\u53F8\u65B0\u95FB", "Company news"]
   };
+  var US_RESEARCH_TRANSLATIONS = {
+    schwabContext20261001: [
+      "\u5609\u4FE1\u7406\u8D22\u572810\u67081\u65E5\u7F8E\u4E1C09:13\u53D1\u5E03\u7684\u76D8\u524D\u89C2\u5BDF\u5173\u6CE8\u79D1\u6280\u80A1\u8868\u73B0\u4E0E\u5904\u4E8E\u591A\u5E74\u9AD8\u4F4D\u9644\u8FD1\u7684\u7F8E\u503A\u6536\u76CA\u7387\u3002\u8FD9\u662F\u5F53\u65F6\u7684\u5E02\u573A\u80CC\u666F\uFF0C\u4E0D\u662F\u6536\u76D8\u5F52\u56E0\uFF0C\u4E5F\u4E0D\u8BC1\u660E\u5168\u5929\u8D8B\u52BF\u3002",
+      "Schwab\u2019s October 1 pre-market note, published at 09:13 Eastern Time, focused on technology stocks and Treasury yields near multi-year highs. It describes the morning backdrop and does not establish the cause of the closing move or a full-day trend."
+    ],
+    schwabCalendar20261001: [
+      "\u5609\u4FE1\u7406\u8D2210\u67081\u65E5\u7684\u65E5\u7A0B\u63D0\u793A\u79F0\uFF0C\u4E0B\u4E00\u4EFD\u7F8E\u56FD\u5C31\u4E1A\u62A5\u544A\u5C06\u4E8E10\u67082\u65E5\u7F8E\u4E1C08:30\u516C\u5E03\u3002\u8BE5\u4FE1\u606F\u4EC5\u4F5C\u4E3A\u540E\u7EED\u89C2\u5BDF\u65E5\u7A0B\uFF0C\u4E0D\u4EE3\u8868\u62A5\u544A\u5DF2\u7ECF\u53D1\u5E03\uFF0C\u4E5F\u4E0D\u80FD\u7528\u4E8E\u89E3\u91CA10\u67081\u65E5\u6536\u76D8\u3002",
+      "Schwab\u2019s October 1 calendar listed the next U.S. employment report for October 2 at 08:30 Eastern Time. This is a scheduled release, not published employment data or an explanation of the October 1 close."
+    ],
+    accentureResults20261001: [
+      "\u57C3\u68EE\u54F210\u67081\u65E5\u63D0\u4EA4\u7684\u8D22\u62A5\u62AB\u9732\uFF0C\u5B63\u5EA6\u6536\u5165\u4E3A186.8\u4EBF\u7F8E\u5143\uFF0C\u540C\u6BD4\u589E\u957F6%\uFF1B\u4E0B\u4E00\u5B63\u5EA6\u6536\u5165\u6307\u5F15\u4E3A177.5\u4EBF\u81F3184\u4EBF\u7F8E\u5143\u3002\u516C\u53F8\u9884\u8BA12027\u8D22\u5E74\u4EE5\u5F53\u5730\u8D27\u5E01\u8BA1\u7684\u6536\u5165\u589E\u957F\u4E3A3%\u81F36%\u3002\u8FD9\u4E9B\u662F\u516C\u53F8\u62AB\u9732\u548C\u6307\u5F15\uFF0C\u4E0D\u6784\u6210\u5BF9\u80A1\u4EF7\u8868\u73B0\u7684\u5224\u65AD\u3002",
+      "Accenture\u2019s October 1 earnings filing reported quarterly revenue of USD 18.68 billion, up 6% year over year, and next-quarter revenue guidance of USD 17.75 to 18.4 billion. The company expects fiscal 2027 revenue growth of 3% to 6% in local currency. These figures are company disclosures and guidance, not an assessment of its share-price performance."
+    ],
+    mccormickResults20261001: [
+      "\u5473\u597D\u7F8E10\u67081\u65E5\u53D1\u5E03\u7684\u7B2C\u4E09\u5B63\u5EA6\u4E1A\u7EE9\u516C\u544A\u62AB\u9732\uFF0C\u9500\u552E\u989D\u589E\u957F17.4%\uFF0C\u6709\u673A\u9500\u552E\u589E\u957F1.9%\uFF0C\u8C03\u6574\u540E\u6BCF\u80A1\u6536\u76CA\u4E3A0.86\u7F8E\u5143\uFF0C\u5E76\u7EF4\u63012026\u5E74\u5168\u5E74\u5C55\u671B\u3002\u603B\u9500\u552E\u589E\u957F\u4E0E\u6709\u673A\u589E\u957F\u53E3\u5F84\u4E0D\u540C\uFF0C\u4E0D\u5E94\u6DF7\u7528\u3002",
+      "McCormick\u2019s October 1 third-quarter results reported sales growth of 17.4%, organic sales growth of 1.9% and adjusted earnings per share of USD 0.86. The company maintained its full-year 2026 outlook. Total sales growth and organic growth use different measures and should be read separately."
+    ]
+  };
+  function usResearchText(source, locale) {
+    if (locale !== "en-US") return source;
+    return Object.values(US_RESEARCH_TRANSLATIONS).find(([original]) => original === source)?.[1] ?? source;
+  }
 
   // src/lib/market-daily-utils.ts
   var MARKET_DAILY_FACTS = [
@@ -392,7 +424,8 @@ var marketDailyUtils = (() => {
   var REPORT_MUTED = "var(--report-muted, #715f52)";
   var REPORT_TRACK = "var(--report-track, #f2e7dc)";
   var REPORT_LINE = "var(--report-line, #d9c7b6)";
-  function buildMarketDailyChartSvg(summary) {
+  function buildMarketDailyChartSvg(summary, translate = (value) => value, locale = "zh-CN") {
+    const text = (value) => escapeSvgText(translate(String(value ?? "")));
     const font = "'Source Han Sans CN', 'Noto Sans CJK SC', 'Noto Sans SC', 'PingFang SC', sans-serif";
     const charts = buildMarketDailyCharts(summary);
     const laggedRates = summary.rateRows.filter((row) => row.observationDate !== summary.date);
@@ -400,14 +433,14 @@ var marketDailyUtils = (() => {
     let y = 118;
     const parts = [
       `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="__HEIGHT__" viewBox="0 0 960 __HEIGHT__" role="img">`,
-      `<title>${escapeSvgText(summary.date)} \u7F8E\u4E1C\u4EA4\u6613\u65E5\u5E02\u573A\u56FE\u6587\u590D\u76D8</title>`,
-      `<desc>\u5C55\u793A\u5DF2\u6838\u5B9E\u7684\u884C\u60C5\u56FE\u89E3\u3001\u5E02\u573A\u89E3\u8BFB\u3001\u7ECF\u6D4E\u6570\u636E\u548C\u5173\u952E\u6765\u6E90\u3002</desc>`,
+      `<title>${text(`${summary.date} \u7F8E\u4E1C\u4EA4\u6613\u65E5\u5E02\u573A\u56FE\u6587\u590D\u76D8`)}</title>`,
+      `<desc>${text("\u5C55\u793A\u5DF2\u6838\u5B9E\u7684\u884C\u60C5\u56FE\u89E3\u3001\u5E02\u573A\u89E3\u8BFB\u3001\u7ECF\u6D4E\u6570\u636E\u548C\u5173\u952E\u6765\u6E90\u3002")}</desc>`,
       `<rect width="960" height="__HEIGHT__" fill="${REPORT_BG}"/>`,
-      `<text x="54" y="62" fill="${REPORT_INK}" font-family="sans-serif" font-size="28" font-weight="700">${escapeSvgText(summary.date)} \u7F8E\u4E1C\u4EA4\u6613\u65E5</text>`,
-      `<text x="54" y="91" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="15">\u7F8E\u80A1\u6536\u76D8\u590D\u76D8${summary.historicalBackfill ? " \xB7 \u4E8B\u540E\u6574\u7406" : ""} \xB7 \u56FE\u89E3\u3001\u89E3\u8BFB\u4E0E\u6765\u6E90</text>`
+      `<text x="54" y="62" fill="${REPORT_INK}" font-family="sans-serif" font-size="28" font-weight="700">${text(`${summary.date} \u7F8E\u4E1C\u4EA4\u6613\u65E5`)}</text>`,
+      `<text x="54" y="91" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="15">${text(`\u7F8E\u80A1\u6536\u76D8\u590D\u76D8${summary.historicalBackfill ? " \xB7 \u4E8B\u540E\u6574\u7406" : ""} \xB7 \u56FE\u89E3\u3001\u89E3\u8BFB\u4E0E\u6765\u6E90`)}</text>`
     ];
     for (const chart of charts) {
-      parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="19" font-weight="700">${escapeSvgText(chart.title)}\uFF08${escapeSvgText(chart.unit)}\uFF09</text>`);
+      parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="19" font-weight="700">${text(`${chart.title}\uFF08${chart.unit}\uFF09`)}</text>`);
       y += 34;
       for (const row of chart.rows) {
         const equity = summary.equityRows.find((item) => row.id === `equity.${item.symbol.toLowerCase()}.change_percent`);
@@ -418,34 +451,34 @@ var marketDailyUtils = (() => {
         const width = Math.round(row.width * (chart.kind === "level" ? 4.3 : 2.15));
         const barX = row.side === "negative" ? center - width : center;
         const color = row.side === "negative" ? "#5c7182" : "#b64d33";
-        parts.push(`<text x="54" y="${y + 5}" fill="${REPORT_INK}" font-family="sans-serif" font-size="16" font-weight="600">${escapeSvgText(row.label)}</text>`);
+        parts.push(`<text x="54" y="${y + 5}" fill="${REPORT_INK}" font-family="sans-serif" font-size="16" font-weight="600">${text(row.label)}</text>`);
         parts.push(`<rect x="350" y="${y - 13}" width="430" height="18" rx="3" fill="${REPORT_TRACK}"/>`);
         parts.push(`<rect x="${barX}" y="${y - 11}" width="${width}" height="14" rx="2" fill="${color}"/>`);
         parts.push(`<line x1="${center}" y1="${y - 16}" x2="${center}" y2="${y + 8}" stroke="#5d4c40" stroke-width="1"/>`);
-        parts.push(`<text x="800" y="${y + 5}" fill="${REPORT_INK}" font-family="monospace" font-size="16" font-weight="700">${escapeSvgText(row.valueText)}</text>`);
-        parts.push(`<text x="54" y="${y + 25}" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="12">\u89C2\u6D4B\u65E5 ${escapeSvgText(row.observationDate)}${close ? ` \xB7 ${escapeSvgText(close)}` : ""} \xB7 ${escapeSvgText(row.sourceLabel)}</text>`);
+        parts.push(`<text x="800" y="${y + 5}" fill="${REPORT_INK}" font-family="monospace" font-size="16" font-weight="700">${text(row.valueText)}</text>`);
+        parts.push(`<text x="54" y="${y + 25}" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="12">${text(`\u89C2\u6D4B\u65E5 ${row.observationDate}${close ? ` \xB7 ${close}` : ""} \xB7 ${row.sourceLabel}`)}</text>`);
         y += 58;
       }
       y += 20;
     }
     if (laggedRates.length) {
-      parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="19" font-weight="700">\u7F8E\u503A\u8F83\u65E9\u89C2\u6D4B\u503C</text>`);
+      parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="19" font-weight="700">${text("\u7F8E\u503A\u8F83\u65E9\u89C2\u6D4B\u503C")}</text>`);
       y += 30;
       for (const row of laggedRates) {
         const level = row.levelValue === null ? "\u6536\u76CA\u7387\u6682\u7F3A" : `${row.levelValue.toFixed(2)}%`;
         const change = row.changeValue === null ? "\u65E5\u53D8\u52A8\u6682\u7F3A" : `${row.changeValue >= 0 ? "+" : ""}${row.changeValue.toFixed(2)} bp`;
-        parts.push(`<text x="54" y="${y}" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="14">${escapeSvgText(row.label)}\uFF1A${escapeSvgText(level)} \xB7 ${escapeSvgText(change)} \xB7 \u89C2\u6D4B\u65E5 ${escapeSvgText(row.observationDate)}\uFF0C\u975E\u62A5\u544A\u65E5</text>`);
+        parts.push(`<text x="54" y="${y}" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="14">${text(`${row.label}\uFF1A${level} \xB7 ${change} \xB7 \u89C2\u6D4B\u65E5 ${row.observationDate}\uFF0C\u975E\u62A5\u544A\u65E5`)}</text>`);
         y += 27;
       }
       y += 12;
     }
-    const addSection = (title, paragraphs) => {
+    const addSection = (title, paragraphs, translateParagraphs = true) => {
       if (!paragraphs.length) return;
       y += 15;
-      parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="20" font-weight="700">${escapeSvgText(title)}</text>`);
+      parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="20" font-weight="700">${text(title)}</text>`);
       y += 32;
       for (const paragraph of paragraphs) {
-        for (const line of wrapSvgText(paragraph)) {
+        for (const line of wrapSvgText(translateParagraphs ? translate(paragraph) : paragraph)) {
           parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="15">${escapeSvgText(line)}</text>`);
           y += 23;
         }
@@ -453,7 +486,11 @@ var marketDailyUtils = (() => {
       }
     };
     for (const section of summary.claimSections) {
-      addSection(section.title, section.claims.map((claim) => `${claim.text}\uFF08${[...new Set(claim.sourceUrls.map((url) => new URL(url).hostname))].join("\u3001")}\uFF09`));
+      addSection(section.title, section.claims.map((claim) => {
+        const sources = [...new Set(claim.sourceUrls.map((url) => new URL(url).hostname))];
+        const citation = locale === "en-US" ? ` (${sources.join(", ")})` : `\uFF08${sources.join("\u3001")}\uFF09`;
+        return usResearchText(claim.text, locale) + citation;
+      }), false);
     }
     addSection("\u7ECF\u6D4E\u6570\u636E", summary.secondaryRows.map((row) => `${row.text} \xB7 \u89C2\u6D4B\u65E5 ${row.observationDate} \xB7 ${row.sourceLabel}`));
     addSection("\u6570\u636E\u72B6\u6001", [
@@ -466,7 +503,7 @@ var marketDailyUtils = (() => {
     addSection("\u5173\u952E\u6765\u6E90", [...domains.map((domain) => `\xB7 ${domain}`), "\u5B8C\u6574\u6765\u6E90\u94FE\u63A5\u89C1\u7F51\u9875\u62A5\u544A\u3002"]);
     const height = y + 55;
     parts.push(`<line x1="54" y1="${height - 48}" x2="906" y2="${height - 48}" stroke="${REPORT_LINE}"/>`);
-    parts.push(`<text x="54" y="${height - 22}" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="12">\u5E02\u573A\u6709\u98CE\u9669\uFF0C\u6295\u8D44\u9700\u8C28\u614E\u3002</text>`);
+    parts.push(`<text x="54" y="${height - 22}" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="12">${text("\u5E02\u573A\u6709\u98CE\u9669\uFF0C\u6295\u8D44\u9700\u8C28\u614E\u3002")}</text>`);
     parts.push("</svg>");
     return parts.join("").replaceAll("__HEIGHT__", String(height)).replaceAll('font-family="sans-serif"', `font-family="${font}"`).replaceAll('font-family="monospace"', `font-family="${font}" font-variant-numeric="tabular-nums"`);
   }

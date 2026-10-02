@@ -134,6 +134,39 @@ test('English report pages translate source-language presentation text', () => {
   assert.match(englishReport, /Asia market close review|Six-dimension observation|Hot concepts|Market state/);
 });
 
+test('English homepage includes every reviewed research source link', () => {
+  execFileSync('npm', ['run', 'build'], { cwd: root, stdio: 'pipe' });
+  const html = readFileSync(path.join(root, 'dist/en/index.html'), 'utf8');
+  const report = JSON.parse(readFileSync(path.join(root, 'artifacts/public/data/market_daily_report.json'), 'utf8'));
+  const sourceBlock = html.match(/<details class="secondary-report market-sources">([\s\S]*?)<\/details>/)?.[1];
+  assert.ok(sourceBlock);
+  for (const href of new Set(report.claims.flatMap((claim) => claim.sources))) {
+    const escaped = href.replaceAll('&', '&amp;');
+    assert.ok(sourceBlock.includes(`href="${escaped}"`), `Missing reviewed research citation: ${href}`);
+    assert.equal(sourceBlock.split(`href="${escaped}"`).length - 1, 1, 'Source links are deduplicated');
+  }
+});
+
+test('English homepage exposes dated PNG controls and recent U.S. history', () => {
+  execFileSync('npm', ['run', 'build'], { cwd: root, stdio: 'pipe' });
+  const html = readFileSync(path.join(root, 'dist/en/index.html'), 'utf8');
+  const report = JSON.parse(readFileSync(path.join(root, 'artifacts/public/data/market_daily_report.json'), 'utf8'));
+  const date = report.run_id.slice(6);
+  assert.match(html, /id="download-market-chart"/);
+  assert.match(html, /id="download-asia-report"/);
+  assert.ok(html.includes(`data-report-date="${date}" data-report-kind="market-daily" data-report-content-hash="${report.content_hash}"`));
+  assert.match(html, /data-chart-target="#market-daily-chart svg"/);
+  assert.match(html, /data-chart-target="#asia-daily-chart svg"/);
+  const generated = new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(report.as_of));
+  assert.ok(html.includes(generated));
+  assert.match(html, /America\/New_York/);
+  assert.match(html, /Recent U\.S\. reports/);
+  const history = JSON.parse(readFileSync(path.join(root, 'artifacts/public/data/market_daily_reports.json'), 'utf8'));
+  for (const row of history.reports.filter((row) => row.run_id.slice(6) >= '2026-09-28' && row.run_id !== report.run_id)) {
+    assert.ok(html.includes(`id="market-history-chart-${row.run_id.slice(6)}"`));
+  }
+});
+
 test('English home uses the same report sections and responsive shell as Chinese home', () => {
   const english = readFileSync(path.join(root, 'src/pages/en/index.astro'), 'utf8');
   for (const marker of ['class="shell"', 'class="session-nav"', 'id="us-session"', 'id="asia-session"', 'id="market-daily-chart"', 'id="asia-daily-chart"', 'class="reports-section"']) {
