@@ -464,12 +464,18 @@ def test_real_site_build_overlays_astro_pages_and_keeps_downloads(tmp_path: Path
         assert "证据：" not in reading
         if date != market_date:
             assert f"/quant-intel-platform/reports/{date}-market-daily-no-citations.md" not in index
-    assert "| 5 年期 | 4.98% | -5.00 bp | 2026-09-25 |" in (
-        output / "reports/2026-09-25-market-daily-no-citations.md"
-    ).read_text(encoding="utf-8")
-    sourced = (output / "reports/2026-09-25-market-daily.md").read_text(encoding="utf-8")
-    plain = (output / "reports/2026-09-25-market-daily.txt").read_text(encoding="utf-8")
-    assert sourced.index("## 美股市场表现") < sourced.index("## 主要个股") < sourced.index("## 美债收益率")
+    facts = {fact["id"]: fact for fact in market["facts"]}
+    level = facts["treasury.5y.level_percent"]
+    change = facts["treasury.5y.change_bp"]
+    reading = (output / f"reports/{market_date}-market-daily-no-citations.md").read_text(encoding="utf-8")
+    assert (
+        f"| 5 年期 | {level['value']:.2f}% | {change['value']:+.2f} bp | {level['observation_date']} |"
+    ) in reading
+    sourced = (output / f"reports/{market_date}-market-daily.md").read_text(encoding="utf-8")
+    plain = (output / f"reports/{market_date}-market-daily.txt").read_text(encoding="utf-8")
+    assert (
+        sourced.index("## 美股市场表现") < sourced.index("## 美股个股行情") < sourced.index("## 美债收益率")
+    )
     assert sourced.index("## 美债收益率") < sourced.index("## 布伦特、金银与比特币")
     assert plain.index("一、美股市场表现") < plain.index("二、重点个股") < plain.index("三、美债收益率")
     assert plain.index("三、美债收益率") < plain.index("四、跨资产行情")

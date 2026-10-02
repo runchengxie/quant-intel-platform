@@ -106,6 +106,9 @@ export const ASIA_IMAGE_LABELS = {
   unverified: ['未核实', 'Unverified'],
   marginSource: ['Tushare 融资融券交易汇总', 'Tushare margin financing totals'],
   partialMarginReason: ['融资余额仅覆盖部分交易所，保留一致范围和实际观测日', 'Financing balances cover only some exchanges. Comparable coverage and actual observation dates are retained.'],
+  partialMarginReasonPunctuated: ['融资余额仅覆盖部分交易所，保留一致范围和实际观测日。', 'Financing balances cover only some exchanges. Comparable coverage and actual observation dates are retained.'],
+  lastFiveSessions: ['近5个交易日数据概览', 'Last five trading sessions'],
+  alternativeObservation: ['使用替代来源或非目标日观测值', 'An alternative source or an observation outside the target date is used'],
   missingSessionReason: ['近期交易日数据缺项，来源中保留缺失开市日', 'Recent-session data is incomplete. Missing open sessions are listed in the source details.'],
   missingSessionSource: ['缺少开市日 ', 'Missing open sessions: '],
 } as const;
