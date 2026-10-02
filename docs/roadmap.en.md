@@ -63,7 +63,7 @@ Three scripts received smoke tests: PR #51 covered `refresh_a_share_index_daily.
 
 ### 9. Narrow lint exemptions for scripts — ✅
 
-PR #50 restored C90 complexity checks for `scripts/**`. Two existing functions slightly exceed 15 and have targeted per-file exemptions pending refactoring: `check_daily_watch20_producer_freshness.py::check` (16) and `send_hotsector_client_preview.py::main` (17). The `project_tools/**` exemption remains because those gate scripts have test coverage. The same PR removed an unused pytest import so full Ruff checks pass.
+PR #50 restored C90 complexity checks for `scripts/**`. `check_daily_watch20_producer_freshness.py::check` (16) retains a targeted per-file exemption pending refactoring. The previously listed `send_hotsector_client_preview.py::main` complexity debt was removed when the compatibility entrypoint was retired in 2026-10. The `project_tools/**` exemption remains because those gate scripts have test coverage. The same PR removed an unused pytest import so full Ruff checks pass.
 
 ### 10. Narrow broad `except` exemptions — low-risk subset complete, remainder pending
 

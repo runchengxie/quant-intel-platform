@@ -38,7 +38,7 @@
 - `scripts/*.sh`（morning、evening、publish、refresh_tushare_daily、weekly_recap、morning_product_supervisor、refresh_tushare_report_datasets）：移除 `MDP_DIR` 默认值，改为强制要求，并通过已安装的 `marketdata config run` 从 owner 管理的私有 `config.json` 注入凭证。
 - `scripts/refresh_daily_watch20.sh`：只通过 `QUANT_RESEARCH_ROOT` 和 `MDP_DIR` 调用公开 producer CLI。缺少 news heat 时继续运行，不在本仓重建。
 - `scripts/daily_watch20_delivery.sh`：只校验 `strategy-pipeline` 产出的 DailyWatch20 artifact，再调用本仓渲染/投递入口。
-- `scripts/hotsector_research_handoff.sh`、`scripts/send_hotsector_client_preview.py`：仅保留指向 DailyWatch20 的兼容壳，不再启动历史 hotsector owner。
+- 原 `scripts/hotsector_research_handoff.sh`、`scripts/send_hotsector_client_preview.py` 兼容壳已于 2026-10 从 `quant-intel-deploy` 删除。当前入口直接使用 DailyWatch20 delivery commands；迁移清单中的旧路径仅作历史来源记录。
 - `scripts/windows/common.ps1`：`MDP_DIR` 默认去掉，未设则派生或报错
 - `scripts/setup_cron.sh`：安装时把
   `DATA_PLATFORM_ROOT`/`MDP_DIR`/`QUANT_RESEARCH_ROOT` 写入权限为 `0600` 的
