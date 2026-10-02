@@ -7,6 +7,8 @@ import os
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 
+from a_share_daily.tushare_credentials import selected_provider_json
+
 from . import constants as _constants
 from .constants import RunFn
 
@@ -45,15 +47,34 @@ def _read_env_file(path: Path) -> dict[str, str]:
 
 
 def _default_env(project_root: Path) -> dict[str, str]:
-    merged = dict(os.environ)
+    inherited = dict(os.environ)
     stable_dir = Path.home() / ".config/richard/shared"
-    for env_path in (
-        stable_dir / "market-intel.env",
-        Path.home() / ".config/richard/projects/quant/quant-market-data-platform/config.env",
-        project_root / ".env",
-        project_root / ".env.local",
-    ):
-        for key, value in _read_env_file(env_path).items():
+    local = [
+        _read_env_file(path)
+        for path in (
+            stable_dir / "market-intel.env",
+            project_root / ".env",
+            project_root / ".env.local",
+        )
+    ]
+    selection = dict(inherited)
+    for values in local:
+        if "DATA_PLATFORM_CONFIG" in values:
+            selection.setdefault("DATA_PLATFORM_CONFIG", values["DATA_PLATFORM_CONFIG"])
+    selected = selected_provider_json(selection) is not None
+    sources = local
+    if not selected:
+        provider = _read_env_file(
+            Path.home() / ".config/richard/projects/quant/quant-market-data-platform/config.env"
+        )
+        sources = [local[0], provider, *local[1:]]
+    merged = dict(inherited)
+    for values in sources:
+        for key, value in values.items():
+            if key == "DATA_PLATFORM_CONFIG_LOADED":
+                continue
+            if selected and key.startswith(("TUSHARE_", "QUANTZONE_")):
+                continue
             merged.setdefault(key, value)
     return merged
 

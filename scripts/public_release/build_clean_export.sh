@@ -5,45 +5,45 @@ revision=""
 destination=""
 
 while (($#)); do
-    case "$1" in
-        --revision)
-            revision="${2:-}"
-            shift 2
-            ;;
-        --destination)
-            destination="${2:-}"
-            shift 2
-            ;;
-        *)
-            echo "unknown argument: $1" >&2
-            exit 2
-            ;;
-    esac
+	case "$1" in
+	--revision)
+		revision="${2:-}"
+		shift 2
+		;;
+	--destination)
+		destination="${2:-}"
+		shift 2
+		;;
+	*)
+		echo "unknown argument: $1" >&2
+		exit 2
+		;;
+	esac
 done
 
 if [[ -z "$revision" ]]; then
-    echo "--revision is required" >&2
-    exit 2
+	echo "--revision is required" >&2
+	exit 2
 fi
 if [[ -z "$destination" ]]; then
-    echo "--destination is required" >&2
-    exit 2
+	echo "--destination is required" >&2
+	exit 2
 fi
 
 source_root=$(git rev-parse --show-toplevel)
 destination=$(realpath -m "$destination")
 source_root=$(realpath "$source_root")
 if [[ "$destination" == "$source_root" || "$destination" == "$source_root"/* ]]; then
-    echo "destination must be outside the source repository" >&2
-    exit 2
+	echo "destination must be outside the source repository" >&2
+	exit 2
 fi
 if [[ -e "$destination" && ! -d "$destination" ]]; then
-    echo "destination must be a directory" >&2
-    exit 2
+	echo "destination must be a directory" >&2
+	exit 2
 fi
 if [[ -d "$destination" ]] && [[ -n "$(find "$destination" -mindepth 1 -print -quit)" ]]; then
-    echo "destination must be empty" >&2
-    exit 2
+	echo "destination must be empty" >&2
+	exit 2
 fi
 
 tmp_root=$(mktemp -d)

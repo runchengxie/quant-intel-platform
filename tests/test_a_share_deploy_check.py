@@ -403,9 +403,13 @@ def test_default_env_reads_canonical_provider_config_without_old_path(
     tmp_path: Path, monkeypatch
 ) -> None:
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("DATA_PLATFORM_ROOT", raising=False)
+    monkeypatch.delenv("DATA_PLATFORM_CONFIG", raising=False)
     config_dir = tmp_path / ".config/richard/projects/quant/quant-market-data-platform"
     config_dir.mkdir(parents=True)
-    (config_dir / "config.env").write_text("TUSHARE_TOKEN=canonical\n", encoding="utf-8")
+    (config_dir / "config.env").write_text(
+        "TUSHARE_TOKEN=canonical\nDATA_PLATFORM_ROOT=/legacy-data\n", encoding="utf-8"
+    )
     legacy_dir = tmp_path / ".config/quant-market-data-platform"
     legacy_dir.mkdir(parents=True)
     (legacy_dir / "config.env").write_text("TUSHARE_TOKEN=legacy\n", encoding="utf-8")
@@ -413,6 +417,7 @@ def test_default_env_reads_canonical_provider_config_without_old_path(
     values = _default_env(tmp_path / "project")
 
     assert values["TUSHARE_TOKEN"] == "canonical"
+    assert values.get("DATA_PLATFORM_ROOT") == "/legacy-data"
 
 
 def test_run_checks_fails_when_pipeline_scripts_are_missing(tmp_path: Path) -> None:
@@ -703,3 +708,49 @@ def test_report_artifact_health_warns_on_incomplete_weekly_outputs(tmp_path: Pat
     assert result.status == "warn"
     assert "weekly missing_files" in result.detail
     assert "date_mismatch" in result.detail
+
+
+def test_selected_json_blocks_all_legacy_provider_values(tmp_path: Path, monkeypatch) -> None:
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.delenv("TUSHARE_TOKEN", raising=False)
+    monkeypatch.setenv("DATA_PLATFORM_CONFIG", str(tmp_path / "selected.json"))
+    canonical = tmp_path / ".config/richard/projects/quant/quant-market-data-platform"
+    canonical.mkdir(parents=True)
+    (canonical / "config.env").write_text("TUSHARE_TOKEN=legacy\n")
+    project = tmp_path / "project"
+    project.mkdir()
+    (project / ".env").write_text("TUSHARE_TOKEN=project-legacy\nZHIPUAI_API_KEY=ai-fixture\n")
+    values = _default_env(project)
+    assert values.get("TUSHARE_TOKEN") is None
+    assert values["ZHIPUAI_API_KEY"] == "ai-fixture"
+
+
+def test_explicit_json_metadata_fails_even_without_inherited_tokens(tmp_path: Path) -> None:
+    result = _check_tushare_credentials({"DATA_PLATFORM_CONFIG": str(tmp_path / "missing.json")})
+    assert result.status == "fail"
+
+
+def test_explicit_json_health_uses_selected_file_permissions(tmp_path: Path) -> None:
+    selected = tmp_path / "config.json"
+    selected.write_text("{}")
+    selected.chmod(0o644)
+    result = _check_tushare_credentials(
+        {
+            "DATA_PLATFORM_CONFIG": str(selected),
+            "TUSHARE_TOKEN": "fixture",
+        }
+    )
+    assert result.status == "fail"
+    assert "0600" in result.detail
+
+
+def test_explicit_json_health_rejects_symlink(tmp_path: Path) -> None:
+    target = tmp_path / "config.json"
+    target.write_text("{}")
+    target.chmod(0o600)
+    selected = tmp_path / "link.json"
+    selected.symlink_to(target)
+    result = _check_tushare_credentials(
+        {"DATA_PLATFORM_CONFIG": str(selected), "TUSHARE_TOKEN": "fixture"}
+    )
+    assert result.status == "fail"
