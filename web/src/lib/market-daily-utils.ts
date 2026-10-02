@@ -1,4 +1,5 @@
 import { isMarketDailyPayload } from './market-facts.ts';
+import { US_REPORT_LABELS } from './locale.ts';
 import type { MarketClaimSummary, MarketDailyChart, MarketDailyPayload, MarketDailyRow, MarketDailySummary } from './market-facts.ts';
 
 const MARKET_DAILY_FACTS = [
@@ -73,10 +74,11 @@ const MARKET_DAILY_GAPS: Record<string, string> = {
   rates_lag: "美债收益率当日变动", quotes: "指数行情", research: "研究解释", fred: "部分 FRED 数据",
   cross_asset: "部分跨资产行情",
   equities: "部分美股个股行情",
+  btc_spot: US_REPORT_LABELS.btcSpotGap[0],
 };
 const CROSS_ASSET_GAPS: Record<string, string> = {
   brent: "布伦特期货行情", gold: "黄金期货行情", silver: "白银期货行情",
-  bitcoin: "比特币期货行情",
+  bitcoin_spot: US_REPORT_LABELS.btcSpotGap[0],
 };
 const MARKET_DAILY_CLAIM_SECTIONS = [
   ["market", "市场表现"], ["drivers", "市场驱动因素"], ["movers", "主要个股"],
@@ -223,7 +225,11 @@ export function summarizeMarketDaily(payload: unknown): MarketDailySummary | nul
   const claimSections = MARKET_DAILY_CLAIM_SECTIONS.map(([key, title]) => ({
     key, title, claims: claims.filter((claim) => claim.sectionKey === key),
   })).filter((section) => section.claims.length);
-  const gaps = (payload.missing_sources ?? [])
+  const pairedAsset = (asset: string) => ["close", "change_percent"]
+    .every((field) => rows.some((row) => row.id === `cross_asset.${asset}.${field}`));
+  const optionalGaps = rows.some((row) => row.id.startsWith("cross_asset.")) && !pairedAsset("bitcoin")
+    ? [US_REPORT_LABELS.btcFuturesGap[0]] : [];
+  const gaps = [...new Set((payload.missing_sources ?? [])
     .filter((item) => Object.hasOwn(MARKET_DAILY_GAPS, item))
     .flatMap((item) => {
       if (item !== "cross_asset") return [MARKET_DAILY_GAPS[item]];
@@ -231,9 +237,12 @@ export function summarizeMarketDaily(payload: unknown): MarketDailySummary | nul
         .filter(([asset]) => !rows.some((row) => row.id === `cross_asset.${asset}.close`)
           || !rows.some((row) => row.id === `cross_asset.${asset}.change_percent`))
         .map(([, label]) => label);
-      // A reported quality issue still needs disclosure even when pairs exist.
-      return unavailable.length ? unavailable : [MARKET_DAILY_GAPS[item]];
-    });
+      // Suppress a generic warning only with an explicit optional-only diagnostic.
+      return unavailable.length ? unavailable
+        : payload.source_status?.cross_asset?.reason === "optional_futures_unavailable" ? [] : [MARKET_DAILY_GAPS[item]];
+    }))];
+  if (rows.some((row) => row.id.startsWith("cross_asset.")) && !pairedAsset("bitcoin_spot")
+      && !gaps.includes(MARKET_DAILY_GAPS.btc_spot)) gaps.push(MARKET_DAILY_GAPS.btc_spot);
   for (const tenor of ["2y", "5y", "10y", "30y"]) {
     const level = rows.find((row) => row.id === `treasury.${tenor}.level_percent`);
     const change = rows.find((row) => row.id === `treasury.${tenor}.change_bp`);
@@ -296,7 +305,7 @@ export function summarizeMarketDaily(payload: unknown): MarketDailySummary | nul
     .filter((section) => !["drivers", "movers"].includes(section.key));
   const secondaryRows = rows.filter((row) => row.id.startsWith("macro."));
   return { date, rows, rateRows, crossAssetRows, equityRows, claims, claimSections, primaryClaims,
-    secondaryClaimSections, secondaryRows, gaps, hasTextReport,
+    secondaryClaimSections, secondaryRows, gaps, optionalGaps, hasTextReport,
     nextMorningRevision: payload.quality_summary?.revision === "next_morning_rechecked",
     historicalBackfill: payload.quality_summary?.revision === "historical_backfill" };
 }
@@ -427,7 +436,9 @@ export function buildMarketDailyChartSvg(summary: MarketDailySummary): string | 
     addSection(section.title, section.claims.map((claim) => `${claim.text}（${[...new Set(claim.sourceUrls.map((url) => new URL(url).hostname))].join("、")}）`));
   }
   addSection("经济数据", summary.secondaryRows.map((row) => `${row.text} · 观测日 ${row.observationDate} · ${row.sourceLabel}`));
-  addSection("数据状态", [summary.historicalBackfill ? "历史补报：事后整理，并非报告日当天发布。" : "当日公开复盘。", ...summary.gaps.map((gap) => `尚缺：${gap}`)]);
+  addSection("数据状态", [summary.historicalBackfill ? "历史补报：事后整理，并非报告日当天发布。" : "当日公开复盘。",
+    ...summary.gaps.map((gap) => `尚缺：${gap}`),
+    ...(summary.optionalGaps ?? []).map((gap) => `${US_REPORT_LABELS.optionalUnavailable[0]}${gap}`)]);
   const urls = [...new Set([...summary.rows.map((row) => row.sourceUrl), ...summary.claims.flatMap((claim) => claim.sourceUrls)])];
   const domains = [...new Set(urls.map((url) => new URL(url).hostname))];
   addSection("关键来源", [...domains.map((domain) => `· ${domain}`), "完整来源链接见网页报告。"]);
@@ -444,7 +455,8 @@ export function formatMarketDailyStatus(summary: MarketDailySummary): string {
   return `${summary.date} 美东报告日 · 逐项显示原始观测日。`
     + (summary.historicalBackfill ? " 事后整理。" : "")
     + (summary.nextMorningRevision ? " 次日核实更新。" : "")
-    + (summary.gaps.length ? ` 尚缺：${summary.gaps.join("、")}。` : "");
+    + (summary.gaps.length ? ` 尚缺：${summary.gaps.join("、")}。` : "")
+    + (summary.optionalGaps?.length ? ` ${US_REPORT_LABELS.optionalUnavailable[0]}${summary.optionalGaps.join("、")}。` : "");
 }
 
 export default { summarizeMarketDaily, formatMarketDailyStatus, buildMarketDailyCharts, buildMarketDailyChartSvg };

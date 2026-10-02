@@ -34,7 +34,11 @@ def test_second_run_reuses_same_artifact_hash(tmp_path):
 
 @pytest.mark.parametrize(
     ("missing", "expected_quality"),
-    [({}, "ok"), ({"GC=F": "RuntimeError: provider unavailable"}, "degraded")],
+    [
+        ({}, "ok"),
+        ({"GC=F": "RuntimeError: provider unavailable"}, "degraded"),
+        ({"BTC=F": "bar_incomplete"}, "degraded"),
+    ],
 )
 def test_pipeline_records_cross_asset_coverage(monkeypatch, tmp_path, missing, expected_quality):
     monkeypatch.setattr(
@@ -62,7 +66,8 @@ def test_pipeline_records_cross_asset_coverage(monkeypatch, tmp_path, missing, e
     assert section.facts == ()
     assert report.source_status["cross_asset"]["quality"] == expected_quality
     assert report.source_status["cross_asset"]["missing_contracts"] == missing
-    assert ("cross_asset" in report.missing_sources) is bool(missing)
+    assert ("cross_asset" in report.missing_sources) is bool(set(missing) - {"BTC=F"})
+    assert "btc_spot" in report.missing_sources
     assert "fred" not in report.missing_sources
     assert report.quality_summary["status"] == "degraded"
 

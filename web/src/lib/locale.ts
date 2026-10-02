@@ -1,6 +1,12 @@
 export const SUPPORTED_LOCALES = ['en-US', 'zh-CN'] as const;
 export type Locale = typeof SUPPORTED_LOCALES[number];
 
+export const US_REPORT_LABELS = {
+  btcSpotGap: ['比特币现货行情', 'Bitcoin spot prices'],
+  btcFuturesGap: ['比特币期货行情', 'Bitcoin futures prices'],
+  optionalUnavailable: ['可选数据未提供：', 'Optional data unavailable: '],
+} as const;
+
 /** Stable semantic keys; each label has an English and Chinese presentation. */
 export const ASIA_IMAGE_LABELS = {
   title: ['亚洲市场收盘复盘', 'Asia market close review'],

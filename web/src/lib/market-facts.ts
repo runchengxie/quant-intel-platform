@@ -25,6 +25,7 @@ export interface MarketSection {
 
 export interface MarketSourceStatus {
   quality?: FactQuality;
+  reason?: string;
   reviewed_movers?: Array<{ ticker: string; evidence_id: string }>;
 }
 
@@ -115,6 +116,7 @@ export interface MarketDailySummary {
   secondaryClaimSections: MarketClaimSection[];
   secondaryRows: MarketDailyRow[];
   gaps: string[];
+  optionalGaps: string[];
   hasTextReport: boolean;
   nextMorningRevision: boolean;
   historicalBackfill: boolean;
