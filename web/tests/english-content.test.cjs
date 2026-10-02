@@ -4,6 +4,14 @@ const { toEnglishPresentation: present } = require('../src/lib/english-content.t
 const { toOption } = require('../src/lib/chart-data.ts');
 const { buildAsiaReportSvg } = require('../src/lib/asia-report-image.ts');
 
+test('reviewed session charts translate titles and limitations without duplicate punctuation', () => {
+  assert.equal(present('近5个交易日数据概览'), 'Last five trading sessions');
+  assert.equal(present('使用替代来源或非目标日观测值'),
+    'An alternative source or an observation outside the target date is used');
+  assert.equal(present('融资余额仅覆盖部分交易所，保留一致范围和实际观测日。'),
+    'Financing balances cover only some exchanges. Comparable coverage and actual observation dates are retained.');
+});
+
 test('currency presentation never assigns CNY to dollar or unspecified amounts', () => {
   assert.equal(present('186.8亿美元'), '186.8 USD 100m');
   assert.equal(present('177.5亿至184亿美元'), '177.5 100m to 184 USD 100m');
