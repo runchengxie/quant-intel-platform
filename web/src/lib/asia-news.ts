@@ -21,12 +21,15 @@ const hash = /^[a-f0-9]{64}$/;
 const text = (v: unknown): v is string => typeof v === 'string' && !!v.trim() && v.length <= 2000
   && !/\/home\/|\/Users\/|\b(?:sk-|ghp_|github_pat_)[\w-]{8,}|\bBearer\s+\S+|(?:api_key|password|secret|token)\s*[:=]/i.test(v);
 const record = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const envelopeFields = ['schema_version', 'publication', 'report_id', 'date', 'kind', 'generated_at', 'cutoff', 'report_sha256', 'status', 'markets', 'content_sha256'].sort();
+const itemFields = ['evidence_id', 'market', 'source_url', 'publisher', 'published_at', 'time_precision', 'event_date', 'source_sha256', 'claim', 'claim_sha256', 'claim_en', 'claim_en_sha256', 'applicability'].sort();
+const exactFields = (value: Record<string, unknown>, fields: string[]): boolean => Object.keys(value).sort().join(',') === fields.join(',');
 const stamp = (v: unknown): v is string => typeof v === 'string' && /(?:Z|[+-]\d{2}:\d{2})$/.test(v) && Number.isFinite(Date.parse(v));
 const date = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && Number.isFinite(Date.parse(v)) && new Date(v).toISOString().slice(0, 10) === v;
 const digest = (v: string): string => createHash('sha256').update(v, 'utf8').digest('hex');
 
 function itemValid(item: unknown, market: string, cutoff: string): item is AsiaNewsItem {
-  if (!record(item) || item.market !== market || !text(item.claim) || !text(item.publisher) || !text(item.source_url)
+  if (!record(item) || !exactFields(item, itemFields) || item.market !== market || !text(item.claim) || !text(item.publisher) || !text(item.source_url)
     || !/^asia\.[a-f0-9]{64}$/.test(String(item.evidence_id)) || !hash.test(String(item.source_sha256))
     || item.claim_sha256 !== publicReportIdentity(item.claim) || !['eligible', 'holiday_context'].includes(String(item.applicability))) return false;
   const url = new URL(item.source_url);
@@ -39,7 +42,7 @@ function itemValid(item: unknown, market: string, cutoff: string): item is AsiaN
 }
 
 export function validateAsiaNews(value: unknown, reportId: string, markdown: string): AsiaNewsPublicArtifact {
-  if (!record(value) || !/^\d{4}-\d{2}-\d{2}-evening$/.test(reportId)
+  if (!record(value) || !exactFields(value, envelopeFields) || !/^\d{4}-\d{2}-\d{2}-evening$/.test(reportId)
     || value.schema_version !== 'market_intel.asia_news_public.v1' || value.publication !== 'public'
     || value.report_id !== reportId || value.date !== reportId.slice(0, 10) || value.kind !== 'evening'
     || value.report_sha256 !== digest(markdown) || !stamp(value.generated_at) || !stamp(value.cutoff)
@@ -54,8 +57,10 @@ export function validateAsiaNews(value: unknown, reportId: string, markdown: str
     if (!Array.isArray(rows) || rows.length > 10 || !rows.every(row => itemValid(row, market, value.cutoff as string))) throw new Error('invalid public Asia news items');
     markets[market] = rows; items.push(...rows);
   }
-  if (new Set(items.map(item => item.evidence_id)).size !== items.length || value.status !== (items.length ? 'reviewed' : 'missing')) throw new Error('invalid public Asia news status');
-  return { ...value, markets } as unknown as AsiaNewsPublicArtifact;
+  if (new Set(items.map(item => item.evidence_id)).size !== items.length
+    || new Set(items.map(item => `${item.market}:${item.source_url}`)).size !== items.length
+    || value.status !== (items.length ? 'reviewed' : 'missing')) throw new Error('invalid public Asia news status');
+  return { ...Object.fromEntries(envelopeFields.map(key => [key, value[key]])), markets } as unknown as AsiaNewsPublicArtifact;
 }
 
 export function loadAsiaNews(reportId: string): AsiaNewsPublicArtifact | null {

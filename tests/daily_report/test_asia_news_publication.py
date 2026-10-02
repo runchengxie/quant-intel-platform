@@ -6,6 +6,7 @@ from hashlib import sha256
 
 import pytest
 
+from daily_messenger.daily_report.asia_news_contract import digest, validate_asia_candidate
 from market_intel_publication.asia_news_contract import (
     build_public_asia_news,
     validate_public_asia_news,
@@ -88,3 +89,58 @@ def test_after_cutoff_source_blocked_and_future_generation_cutoff_not_invented()
             generated_at="2026-09-30T18:45:00+08:00",
             report_sha256=REPORT_HASH,
         )
+
+
+@pytest.mark.parametrize("field", ["private_receipt", "raw_body", "event_date"])
+def test_public_unknown_fields_and_invalid_event_date_rejected(field):
+    payload = build([fixture_row()])
+    payload["markets"]["cn"][0][field] = "/home/private/raw"
+    payload["content_sha256"] = digest({k: v for k, v in payload.items() if k != "content_sha256"})
+    with pytest.raises(ValueError):
+        validate_public_asia_news(
+            payload, report_id="2026-09-30-evening", report_sha256=REPORT_HASH
+        )
+
+
+def test_private_envelope_rejected_even_with_valid_hash():
+    payload = build([])
+    payload["private_receipt"] = {"reviewer": "private"}
+    payload["content_sha256"] = digest({k: v for k, v in payload.items() if k != "content_sha256"})
+    with pytest.raises(ValueError):
+        validate_public_asia_news(
+            payload, report_id="2026-09-30-evening", report_sha256=REPORT_HASH
+        )
+
+
+@pytest.mark.parametrize("stamp", ["2026-10-02T20:00:00+08:00", "2026-09-30T17:00:00+08:00"])
+def test_translation_review_must_fit_retrieval_and_generation(stamp):
+    row = fixture_row()
+    row["review"]["translation"]["reviewed_at"] = stamp
+    with pytest.raises(ValueError, match="translation"):
+        build([row])
+
+
+def test_refetched_same_document_deduplicated_and_explicit_revision_supersedes():
+    original = fixture_row()
+    duplicate = fixture_row()
+    duplicate["candidate"]["retrieved_at"] = "2026-09-30T18:01:00+08:00"
+    duplicate["review"]["candidate_sha256"] = validate_asia_candidate(
+        duplicate["candidate"]
+    ).evidence_id[5:]
+    assert len(build([original, duplicate])["markets"]["cn"]) == 1
+    revision = fixture_row()
+    revision["candidate"].update(
+        document_status="revised",
+        revision_of=validate_asia_candidate(original["candidate"]).evidence_id,
+        source_sha256="c" * 64,
+    )
+    revision["review"].update(
+        candidate_sha256=validate_asia_candidate(revision["candidate"]).evidence_id[5:],
+        source_sha256="c" * 64,
+        claim="收入增长 7%。",
+        claim_sha256=digest("收入增长 7%。"),
+    )
+    revision["review"].pop("translation")
+    assert [item["claim"] for item in build([original, revision])["markets"]["cn"]] == [
+        "收入增长 7%。"
+    ]

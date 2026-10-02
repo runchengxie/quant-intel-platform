@@ -18,4 +18,17 @@ The report publisher projects only approved public fields into `market_intel.asi
 
 ## Acceptance status
 
+The hard request budget includes blocked header/body reads. The default fetcher
+requires a main-thread Unix CLI and an unused process timer; other execution
+contexts fail closed. It restores the original signal handler after every attempt.
+Translation review must follow source retrieval and precede public generation.
+Duplicate document versions are suppressed and explicit revisions supersede their
+old evidence. Conflicting unlinked versions block publication.
+
+Public readers reject unknown fields. Imports preflight all retained news and
+stage the complete snapshot before replacement, restoring the old snapshot if
+replacement fails. Reimporting identical inputs repairs missing or changed news
+sidecars. The supported website build stages only indexed news and validates each
+artifact against its staged Markdown before Astro reads it.
+
 Offline synthetic fixtures are test evidence only. They are not real disclosures or live news approvals. No automatic production collection, production activation, accepted live news, scheduler change or Feishu test message is implied by merging this feature. Before enabling, verify accessible original documents for both markets, actual display terms, independent claim/translation review and a no-send canary against the selected release. Existing 07:00/19:00 personal delivery remains unchanged.

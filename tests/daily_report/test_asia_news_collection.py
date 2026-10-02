@@ -1,5 +1,6 @@
 """Candidate intake never treats reachable or allowlisted sources as approved."""
 
+import time
 from datetime import datetime
 from hashlib import sha256
 
@@ -166,3 +167,20 @@ def test_successful_fetch_and_redirect_rejection():
         BoundedDocumentFetcher(allowed_hosts={"www.sse.com.cn"}, request=lambda *a, **k: response)(
             "https://www.sse.com.cn/x"
         )
+
+
+def test_wall_clock_budget_interrupts_a_stream_that_never_yields(monkeypatch):
+    import daily_messenger.daily_report.asia_news_collection as collection
+
+    class SlowResponse(Response):
+        def iter_content(self, chunk_size):
+            time.sleep(0.3)
+            yield b"late"
+
+    monkeypatch.setattr(collection, "ATTEMPT_SECONDS", 0.03, raising=False)
+    started = time.monotonic()
+    with pytest.raises(ValueError, match="timeout"):
+        BoundedDocumentFetcher({"www.sse.com.cn"}, lambda *a, **k: SlowResponse([]))(
+            "https://www.sse.com.cn/x"
+        )
+    assert time.monotonic() - started < 0.2

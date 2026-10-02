@@ -61,7 +61,10 @@ def _translation(
     if value.get("sha256") != digest(text) or value.get("claim_sha256") != digest(claim):
         raise ValueError("translation content binding mismatch")
     _independent_identity(value, candidate.collector_identity)
-    aware_timestamp(required_text(value, "reviewed_at"))
+    if aware_timestamp(required_text(value, "reviewed_at")) < aware_timestamp(
+        candidate.retrieved_at
+    ):
+        raise ValueError("translation review precedes source retrieval")
     required_text(value, "note")
 
     def numbers(content: str) -> list[str]:

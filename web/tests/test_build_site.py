@@ -1,5 +1,8 @@
 import hashlib
 import json
+import shutil
+import subprocess
+import sys
 import tempfile
 import unittest
 from pathlib import Path
@@ -14,6 +17,82 @@ from tests.test_import_market_daily_report import _cross_asset_payload
 
 REPORT_SCHEMA = "market_intel_pages.reports.v1"
 SUMMARY_SCHEMA = "market_intel_pages.daily_summaries.v1"
+
+
+def test_build_cli_resolves_owner_without_an_editable_install():
+    root = Path(__file__).resolve().parents[1]
+    result = subprocess.run(
+        [sys.executable, "-S", "scripts/build_site.py", "--help"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+
+
+def test_supported_build_stages_bound_asia_news_before_astro(tmp_path, monkeypatch):
+    from market_intel_publication.import_reports import parse_markdown
+
+    from tests.test_asia_news_import import news_fixture
+
+    root, output = tmp_path / "source", tmp_path / "site"
+    create_site(root, 1)
+    public = root / "artifacts/public"
+    text = "# 收盘复盘\n生成时间: 2026-09-30 20:00\n## 盘面\n上涨 2567 家。\n"
+    row = parse_markdown(text, "2026-09-30", "evening")
+    (public / row["source_url"]).write_text(text)
+    (public / "data/reports.json").write_text(json.dumps({"schema_version": REPORT_SCHEMA, "reports": [row]}))
+    news = news_fixture(text)
+    (public / "data/asia_news").mkdir()
+    (public / "data/asia_news/2026-09-30-evening.json").write_text(json.dumps(news))
+    observed = []
+
+    def astro(_root, stage, _ids):
+        observed.append(json.loads((stage / "data/asia_news/2026-09-30-evening.json").read_text()))
+
+    monkeypatch.setattr(build_site_module, "_overlay_astro_pages", astro)
+    build_site(root, output)
+    assert observed == [news]
+    (public / row["source_url"]).write_text(text + "correction")
+    with pytest.raises(ValueError):
+        build_site(root, output)
+    assert json.loads((output / "data/asia_news/2026-09-30-evening.json").read_text()) == news
+
+
+def test_supported_build_renders_synthetic_reviewed_news_in_both_locales(tmp_path):
+    from daily_messenger.daily_report.asia_news_contract import digest
+    from market_intel_publication.import_reports import parse_markdown
+
+    from tests.test_asia_news_import import news_fixture
+
+    actual = Path(__file__).resolve().parents[1]
+    root, output = tmp_path / "source", tmp_path / "site"
+    create_site(root, 1)
+    shutil.copytree(actual / "src", root / "src", dirs_exist_ok=True)
+    for name in ("package.json", "astro.config.mjs", "tsconfig.json"):
+        shutil.copy2(actual / name, root / name)
+    (root / "node_modules").symlink_to(actual / "node_modules", target_is_directory=True)
+    public = root / "artifacts/public"
+    text = "# 收盘复盘\n生成时间: 2026-09-30 20:00\n## 盘面\n上涨 2567 家。\n"
+    row = parse_markdown(text, "2026-09-30", "evening")
+    (public / row["source_url"]).write_text(text)
+    (public / "data/reports.json").write_text(json.dumps({"schema_version": REPORT_SCHEMA, "reports": [row]}))
+    news = news_fixture(text, english=True)
+    news["markets"]["hk"] = news_fixture(text, "hk", english=True)["markets"]["hk"]
+    news["content_sha256"] = digest({k: v for k, v in news.items() if k != "content_sha256"})
+    (public / "data/asia_news").mkdir()
+    (public / "data/asia_news/2026-09-30-evening.json").write_text(json.dumps(news))
+    build_site(root, output)
+    for route, claim in (("index.html", "收入增长 6%。"), ("en/index.html", "Revenue rose 6%.")):
+        html = (output / route).read_text()
+        assert html.count(claim) == 2
+        assert "https://www.sse.com.cn/fixture" in html
+        assert "https://www.hkexnews.hk/fixture" in html
+        assert "HKEXnews" in html and "2026" in html
+        if route.startswith("en/"):
+            assert html.index(claim) < html.index("Market interpretation and validation")
+    assert "fixture-reviewer" not in (output / "data/asia_news/2026-09-30-evening.json").read_text()
 
 
 def test_evening_only_summary_is_validated_by_report_date() -> None:

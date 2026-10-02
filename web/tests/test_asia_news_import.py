@@ -6,13 +6,12 @@ from datetime import datetime
 from hashlib import sha256
 
 import pytest
-
 from a_share_daily.public_report_refresh import publish_batch
 from market_intel_publication.asia_news_contract import build_public_asia_news
 from market_intel_publication.import_reports import import_reports
 
 
-def news_fixture(text):
+def news_fixture(text, market="cn", *, english=False):
     # Fully synthetic offline attestations; never used as live/source acceptance.
     from daily_messenger.daily_report.asia_news_contract import digest, validate_asia_candidate
     from daily_messenger.daily_report.asia_news_review import review_template
@@ -21,9 +20,11 @@ def news_fixture(text):
         {
             "schema_version": "market_intel.asia_news_candidate.v1",
             "collector_identity": "fixture-collector",
-            "market": "cn",
-            "source_url": "https://www.sse.com.cn/fixture",
-            "publisher": "SSE",
+            "market": market,
+            "source_url": "https://www.sse.com.cn/fixture"
+            if market == "cn"
+            else "https://www.hkexnews.hk/fixture",
+            "publisher": "SSE" if market == "cn" else "HKEXnews",
             "published_at": "2026-09-30T14:00:00+08:00",
             "time_precision": "timestamp",
             "retrieved_at": "2026-09-30T18:00:00+08:00",
@@ -46,7 +47,7 @@ def news_fixture(text):
         rights_note="fixture",
         applicability_note="fixture",
         calendar={
-            "market": "cn",
+            "market": market,
             "from": "2026-09-29",
             "through": "2026-09-30",
             "open_dates": ["2026-09-30"],
@@ -54,6 +55,15 @@ def news_fixture(text):
             "source_sha256": "b" * 64,
         },
     )
+    if english:
+        receipt["translation"] = {
+            "text": "Revenue rose 6%.",
+            "sha256": digest("Revenue rose 6%."),
+            "claim_sha256": digest("收入增长 6%。"),
+            "reviewer": "fixture-reviewer",
+            "reviewed_at": "2026-09-30T20:00:00+08:00",
+            "note": "synthetic fixture",
+        }
     return build_public_asia_news(
         [{"candidate": asdict(candidate), "review": receipt}],
         report_date="2026-09-30",
@@ -110,3 +120,59 @@ def test_mismatched_report_rejected_before_public_writes(tmp_path):
         )
     assert not (output / "manifest.json").exists()
     assert json.loads((public / "data/reports.json").read_text())["reports"] == []
+
+
+def batch_fixture(tmp_path):
+    root, output, archive = (tmp_path / name for name in ("site", "output", "archive"))
+    public = site(root)
+    output.mkdir()
+    stage = tmp_path / "batch"
+    stage.mkdir()
+    text = "# 收盘复盘\n生成时间: 2026-09-30 20:00\n## 盘面\n上涨 2567 家。\n"
+    manifest = publish_batch(output, stage, {"evening": text}, "2026-09-30", asia_news=news_fixture(text))
+    import_reports(root, manifest, archive, apply=True)
+    return root, public, manifest, archive
+
+
+def test_reimport_repairs_missing_or_tampered_news(tmp_path):
+    root, public, manifest, archive = batch_fixture(tmp_path)
+    destination = public / "data/asia_news/2026-09-30-evening.json"
+    destination.unlink()
+    assert import_reports(root, manifest, archive)["changed"] == 1
+    assert import_reports(root, manifest, archive, apply=True)["applied"]
+    destination.write_text("{}")
+    assert import_reports(root, manifest, archive, apply=True)["applied"]
+    assert json.loads(destination.read_text())["status"] == "reviewed"
+
+
+def test_later_malformed_news_does_not_remove_earlier_valid_news(tmp_path):
+    root, public, manifest, archive = batch_fixture(tmp_path)
+    destination = public / "data/asia_news/2026-09-30-evening.json"
+    old = destination.read_bytes()
+    (public / "data/asia_news/2026-09-29-evening.json").write_text("malformed")
+    destination.unlink()
+    # Force a changed import while keeping a valid sidecar to exercise preflight.
+    destination.write_bytes(old)
+    index = json.loads((public / "data/reports.json").read_text())
+    index["reports"][0]["summary"] = "changed"
+    (public / "data/reports.json").write_text(json.dumps(index))
+    with pytest.raises(ValueError):
+        import_reports(root, manifest, archive, apply=True)
+    assert destination.read_bytes() == old
+
+
+def test_snapshot_swap_failure_restores_every_public_file(tmp_path, monkeypatch):
+    root, public, manifest, archive = batch_fixture(tmp_path)
+    (public / "data/asia_news/2026-09-30-evening.json").unlink()
+    before = {p.relative_to(public): p.read_bytes() for p in public.rglob("*") if p.is_file()}
+    original = type(public).rename
+
+    def fail_new_snapshot(self, destination):
+        if self.name == "public" and "market-intel-import-" in str(self):
+            raise OSError("simulated snapshot replacement failure")
+        return original(self, destination)
+
+    monkeypatch.setattr(type(public), "rename", fail_new_snapshot)
+    with pytest.raises(OSError):
+        import_reports(root, manifest, archive, apply=True)
+    assert {p.relative_to(public): p.read_bytes() for p in public.rglob("*") if p.is_file()} == before

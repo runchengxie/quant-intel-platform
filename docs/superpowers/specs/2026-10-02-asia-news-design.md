@@ -1,6 +1,8 @@
 # Asia news: source-dated, reviewed report evidence
 
-Status: design for user review, not implemented or enabled.
+Status: design and implementation plan approved. Offline implementation and review
+fixes are complete; final gates and PR integration are in progress. Real-source
+fact/rights acceptance and production activation remain pending.
 
 ## Intent and scope
 

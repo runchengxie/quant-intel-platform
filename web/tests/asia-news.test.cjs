@@ -36,6 +36,20 @@ test('missing translation preserves evidence with an explicit source-language la
   assert.match(view.sourceTime, /2026|Sep/);
 });
 
+test('public readers reject private extensions and refetched duplicate documents', async () => {
+  const { validateAsiaNews } = await import('../src/lib/asia-news.ts');
+  const { publicReportIdentity } = await import('../src/lib/report-image-identity.ts');
+  for (const place of ['envelope', 'item', 'duplicate']) {
+    const value = await payload();
+    if (place === 'envelope') value.private_receipt = { reviewer: 'private' };
+    if (place === 'item') value.markets.cn[0].raw_body = 'private';
+    if (place === 'duplicate') value.markets.cn.push({ ...value.markets.cn[0], evidence_id: 'asia.' + 'b'.repeat(64) });
+    const { content_sha256, ...body } = value;
+    value.content_sha256 = publicReportIdentity(body);
+    assert.throws(() => validateAsiaNews(value, value.report_id, markdown));
+  }
+});
+
 test('optional loader is offline, rejects traversal, and reads only matching report content', async () => {
   const { loadAsiaNews } = await import('../src/lib/asia-news.ts');
   const root = mkdtempSync(path.join(tmpdir(), 'asia-news-'));

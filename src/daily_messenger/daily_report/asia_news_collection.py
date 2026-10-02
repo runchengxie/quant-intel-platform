@@ -3,8 +3,11 @@
 from __future__ import annotations
 
 import hashlib
+import signal
+import threading
 import time
 from collections.abc import Callable, Mapping, Sequence
+from contextlib import contextmanager
 from dataclasses import dataclass
 from datetime import datetime
 from urllib.parse import urlsplit
@@ -15,6 +18,35 @@ from .asia_news_contract import AsiaNewsCandidate, secure_source_url, validate_a
 
 DEFAULT_HOSTS = {"www.sse.com.cn", "www.szse.cn", "www.hkexnews.hk", "www.hkex.com.hk"}
 DOCUMENT_LIMIT = 2 * 1024 * 1024
+ATTEMPT_SECONDS = 30
+
+
+@contextmanager
+def _attempt_budget():
+    """Linux CLI transport deadline, including headers and blocked body reads.
+
+    Fail closed outside the main thread or when another alarm owns the process.
+    Never replace another caller's timer or leave our handler installed.
+    """
+    if (
+        not hasattr(signal, "setitimer")
+        or threading.current_thread() is not threading.main_thread()
+    ):
+        raise ValueError("bounded fetching requires a main-thread Unix CLI")
+    if signal.getitimer(signal.ITIMER_REAL) != (0.0, 0.0):
+        raise ValueError("request deadline timer already in use")
+    previous = signal.getsignal(signal.SIGALRM)
+
+    def expired(_signum, _frame):
+        raise ValueError("source request timeout")
+
+    signal.signal(signal.SIGALRM, expired)
+    try:
+        signal.setitimer(signal.ITIMER_REAL, ATTEMPT_SECONDS)
+        yield
+    finally:
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        signal.signal(signal.SIGALRM, previous)
 
 
 @dataclass(frozen=True)
@@ -48,7 +80,11 @@ class BoundedDocumentFetcher:
         raise ValueError("source fetch failed")
 
     def _attempt(self, url: str) -> bytes:
-        deadline = time.monotonic() + 30
+        with _attempt_budget():
+            return self._read_response(url)
+
+    def _read_response(self, url: str) -> bytes:
+        deadline = time.monotonic() + ATTEMPT_SECONDS
         with self.request(url, stream=True, timeout=(10, 30), allow_redirects=False) as response:
             if 300 <= response.status_code < 400:
                 raise ValueError("source redirect rejected")

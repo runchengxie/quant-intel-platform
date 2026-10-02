@@ -14,7 +14,7 @@ from pathlib import Path
 from market_intel_commentary.generate_daily_summary import CHINA_TZ, report_generated_at
 from market_intel_commentary.generate_insights import archive_once, write_json
 
-from .asia_news_contract import validate_public_asia_news
+from .asia_news_contract import public_asia_projection
 from .public_paths import public_snapshot_root, safe_public_report_path
 from .sync_public_snapshot import _safe_report_path, sync_snapshot
 
@@ -88,7 +88,7 @@ def _read_manifest(manifest_path: Path) -> tuple[dict, dict, dict]:
             if not news_path.is_relative_to(manifest_path.parent) or news_path.suffix != ".json":
                 raise ValueError("unsafe news source path")
             payload = json.loads(news_path.read_text(encoding="utf-8"))
-            validate_public_asia_news(
+            payload = public_asia_projection(
                 payload,
                 report_id=row["id"],
                 report_sha256=hashlib.sha256(text.encode()).hexdigest(),
@@ -119,6 +119,7 @@ def import_reports(root: Path, manifest_path: Path, archive_dir: Path, *, apply=
         or not safe_public_report_path(root, row["source_url"]).exists()
         or safe_public_report_path(root, row["source_url"]).read_text(encoding="utf-8")
         != markdown[key]
+        or _news_changed(public_root, key, news.get(key))
     ]
     result = {"changed": len(changed), "report_ids": sorted(incoming), "applied": False}
     if not apply or not changed:
@@ -136,6 +137,42 @@ def import_reports(root: Path, manifest_path: Path, archive_dir: Path, *, apply=
     return {**result, "applied": True}
 
 
+def _news_changed(public_root: Path, identity: str, expected: dict | None) -> bool:
+    path = public_root / "data/asia_news" / f"{identity}.json"
+    if path.is_symlink() or path.parent.is_symlink():
+        raise ValueError("news path cannot be a symlink")
+    if not path.exists():
+        return expected is not None
+    if expected is None:
+        return True
+    try:
+        return json.loads(path.read_text(encoding="utf-8")) != expected
+    except (ValueError, OSError):
+        return True
+
+
+def _preflight_news(root: Path, incoming: dict, existing: dict) -> None:
+    directory = public_snapshot_root(root) / "data/asia_news"
+    if directory.is_symlink():
+        raise ValueError("news directory cannot be a symlink")
+    for file in directory.glob("*.json"):
+        if file.is_symlink():
+            raise ValueError("news file cannot be a symlink")
+        if file.stem in incoming:
+            continue  # A targeted reimport can repair invalid or missing news.
+        payload = json.loads(file.read_text(encoding="utf-8"))
+        row = existing.get(file.stem)
+        if row is None:
+            raise ValueError("unindexed news sidecar")
+        public_asia_projection(
+            payload,
+            report_id=file.stem,
+            report_sha256=hashlib.sha256(
+                safe_public_report_path(root, row["source_url"]).read_bytes()
+            ).hexdigest(),
+        )
+
+
 def _apply_import(  # noqa: PLR0913 - private helper keeps the staged publication contract
     *,
     root: Path,
@@ -147,6 +184,7 @@ def _apply_import(  # noqa: PLR0913 - private helper keeps the staged publicatio
     changed: list[str],
     news: dict,
 ) -> None:
+    _preflight_news(root, incoming, existing)
     archive_index = archive_dir / "data/reports.json"
     archived = (
         {r["id"]: r for r in json.loads(archive_index.read_text(encoding="utf-8"))["reports"]}
@@ -157,8 +195,7 @@ def _apply_import(  # noqa: PLR0913 - private helper keeps the staged publicatio
     with tempfile.TemporaryDirectory(prefix="market-intel-import-") as temporary:
         stage = Path(temporary)
         stage_public = public_snapshot_root(stage)
-        (stage_public / "data").mkdir(parents=True)
-        (stage_public / "reports").mkdir()
+        shutil.copytree(public_snapshot_root(root), stage_public, symlinks=True)
         for row in existing.values():
             source = safe_public_report_path(root, row["source_url"])
             destination = safe_public_report_path(stage, row["source_url"])
@@ -203,20 +240,15 @@ def _apply_import(  # noqa: PLR0913 - private helper keeps the staged publicatio
             )
         sync_snapshot(stage, archive_dir)
         public = json.loads((stage_public / "data/reports.json").read_text(encoding="utf-8"))
-        _publish_news(root, archive_dir, incoming, news, public["reports"])
-        for row in public["reports"]:
-            destination = safe_public_report_path(root, row["source_url"])
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copy2(safe_public_report_path(stage, row["source_url"]), destination)
-        for name in ("daily_summaries.json", "reports.json"):
-            write_json(
-                public_snapshot_root(root) / "data" / name,
-                json.loads((stage_public / "data" / name).read_text(encoding="utf-8")),
-            )
-        retained = {r["source_url"] for r in public["reports"]}
-        for row in existing.values():
-            if row["source_url"] not in retained:
-                safe_public_report_path(root, row["source_url"]).unlink(missing_ok=True)
+        _publish_news(stage, archive_dir, incoming, news, public["reports"])
+        destination = public_snapshot_root(root)
+        previous = stage / "previous"
+        destination.rename(previous)
+        try:
+            stage_public.rename(destination)
+        except BaseException:
+            previous.rename(destination)
+            raise
 
 
 def _publish_news(
@@ -231,9 +263,12 @@ def _publish_news(
             if file.is_symlink():
                 raise ValueError("news file cannot be a symlink")
             identity = file.stem
-            old = json.loads(file.read_text(encoding="utf-8"))
             if identity in incoming or identity not in retained_ids:
-                archive_once(archive, "asia_news_revisions", old)
+                archive_once(
+                    archive,
+                    "asia_news_revisions",
+                    {"report_id": identity, "raw_text": file.read_text(encoding="utf-8")},
+                )
                 file.unlink()
     for identity, payload in news.items():
         archive_once(archive, "asia_news_revisions", payload)
