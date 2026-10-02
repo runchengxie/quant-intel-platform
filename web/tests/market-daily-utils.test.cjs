@@ -8,7 +8,7 @@ test("asset-specific gap labels remain readable in the English report", () => {
   assert.equal(toEnglishPresentation("尚缺：部分跨资产行情"), "Missing: some cross-asset prices");
 });
 
-test("partial cross-asset gap names missing futures without hiding available spot", () => {
+test("optional CME futures are disclosed separately from required spot coverage", () => {
   const futures = [["brent", "BZ%3DF", "USD/barrel"], ["gold", "GC%3DF", "USD/troy_ounce"], ["silver", "SI%3DF", "USD/troy_ounce"]].flatMap(([asset, ticker, unit]) => [
     { id: `cross_asset.${asset}.close`, metric: "commodity_close", value: 100, unit },
     { id: `cross_asset.${asset}.change_percent`, metric: "daily_return", value: 1, unit: "percent" },
@@ -17,13 +17,37 @@ test("partial cross-asset gap names missing futures without hiding available spo
     { id: "cross_asset.bitcoin_spot.close", metric: "crypto_spot_close", value: 83000, unit: "USD/bitcoin" },
     { id: "cross_asset.bitcoin_spot.change_percent", metric: "daily_return", value: 1, unit: "percent" },
   ].map((fact) => ({ ...fact, source: "Financial Modeling Prep", source_url: "https://site.financialmodelingprep.com/developer/docs/stable/cryptocurrency-historical-price-eod-full", instrument: "BTC/USD cryptocurrency EOD (FMP BTCUSD)", quality: "ok", observation_date: "2026-09-24" }));
-  const summary = summarizeMarketDaily({ schema_version: "1.0", run_id: "daily-2026-09-24", missing_sources: ["research", "cross_asset"], facts: [...futures, ...spot] });
+  const payload = { schema_version: "1.0", run_id: "daily-2026-09-24", missing_sources: ["research", "cross_asset"], source_status: { cross_asset: { reason: "optional_futures_unavailable" } }, facts: [...futures, ...spot] };
+  const summary = summarizeMarketDaily(payload);
   assert.ok(summary);
-  assert.deepEqual(summary.gaps, ["研究解释", "比特币期货行情"]);
+  assert.deepEqual(summary.gaps, ["研究解释"]);
+  assert.deepEqual(summary.optionalGaps, ["比特币期货行情"]);
   assert.equal(summary.crossAssetRows.length, 4);
   const svg = buildMarketDailyChartSvg(summary);
-  assert.match(svg, /尚缺：比特币期货行情/);
+  assert.match(svg, /可选数据未提供：比特币期货行情/);
+  assert.doesNotMatch(svg, /尚缺：比特币期货行情/);
+  assert.match(toEnglishPresentation(svg), /Optional data unavailable: Bitcoin futures prices/);
+  assert.doesNotMatch(toEnglishPresentation(svg), /可选数据|未提供/);
   assert.doesNotMatch(svg, /尚缺：布伦特、金银或比特币行情/);
+  const uncertain = summarizeMarketDaily({ ...payload, source_status: {} });
+  assert.deepEqual(uncertain.gaps, ["研究解释", "部分跨资产行情"]);
+  const fs = require("node:fs");
+  const vm = require("node:vm");
+  const legacyPath = require("node:path").join(__dirname, "../src/lib/market-daily-utils.js");
+  const legacy = vm.runInNewContext(fs.readFileSync(legacyPath, "utf8") + ";marketDailyUtils", { URL });
+  assert.equal(JSON.stringify(legacy.summarizeMarketDaily(payload).optionalGaps), JSON.stringify(summary.optionalGaps));
+});
+
+test("missing required BTC spot is not satisfied by a CME futures pair", () => {
+  const facts = [
+    { id: "cross_asset.bitcoin.close", metric: "crypto_futures_close", value: 83000, unit: "USD/bitcoin" },
+    { id: "cross_asset.bitcoin.change_percent", metric: "daily_return", value: 1, unit: "percent" },
+  ].map((fact) => ({ ...fact, source: "Yahoo Finance", source_url: "https://finance.yahoo.com/quote/BTC%3DF/history/", quality: "ok", observation_date: "2026-09-24" }));
+  const summary = summarizeMarketDaily({ schema_version: "1.0", run_id: "daily-2026-09-24", missing_sources: [], facts });
+  assert.ok(summary);
+  assert.deepEqual(summary.gaps, ["比特币现货行情"]);
+  assert.deepEqual(summary.optionalGaps, []);
+  assert.match(buildMarketDailyChartSvg(summary), /尚缺：比特币现货行情/);
 });
 
 test("market daily keeps the observation date and lagged yield state", () => {

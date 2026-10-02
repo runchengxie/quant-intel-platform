@@ -41,10 +41,33 @@ def _missing_labels(payload: dict[str, Any]) -> list[str]:
                 if f"cross_asset.{asset}.close" not in facts
                 or f"cross_asset.{asset}.change_percent" not in facts
             ]
-            labels.extend(unavailable or [MISSING_LABELS[item]])
+            labels.extend(
+                unavailable
+                or (
+                    []
+                    if payload.get("source_status", {}).get("cross_asset", {}).get("reason")
+                    == "optional_futures_unavailable"
+                    else [MISSING_LABELS[item]]
+                )
+            )
         elif item in MISSING_LABELS:
             labels.append(MISSING_LABELS[item])
-    return labels
+    if any(fact.startswith("cross_asset.") for fact in facts) and not {
+        "cross_asset.bitcoin_spot.close",
+        "cross_asset.bitcoin_spot.change_percent",
+    }.issubset(facts):
+        labels.append(MISSING_LABELS["btc_spot"])
+    return list(dict.fromkeys(labels))
+
+
+def _optional_missing_labels(payload: dict[str, Any]) -> list[str]:
+    facts = {str(fact.get("id")) for fact in payload.get("facts", [])}
+    if any(fact.startswith("cross_asset.") for fact in facts) and not {
+        "cross_asset.bitcoin.close",
+        "cross_asset.bitcoin.change_percent",
+    }.issubset(facts):
+        return ["比特币期货行情"]
+    return []
 
 
 def _fact_category(fact_id: str) -> str:
@@ -285,6 +308,8 @@ def _markdown(
     gaps = _missing_labels(payload)
     if gaps:
         lines.extend([f"尚缺：{'、'.join(gaps)}。", ""])
+    if optional := _optional_missing_labels(payload):
+        lines.extend([f"可选数据未提供：{'、'.join(optional)}。", ""])
     grouped = _group_claims(payload)
     report_sections = (
         ("market", "美股市场表现"),
@@ -426,6 +451,8 @@ def _text_report(payload: dict[str, Any]) -> str:
     gaps = _missing_labels(payload)
     if gaps:
         lines.extend(["", f"尚缺：{'、'.join(gaps)}。"])
+    if optional := _optional_missing_labels(payload):
+        lines.extend(["", f"可选数据未提供：{'、'.join(optional)}。"])
     lines.extend(["", "风险提示：市场有风险，投资需谨慎。", ""])
     return "\n".join(lines)
 

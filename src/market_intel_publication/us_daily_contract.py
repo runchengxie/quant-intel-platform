@@ -109,12 +109,13 @@ MISSING_LABELS = {
     "rates_lag": "美债收益率当日变动",
     "cross_asset": "部分跨资产行情",
     "equities": "部分美股个股行情",
+    "btc_spot": "比特币现货行情",
 }
 ASSET_GAP_LABELS = {
     "brent": "布伦特期货行情",
     "gold": "黄金期货行情",
     "silver": "白银期货行情",
-    "bitcoin": "比特币期货行情",
+    "bitcoin_spot": "比特币现货行情",
 }
 SOURCE_STATUS_LABELS = {
     "rates": "美债收益率",

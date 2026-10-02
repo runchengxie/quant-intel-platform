@@ -36,6 +36,13 @@ var marketDailyUtils = (() => {
     return isRecord(value) && typeof value.schema_version === "string" && typeof value.run_id === "string" && Array.isArray(value.facts) && value.facts.every((item) => isRecord(item) && typeof item.id === "string");
   }
 
+  // src/lib/locale.ts
+  var US_REPORT_LABELS = {
+    btcSpotGap: ["\u6BD4\u7279\u5E01\u73B0\u8D27\u884C\u60C5", "Bitcoin spot prices"],
+    btcFuturesGap: ["\u6BD4\u7279\u5E01\u671F\u8D27\u884C\u60C5", "Bitcoin futures prices"],
+    optionalUnavailable: ["\u53EF\u9009\u6570\u636E\u672A\u63D0\u4F9B\uFF1A", "Optional data unavailable: "]
+  };
+
   // src/lib/market-daily-utils.ts
   var MARKET_DAILY_FACTS = [
     ["index.spx.change_percent", "\u6807\u666E 500 \u65E5\u6DA8\u8DCC", "%"],
@@ -109,13 +116,14 @@ var marketDailyUtils = (() => {
     research: "\u7814\u7A76\u89E3\u91CA",
     fred: "\u90E8\u5206 FRED \u6570\u636E",
     cross_asset: "\u90E8\u5206\u8DE8\u8D44\u4EA7\u884C\u60C5",
-    equities: "\u90E8\u5206\u7F8E\u80A1\u4E2A\u80A1\u884C\u60C5"
+    equities: "\u90E8\u5206\u7F8E\u80A1\u4E2A\u80A1\u884C\u60C5",
+    btc_spot: US_REPORT_LABELS.btcSpotGap[0]
   };
   var CROSS_ASSET_GAPS = {
     brent: "\u5E03\u4F26\u7279\u671F\u8D27\u884C\u60C5",
     gold: "\u9EC4\u91D1\u671F\u8D27\u884C\u60C5",
     silver: "\u767D\u94F6\u671F\u8D27\u884C\u60C5",
-    bitcoin: "\u6BD4\u7279\u5E01\u671F\u8D27\u884C\u60C5"
+    bitcoin_spot: US_REPORT_LABELS.btcSpotGap[0]
   };
   var MARKET_DAILY_CLAIM_SECTIONS = [
     ["market", "\u5E02\u573A\u8868\u73B0"],
@@ -235,11 +243,14 @@ var marketDailyUtils = (() => {
       title,
       claims: claims.filter((claim) => claim.sectionKey === key)
     })).filter((section) => section.claims.length);
-    const gaps = (payload.missing_sources ?? []).filter((item) => Object.hasOwn(MARKET_DAILY_GAPS, item)).flatMap((item) => {
+    const pairedAsset = (asset) => ["close", "change_percent"].every((field) => rows.some((row) => row.id === `cross_asset.${asset}.${field}`));
+    const optionalGaps = rows.some((row) => row.id.startsWith("cross_asset.")) && !pairedAsset("bitcoin") ? [US_REPORT_LABELS.btcFuturesGap[0]] : [];
+    const gaps = [...new Set((payload.missing_sources ?? []).filter((item) => Object.hasOwn(MARKET_DAILY_GAPS, item)).flatMap((item) => {
       if (item !== "cross_asset") return [MARKET_DAILY_GAPS[item]];
       const unavailable = Object.entries(CROSS_ASSET_GAPS).filter(([asset]) => !rows.some((row) => row.id === `cross_asset.${asset}.close`) || !rows.some((row) => row.id === `cross_asset.${asset}.change_percent`)).map(([, label]) => label);
-      return unavailable.length ? unavailable : [MARKET_DAILY_GAPS[item]];
-    });
+      return unavailable.length ? unavailable : payload.source_status?.cross_asset?.reason === "optional_futures_unavailable" ? [] : [MARKET_DAILY_GAPS[item]];
+    }))];
+    if (rows.some((row) => row.id.startsWith("cross_asset.")) && !pairedAsset("bitcoin_spot") && !gaps.includes(MARKET_DAILY_GAPS.btc_spot)) gaps.push(MARKET_DAILY_GAPS.btc_spot);
     for (const tenor of ["2y", "5y", "10y", "30y"]) {
       const level = rows.find((row) => row.id === `treasury.${tenor}.level_percent`);
       const change = rows.find((row) => row.id === `treasury.${tenor}.change_bp`);
@@ -315,6 +326,7 @@ var marketDailyUtils = (() => {
       secondaryClaimSections,
       secondaryRows,
       gaps,
+      optionalGaps,
       hasTextReport,
       nextMorningRevision: payload.quality_summary?.revision === "next_morning_rechecked",
       historicalBackfill: payload.quality_summary?.revision === "historical_backfill"
@@ -375,6 +387,11 @@ var marketDailyUtils = (() => {
     if (line) lines.push(line.trim());
     return lines;
   }
+  var REPORT_BG = "var(--report-bg, #fff9f2)";
+  var REPORT_INK = "var(--report-ink, #34271f)";
+  var REPORT_MUTED = "var(--report-muted, #715f52)";
+  var REPORT_TRACK = "var(--report-track, #f2e7dc)";
+  var REPORT_LINE = "var(--report-line, #d9c7b6)";
   function buildMarketDailyChartSvg(summary) {
     const font = "'Source Han Sans CN', 'Noto Sans CJK SC', 'Noto Sans SC', 'PingFang SC', sans-serif";
     const charts = buildMarketDailyCharts(summary);
@@ -385,12 +402,12 @@ var marketDailyUtils = (() => {
       `<svg xmlns="http://www.w3.org/2000/svg" width="960" height="__HEIGHT__" viewBox="0 0 960 __HEIGHT__" role="img">`,
       `<title>${escapeSvgText(summary.date)} \u7F8E\u4E1C\u4EA4\u6613\u65E5\u5E02\u573A\u56FE\u6587\u590D\u76D8</title>`,
       `<desc>\u5C55\u793A\u5DF2\u6838\u5B9E\u7684\u884C\u60C5\u56FE\u89E3\u3001\u5E02\u573A\u89E3\u8BFB\u3001\u7ECF\u6D4E\u6570\u636E\u548C\u5173\u952E\u6765\u6E90\u3002</desc>`,
-      `<rect width="960" height="__HEIGHT__" fill="#fff9f2"/>`,
-      `<text x="54" y="62" fill="#34271f" font-family="sans-serif" font-size="28" font-weight="700">${escapeSvgText(summary.date)} \u7F8E\u4E1C\u4EA4\u6613\u65E5</text>`,
-      `<text x="54" y="91" fill="#715f52" font-family="sans-serif" font-size="15">\u7F8E\u80A1\u6536\u76D8\u590D\u76D8${summary.historicalBackfill ? " \xB7 \u4E8B\u540E\u6574\u7406" : ""} \xB7 \u56FE\u89E3\u3001\u89E3\u8BFB\u4E0E\u6765\u6E90</text>`
+      `<rect width="960" height="__HEIGHT__" fill="${REPORT_BG}"/>`,
+      `<text x="54" y="62" fill="${REPORT_INK}" font-family="sans-serif" font-size="28" font-weight="700">${escapeSvgText(summary.date)} \u7F8E\u4E1C\u4EA4\u6613\u65E5</text>`,
+      `<text x="54" y="91" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="15">\u7F8E\u80A1\u6536\u76D8\u590D\u76D8${summary.historicalBackfill ? " \xB7 \u4E8B\u540E\u6574\u7406" : ""} \xB7 \u56FE\u89E3\u3001\u89E3\u8BFB\u4E0E\u6765\u6E90</text>`
     ];
     for (const chart of charts) {
-      parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="19" font-weight="700">${escapeSvgText(chart.title)}\uFF08${escapeSvgText(chart.unit)}\uFF09</text>`);
+      parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="19" font-weight="700">${escapeSvgText(chart.title)}\uFF08${escapeSvgText(chart.unit)}\uFF09</text>`);
       y += 34;
       for (const row of chart.rows) {
         const equity = summary.equityRows.find((item) => row.id === `equity.${item.symbol.toLowerCase()}.change_percent`);
@@ -401,23 +418,23 @@ var marketDailyUtils = (() => {
         const width = Math.round(row.width * (chart.kind === "level" ? 4.3 : 2.15));
         const barX = row.side === "negative" ? center - width : center;
         const color = row.side === "negative" ? "#5c7182" : "#b64d33";
-        parts.push(`<text x="54" y="${y + 5}" fill="#34271f" font-family="sans-serif" font-size="16" font-weight="600">${escapeSvgText(row.label)}</text>`);
-        parts.push(`<rect x="350" y="${y - 13}" width="430" height="18" rx="3" fill="#f2e7dc"/>`);
+        parts.push(`<text x="54" y="${y + 5}" fill="${REPORT_INK}" font-family="sans-serif" font-size="16" font-weight="600">${escapeSvgText(row.label)}</text>`);
+        parts.push(`<rect x="350" y="${y - 13}" width="430" height="18" rx="3" fill="${REPORT_TRACK}"/>`);
         parts.push(`<rect x="${barX}" y="${y - 11}" width="${width}" height="14" rx="2" fill="${color}"/>`);
         parts.push(`<line x1="${center}" y1="${y - 16}" x2="${center}" y2="${y + 8}" stroke="#5d4c40" stroke-width="1"/>`);
-        parts.push(`<text x="800" y="${y + 5}" fill="#34271f" font-family="monospace" font-size="16" font-weight="700">${escapeSvgText(row.valueText)}</text>`);
-        parts.push(`<text x="54" y="${y + 25}" fill="#715f52" font-family="sans-serif" font-size="12">\u89C2\u6D4B\u65E5 ${escapeSvgText(row.observationDate)}${close ? ` \xB7 ${escapeSvgText(close)}` : ""} \xB7 ${escapeSvgText(row.sourceLabel)}</text>`);
+        parts.push(`<text x="800" y="${y + 5}" fill="${REPORT_INK}" font-family="monospace" font-size="16" font-weight="700">${escapeSvgText(row.valueText)}</text>`);
+        parts.push(`<text x="54" y="${y + 25}" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="12">\u89C2\u6D4B\u65E5 ${escapeSvgText(row.observationDate)}${close ? ` \xB7 ${escapeSvgText(close)}` : ""} \xB7 ${escapeSvgText(row.sourceLabel)}</text>`);
         y += 58;
       }
       y += 20;
     }
     if (laggedRates.length) {
-      parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="19" font-weight="700">\u7F8E\u503A\u8F83\u65E9\u89C2\u6D4B\u503C</text>`);
+      parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="19" font-weight="700">\u7F8E\u503A\u8F83\u65E9\u89C2\u6D4B\u503C</text>`);
       y += 30;
       for (const row of laggedRates) {
         const level = row.levelValue === null ? "\u6536\u76CA\u7387\u6682\u7F3A" : `${row.levelValue.toFixed(2)}%`;
         const change = row.changeValue === null ? "\u65E5\u53D8\u52A8\u6682\u7F3A" : `${row.changeValue >= 0 ? "+" : ""}${row.changeValue.toFixed(2)} bp`;
-        parts.push(`<text x="54" y="${y}" fill="#715f52" font-family="sans-serif" font-size="14">${escapeSvgText(row.label)}\uFF1A${escapeSvgText(level)} \xB7 ${escapeSvgText(change)} \xB7 \u89C2\u6D4B\u65E5 ${escapeSvgText(row.observationDate)}\uFF0C\u975E\u62A5\u544A\u65E5</text>`);
+        parts.push(`<text x="54" y="${y}" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="14">${escapeSvgText(row.label)}\uFF1A${escapeSvgText(level)} \xB7 ${escapeSvgText(change)} \xB7 \u89C2\u6D4B\u65E5 ${escapeSvgText(row.observationDate)}\uFF0C\u975E\u62A5\u544A\u65E5</text>`);
         y += 27;
       }
       y += 12;
@@ -425,11 +442,11 @@ var marketDailyUtils = (() => {
     const addSection = (title, paragraphs) => {
       if (!paragraphs.length) return;
       y += 15;
-      parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="20" font-weight="700">${escapeSvgText(title)}</text>`);
+      parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="20" font-weight="700">${escapeSvgText(title)}</text>`);
       y += 32;
       for (const paragraph of paragraphs) {
         for (const line of wrapSvgText(paragraph)) {
-          parts.push(`<text x="54" y="${y}" fill="#34271f" font-family="sans-serif" font-size="15">${escapeSvgText(line)}</text>`);
+          parts.push(`<text x="54" y="${y}" fill="${REPORT_INK}" font-family="sans-serif" font-size="15">${escapeSvgText(line)}</text>`);
           y += 23;
         }
         y += 9;
@@ -439,18 +456,22 @@ var marketDailyUtils = (() => {
       addSection(section.title, section.claims.map((claim) => `${claim.text}\uFF08${[...new Set(claim.sourceUrls.map((url) => new URL(url).hostname))].join("\u3001")}\uFF09`));
     }
     addSection("\u7ECF\u6D4E\u6570\u636E", summary.secondaryRows.map((row) => `${row.text} \xB7 \u89C2\u6D4B\u65E5 ${row.observationDate} \xB7 ${row.sourceLabel}`));
-    addSection("\u6570\u636E\u72B6\u6001", [summary.historicalBackfill ? "\u5386\u53F2\u8865\u62A5\uFF1A\u4E8B\u540E\u6574\u7406\uFF0C\u5E76\u975E\u62A5\u544A\u65E5\u5F53\u5929\u53D1\u5E03\u3002" : "\u5F53\u65E5\u516C\u5F00\u590D\u76D8\u3002", ...summary.gaps.map((gap) => `\u5C1A\u7F3A\uFF1A${gap}`)]);
+    addSection("\u6570\u636E\u72B6\u6001", [
+      summary.historicalBackfill ? "\u5386\u53F2\u8865\u62A5\uFF1A\u4E8B\u540E\u6574\u7406\uFF0C\u5E76\u975E\u62A5\u544A\u65E5\u5F53\u5929\u53D1\u5E03\u3002" : "\u5F53\u65E5\u516C\u5F00\u590D\u76D8\u3002",
+      ...summary.gaps.map((gap) => `\u5C1A\u7F3A\uFF1A${gap}`),
+      ...(summary.optionalGaps ?? []).map((gap) => `${US_REPORT_LABELS.optionalUnavailable[0]}${gap}`)
+    ]);
     const urls = [.../* @__PURE__ */ new Set([...summary.rows.map((row) => row.sourceUrl), ...summary.claims.flatMap((claim) => claim.sourceUrls)])];
     const domains = [...new Set(urls.map((url) => new URL(url).hostname))];
     addSection("\u5173\u952E\u6765\u6E90", [...domains.map((domain) => `\xB7 ${domain}`), "\u5B8C\u6574\u6765\u6E90\u94FE\u63A5\u89C1\u7F51\u9875\u62A5\u544A\u3002"]);
     const height = y + 55;
-    parts.push(`<line x1="54" y1="${height - 48}" x2="906" y2="${height - 48}" stroke="#d9c7b6"/>`);
-    parts.push(`<text x="54" y="${height - 22}" fill="#715f52" font-family="sans-serif" font-size="12">\u5E02\u573A\u6709\u98CE\u9669\uFF0C\u6295\u8D44\u9700\u8C28\u614E\u3002</text>`);
+    parts.push(`<line x1="54" y1="${height - 48}" x2="906" y2="${height - 48}" stroke="${REPORT_LINE}"/>`);
+    parts.push(`<text x="54" y="${height - 22}" fill="${REPORT_MUTED}" font-family="sans-serif" font-size="12">\u5E02\u573A\u6709\u98CE\u9669\uFF0C\u6295\u8D44\u9700\u8C28\u614E\u3002</text>`);
     parts.push("</svg>");
     return parts.join("").replaceAll("__HEIGHT__", String(height)).replaceAll('font-family="sans-serif"', `font-family="${font}"`).replaceAll('font-family="monospace"', `font-family="${font}" font-variant-numeric="tabular-nums"`);
   }
   function formatMarketDailyStatus(summary) {
-    return `${summary.date} \u7F8E\u4E1C\u62A5\u544A\u65E5 \xB7 \u9010\u9879\u663E\u793A\u539F\u59CB\u89C2\u6D4B\u65E5\u3002` + (summary.historicalBackfill ? " \u4E8B\u540E\u6574\u7406\u3002" : "") + (summary.nextMorningRevision ? " \u6B21\u65E5\u6838\u5B9E\u66F4\u65B0\u3002" : "") + (summary.gaps.length ? ` \u5C1A\u7F3A\uFF1A${summary.gaps.join("\u3001")}\u3002` : "");
+    return `${summary.date} \u7F8E\u4E1C\u62A5\u544A\u65E5 \xB7 \u9010\u9879\u663E\u793A\u539F\u59CB\u89C2\u6D4B\u65E5\u3002` + (summary.historicalBackfill ? " \u4E8B\u540E\u6574\u7406\u3002" : "") + (summary.nextMorningRevision ? " \u6B21\u65E5\u6838\u5B9E\u66F4\u65B0\u3002" : "") + (summary.gaps.length ? ` \u5C1A\u7F3A\uFF1A${summary.gaps.join("\u3001")}\u3002` : "") + (summary.optionalGaps?.length ? ` ${US_REPORT_LABELS.optionalUnavailable[0]}${summary.optionalGaps.join("\u3001")}\u3002` : "");
   }
   var market_daily_utils_default = { summarizeMarketDaily, formatMarketDailyStatus, buildMarketDailyCharts, buildMarketDailyChartSvg };
   return __toCommonJS(market_daily_utils_exports);

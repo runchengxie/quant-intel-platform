@@ -93,7 +93,9 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
     )
     source_status["cross_asset"] = {
         "quality": "degraded" if missing_contracts else "ok",
-        "reason": "one_or_more_contracts_unavailable"
+        "reason": "optional_futures_unavailable"
+        if set(missing_contracts) == {"BTC=F"}
+        else "one_or_more_contracts_unavailable"
         if missing_contracts
         else "all_contracts_fresh",
         "missing_contracts": missing_contracts,
@@ -134,8 +136,10 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
     missing = [
         name for name in ("quotes", "research") if source_status[name]["quality"] == "degraded"
     ]
-    if missing_contracts:
+    if set(missing_contracts) - {"BTC=F"}:
         missing.append("cross_asset")
+    if not btc_spot_facts:
+        missing.append("btc_spot")
     if any(symbol in CORE_SYMBOLS for symbol in missing_equities):
         missing.append("equities")
     if source_status["rates"]["quality"] == "lagged":
