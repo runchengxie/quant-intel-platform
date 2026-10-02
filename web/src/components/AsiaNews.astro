@@ -1,0 +1,24 @@
+---
+import { ASIA_NEWS_LABELS, type Locale } from '../lib/locale.ts';
+import { loadAsiaNews, newsPresentation } from '../lib/asia-news.ts';
+interface Props { reportId?: string; locale?: Locale; }
+const { reportId, locale = 'en-US' } = Astro.props;
+const news = reportId ? loadAsiaNews(reportId) : null;
+const index = locale === 'en-US' ? 1 : 0;
+---
+<section class="panel asia-news" data-asia-news data-news-status={news?.status ?? 'missing'} aria-label={ASIA_NEWS_LABELS.title[index]}>
+  <h2>{ASIA_NEWS_LABELS.title[index]}</h2>
+  {news && <p class="section-note">{ASIA_NEWS_LABELS.cutoff[index]}: <time datetime={news.cutoff}>{news.cutoff}</time></p>}
+  {(['cn', 'hk'] as const).map(market => <section data-news-market={market}>
+    <h3>{ASIA_NEWS_LABELS[market][index]}</h3>
+    {news?.markets[market].length ? news.markets[market].map(item => {
+      const view = newsPresentation(item, locale);
+      return <article data-evidence-id={item.evidence_id}><p>{view.claim}</p>
+        <p class="section-note"><time datetime={item.published_at}>{view.sourceTime}</time> · {view.timezone} · <a href={view.href} target="_blank" rel="noreferrer">{item.publisher}</a></p>
+        {view.precisionNote && <p class="section-note">{view.precisionNote}</p>}
+        {view.translationNote && <p class="section-note">{view.translationNote}</p>}
+        {view.contextNote && <p class="section-note">{view.contextNote}</p>}
+      </article>;
+    }) : <p class="empty">{ASIA_NEWS_LABELS.missing[index]}</p>}
+  </section>)}
+</section>

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import os
@@ -13,6 +14,11 @@ import time
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+
+from market_intel_publication.asia_news_contract import (
+    build_public_asia_news,
+    validate_public_asia_news,
+)
 
 CHINA_TZ = timezone(timedelta(hours=8))
 PRIVATE_TEXT = re.compile(
@@ -71,6 +77,7 @@ class RefreshRequest:
     kind: str = "evening"
     generation_mode: str = "backfill"
     timeout_seconds: float = 180
+    reviewed_asia_news: Path | None = None
 
 
 def read_object(path: Path, label: str) -> dict:
@@ -214,8 +221,23 @@ def public_markdown(text: str, date: str, kind: str, generation_mode: str) -> st
     )
 
 
-def publish_batch(output_dir: Path, stage: Path, texts: dict[str, str], date: str) -> Path:
+def publish_batch(
+    output_dir: Path,
+    stage: Path,
+    texts: dict[str, str],
+    date: str,
+    *,
+    asia_news: dict | None = None,
+) -> Path:
     validate_output_subdirectories(output_dir)
+    if asia_news is not None:
+        if "evening" not in texts:
+            raise ValueError("Asia news requires an evening report")
+        validate_public_asia_news(
+            asia_news,
+            report_id=f"{date}-evening",
+            report_sha256=hashlib.sha256(texts["evening"].encode()).hexdigest(),
+        )
     public_stage = stage / "public"
     public_stage.mkdir()
     relative = Path("public") / stage.name
@@ -223,7 +245,14 @@ def publish_batch(output_dir: Path, stage: Path, texts: dict[str, str], date: st
     for kind, text in texts.items():
         name = f"{date}-{kind}.md"
         (public_stage / name).write_text(text, encoding="utf-8")
-        entries.append({"path": (relative / name).as_posix(), "date": date, "kind": kind})
+        entry = {"path": (relative / name).as_posix(), "date": date, "kind": kind}
+        if kind == "evening" and asia_news is not None:
+            news_name = f"{date}-evening.news.json"
+            (public_stage / news_name).write_text(
+                json.dumps(asia_news, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            )
+            entry["asia_news_path"] = (relative / news_name).as_posix()
+        entries.append(entry)
     manifest = {
         "schema_version": "market_intel_pages.import.v1",
         "publication": "public",
@@ -287,7 +316,22 @@ def refresh_reports(request: RefreshRequest) -> Path:
     texts = {
         name: public_markdown(renderers[name](run), date, name, generation_mode) for name in kinds
     }
-    return publish_batch(output_dir, stage, texts, date)
+    news = None
+    if request.reviewed_asia_news is not None:
+        if "evening" not in texts:
+            raise ValueError("Asia news requires an evening report")
+        bundle = read_object(request.reviewed_asia_news, "reviewed Asia news bundle")
+        if bundle.get(
+            "schema_version"
+        ) != "market_intel.asia_news_review_bundle.v1" or not isinstance(bundle.get("items"), list):
+            raise ValueError("invalid reviewed Asia news bundle")
+        news = build_public_asia_news(
+            bundle["items"],
+            report_date=date,
+            generated_at=datetime.now(CHINA_TZ).isoformat(),
+            report_sha256=hashlib.sha256(texts["evening"].encode()).hexdigest(),
+        )
+    return publish_batch(output_dir, stage, texts, date, asia_news=news)
 
 
 def main() -> None:
@@ -299,6 +343,11 @@ def main() -> None:
     parser.add_argument("--date", required=True, help="Explicit target data date YYYY-MM-DD")
     parser.add_argument("--kind", choices=("evening", "morning", "both"), default="evening")
     parser.add_argument("--generation-mode", choices=("scheduled", "backfill"), default="backfill")
+    parser.add_argument(
+        "--reviewed-asia-news",
+        type=Path,
+        help="Optional private exact-review bundle; never fetches or approves news",
+    )
     parser.add_argument(
         "--timeout-seconds", type=float, default=180, help="Total owner CLI batch budget"
     )
@@ -314,6 +363,7 @@ def main() -> None:
                 kind=args.kind,
                 generation_mode=args.generation_mode,
                 timeout_seconds=args.timeout_seconds,
+                reviewed_asia_news=args.reviewed_asia_news,
             )
         )
     except (OSError, ValueError) as exc:

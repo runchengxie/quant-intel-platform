@@ -1,6 +1,15 @@
 export const SUPPORTED_LOCALES = ['en-US', 'zh-CN'] as const;
 export type Locale = typeof SUPPORTED_LOCALES[number];
 
+export const ASIA_NEWS_LABELS = {
+  title: ['亚洲市场新闻', 'Asia market news'], cn: ['A 股新闻', 'Mainland China news'], hk: ['港股新闻', 'Hong Kong news'],
+  missing: ['暂无通过逐条审核的公开新闻。', 'No individually reviewed public news is available.'],
+  dateOnly: ['来源仅提供日期，未提供具体发布时间。', 'The source provides a date only, without a publication time.'],
+  translationMissing: ['英文译文缺项，保留来源语言。', 'English translation unavailable; source-language evidence retained.'],
+  holiday: ['休市日发布的背景材料。', 'Background information published on a market holiday.'],
+  cutoff: ['新闻截至', 'News cutoff'],
+} as const;
+
 export const US_REPORT_LABELS = {
   btcSpotGap: ['比特币现货行情', 'Bitcoin spot prices'],
   btcFuturesGap: ['比特币期货行情', 'Bitcoin futures prices'],

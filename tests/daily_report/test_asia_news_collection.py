@@ -7,6 +7,7 @@ import pytest
 
 from daily_messenger.daily_report.asia_news_collection import (
     BoundedDocumentFetcher,
+    CollectionContext,
     collect_asia_candidates,
 )
 from tests.daily_report.test_asia_news_contract import candidate_payload
@@ -19,9 +20,8 @@ def collect(items, fetch=lambda _: b"original disclosure", **kwargs):
         items,
         market="cn",
         retrieved_at=RETRIEVED,
-        collector_identity="collector-a",
         fetch_document=fetch,
-        **kwargs,
+        context=CollectionContext("collector-a", frozenset(kwargs.get("allowed_hosts", set()))),
     )
 
 
@@ -32,6 +32,24 @@ def test_original_bytes_bound_and_duplicate_removed_without_approval():
     assert items[0].published_at == "2026-09-30T14:00:00+08:00"
     assert [row["status"] for row in receipts] == ["needs_review", "duplicate"]
     assert not hasattr(items[0], "approved")
+
+
+def test_existing_adapter_fields_keep_date_only_precision():
+    items, receipts = collect(
+        [
+            {
+                "url": "https://www.sse.com.cn/disclosure/x",
+                "source": "SSE",
+                "published_at": "2026-09-29",
+                "title": "公告",
+                "summary": "收入增长 6%。",
+            }
+        ]
+    )
+    assert len(items) == 1
+    assert items[0].time_precision == "date"
+    assert items[0].published_at == "2026-09-29"
+    assert receipts[0]["status"] == "needs_review"
 
 
 def test_content_revision_changes_identity():

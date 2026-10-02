@@ -17,6 +17,12 @@ DEFAULT_HOSTS = {"www.sse.com.cn", "www.szse.cn", "www.hkexnews.hk", "www.hkex.c
 DOCUMENT_LIMIT = 2 * 1024 * 1024
 
 
+@dataclass(frozen=True)
+class CollectionContext:
+    collector_identity: str
+    allowed_hosts: frozenset[str] = frozenset()
+
+
 def _allowed_url(url: str, hosts: set[str]) -> str:
     secure_source_url(url)
     if urlsplit(url).hostname not in hosts:
@@ -64,21 +70,30 @@ def _collect_one(
     *,
     market: str,
     retrieved_at: datetime,
-    collector_identity: str,
     fetch_document: Callable[[str], bytes],
-    hosts: set[str],
+    context: CollectionContext,
 ) -> AsiaNewsCandidate:
-    url = item.get("source_url")
+    url = item.get("source_url", item.get("url"))
     if not isinstance(url, str):
         raise ValueError("source URL missing")
-    _allowed_url(url, hosts)
+    _allowed_url(url, DEFAULT_HOSTS | set(context.allowed_hosts))
     # Validate metadata before requesting a document. Model approval fields are ignored.
     payload = {
         **item,
+        "source_url": url,
+        "publisher": item.get("publisher", item.get("source")),
+        "language": item.get("language", "zh-CN"),
+        "time_precision": item.get(
+            "time_precision",
+            "date"
+            if isinstance(item.get("published_at"), str) and len(str(item["published_at"])) == 10
+            else "timestamp",
+        ),
+        "document_status": item.get("document_status", "active"),
         "schema_version": "market_intel.asia_news_candidate.v1",
         "market": market,
         "retrieved_at": retrieved_at.isoformat(),
-        "collector_identity": collector_identity,
+        "collector_identity": context.collector_identity,
         "source_sha256": "0" * 64,
     }
     validate_asia_candidate(payload)
@@ -94,16 +109,14 @@ def collect_asia_candidates(
     *,
     market: str,
     retrieved_at: datetime,
-    collector_identity: str,
     fetch_document: Callable[[str], bytes],
-    allowed_hosts: set[str] | None = None,
+    context: CollectionContext,
 ) -> tuple[list[AsiaNewsCandidate], list[dict[str, str]]]:
     """Adapt explicitly dated existing results; caller retains fetched bytes externally.
 
     A custom callback must bound its own I/O like BoundedDocumentFetcher. This
     function only validates returned bytes; it cannot interrupt arbitrary callbacks.
     """
-    hosts = DEFAULT_HOSTS | (allowed_hosts or set())
     candidates: list[AsiaNewsCandidate] = []
     receipts: list[dict[str, str]] = []
     seen: set[str] = set()
@@ -113,9 +126,8 @@ def collect_asia_candidates(
                 item,
                 market=market,
                 retrieved_at=retrieved_at,
-                collector_identity=collector_identity,
                 fetch_document=fetch_document,
-                hosts=hosts,
+                context=context,
             )
         except (ValueError, TypeError, KeyError, OSError, requests.RequestException):
             receipts.append(

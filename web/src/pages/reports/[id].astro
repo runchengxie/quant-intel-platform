@@ -1,5 +1,6 @@
 ---
 import '../../styles/site.css';
+import AsiaNews from '../../components/AsiaNews.astro';
 import '../../styles/editorial.css';
 import '../../styles/research-language.css';
 import ChartCards from '../../components/ChartCards.astro';
@@ -35,6 +36,7 @@ const chartSources = [...new Map((charts || []).flatMap((chart) => (chart.points
         <div class="market-chart-graphic market-report-graphic" id="asia-daily-chart" set:html={visualReport} />
         <details class="secondary-report"><summary>阅读完整报告与来源</summary><article class="report-body markdown-body" set:html={body} /><ChartCards reportId={report.id} />{chartSources.length > 0 && <><h3>图表来源</h3><ul>{chartSources.map(([href, label]) => <li><a href={href} target="_blank" rel="noreferrer">{label} · {href}</a></li>)}</ul></>}</details>
       </section> : <><ChartCards reportId={report.id} /><article class="panel report-body markdown-body" set:html={body} /></>}
+      {report.kind === 'evening' && <AsiaNews reportId={report.id} locale="zh-CN" />}
     </main>
     <footer class="footer"><span>QUANT MARKET INTEL</span><span>市场信息仅供研究参考</span></footer>
     <script>
