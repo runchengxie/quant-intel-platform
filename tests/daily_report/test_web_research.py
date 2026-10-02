@@ -8,6 +8,21 @@ MARKET_DATE = date(2026, 9, 18)
 CUTOFF = datetime(2026, 9, 19, 1, tzinfo=UTC)
 
 
+@pytest.mark.parametrize("section", [None, "drivers"])
+def test_research_request_carries_date_aware_natural_chinese_guidance(section):
+    from daily_messenger.daily_report.web_research import _prompt, _section_prompt
+
+    prompt = (
+        _prompt(MARKET_DATE, CUTOFF)
+        if section is None
+        else _section_prompt(MARKET_DATE, CUTOFF, section)
+    )
+    for requirement in ("发布日期", "仍然适用", "信息截止时间", "中英混杂", "否定前半句", "分号"):
+        assert requirement in prompt
+    assert MARKET_DATE.isoformat() in prompt
+    assert CUTOFF.isoformat() in prompt
+
+
 def candidate(**overrides):
     row = {
         "section": "market",

@@ -31,6 +31,17 @@ MODEL = "gpt-6-sol"
 REASONING_EFFORT = "medium"
 CODEX_TIMEOUT_SECONDS = 480
 SECTION_TIMEOUT_SECONDS = 180
+_WRITING_GUIDANCE = (
+    "检索论文、文献或资讯时，核对来源发布日期、事件日期和适用条件。"
+    "以报告信息截止时间为准，讨论材料是否仍然适用，只用截止时间之前的证据，无法确认就说明。"
+    "日期仍按既有字段记录，正文仅在理解时效所需时说明，保留盘前、盘中和收盘的区别。"
+    "中文写得自然、通顺、易懂，像母语者写说明，少用深奥措辞、翻译腔、中英混杂、网文腔和套话。"
+    "能直接表达就直接表达，删去没有信息增量的否定前半句，少用不是某事而是另一事的句式。"
+    "非必要不加小结或总结式点评，避免总体来说等开头。使用中文标点，非必要不用双引号、"
+    "加粗、分号和破折号，保留必要的行内代码、专有名称和原始来源信息。"
+    "写完后检查措辞、标点和时效说明，删去重复的免责式表达，保留有依据的事实和必要限制。"
+    "这些要求只适用于面向读者的文字，JSON字段、标识符、数字和来源原文保持原样。"
+)
 _SECRET_ASSIGNMENT = re.compile(
     r"(?i)\b(token|api[_-]?key|password|secret|authorization)\s*[:=]\s*\S+"
 )
@@ -197,7 +208,7 @@ def _prompt(market_date: date, cutoff: datetime) -> str:
         "Do not infer a market date from the publication date. Do not invent timestamps, numbers, "
         "URLs, ratings, or causes. Attribute interpretations to their source. If provenance is "
         "unclear, omit the candidate. An empty array is valid. "
-        "Do not give investment advice or copy whole article paragraphs."
+        "Do not give investment advice or copy whole article paragraphs. " + _WRITING_GUIDANCE
     )
 
 
@@ -234,7 +245,8 @@ def _section_prompt(market_date: date, cutoff: datetime, section: str) -> str:
         "of at most 160 characters. Never invent numbers, dates, causes or URLs. "
         "Separate facts from attributed interpretation. Set phase to close, intraday or event; "
         "close requires publication after 16:00 America/New_York on the observation date. "
-        "Do not infer observation date from publication date or give investment advice."
+        "Do not infer observation date from publication date or give investment advice. "
+        + _WRITING_GUIDANCE
     )
 
 
