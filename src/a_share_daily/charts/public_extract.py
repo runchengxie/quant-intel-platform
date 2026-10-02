@@ -8,6 +8,7 @@ from typing import cast
 
 import pandas as pd
 
+from .margin_history import margin_source_label
 from .sentiment import _sentiment_stats
 from .topic import format_topic_label
 from .us_overnight import LABELS, SYMBOLS
@@ -183,7 +184,13 @@ def _dashboard(inputs: Mapping[str, object], source: Mapping[str, str]) -> list[
     }
     for row in _frame(inputs["margin"], "margin").to_dict("records"):
         observed = _iso(row["date"])
-        rows.append(_point(f"融资余额 {observed}", row["rzye"], "亿", observed, margin_source))
+        scoped_source = {
+            **margin_source,
+            "source_label": margin_source_label(
+                margin_source["source_label"], row.get("exchange_scope")
+            ),
+        }
+        rows.append(_point(f"融资余额 {observed}", row["rzye"], "亿", observed, scoped_source))
     return rows
 
 
@@ -232,6 +239,15 @@ def _weekly(
     _, _, dates = _weekly_period(by_date, target.replace("-", ""))
     if len(dates) < 2:
         return []
+    expected = inputs.get("weekly_expected_dates", dates)
+    if not isinstance(expected, list):
+        raise ValueError("weekly_expected_dates must be a list")
+    missing = sorted({_iso(day) for day in expected} - {_iso(day) for day in dates})
+    if missing:
+        source = {
+            **source,
+            "source_label": f"{source['source_label']}（缺少开市日 {', '.join(missing)}）",
+        }
     stats = _daily_stats(by_date, dates)
     rows = []
     for _, row in stats.iterrows():

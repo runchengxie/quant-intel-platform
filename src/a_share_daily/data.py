@@ -6,7 +6,7 @@ Supports both partitioned (trade_date=YYYYMMDD/) and flat parquet layouts.
 
 from __future__ import annotations
 
-from datetime import date, timedelta
+from datetime import date
 from pathlib import Path
 
 import pandas as pd
@@ -294,12 +294,29 @@ def intraday_structure(daily: pd.DataFrame) -> dict:
 
 
 def get_week_dates(trade_date: str) -> list[str]:
-    """Return the five preceding weekdays ending at ``trade_date``."""
-    ref = date(int(trade_date[:4]), int(trade_date[4:6]), int(trade_date[6:]))
-    candidates = [
-        ref - timedelta(days=i) for i in range(7) if (ref - timedelta(days=i)).weekday() < 5
-    ]
-    return [item.strftime("%Y%m%d") for item in reversed(candidates[:5])]
+    """Return expected sessions, never substitute weekdays or available partitions."""
+    date(int(trade_date[:4]), int(trade_date[4:6]), int(trade_date[6:]))
+    calendar = _data_root() / "trade_cal" / "a_share_trade_cal_latest.parquet"
+    frame = pd.read_parquet(calendar)
+    if not {"exchange", "cal_date", "is_open"} <= set(frame.columns):
+        raise ValueError("trading calendar requires exchange, cal_date and is_open")
+    frame = frame.loc[frame["exchange"] == "SSE"]
+    dates = frame["cal_date"].astype(str)
+    if dates.duplicated().any() or not dates.str.fullmatch(r"\d{8}").all():
+        raise ValueError("invalid or duplicate trading calendar dates")
+    pd.to_datetime(dates, format="%Y%m%d", errors="raise")
+    if trade_date not in set(dates):
+        raise ValueError("trading calendar does not cover report date")
+    flags = pd.to_numeric(frame["is_open"], errors="raise")
+    if not flags.isin([0, 1]).all():
+        raise ValueError("invalid trading calendar open flags")
+    selected = sorted(set(dates.loc[(flags == 1) & (dates <= trade_date)]))[-5:]
+    if len(selected) != 5:
+        raise ValueError("trading calendar has fewer than five expected sessions")
+    required = set(pd.date_range(selected[0], trade_date).strftime("%Y%m%d"))
+    if not required <= set(dates):
+        raise ValueError("trading calendar has missing calendar days")
+    return selected
 
 
 def cjk_font_available() -> bool:

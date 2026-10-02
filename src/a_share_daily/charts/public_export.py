@@ -58,6 +58,22 @@ def _dashboard_margin_stale(points: list[object], target: date_type) -> bool:
     return not margin_dates or max(margin_dates) < previous
 
 
+def _dashboard_margin_partial(points: list[object]) -> bool:
+    return any(
+        isinstance(item, Mapping)
+        and str(item.get("label", "")).startswith("融资余额 ")
+        and "部分交易所" in str(item.get("source_label", ""))
+        for item in points
+    )
+
+
+def _weekly_session_missing(points: list[object]) -> bool:
+    return any(
+        isinstance(item, Mapping) and "缺少开市日" in str(item.get("source_label", ""))
+        for item in points
+    )
+
+
 def _chart_card(
     key: str,
     *,
@@ -95,6 +111,10 @@ def _chart_card(
         status, reason, points = "missing", "观测日晚于报告日", []
     elif key == "us_overnight" and len(points) < len(SYMBOLS):
         status, reason = "degraded", "部分美股行情缺少可核实收盘日或来源"
+    elif key == "dashboard" and _dashboard_margin_partial(points):
+        status, reason = "degraded", "融资余额仅覆盖部分交易所，保留一致范围和实际观测日"
+    elif key == "weekly_chart" and _weekly_session_missing(points):
+        status, reason = "degraded", "近期交易日数据缺项，来源中保留缺失开市日"
     elif key == "dashboard" and _dashboard_margin_stale(points, target):
         status, reason = "degraded", "融资余额最新观测日早于上一交易日，保留原始观测日"
     elif key in degraded or (

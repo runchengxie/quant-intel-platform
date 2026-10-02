@@ -193,8 +193,10 @@ def _draw_margin_panel(ax, margin_df: pd.DataFrame) -> None:
     ax.set_xticks(mx)
     ax.set_xticklabels(mlabels, fontsize=9, color=FG)
     ax.set_ylabel("融资余额（亿）", fontproperties=cjk, fontsize=9, color=MUTED)
+    scopes = margin_df["exchange_scope"].unique() if "exchange_scope" in margin_df else []
+    scope = str(scopes[0]) if len(scopes) == 1 else "覆盖范围未核实"
     ax.set_title(
-        "融资余额趋势",
+        f"融资余额趋势（{scope}）",
         loc="left",
         fontproperties=cjk_heavy,
         fontsize=11.5,
