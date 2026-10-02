@@ -89,7 +89,7 @@
 
 已完成（PR #50，2026-07-31）：
 - 对 `scripts/**` 恢复 C90（复杂度）门禁，防止脚本无声膨胀。
-- 现有 scripts 仅 2 个文件的函数复杂度略超 15（`check_daily_watch20_producer_freshness.py` 的 `check` 为 16、`send_hotsector_client_preview.py` 的 `main` 为 17），已加精准 per-file 豁免，待拆函数后移除。
+- `check_daily_watch20_producer_freshness.py` 的 `check` 复杂度为 16，仍有精准 per-file 豁免待后续重构。此前列出的 `send_hotsector_client_preview.py::main` 复杂度债务随 2026-10 兼容入口退役一并移除。
 - `project_tools/**` 维持原豁免（门禁脚本已有测试覆盖）。
 - 顺带修复 `tests/test_value_regime_weekly.py` 中未使用的 `import pytest`，使 ruff 全量通过。
 
