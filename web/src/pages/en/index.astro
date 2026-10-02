@@ -2,13 +2,16 @@
 import '../../styles/site.css';
 import '../../styles/editorial.css';
 import '../../styles/research-language.css';
-import { loadReports, loadSummaries, loadMarketDaily, loadLatestInsight, loadChart, loadMarkdown, VISUAL_REPORT_START_DATE } from '../../lib/reports.ts';
+import { loadReports, loadSummaries, loadMarketDaily, loadMarketDailyHistory, loadLatestInsight, loadChart, loadMarkdown, VISUAL_REPORT_START_DATE } from '../../lib/reports.ts';
 import { formatEvidenceLine } from '../../lib/evidence.ts';
 import { buildEveningNotes } from '../../lib/evening-notes.ts';
 import marketDailyUtils from '../../lib/market-daily-utils.ts';
 import { buildAsiaReportSvg } from '../../lib/asia-report-image.ts';
-import { localePath } from '../../lib/locale.ts';
+import { localePath, US_REPORT_LABELS } from '../../lib/locale.ts';
 import { toEnglishPresentation } from '../../lib/english-content.ts';
+import { publicReportIdentity } from '../../lib/report-image-identity.ts';
+
+const labels = Object.fromEntries(Object.entries(US_REPORT_LABELS).map(([key, pair]) => [key, pair[1]]));
 
 const reports = loadReports();
 const summaries = loadSummaries(reports).sort((a, b) => b.date.localeCompare(a.date));
@@ -19,12 +22,24 @@ const latestEvening = reports.filter((row) => row.kind === 'evening').sort((a, b
 const latestEveningDate = latestEvening?.date;
 const eveningHistory = reports.filter((row) => row.kind === 'evening' && row.date >= VISUAL_REPORT_START_DATE && row.id !== latestEvening?.id);
 const latestEveningMarkdown = latestEvening ? loadMarkdown(latestEvening) : null;
+const latestEveningContentHash = latestEvening ? publicReportIdentity(latestEvening) : null;
 const asiaReportSvg = latestEvening && latestEveningMarkdown ? toEnglishPresentation(buildAsiaReportSvg(latestEvening, loadChart(latestEvening.id), latestEveningMarkdown, toEnglishPresentation, 'en-US')) : null;
 const market = loadMarketDaily();
 const marketChartSummary = market?.publication === 'public' ? marketDailyUtils.summarizeMarketDaily(market) : null;
-const marketChartSvg = marketChartSummary ? toEnglishPresentation(marketDailyUtils.buildMarketDailyChartSvg(marketChartSummary)) : null;
+const marketChartSvg = marketChartSummary ? marketDailyUtils.buildMarketDailyChartSvg(marketChartSummary, toEnglishPresentation, 'en-US') : null;
+const marketHistory = loadMarketDailyHistory()
+  .filter((row) => row.date >= VISUAL_REPORT_START_DATE && row.date !== market?.date)
+  .map((row) => {
+    const summary = marketDailyUtils.summarizeMarketDaily(row);
+    return { ...row, chartSvg: summary ? marketDailyUtils.buildMarketDailyChartSvg(summary, toEnglishPresentation, 'en-US') : null };
+  });
+const marketGeneratedLabel = market?.as_of && !Number.isNaN(Date.parse(String(market.as_of)))
+  ? new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(String(market.as_of))) : null;
 const sourceRows = marketChartSummary?.rows || [];
-const sourceLinks = [...new Map(sourceRows.map((row) => [row.sourceUrl, { href: row.sourceUrl, label: toEnglishPresentation(row.sourceLabel), context: toEnglishPresentation(row.label) }])).values()];
+const sourceLinks = [...new Map([
+  ...sourceRows.map((row) => [row.sourceUrl, { href: row.sourceUrl, label: toEnglishPresentation(row.sourceLabel), context: toEnglishPresentation(row.label) }]),
+  ...(marketChartSummary?.claims || []).flatMap((claim) => claim.sourceUrls.map((href) => [href, { href, label: new URL(href).hostname, context: labels.researchContext }])),
+].filter(([href]) => /^https:\/\//.test(href))).values()];
 const insight = loadLatestInsight();
 const evidenceById = new Map((insight?.evidence || []).map((row) => [row.id, row]));
 const citedEvidence = (ids) => (ids || []).map((id) => evidenceById.get(id)).filter(Boolean);
@@ -47,13 +62,22 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
     </header>
     <main class="shell"><div class="content">
       <section class="hero" id="reports"><div class="hero-copy"><span class="eyebrow">Public daily market intelligence</span><h1>Quant Market Intel</h1><p>Structured U.S. and Asian market reports with source dates, evidence links, and explicit data-quality boundaries.</p></div><nav class="session-nav" aria-label="Latest publications"><a href="#us-session"><span>Latest U.S. daily report</span><strong>{market?.date || 'Pending'}</strong><small>07:00 · Beijing time</small></a><a href="#asia-session"><span>Latest Asia evening report</span><strong>{latestEveningDate || 'Pending'}</strong><small>19:00 · Beijing time</small></a></nav></section>
-      <section class="panel" id="us-session" aria-labelledby="market-title"><div class="section-heading"><span class="eyebrow">Latest U.S. daily report · {market?.date || 'Pending'}</span><h2 id="market-title">07:00 U.S. market close review</h2></div>{market?.markdown ? <><p class="section-note">The report date is {market.date}. The image and facts below use only verified market data and preserve source dates.</p>{marketChartSvg ? <div class="market-brief"><div class="market-chart-graphic market-report-graphic" id="market-daily-chart" set:html={marketChartSvg} /><details class="secondary-report market-sources"><summary>Check source links ({sourceLinks.length})</summary><ul>{sourceLinks.map((source) => <li>{source.context} · <a href={source.href} target="_blank" rel="noreferrer">{source.label}</a></li>)}</ul></details></div> : <p class="empty">No verified U.S. chart is currently available.</p>}<div class="link-row report-actions"><a href={`${base}/reports/${market.date}-market-daily.md`}>Source Markdown</a>{market.hasCitationFreeMarkdown && <a href={`${base}/reports/${market.date}-market-daily-no-citations.md`}>Reading copy</a>}<a href={`${base}/reports/${market.date}-market-daily.txt`}>Plain text</a></div></> : <p class="empty">No public U.S. daily report is currently available.</p>}</section>
-      <section id="asia-session" class="session-group" aria-labelledby="asia-session-title"><section class="panel"><div class="section-heading"><span class="eyebrow">Latest Asia evening report · {latestEveningDate || 'Pending'}</span><h2 id="asia-session-title">19:00 Asia market close review</h2></div>{latestEvening ? <><p class="section-note">The report date is {latestEvening.date}. The source-language report remains available for full evidence review.</p>{asiaReportSvg ? <div class="market-chart-graphic market-report-graphic" id="asia-daily-chart" set:html={asiaReportSvg} /> : <p>{toEnglishPresentation(String(latestEvening.summary || ''))}</p>}<div class="link-row report-actions"><a href={`${base}/en/reports/${latestEvening.id}/`}>Read full report</a><a href={`${base}/${latestEvening.source_url}`}>Source Markdown</a></div></> : <p class="empty">No public Asia evening report is currently available.</p>}</section>
+      <section class="panel" id="us-session" aria-labelledby="market-title"><div class="section-heading"><span class="eyebrow">Latest U.S. daily report · {market?.date || 'Pending'}</span><h2 id="market-title">07:00 U.S. market close review</h2></div>
+        {market?.markdown ? <>
+          <p class="section-note">The report date is {market.date}. {marketGeneratedLabel && <>{labels.generated}: {marketGeneratedLabel} (America/New_York). </>}The image and facts below use only verified market data and preserve source dates.</p>
+          <div class="link-row report-actions"><a href={`${base}/reports/${market.date}-market-daily.md`}>Source Markdown</a>{market.hasCitationFreeMarkdown && <a href={`${base}/reports/${market.date}-market-daily-no-citations.md`}>Reading copy</a>}<a href={`${base}/reports/${market.date}-market-daily.txt`}>Plain text</a>{marketChartSvg && <button type="button" id="download-market-chart" data-report-image data-report-date={market.date} data-report-kind="market-daily" data-report-content-hash={market.content_hash} data-chart-target="#market-daily-chart svg" data-status-target="#market-chart-download-status">{labels.downloadPng}</button>}</div>
+          <p id="market-chart-download-status" class="section-note" role="status" aria-live="polite"></p>
+          {marketChartSvg ? <div class="market-brief"><div class="market-chart-graphic market-report-graphic" id="market-daily-chart" set:html={marketChartSvg} /><details class="secondary-report market-sources"><summary>Check source links ({sourceLinks.length})</summary><ul>{sourceLinks.map((source) => <li>{source.context} · <a href={source.href} target="_blank" rel="noreferrer">{source.label}</a></li>)}</ul></details></div> : <p class="empty">No verified U.S. chart is currently available.</p>}
+          {marketHistory.length > 0 && <div class="market-history"><h3>{labels.recentReports}</h3>{marketHistory.map((row) => <details class="secondary-report"><summary>{row.date}</summary><div class="link-row report-actions"><a href={`${base}/reports/${row.date}-market-daily.md`}>Source Markdown</a>{row.chartSvg && <button type="button" data-report-image data-report-date={row.date} data-report-kind="market-daily" data-report-content-hash={row.content_hash} data-chart-target={`#market-history-chart-${row.date} svg`} data-status-target={`#market-history-status-${row.date}`}>{labels.downloadPng}</button>}</div><p id={`market-history-status-${row.date}`} class="section-note" role="status" aria-live="polite"></p>{row.chartSvg && <div class="market-chart-graphic market-report-graphic" id={`market-history-chart-${row.date}`} set:html={row.chartSvg} />}</details>)}</div>}
+        </> : <p class="empty">No public U.S. daily report is currently available.</p>}
+      </section>
+      <section id="asia-session" class="session-group" aria-labelledby="asia-session-title"><section class="panel"><div class="section-heading"><span class="eyebrow">Latest Asia evening report · {latestEveningDate || 'Pending'}</span><h2 id="asia-session-title">19:00 Asia market close review</h2></div>{latestEvening ? <><p class="section-note">The report date is {latestEvening.date}. The source-language report remains available for full evidence review.</p><div class="link-row report-actions"><a href={`${base}/en/reports/${latestEvening.id}/`}>Read full report</a><a href={`${base}/${latestEvening.source_url}`}>Source Markdown</a>{asiaReportSvg && <button type="button" id="download-asia-report" data-report-image data-report-date={latestEvening.date} data-report-kind="asia-daily" data-report-content-hash={latestEveningContentHash} data-chart-target="#asia-daily-chart svg" data-status-target="#asia-chart-download-status">{labels.downloadPng}</button>}</div><p id="asia-chart-download-status" class="section-note" role="status" aria-live="polite"></p>{asiaReportSvg ? <div class="market-chart-graphic market-report-graphic" id="asia-daily-chart" set:html={asiaReportSvg} /> : <p>{toEnglishPresentation(String(latestEvening.summary || ''))}</p>}</> : <p class="empty">No public Asia evening report is currently available.</p>}</section>
       <section class="panel" aria-labelledby="insight-title"><div class="section-heading"><h2 id="insight-title">Market interpretation and validation</h2></div>{insight?.analysis?.overview?.text ? <><p class="section-note">{insight.date} · data through {timestampLabel(insight.as_of)} · generated {timestampLabel(insight.generated_at)} Beijing time.</p><p>{toEnglishPresentation(String(insight.analysis.overview.text))}</p><details><summary>View supporting evidence</summary><ul>{citedEvidence(insight.analysis.overview.evidence_ids).map((item) => <li><a href={`${base}/en/reports/${item.report_id}/`}>{toEnglishPresentation(String(item.section))}</a>: {toEnglishPresentation(formatEvidenceLine(item.section, item.text))}</li>)}</ul></details></> : <p class="empty">No validated market interpretation is currently available.</p>}</section></section>
       <section class="panel" aria-labelledby="summary-title"><div class="section-heading"><h2 id="summary-title">Recent evening notes</h2></div>{displayNotes.length ? <div class="notes-list">{displayNotes.map((row) => <article><time>{row.date}</time>{row.source === 'evening' && <a href={`${base}/en/reports/${row.reportId}/`}>Evening facts · evidence</a>}<p>{toEnglishPresentation(String(row.text || ''))}</p></article>)}</div> : <p class="empty">No notes are currently available.</p>}</section>
       {eveningHistory.length > 0 && <section class="reports-section" aria-labelledby="reports-title"><div class="section-heading"><h2 id="reports-title">Historical Asia close reviews</h2></div><div class="report-list">{eveningHistory.map((report) => <article class="report-tile"><div class="report-meta"><time>{report.date}</time><span>Asia evening report</span></div><h3><a href={`${base}/en/reports/${report.id}/`}>{toEnglishPresentation(String(report.title || ''))}</a></h3><p>{toEnglishPresentation(String(report.summary || ''))}</p><div class="link-row"><a href={`${base}/en/reports/${report.id}/`}>Read visual review</a></div></article>)}</div></section>}
     </div></main>
     <footer class="footer"><span>QUANT MARKET INTEL</span><span>For research reference only</span></footer>
+    <script type="application/json" id="report-download-labels" set:html={JSON.stringify({ generating: labels.pngGenerating, done: labels.pngDone, failed: labels.pngFailed })} />
     <script>
       const themeToggle = document.querySelector('#theme-toggle');
       const themeKey = 'market-intel-theme';
@@ -76,6 +100,25 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
         try { localStorage.setItem(themeKey, next); } catch {}
         applyTheme(next);
       });
+    </script>
+    <script>
+      const downloadLabels = JSON.parse(document.querySelector('#report-download-labels').textContent);
+      document.querySelectorAll('[data-report-image]').forEach((button) => button.addEventListener('click', async () => {
+        const chart = document.querySelector(button.dataset.chartTarget);
+        const status = document.querySelector(button.dataset.statusTarget);
+        if (!chart || !status) return;
+        button.disabled = true;
+        status.textContent = downloadLabels.generating;
+        try {
+          const { downloadMarketChartPng } = await import('../../lib/market-chart-download.ts');
+          await downloadMarketChartPng(chart, button.dataset.reportDate, button.dataset.reportKind);
+          status.textContent = downloadLabels.done;
+        } catch {
+          status.textContent = downloadLabels.failed;
+        } finally {
+          button.disabled = false;
+        }
+      }));
     </script>
   </body>
 </html>

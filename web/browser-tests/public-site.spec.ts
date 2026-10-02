@@ -185,6 +185,20 @@ test('Chinese PNG background matches the displayed Asia report', async ({ page }
   expect(pixel).toEqual(expected);
 });
 
+test('English homepage downloads both current report images', async ({ page }) => {
+  await page.goto(`${base}/en/`);
+  for (const [id, kind] of [['download-market-chart', 'market-daily'], ['download-asia-report', 'asia-daily']]) {
+    const button = page.locator(`#${id}`);
+    await expect(button).toBeVisible();
+    const pending = page.waitForEvent('download');
+    await button.click();
+    const download = await pending;
+    expect(download.suggestedFilename()).toMatch(new RegExp(`-${kind}-report\\.png$`));
+    const bytes = await readFile(await download.path());
+    expect(bytes.subarray(0, 8)).toEqual(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]));
+  }
+});
+
 test('historical evening report loads with a visible graphic and resolved colors', async ({ page }) => {
   await page.goto(`${base}/reports/2026-09-28-evening/`);
   await expect(page.locator('.report-heading h1')).toBeVisible();

@@ -4,6 +4,13 @@ const { toEnglishPresentation: present } = require('../src/lib/english-content.t
 const { toOption } = require('../src/lib/chart-data.ts');
 const { buildAsiaReportSvg } = require('../src/lib/asia-report-image.ts');
 
+test('currency presentation never assigns CNY to dollar or unspecified amounts', () => {
+  assert.equal(present('186.8亿美元'), '186.8 USD 100m');
+  assert.equal(present('177.5亿至184亿美元'), '177.5 100m to 184 USD 100m');
+  assert.equal(present('12.41亿元'), '12.41 CNY 100m');
+  assert.equal(present('1.45万亿'), '1.45 trillion');
+});
+
 test('English presentation does not split company names into translated characters', () => {
   assert.equal(present('我爱我家 000560'), '我爱我家 000560');
   assert.equal(present('工商银行 601398'), '工商银行 601398');

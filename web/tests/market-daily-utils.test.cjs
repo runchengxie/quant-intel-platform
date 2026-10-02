@@ -3,6 +3,39 @@ const assert = require("node:assert/strict");
 const { summarizeMarketDaily, formatMarketDailyStatus, buildMarketDailyCharts, buildMarketDailyChartSvg } = require("../src/lib/market-daily-utils.ts");
 const { toEnglishPresentation } = require("../src/lib/english-content.ts");
 
+test("reviewed company news is translated as a complete paragraph before SVG wrapping", () => {
+  const payload = { schema_version: '1.0', run_id: 'daily-2026-10-01',
+    facts: [{ id: 'macro.cpi_yoy', value: 3.4, unit: 'percent', quality: 'ok', observation_date: '2026-08-01', source_url: 'https://fred.stlouisfed.org/series/CPIAUCSL' }],
+    events: [{ id: 'reviewed.1' }], sections: [{ key: 'company_news', claims: ['reviewed.1'] }],
+    claims: [{ claim: '埃森哲10月1日提交的财报披露，季度收入为186.8亿美元，同比增长6%；下一季度收入指引为177.5亿至184亿美元。公司预计2027财年以当地货币计的收入增长为3%至6%。这些是公司披露和指引，不构成对股价表现的判断。', evidence_ids: ['reviewed.1'], sources: ['https://www.sec.gov/Archives/edgar/data/1467373/announcement.htm'] }],
+  };
+  const summary = summarizeMarketDaily(payload);
+  const svg = buildMarketDailyChartSvg(summary, toEnglishPresentation, 'en-US');
+  const text = [...svg.matchAll(/<text\b[^>]*>(.*?)<\/text>/g)].map((match) => match[1]).join(' ');
+  assert.match(text, /Accenture/);
+  assert.match(text, /USD 18\.68 billion/);
+  assert.match(text, /USD 17\.75/);
+  assert.match(text, /18\.4 billion/);
+  assert.doesNotMatch(text, /埃森哲|亿美元|CNY/);
+  assert.match(text, /fiscal 2027/);
+  assert.match(text, /3% to 6%/);
+});
+
+test('unknown or extended research claims retain their complete source language', () => {
+  const known = '埃森哲10月1日提交的财报披露，季度收入为186.8亿美元，同比增长6%；下一季度收入指引为177.5亿至184亿美元。公司预计2027财年以当地货币计的收入增长为3%至6%。这些是公司披露和指引，不构成对股价表现的判断。';
+  for (const claim of ['新公司收入为12.41亿元。', `${known}公司补充信息仍待确认。`]) {
+    const summary = summarizeMarketDaily({ schema_version: '1.0', run_id: 'daily-2026-10-01',
+      facts: [{ id: 'macro.cpi_yoy', value: 3.4, unit: 'percent', quality: 'ok', observation_date: '2026-08-01', source_url: 'https://fred.stlouisfed.org/series/CPIAUCSL' }],
+      events: [{ id: 'reviewed.1' }], sections: [{ key: 'company_news', claims: ['reviewed.1'] }],
+      claims: [{ claim, evidence_ids: ['reviewed.1'], sources: ['https://www.sec.gov/Archives/edgar/data/1467373/announcement.htm'] }],
+    });
+    const svg = buildMarketDailyChartSvg(summary, toEnglishPresentation, 'en-US');
+    const text = [...svg.matchAll(/<text\b[^>]*>(.*?)<\/text>/g)].map((match) => match[1]).join('');
+    assert.ok(text.includes(claim), 'Unmatched claims must not be partially translated, even at wrapped line boundaries');
+    assert.doesNotMatch(text, /Accenture|CNY/);
+  }
+});
+
 test("asset-specific gap labels remain readable in the English report", () => {
   assert.equal(toEnglishPresentation("尚缺：比特币期货行情"), "Missing: Bitcoin futures prices");
   assert.equal(toEnglishPresentation("尚缺：部分跨资产行情"), "Missing: some cross-asset prices");
