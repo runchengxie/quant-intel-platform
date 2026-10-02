@@ -4,13 +4,13 @@
   "report_id": "2026-09-30-evening",
   "date": "2026-09-30",
   "kind": "evening",
-  "generated_at": "2026-09-30T19:27:42.776518+08:00",
+  "generated_at": "2026-10-02T23:10:40.017356+00:00",
   "charts": [
     {
       "key": "dashboard",
       "title": "综合仪表盘",
       "status": "degraded",
-      "reason": "融资余额最新观测日早于上一交易日，保留原始观测日",
+      "reason": "融资余额仅覆盖部分交易所，保留一致范围和实际观测日。",
       "points": [
         {
           "label": "上涨家数",
@@ -101,35 +101,27 @@
           "source_url": "https://tushare.pro/document/1?doc_id=27"
         },
         {
-          "label": "融资余额 2026-09-07",
-          "value": 13478.85032867,
-          "unit": "亿",
-          "observation_date": "2026-09-07",
-          "source_label": "Tushare 融资融券交易汇总",
-          "source_url": "https://tushare.pro/document/2?doc_id=58"
-        },
-        {
           "label": "融资余额 2026-09-08",
-          "value": 13483.62147444,
+          "value": 13399.45793683,
           "unit": "亿",
           "observation_date": "2026-09-08",
-          "source_label": "Tushare 融资融券交易汇总",
+          "source_label": "Tushare 融资融券交易汇总（部分交易所，覆盖 SSE）",
           "source_url": "https://tushare.pro/document/2?doc_id=58"
         },
         {
           "label": "融资余额 2026-09-09",
-          "value": 13462.41123301,
+          "value": 13378.63158663,
           "unit": "亿",
           "observation_date": "2026-09-09",
-          "source_label": "Tushare 融资融券交易汇总",
+          "source_label": "Tushare 融资融券交易汇总（部分交易所，覆盖 SSE）",
           "source_url": "https://tushare.pro/document/2?doc_id=58"
         },
         {
           "label": "融资余额 2026-09-14",
-          "value": 13366.90755322,
+          "value": 13283.71718422,
           "unit": "亿",
           "observation_date": "2026-09-14",
-          "source_label": "Tushare 融资融券交易汇总",
+          "source_label": "Tushare 融资融券交易汇总（部分交易所，覆盖 SSE）",
           "source_url": "https://tushare.pro/document/2?doc_id=58"
         },
         {
@@ -137,7 +129,15 @@
           "value": 13318.41736225,
           "unit": "亿",
           "observation_date": "2026-09-24",
-          "source_label": "Tushare 融资融券交易汇总",
+          "source_label": "Tushare 融资融券交易汇总（部分交易所，覆盖 SSE）",
+          "source_url": "https://tushare.pro/document/2?doc_id=58"
+        },
+        {
+          "label": "融资余额 2026-09-30",
+          "value": 12965.20652053,
+          "unit": "亿",
+          "observation_date": "2026-09-30",
+          "source_label": "Tushare 融资融券交易汇总（部分交易所，覆盖 SSE）",
           "source_url": "https://tushare.pro/document/2?doc_id=58"
         }
       ]
@@ -257,8 +257,8 @@
     {
       "key": "topic",
       "title": "热点概念图",
-      "status": "ok",
-      "reason": null,
+      "status": "degraded",
+      "reason": "使用替代来源或非目标日观测值",
       "points": [
         {
           "label": "mRNA概念",
@@ -362,15 +362,47 @@
       "key": "us_overnight",
       "title": "美股隔夜图",
       "status": "skipped",
-      "reason": "本次亚洲五图审核不包含美股隔夜数据",
+      "reason": "亚洲五图审核不包含美股隔夜数据",
       "points": []
     },
     {
       "key": "weekly_chart",
-      "title": "近5个可用交易日概览",
-      "status": "degraded",
-      "reason": "本期仅含4个可用交易日；逐点保留实际观测日，不补造缺失交易日。",
+      "title": "近5个交易日数据概览",
+      "status": "ok",
+      "reason": null,
       "points": [
+        {
+          "label": "上涨家数 2026-09-23",
+          "value": 1891.0,
+          "unit": "家",
+          "observation_date": "2026-09-23",
+          "source_label": "Tushare A 股日线",
+          "source_url": "https://tushare.pro/document/1?doc_id=27"
+        },
+        {
+          "label": "下跌家数 2026-09-23",
+          "value": 3564.0,
+          "unit": "家",
+          "observation_date": "2026-09-23",
+          "source_label": "Tushare A 股日线",
+          "source_url": "https://tushare.pro/document/1?doc_id=27"
+        },
+        {
+          "label": "平盘家数 2026-09-23",
+          "value": 101.0,
+          "unit": "家",
+          "observation_date": "2026-09-23",
+          "source_label": "Tushare A 股日线",
+          "source_url": "https://tushare.pro/document/1?doc_id=27"
+        },
+        {
+          "label": "成交额 2026-09-23",
+          "value": 17831.282616870798,
+          "unit": "亿",
+          "observation_date": "2026-09-23",
+          "source_label": "Tushare A 股日线",
+          "source_url": "https://tushare.pro/document/1?doc_id=27"
+        },
         {
           "label": "上涨家数 2026-09-24",
           "value": 1120.0,
@@ -502,5 +534,5 @@
       ]
     }
   ],
-  "content_sha256": "bc71edb7e6844100466e06a51c69ece1cd6fe4c809aa04e08a93363dbcca1db6"
+  "content_sha256": "64f8f18f5f1bd77b7c180d039ac6015c89e0d86d21e0ffe19b6462344c9f5e19"
 }
