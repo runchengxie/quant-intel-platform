@@ -1,6 +1,6 @@
 # Data ownership
 
-[中文页面](data-ownership.md)
+[Chinese version](data-ownership.md)
 
 This project separates externally owned data products, lightweight report-specific snapshots, and code-generated reports. Hermes reads deterministic fact materials and provides subsequent commentary. Code generates the facts.
 

@@ -1,6 +1,6 @@
 # Run the daily market report
 
-[中文页面](run-daily-report.md)
+[Chinese version](run-daily-report.md)
 
 ## What the workflow does
 

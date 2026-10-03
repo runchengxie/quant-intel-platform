@@ -18,6 +18,9 @@ def main() -> None:
     chinese = primary_navigation(site, "index.zh-CN/index.html")
     english_article = primary_navigation(site, "configuration/index.html")
     chinese_article = primary_navigation(site, "configuration.zh-CN/index.html")
+    chinese_unsuffixed = primary_navigation(site, "scoring/index.html")
+    chinese_boundary = primary_navigation(site, "boundary-contract/index.html")
+    english_paired = primary_navigation(site, "scoring.en/index.html")
 
     for navigation in (english, english_article):
         assert "Getting started" in navigation
@@ -29,6 +32,17 @@ def main() -> None:
         assert "简体中文" not in navigation
     assert "日报网站" in chinese
     assert "Daily site" not in chinese
+    for navigation in (chinese_unsuffixed, chinese_boundary):
+        assert "五分钟开始" in navigation
+        assert "Getting started" not in navigation
+        assert "日报网站" in navigation
+        assert "Daily site" not in navigation
+    assert "Getting started" in english_paired
+    assert "五分钟开始" not in english_paired
+
+    english_page = (site / "scoring.en/index.html").read_text(encoding="utf-8")
+    assert ">Chinese version<" in english_page
+    assert ">中文页面<" not in english_page
 
 
 if __name__ == "__main__":

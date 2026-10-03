@@ -1,4 +1,4 @@
-[中文页面](testing.md)
+[Chinese version](testing.md)
 
 # Testing and quality assurance
 

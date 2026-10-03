@@ -1,4 +1,4 @@
-[中文页面](ta-methodology.md)
+[Chinese version](ta-methodology.md)
 
 # Technical analysis methodology
 

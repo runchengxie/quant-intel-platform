@@ -1,6 +1,6 @@
 # Code-Quality Audit Record and Follow-up Proposals
 
-[中文页面](code-quality-audit-findings.md)
+[Chinese version](code-quality-audit-findings.md)
 
 > Historical audit record. The original inventory was performed on 2026-07-31, with selected status updates through 2026-09-08. Counts and findings below are dated snapshots, not current gate results. The former `a-share-factor-core`, `ai-stock-picker`, and `hot-sector-screener` submodules have since been retired and removed. Current repository ownership boundaries are in `AGENTS.md`.
 

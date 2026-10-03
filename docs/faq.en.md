@@ -1,6 +1,6 @@
 # Frequently asked questions
 
-[中文页面](faq.md)
+[Chinese version](faq.md)
 
 ## Where should I start?
 

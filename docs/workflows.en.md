@@ -1,6 +1,6 @@
 # Workflows
 
-[中文页面](workflows.md)
+[Chinese version](workflows.md)
 
 ## Public workflows
 

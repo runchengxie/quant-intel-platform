@@ -1,6 +1,6 @@
 # Language and localization policy
 
-[中文页面](LANGUAGE_POLICY.zh-CN.md)
+[Chinese version](LANGUAGE_POLICY.zh-CN.md)
 
 `quant-intel-platform` keeps computation, source data, artifact schemas, and
 delivery receipts language-neutral. Human-facing reports may be rendered in a

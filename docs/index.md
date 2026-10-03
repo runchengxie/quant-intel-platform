@@ -1,6 +1,6 @@
 # Quant Market Intel
 
-[中文页面](index.zh-CN.md)
+[Chinese version](index.zh-CN.md)
 
 Quant Market Intel is the public framework for market intelligence, reporting, dashboards, and published research contracts. Start with the [five-minute setup](getting-started.md), then read the [core concepts](concepts.md) and [system architecture](architecture.md).
 

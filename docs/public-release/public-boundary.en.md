@@ -1,6 +1,6 @@
 # Public Repository Boundary
 
-[中文页面](public-boundary.md)
+[Chinese version](public-boundary.md)
 
 `quant-intel-platform` is a reusable public framework. It consumes versioned research and data artifacts, validates them, generates reports and dashboards, and provides general-purpose delivery interfaces.
 

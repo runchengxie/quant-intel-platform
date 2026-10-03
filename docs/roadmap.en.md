@@ -1,6 +1,6 @@
 # Engineering Improvement Roadmap
 
-[中文页面](roadmap.md)
+[Chinese version](roadmap.md)
 
 This roadmap consolidates follow-up items from the 2026-07-31 code-quality audit and sits alongside `refactor-plan-etl-report.md`, which records completed file splits. It tracks plans and does not itself change code.
 

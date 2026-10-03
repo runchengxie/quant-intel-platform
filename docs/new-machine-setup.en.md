@@ -1,6 +1,6 @@
 # Set up a new machine
 
-[中文页面](new-machine-setup.md)
+[Chinese version](new-machine-setup.md)
 
 ## Local development
 

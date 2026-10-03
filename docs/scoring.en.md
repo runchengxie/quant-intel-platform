@@ -1,4 +1,4 @@
-[中文页面](scoring.md)
+[Chinese version](scoring.md)
 
 # Theme scoring methodology
 

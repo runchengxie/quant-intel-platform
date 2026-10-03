@@ -1,6 +1,6 @@
 # Cross-repository boundary contract
 
-[中文页面](boundary-contract.md)
+[Chinese version](boundary-contract.md)
 
 This page supplements [Data ownership](data-ownership.en.md) and [Artifact contracts](contracts.md). It closes the source-code and filesystem-path coupling boundary. The 2026-07-29 integration review concluded that the repositories should remain independent and coordinate only through public CLIs and versioned file contracts; repository paths are not a supported interface.
 

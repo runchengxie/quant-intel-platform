@@ -1,6 +1,6 @@
 # Operations
 
-[中文页面](operations.zh-CN.md)
+[Chinese version](operations.zh-CN.md)
 
 ## Failure semantics
 

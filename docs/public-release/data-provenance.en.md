@@ -1,6 +1,6 @@
 # Public Test Data Provenance
 
-[中文页面](data-provenance.md)
+[Chinese version](data-provenance.md)
 
 Files under `tests/fixtures/public/` are synthetic data created for offline tests and documentation examples. They are not raw data returned by market-data providers and do not represent real market observations.
 

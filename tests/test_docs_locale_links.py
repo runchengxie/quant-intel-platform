@@ -54,7 +54,7 @@ def test_localized_public_pages_link_to_each_other() -> None:
     for english, chinese in pairs:
         english_page = (root / "docs" / english).read_text(encoding="utf-8")
         chinese_page = (root / "docs" / chinese).read_text(encoding="utf-8")
-        assert f"[中文页面]({Path(chinese).name})" in english_page
+        assert f"[Chinese version]({Path(chinese).name})" in english_page
         assert f"[English page]({Path(english).name})" in chinese_page
 
 

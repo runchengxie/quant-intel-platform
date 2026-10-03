@@ -1,6 +1,6 @@
 # Glossary
 
-[中文页面](glossary.md)
+[Chinese version](glossary.md)
 
 This glossary explains abbreviations and mixed Chinese/English terminology used in the documentation. Code identifiers, provider names, frameworks, and ticker symbols remain in English.
 
