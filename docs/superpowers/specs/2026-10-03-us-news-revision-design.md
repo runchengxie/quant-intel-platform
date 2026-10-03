@@ -1,7 +1,8 @@
 # Reviewed U.S. news revisions and date-only sources
 
-Status: proposed design, awaiting written-spec review. No implementation or
-production activation is included in this document.
+Status: written design approved by the user on October 3, 2026. Implementation
+planning is in progress. No implementation or production activation is included
+in this document.
 
 ## Intended outcome
 
