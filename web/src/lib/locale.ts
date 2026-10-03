@@ -28,6 +28,10 @@ export const US_REPORT_LABELS = {
 
 /** Exact source-bound presentation translations, not approval of new research. */
 export const US_RESEARCH_TRANSLATIONS = {
+  blsEmployment20261002: [
+    '美国劳工统计局于10月2日美东08:30发布9月就业报告。非农就业增加2.9万人，失业率为4.2%。这些是本次公布的9月数据，后续仍可能修订。',
+    'The U.S. Bureau of Labor Statistics released its September employment report on October 2 at 08:30 Eastern Time. Nonfarm payroll employment increased by 29,000 and the unemployment rate was 4.2%. These are the September figures available at this release and remain subject to revision.',
+  ],
   schwabContext20261001: [
     '嘉信理财在10月1日美东09:13发布的盘前观察关注科技股表现与处于多年高位附近的美债收益率。这是当时的市场背景，不是收盘归因，也不证明全天趋势。',
     'Schwab’s October 1 pre-market note, published at 09:13 Eastern Time, focused on technology stocks and Treasury yields near multi-year highs. It describes the morning backdrop and does not establish the cause of the closing move or a full-day trend.',
