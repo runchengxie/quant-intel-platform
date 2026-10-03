@@ -1,6 +1,6 @@
 # System architecture
 
-[中文页面](architecture.zh-CN.md)
+[Chinese version](architecture.zh-CN.md)
 
 Market Intel contains independent pipelines for global-market data, A-share reports, and public web presentation. The pipelines share operational primitives and artifact contracts but keep their owners and failure boundaries explicit.
 

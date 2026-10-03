@@ -1,6 +1,6 @@
 # A-Share External Factor-Signal Research Archive
 
-[中文页面](a-share-factor-signals.md)
+[Chinese version](a-share-factor-signals.md)
 
 > Historical archive. Factor panels, minute features, Hermite transformations, and rolling research workflows described here have moved to owner repositories, including `quant-research` and `strategy-pipeline`. `market-intel` no longer provides the production-generation or report-observation entry points described in this note. Commands and paths below document the archived workflow; they are not current usage instructions. Results are research evidence, not investment advice.
 

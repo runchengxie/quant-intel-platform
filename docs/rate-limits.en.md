@@ -1,6 +1,6 @@
 # API rate-limit reference
 
-[中文页面](rate-limits.md)
+[Chinese version](rate-limits.md)
 
 The values below are general troubleshooting references. Pipeline logic does not depend on them. Provider policies may change; verify current terms before planning live workloads.
 

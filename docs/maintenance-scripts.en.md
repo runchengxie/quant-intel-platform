@@ -1,4 +1,4 @@
-[中文页面](maintenance-scripts.md)
+[Chinese version](maintenance-scripts.md)
 
 # Maintenance scripts and experiment-code boundaries
 

@@ -1,4 +1,4 @@
-[中文页面](data-fetch-architecture.zh-CN.md)
+[Chinese version](data-fetch-architecture.zh-CN.md)
 
 # Cross-market data and report architecture
 

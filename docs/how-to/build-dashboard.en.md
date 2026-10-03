@@ -1,6 +1,6 @@
 # Build the web dashboard
 
-[中文页面](build-dashboard.md)
+[Chinese version](build-dashboard.md)
 
 ## Quick start
 

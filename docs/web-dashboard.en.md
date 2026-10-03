@@ -1,6 +1,6 @@
 # Web Dashboard Data-Source Research Note
 
-[中文页面](web-dashboard.md)
+[Chinese version](web-dashboard.md)
 
 > This is an early research note about the data required to reproduce an external market overview terminal, current gaps, and possible provider costs. Prices and recommendations below are a dated snapshot, not current purchasing advice. The project dashboard command is `dm dashboard`; it writes `out/web_dashboard.html` and `out/web_dashboard_payload.json`.
 

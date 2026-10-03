@@ -1,6 +1,6 @@
 # Add a data source
 
-[中文页面](add-data-source.md)
+[Chinese version](add-data-source.md)
 
 Before adding a source, identify the report or contract it serves. Small changes may extend an existing fetcher; larger changes should begin with a data-contract document.
 

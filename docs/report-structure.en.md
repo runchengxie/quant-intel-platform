@@ -1,6 +1,6 @@
 # Report structure
 
-[中文页面](report-structure.md)
+[Chinese version](report-structure.md)
 
 ## Public contract
 

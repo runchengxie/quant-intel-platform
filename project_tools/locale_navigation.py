@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import copy
+from pathlib import Path
 
 from mkdocs.structure.nav import Navigation
 
@@ -10,7 +11,15 @@ LINK_TITLES = {"Daily site": "日报网站"}
 
 
 def _is_chinese(page) -> bool:
-    return page.file.src_uri.endswith(".zh-CN.md")
+    source = page.file.src_uri
+    if source.endswith(".zh-CN.md"):
+        return True
+    if source.endswith(".en.md"):
+        return False
+    if source.endswith(".md"):
+        english_pair = page.file.abs_src_path[:-3] + ".en.md"
+        return Path(english_pair).is_file()
+    return False
 
 
 def _for_locale(items, chinese: bool):

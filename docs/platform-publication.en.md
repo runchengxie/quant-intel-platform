@@ -1,4 +1,4 @@
-[中文页面](platform-publication.md)
+[Chinese version](platform-publication.md)
 
 # Consuming research platform publications
 

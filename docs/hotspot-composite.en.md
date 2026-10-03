@@ -1,6 +1,6 @@
 # Hotspot composite indicator
 
-[中文页面](hotspot-composite.md)
+[Chinese version](hotspot-composite.md)
 
 ## Evidence boundary
 

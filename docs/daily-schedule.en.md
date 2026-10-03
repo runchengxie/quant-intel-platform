@@ -1,4 +1,4 @@
-[中文页面](daily-schedule.md)
+[Chinese version](daily-schedule.md)
 
 # Market Intel daily schedule
 

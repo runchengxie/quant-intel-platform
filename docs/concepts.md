@@ -1,6 +1,6 @@
 # Core concepts
 
-[中文页面](concepts.zh-CN.md)
+[Chinese version](concepts.zh-CN.md)
 
 ## Market facts
 

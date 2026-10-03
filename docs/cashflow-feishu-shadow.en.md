@@ -1,4 +1,4 @@
-[中文页面](cashflow-feishu-shadow.md)
+[Chinese version](cashflow-feishu-shadow.md)
 
 # Cashflow strategy shadow delivery to Feishu
 

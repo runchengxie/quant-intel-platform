@@ -1,6 +1,6 @@
 # Getting started in five minutes
 
-[中文页面](getting-started.zh-CN.md)
+[Chinese version](getting-started.zh-CN.md)
 
 This guide installs the public framework and runs offline checks. It does not require market-provider credentials and does not send messages.
 

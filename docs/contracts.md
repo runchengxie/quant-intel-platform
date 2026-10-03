@@ -1,6 +1,6 @@
 # Artifact contracts
 
-[中文页面](contracts.zh-CN.md)
+[Chinese version](contracts.zh-CN.md)
 
 The JSON structures in this repository define the minimum fields for important artifacts. A change that breaks these contracts is a breaking change.
 

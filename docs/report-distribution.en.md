@@ -1,6 +1,6 @@
 # Report delivery contract
 
-[中文页面](report-distribution.md)
+[Chinese version](report-distribution.md)
 
 ## Public audience model
 

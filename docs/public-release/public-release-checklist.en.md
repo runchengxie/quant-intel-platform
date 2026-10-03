@@ -1,6 +1,6 @@
 # Public Release Checklist
 
-[中文页面](public-release-checklist.md)
+[Chinese version](public-release-checklist.md)
 
 Complete these checks before creating or updating a public GitHub repository. Keep production history in the private repository until all checks are complete.
 

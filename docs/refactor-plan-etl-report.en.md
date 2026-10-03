@@ -1,6 +1,6 @@
 # ETL and Report-Delivery Refactoring Record
 
-[中文页面](refactor-plan-etl-report.md)
+[Chinese version](refactor-plan-etl-report.md)
 
 > Historical record. The migration status below reflects the repository after the refactors described here. Earlier proposals retained in this document are historical context, not current work items. Current ownership boundaries are documented in the repository's `AGENTS.md`.
 

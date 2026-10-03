@@ -1,6 +1,6 @@
 # Market daily website
 
-[中文页面](market-site.md)
+[Chinese version](market-site.md)
 
 Open the [market daily website](https://runchengxie.github.io/quant-intel-platform/). It organizes content around two Beijing-time windows: the US close at 07:00 and the Asia close at 19:00. The page shows the five most recent dates with reports; use the actual generation time, observation date, and missing-data notices as the source of freshness context.
 

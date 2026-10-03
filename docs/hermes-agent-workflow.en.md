@@ -1,6 +1,6 @@
 # Delivery-agent workflow
 
-[中文页面](hermes-agent-workflow.md)
+[Chinese version](hermes-agent-workflow.md)
 
 ## Contract
 

@@ -1,6 +1,6 @@
 # Configuration
 
-[中文页面](configuration.zh-CN.md)
+[Chinese version](configuration.zh-CN.md)
 
 Configuration has two layers: public safe defaults kept in this repository and runtime parameters supplied by the deployment environment.
 
