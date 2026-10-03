@@ -1,6 +1,11 @@
 from __future__ import annotations
 
+import re
+import subprocess
+import sys
 from pathlib import Path
+
+import yaml
 
 from ops_common.locale import DEFAULT_LOCALE
 
@@ -89,3 +94,79 @@ def test_translated_navigation_entries_use_english_canonical_pages() -> None:
         "a-share-factor-signals.en.md",
     ):
         assert page in config
+
+
+def test_every_localized_navigation_page_is_listed_in_both_locales() -> None:
+    root = Path(__file__).resolve().parents[1]
+    docs_root = root / "docs"
+    nav = yaml.safe_load((root / "mkdocs.yml").read_text(encoding="utf-8"))["nav"]
+
+    def page_paths(node: object) -> set[str]:
+        if isinstance(node, dict):
+            return set().union(*(page_paths(value) for value in node.values()))
+        if isinstance(node, list):
+            return set().union(*(page_paths(value) for value in node))
+        if isinstance(node, str) and node.endswith(".md"):
+            return {node}
+        return set()
+
+    english_paths = page_paths(nav[:-1])
+    chinese_paths = page_paths(nav[-1]["简体中文"])
+    language_links = (
+        (english_paths, chinese_paths, "Chinese version"),
+        (chinese_paths, english_paths, "English page"),
+    )
+
+    for source_paths, target_paths, label in language_links:
+        pattern = re.compile(rf"\[{re.escape(label)}\]\(([^)]+)\)")
+        for source in source_paths:
+            source_path = docs_root / source
+            text = source_path.read_text(encoding="utf-8")
+            for match in pattern.finditer(text):
+                target = match.group(1).split("#", 1)[0]
+                if target.startswith(("https://", "http://")) or not target.endswith(".md"):
+                    continue
+                target_path = (source_path.parent / target).resolve()
+                if not target_path.is_file():
+                    continue
+                relative_target = target_path.relative_to(docs_root.resolve()).as_posix()
+                assert relative_target in target_paths, (
+                    f"{source} links to {relative_target}, which is missing from the "
+                    f"corresponding locale navigation"
+                )
+
+
+def test_rendered_sidebars_use_the_language_of_each_page(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    site_dir = tmp_path / "site"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "mkdocs",
+            "build",
+            "--strict",
+            "--site-dir",
+            str(site_dir),
+        ],
+        cwd=root,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+
+    def primary_navigation(relative_path: str) -> str:
+        html = (site_dir / relative_path).read_text(encoding="utf-8")
+        return html.split("md-sidebar--primary", 1)[1].split("md-sidebar--secondary", 1)[0]
+
+    english = primary_navigation("cli-reference.en/index.html")
+    chinese = primary_navigation("cli-reference/index.html")
+    assert "Common tasks" in english
+    assert "CLI reference" in english
+    assert "常用任务" not in english
+    assert "CLI 参考" not in english
+    assert "常用任务" in chinese
+    assert "CLI 参考" in chinese
+    assert "Common tasks" not in chinese
+    assert "CLI reference" not in chinese
