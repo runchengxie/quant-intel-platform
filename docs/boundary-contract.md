@@ -8,7 +8,7 @@
 
 ## 1. 边界总则
 
-- `market-intel` 与 `quant-research`、`quant-platform`、`quant-market-data-platform` 是职责不同的独立系统：
+- `quant-intel-platform` 与 `quant-research`、`quant-platform`、`quant-market-data-platform` 是职责不同的独立系统：
   研究侧强调版本锁定、复现与审计，情报侧强调每日调度、联网抓取、投递时效。
 - 双方不直接 import 对方业务源码。跨仓协作只通过：
   - 已安装的公开命令（`marketdata ...`、`strategy ...`、`marketops ...`、`aipick ...`）
@@ -65,7 +65,7 @@
 - 因子定义与计算 → `alpha-research`
 - 回测与归因 → `portfolio-backtester`
 - 运行与产物发布 → `strategy-pipeline`
-- 报告渲染与飞书投递 → `market-intel`
+- 报告渲染与飞书投递 → `quant-intel-platform`
 
 ### style 重复实现收口状态
 
@@ -77,9 +77,9 @@
 - 通过 `research_contracts` 校验 ArtifactEnvelopeV2、SHA-256、文件大小与 lineage
 - 复制完整 owner 产物并写 `consumption_receipt.json`。
 
-`market-intel` 已通过安装依赖锁定 `research-contracts` 的明确 Git 提交，契约校验不再是本仓复制的一套实现。
+`quant-intel-platform` 已通过安装依赖锁定 `research-contracts` 的明确 Git 提交，契约校验不再是本仓复制的一套实现。
 
-同理 `src/tushare_jobs/` 中与 `quant-market-data-platform` 数据湖重复的下载任务（如 `stock_st`、`index_weight`、`listed_company` 部分字段）应逐步迁回其唯一 owner。`market-intel` 仅保留报告专用轻量快照（`lightweight_snapshot.py`）与跨市场数据。
+同理 `src/tushare_jobs/` 中与 `quant-market-data-platform` 数据湖重复的下载任务（如 `stock_st`、`index_weight`、`listed_company` 部分字段）应逐步迁回其唯一 owner。`quant-intel-platform` 仅保留报告专用轻量快照（`lightweight_snapshot.py`）与跨市场数据。
 
 ### tushare_jobs 重叠任务收口状态
 
@@ -96,7 +96,7 @@
 stock_st、index_weight、index_weight_daily、stock_company、stk_managers、share_float
 的 DatasetSpec、download、drift_weight 展开与 publish，并注册到
 `marketdata tushare download-a-share-reference` 等子命令、registry 与资产路径。
-MDP 现为这些数据集的权威 owner。market-intel 消费
+MDP 现为这些数据集的权威 owner。quant-intel-platform 消费
 `<DATA_PLATFORM_ROOT>/assets/tushare/a_share/<dataset>/a_share_all_<dataset>_latest.parquet`
 及同名 `.receipt.json`。
 详细映射见 `docs/data-ownership.md` 的「`tushare_jobs` 迁移状态」一节。

@@ -2,11 +2,13 @@
 
 # 研究平台发布产物消费
 
-`market-intel` 可以读取 `quant-research`、`quant-platform` 或 `strategy-pipeline` 生成的 `research.platform-publication.v1` 产物包，不需要引入研究方的实现代码。
+仓库名称为 `quant-intel-platform`。发布清单的消费者标识仍为 `market-intel`，以兼容现有生产者与消费者，不要将该字段替换成仓库名称。
+
+`quant-intel-platform` 可以读取 `quant-research`、`quant-platform` 或 `strategy-pipeline` 生成的 `research.platform-publication.v1` 产物包，不需要引入研究方的实现代码。
 
 ## 作用
 
-发布清单是一份交接索引。`market-intel` 通过它定位已经审核过的投影结果，并将结果渲染为报告、投递卡片或操作页面。
+发布清单是一份交接索引。`quant-intel-platform` 通过它定位已经审核过的投影结果，并将结果渲染为报告、投递卡片或操作页面。
 
 消费方会检查以下内容：
 
@@ -34,7 +36,7 @@ DailyWatch20、style-factor、D11-H5 以及其他已经建立的契约继续有�
 1. 合并上游工作区的契约改动
 2. 将 `research-contracts` 锁定到工作区 `main` 的最新提交
 3. 运行 `uv lock` 并提交更新后的 `uv.lock`
-4. 运行 `market-intel` 的常规质量检查
+4. 运行 `quant-intel-platform` 的常规质量检查
 
 ## 接近生产环境的测试样例
 

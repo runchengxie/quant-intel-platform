@@ -6,14 +6,16 @@
 
 ## 职责边界
 
-`market-intel` 是市场情报、报告、投递和运行保障系统。A 股策略研究、因子计算、模型训练、回测、消融与策略 artifact 生产由 `quant-research`、`quant-platform` 和 `strategy-pipeline` 按职责维护。
+当前仓库统一称为 `quant-intel-platform`。`market-intel` 仅在历史记录或兼容接口中保留，包括 Python 分发包名、发布清单消费者标识、模块名及已有配置和环境变量标识。文档名称更新不授权修改这些接口。
+
+`quant-intel-platform` 是市场情报、报告、投递和运行保障系统。A 股策略研究、因子计算、模型训练、回测、消融与策略 artifact 生产由 `quant-research`、`quant-platform` 和 `strategy-pipeline` 按职责维护。
 
 跨仓协作只允许两类接口：
 
 - 公开 CLI，例如 `marketdata ...`、`strategy watchlist20 ...`
 - 版本化文件 artifact / receipt
 
-不得从 `market-intel` import owner 仓库的业务源码，也不得把研究实现复制回本仓。报告侧可以验证、消费和渲染 owner artifact；运维恢复可以调用 owner 的公开 CLI，但不能维护第二套模型逻辑。
+不得从 `quant-intel-platform` import owner 仓库的业务源码，也不得把研究实现复制回本仓。报告侧可以验证、消费和渲染 owner artifact；运维恢复可以调用 owner 的公开 CLI，但不能维护第二套模型逻辑。
 
 历史 `a-share-factor-core`、`hot-sector-screener`、`ai-stock-picker` submodule 已退休并从本仓移除。旧 AI 精选产品不得通过兼容入口重新变成生产默认。
 
@@ -81,7 +83,7 @@ bash scripts/setup_cron.sh --layer3
 
 新增代码前先判断 owner：
 
-- 市场资讯抓取、报告内容、渲染、Dashboard、飞书、投递回执、报告窗口、故障恢复 → `market-intel`
+- 市场资讯抓取、报告内容、渲染、Dashboard、飞书、投递回执、报告窗口、故障恢复 → `quant-intel-platform`
 - 市场数据权威资产 → `quant-market-data-platform`
 - 特征/模型/统计推断 → `alpha-research`
 - 回测、成本、容量、组合与历史成交模拟 → `portfolio-backtester`
@@ -90,7 +92,7 @@ bash scripts/setup_cron.sh --layer3
 - 策略身份、生命周期、研究规格和证据导航 → `strategy-research`
 - 实盘/模拟执行与券商审计 → `quant-execution-engine`
 
-当 market-intel 需要研究侧能力时，优先补 owner API/CLI 或 artifact 契约。不要以“暂时方便”为理由在本仓再实现一次。
+当 quant-intel-platform 需要研究侧能力时，优先补 owner API/CLI 或 artifact 契约。不要以“暂时方便”为理由在本仓再实现一次。
 
 ## 测试原则
 
@@ -112,7 +114,7 @@ bash scripts/setup_cron.sh --layer3
 - 每个任务在自己的 worktree 中完成修改和相关验证，再提交、推送任务分支并创建目标为 `main` 的 PR。完成 review、必需检查和冲突处理后再合并。
 - 确认 PR 已合并且 worktree 没有唯一未保存内容后，只清理本任务资源。先移除 worktree，再删除本地分支；核实远端分支归属后再删除。未合并或状态不明时保留现场并报告。
 - Commit 聚焦单一目的，标题尽量控制在 72 字符以内。
-- 跨仓 owner 变更按 provider → consumer → superproject gitlink 的顺序合并；不得让 market-intel 临时依赖未合并的本地源码路径。
+- 跨仓 owner 变更按 provider → consumer → superproject gitlink 的顺序合并；不得让 quant-intel-platform 临时依赖未合并的本地源码路径。
 - 涉及报告版面、卡片或权重时附代表性产物；涉及契约时同步文档和 contract tests。
 - 无法真实执行本地门禁时，PR 必须保持 Draft，并明确列出未验证项，禁止写“tests passed”之类的祈祷式声明。
 

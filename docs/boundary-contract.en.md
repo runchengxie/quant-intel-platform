@@ -6,7 +6,7 @@ This page supplements [Data ownership](data-ownership.en.md) and [Artifact contr
 
 ## General rules
 
-- `market-intel`, `quant-research`, `quant-platform`, and `market-data-platform` are independent systems with different responsibilities. Research prioritizes version locking, reproducibility, and auditability; intelligence prioritizes daily scheduling, live retrieval, and delivery timeliness.
+- `quant-intel-platform`, `quant-research`, `quant-platform`, and `market-data-platform` are independent systems with different responsibilities. Research prioritizes version locking, reproducibility, and auditability; intelligence prioritizes daily scheduling, live retrieval, and delivery timeliness.
 - Do not import another repository's business source code. Cross-repository communication uses public installed commands such as `marketdata ...`, `strategy ...`, `marketops ...`, and `aipick ...`, or versioned file artifacts such as `watchlist_20`, `selection_receipt`, `signals.parquet`, and `news_heat` (see `contracts.md`).
 - Repository paths are not APIs. Scripts and modules must not depend on another checkout's fixed directory layout, including paths tied to one developer's machine.
 
@@ -43,7 +43,7 @@ Responsibilities are assigned as follows:
 - Factor definitions and calculations: `alpha-research`.
 - Backtesting and attribution: `portfolio-backtester`.
 - Strategy execution and artifact publication: `strategy-pipeline`.
-- Report rendering and Feishu delivery: `market-intel`.
+- Report rendering and Feishu delivery: `quant-intel-platform`.
 
 ### Style-analysis migration
 
@@ -60,6 +60,6 @@ Overlapping downloads were reduced to compatibility exporters:
 - `index_weight.py` exports paired MDP `index_weight`/`index_weight_daily` data; it no longer downloads or expands the series locally.
 - `lightweight_snapshot.py` and cross-market snapshots remain because the platform has no equivalent lightweight JSON contract.
 
-On 2026-07-30, MDP completed the equivalent retrieval capability for `stock_st`, `index_weight`, `index_weight_daily`, `stock_company`, `stk_managers`, and `share_float`, including `DatasetSpec`, download, `drift_weight` expansion, publication, CLI registration, registry, and asset paths. MDP is the authoritative owner. `market-intel` consumes `<DATA_PLATFORM_ROOT>/assets/tushare/a_share/<dataset>/a_share_all_<dataset>_latest.parquet` and the matching `.receipt.json`.
+On 2026-07-30, MDP completed the equivalent retrieval capability for `stock_st`, `index_weight`, `index_weight_daily`, `stock_company`, `stk_managers`, and `share_float`, including `DatasetSpec`, download, `drift_weight` expansion, publication, CLI registration, registry, and asset paths. MDP is the authoritative owner. `quant-intel-platform` consumes `<DATA_PLATFORM_ROOT>/assets/tushare/a_share/<dataset>/a_share_all_<dataset>_latest.parquet` and the matching `.receipt.json`.
 
 These consumers use fail-closed validation. Missing assets/receipts, schema mismatch, SHA-256 mismatch, row-count mismatch, or a missing requested slice cause an explicit failure; they do not fall back to direct TuShare retrieval. `force_full_refresh` also directs operators to MDP's public CLI. Consistency scripts may audit historical compatibility files but no longer control fallback behavior.
