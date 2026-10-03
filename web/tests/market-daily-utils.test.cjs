@@ -3,6 +3,22 @@ const assert = require("node:assert/strict");
 const { summarizeMarketDaily, formatMarketDailyStatus, buildMarketDailyCharts, buildMarketDailyChartSvg } = require("../src/lib/market-daily-utils.ts");
 const { toEnglishPresentation } = require("../src/lib/english-content.ts");
 
+test('reviewed BLS macro background renders in English without changing its release figures', () => {
+  const payload = { schema_version: '1.0', run_id: 'daily-2026-10-02',
+    facts: [{ id: 'macro.cpi_yoy', value: 3.4, unit: 'percent', quality: 'ok', observation_date: '2026-08-01', source_url: 'https://fred.stlouisfed.org/series/CPIAUCSL' }],
+    events: [{ id: 'reviewed.2' }], sections: [{ key: 'macro', claims: ['reviewed.2'] }],
+    claims: [{ claim: '美国劳工统计局于10月2日美东08:30发布9月就业报告。非农就业增加2.9万人，失业率为4.2%。这些是本次公布的9月数据，后续仍可能修订。', evidence_ids: ['reviewed.2'], sources: ['https://www.bls.gov/news.release/archives/empsit_10022026.htm'] }],
+  };
+  const svg = buildMarketDailyChartSvg(summarizeMarketDaily(payload), toEnglishPresentation, 'en-US');
+  const text = [...svg.matchAll(/<text\b[^>]*>(.*?)<\/text>/g)].map((match) => match[1]).join(' ');
+  assert.match(text, /Bureau of Labor Statistics/);
+  assert.match(text, /29,000/);
+  assert.match(text, /4\.2%/);
+  assert.match(text, /08:30/);
+  assert.match(text, /revision/);
+  assert.doesNotMatch(text, /美国劳工|非农就业|可能修订/);
+});
+
 test("reviewed company news is translated as a complete paragraph before SVG wrapping", () => {
   const payload = { schema_version: '1.0', run_id: 'daily-2026-10-01',
     facts: [{ id: 'macro.cpi_yoy', value: 3.4, unit: 'percent', quality: 'ok', observation_date: '2026-08-01', source_url: 'https://fred.stlouisfed.org/series/CPIAUCSL' }],

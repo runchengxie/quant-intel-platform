@@ -8,8 +8,8 @@
         "md",
         "txt"
       ],
-      "as_of": "2026-10-02T22:31:52.186570+00:00",
-      "generated_at": "2026-10-02T22:31:52.186570+00:00",
+      "as_of": "2026-10-03T08:11:44.474736+00:00",
+      "generated_at": "2026-10-03T08:11:44.474736+00:00",
       "run_id": "daily-2026-10-02",
       "sections": [
         {
@@ -80,7 +80,9 @@
             "macro.unemployment_rate",
             "macro.payroll_change_thousands"
           ],
-          "claims": []
+          "claims": [
+            "reviewed.2"
+          ]
         },
         {
           "key": "company_news",
@@ -637,13 +639,30 @@
           "observation_date": "2026-10-02"
         }
       ],
-      "events": [],
-      "claims": [],
-      "missing_sources": [
-        "research"
+      "events": [
+        {
+          "id": "reviewed.2"
+        }
       ],
+      "claims": [
+        {
+          "claim": "美国劳工统计局于10月2日美东08:30发布9月就业报告。非农就业增加2.9万人，失业率为4.2%。这些是本次公布的9月数据，后续仍可能修订。",
+          "evidence_ids": [
+            "reviewed.2"
+          ],
+          "sources": [
+            "https://www.bls.gov/news.release/archives/empsit_10022026.htm"
+          ],
+          "confidence": "confirmed",
+          "status": "accepted",
+          "provider": "source_audit"
+        }
+      ],
+      "missing_sources": [],
       "quality_summary": {
-        "status": "degraded"
+        "status": "degraded",
+        "revision": "next_morning_rechecked",
+        "reviewed_source_cutoff": "2026-10-02T23:59:59-04:00"
       },
       "source_status": {
         "rates": {
@@ -657,8 +676,8 @@
           "reason": "all_indices_fresh"
         },
         "research": {
-          "quality": "degraded",
-          "reason": "not_connected"
+          "quality": "reviewed",
+          "reason": "source_audited"
         },
         "cross_asset": {
           "quality": "degraded",
@@ -674,8 +693,8 @@
           "reviewed_movers": []
         }
       },
-      "content_hash": "656b060190e188a4759e54a4c3ceba47f4e99eb1291870a962dbe498eb2dd379",
-      "source_report_sha256": "e07b17456a7511c930da6bb2e95b243fc98ca827f23991d55816db4398d77619"
+      "content_hash": "9d40f285a8baabb09a04012e3555019a8ff8d321f6b682f55a98f33c3ad0a883",
+      "source_report_sha256": "92247dab58c2755b0ffa7c95581e37b0bf5cdfb404ccccca8271f8b7d5c11685"
     },
     {
       "schema_version": "1.0",
