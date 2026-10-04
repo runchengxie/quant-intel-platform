@@ -34,6 +34,7 @@ def test_localized_public_pages_link_to_each_other() -> None:
         ("faq.en.md", "faq.md"),
         ("workflows.en.md", "workflows.md"),
         ("report-structure.en.md", "report-structure.md"),
+        ("how-to/report-writing-style.en.md", "how-to/report-writing-style.zh-CN.md"),
         ("report-distribution.en.md", "report-distribution.md"),
         ("hotspot-composite.en.md", "hotspot-composite.md"),
         ("hermes-agent-workflow.en.md", "hermes-agent-workflow.md"),
@@ -75,6 +76,7 @@ def test_translated_navigation_entries_use_english_canonical_pages() -> None:
         "faq.en.md",
         "workflows.en.md",
         "report-structure.en.md",
+        "how-to/report-writing-style.en.md",
         "report-distribution.en.md",
         "hotspot-composite.en.md",
         "hermes-agent-workflow.en.md",
@@ -162,6 +164,8 @@ def test_rendered_sidebars_use_the_language_of_each_page(tmp_path: Path) -> None
 
     english = primary_navigation("cli-reference.en/index.html")
     chinese = primary_navigation("cli-reference/index.html")
+    english_writing = primary_navigation("how-to/report-writing-style.en/index.html")
+    chinese_writing = primary_navigation("how-to/report-writing-style.zh-CN/index.html")
     assert "Common tasks" in english
     assert "CLI reference" in english
     assert "常用任务" not in english
@@ -170,3 +174,19 @@ def test_rendered_sidebars_use_the_language_of_each_page(tmp_path: Path) -> None
     assert "CLI 参考" in chinese
     assert "Common tasks" not in chinese
     assert "CLI reference" not in chinese
+    assert "Report writing style" in english_writing
+    assert "报告写作规范" not in english_writing
+    assert "报告写作规范" in chinese_writing
+    assert "Report writing style" not in chinese_writing
+
+    english_writing_page = (site_dir / "how-to/report-writing-style.en/index.html").read_text(
+        encoding="utf-8"
+    )
+    visible = re.sub(
+        r"<script\b[^>]*>[\s\S]*?</script>|<style\b[^>]*>[\s\S]*?</style>",
+        "",
+        english_writing_page,
+    )
+    visible = re.sub(r"<blockquote\b[^>]*>[\s\S]*?</blockquote>", "", visible)
+    visible = re.sub(r"<[^>]+>", "", visible)
+    assert not re.search(r"[\u4e00-\u9fff]", visible)
