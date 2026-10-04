@@ -106,9 +106,15 @@ test("optional CME futures are disclosed separately from required spot coverage"
   assert.deepEqual(summary.optionalGaps, ["比特币期货行情"]);
   assert.equal(summary.crossAssetRows.length, 4);
   const svg = buildMarketDailyChartSvg(summary);
-  assert.match(svg, /可选数据未提供：比特币期货行情/);
+  assert.doesNotMatch(svg, /可选数据未提供：比特币期货行情/);
   assert.doesNotMatch(svg, /尚缺：比特币期货行情/);
-  assert.match(toEnglishPresentation(svg), /Optional data unavailable: Bitcoin futures prices/);
+  assert.doesNotMatch(toEnglishPresentation(svg), /Optional data unavailable: Bitcoin futures prices/);
+  assert.doesNotMatch(formatMarketDailyStatus(summary), /可选数据|比特币期货/);
+  const { formatMarketDailyDataNotes } = require('../src/lib/market-daily-utils.ts');
+  assert.deepEqual(formatMarketDailyDataNotes(summary, 'zh-CN'), ['可选数据未提供：比特币期货行情。不影响已核实的现货行情。']);
+  assert.deepEqual(formatMarketDailyDataNotes(summary, 'en-US'), ['Optional data unavailable: Bitcoin futures prices. Verified spot prices are unaffected.']);
+  const withoutSpot = summarizeMarketDaily({ ...payload, facts: futures });
+  assert.deepEqual(formatMarketDailyDataNotes(withoutSpot, 'en-US'), ['Optional data unavailable: Bitcoin futures prices.']);
   assert.doesNotMatch(toEnglishPresentation(svg), /可选数据|未提供/);
   assert.doesNotMatch(svg, /尚缺：布伦特、金银或比特币行情/);
   const uncertain = summarizeMarketDaily({ ...payload, source_status: {} });

@@ -24,6 +24,7 @@ var marketDailyUtils = (() => {
     buildMarketDailyChartSvg: () => buildMarketDailyChartSvg,
     buildMarketDailyCharts: () => buildMarketDailyCharts,
     default: () => market_daily_utils_default,
+    formatMarketDailyDataNotes: () => formatMarketDailyDataNotes,
     formatMarketDailyRevision: () => formatMarketDailyRevision,
     formatMarketDailyStatus: () => formatMarketDailyStatus,
     summarizeMarketDaily: () => summarizeMarketDaily
@@ -42,6 +43,8 @@ var marketDailyUtils = (() => {
     btcSpotGap: ["\u6BD4\u7279\u5E01\u73B0\u8D27\u884C\u60C5", "Bitcoin spot prices"],
     btcFuturesGap: ["\u6BD4\u7279\u5E01\u671F\u8D27\u884C\u60C5", "Bitcoin futures prices"],
     optionalUnavailable: ["\u53EF\u9009\u6570\u636E\u672A\u63D0\u4F9B\uFF1A", "Optional data unavailable: "],
+    dataNotes: ["\u6570\u636E\u8BF4\u660E", "Data notes"],
+    optionalSpotUnaffected: ["\u4E0D\u5F71\u54CD\u5DF2\u6838\u5B9E\u7684\u73B0\u8D27\u884C\u60C5\u3002", "Verified spot prices are unaffected."],
     researchContext: ["\u5DF2\u6838\u5B9E\u89E3\u8BFB", "Reviewed interpretation"],
     downloadPng: ["\u4E0B\u8F7D\u56FE\u7247\u7248 PNG", "Download PNG"],
     pngGenerating: ["\u6B63\u5728\u751F\u6210 PNG\u2026", "Generating PNG\u2026"],
@@ -536,8 +539,7 @@ var marketDailyUtils = (() => {
     addSection("\u7ECF\u6D4E\u6570\u636E", summary.secondaryRows.map((row) => `${row.text} \xB7 \u89C2\u6D4B\u65E5 ${row.observationDate} \xB7 ${row.sourceLabel}`));
     addSection("\u6570\u636E\u72B6\u6001", [
       summary.newsRevision ? US_REPORT_LABELS.newsOnlyStatus[locale === "en-US" ? 1 : 0] : summary.historicalBackfill ? "\u5386\u53F2\u8865\u62A5\uFF1A\u4E8B\u540E\u6574\u7406\uFF0C\u5E76\u975E\u62A5\u544A\u65E5\u5F53\u5929\u53D1\u5E03\u3002" : "\u5F53\u65E5\u516C\u5F00\u590D\u76D8\u3002",
-      ...summary.gaps.map((gap) => `\u5C1A\u7F3A\uFF1A${gap}`),
-      ...(summary.optionalGaps ?? []).map((gap) => `${US_REPORT_LABELS.optionalUnavailable[0]}${gap}`)
+      ...summary.gaps.map((gap) => `\u5C1A\u7F3A\uFF1A${gap}`)
     ]);
     const urls = [.../* @__PURE__ */ new Set([...summary.rows.map((row) => row.sourceUrl), ...summary.claims.flatMap((claim) => claim.sourceUrls)])];
     const domains = [...new Set(urls.map((url) => new URL(url).hostname))];
@@ -549,8 +551,13 @@ var marketDailyUtils = (() => {
     return parts.join("").replaceAll("__HEIGHT__", String(height)).replaceAll('font-family="sans-serif"', `font-family="${font}"`).replaceAll('font-family="monospace"', `font-family="${font}" font-variant-numeric="tabular-nums"`);
   }
   function formatMarketDailyStatus(summary) {
-    return `${summary.date} \u7F8E\u4E1C\u62A5\u544A\u65E5 \xB7 \u9010\u9879\u663E\u793A\u539F\u59CB\u89C2\u6D4B\u65E5\u3002` + (summary.historicalBackfill ? " \u4E8B\u540E\u6574\u7406\u3002" : "") + (summary.nextMorningRevision ? " \u6B21\u65E5\u6838\u5B9E\u66F4\u65B0\u3002" : "") + (summary.gaps.length ? ` \u5C1A\u7F3A\uFF1A${summary.gaps.join("\u3001")}\u3002` : "") + (summary.optionalGaps?.length ? ` ${US_REPORT_LABELS.optionalUnavailable[0]}${summary.optionalGaps.join("\u3001")}\u3002` : "");
+    return `${summary.date} \u7F8E\u4E1C\u62A5\u544A\u65E5 \xB7 \u9010\u9879\u663E\u793A\u539F\u59CB\u89C2\u6D4B\u65E5\u3002` + (summary.historicalBackfill ? " \u4E8B\u540E\u6574\u7406\u3002" : "") + (summary.nextMorningRevision ? " \u6B21\u65E5\u6838\u5B9E\u66F4\u65B0\u3002" : "") + (summary.gaps.length ? ` \u5C1A\u7F3A\uFF1A${summary.gaps.join("\u3001")}\u3002` : "");
   }
-  var market_daily_utils_default = { summarizeMarketDaily, formatMarketDailyStatus, formatMarketDailyRevision, buildMarketDailyCharts, buildMarketDailyChartSvg };
+  function formatMarketDailyDataNotes(summary, locale) {
+    const index = locale === "en-US" ? 1 : 0;
+    const spotVerified = ["close", "change_percent"].every((field) => summary.rows.some((row) => row.id === `cross_asset.bitcoin_spot.${field}`));
+    return (summary.optionalGaps ?? []).map(() => `${US_REPORT_LABELS.optionalUnavailable[index]}${US_REPORT_LABELS.btcFuturesGap[index]}${index ? "." : "\u3002"}${spotVerified ? `${index ? " " : ""}${US_REPORT_LABELS.optionalSpotUnaffected[index]}` : ""}`);
+  }
+  var market_daily_utils_default = { summarizeMarketDaily, formatMarketDailyStatus, formatMarketDailyRevision, formatMarketDailyDataNotes, buildMarketDailyCharts, buildMarketDailyChartSvg };
   return __toCommonJS(market_daily_utils_exports);
 })();

@@ -204,6 +204,29 @@ def _approved_item(
     )
 
 
+def _validate_review_dimensions(decision: dict, candidate: dict) -> None:
+    """Keep optional layered reviews private and reject contradictory approval."""
+    if "review_checks" not in decision:
+        return
+    checks = decision["review_checks"]
+    dimensions = {"facts", "timing", "attribution", "source_use"}
+    if not isinstance(checks, dict) or set(checks) != dimensions:
+        raise ValueError("invalid review dimensions")
+    for name, check in checks.items():
+        background = candidate.get("usage") == "background" and candidate.get("phase") == "event"
+        allowed = (
+            {"passed", "not_applicable"} if name == "attribution" and background else {"passed"}
+        )
+        if (
+            not isinstance(check, dict)
+            or not isinstance(check.get("status"), str)
+            or check.get("status") not in allowed
+            or not isinstance(check.get("reason"), str)
+            or not check["reason"].strip()
+        ):
+            raise ValueError("unresolved review dimension")
+
+
 def _validate_private_approval(decision: dict, candidate: dict, as_of: datetime) -> None:
     for name in ("source_locator", "verified_facts"):
         value = decision.get(name)
@@ -275,6 +298,7 @@ def load_reviewed_research(
             continue
         index = decision["index"]
         candidate = candidates[index]
+        _validate_review_dimensions(decision, candidate)
         if news_only:
             reviewed_at = news_only.reviewed_at if isinstance(news_only, NewsOnlyReview) else as_of
             _validate_private_approval(decision, candidate, reviewed_at)

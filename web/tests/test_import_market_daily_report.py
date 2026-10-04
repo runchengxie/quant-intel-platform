@@ -1135,6 +1135,7 @@ def test_partial_cross_asset_gap_names_only_unavailable_contract(tmp_path):
     markdown = (tmp_path / "site/artifacts/public/reports/2026-09-24-market-daily.md").read_text()
     assert "尚缺：比特币现货行情。" in markdown
     assert "可选数据未提供：比特币期货行情。" in markdown
+    assert "可选数据未提供" not in markdown.split("## 数据说明")[0]
     assert "尚缺：比特币期货行情。" not in markdown
     assert "尚缺：布伦特、金银或比特币行情。" not in markdown
 

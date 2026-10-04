@@ -59,6 +59,97 @@ def test_news_only_date_background_keeps_precision_and_hash_namespaced_identity(
     assert result.facts == ()
 
 
+@pytest.mark.parametrize("dimension", ["facts", "timing", "attribution", "source_use"])
+@pytest.mark.parametrize("news_only", [True, False])
+def test_approved_news_cannot_override_a_blocked_review_dimension(tmp_path, dimension, news_only):
+    draft, review = _news_files(tmp_path)
+    payload = json.loads(review.read_text())
+    checks = {
+        key: {"status": "passed", "reason": "Independently reviewed"}
+        for key in ("facts", "timing", "attribution", "source_use")
+    }
+    checks[dimension] = {"status": "blocked", "reason": "Evidence still missing"}
+    payload["decisions"][0]["review_checks"] = checks
+    review.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="review dimension"):
+        load_reviewed_research(
+            draft,
+            review,
+            market_date="2026-09-23",
+            as_of=datetime(2026, 9, 24, 13, tzinfo=UTC),
+            news_only=news_only,
+        )
+
+
+@pytest.mark.parametrize("news_only", [True, False])
+@pytest.mark.parametrize("background", [True, False])
+def test_layered_attribution_exemption_requires_background(tmp_path, news_only, background):
+    draft, review = _news_files(tmp_path)
+    candidate_payload = json.loads(draft.read_text())
+    if not background:
+        candidate_payload["candidates"][0].update(
+            section="drivers",
+            phase="close",
+            usage="context",
+            publication_precision="timestamp",
+            published_at="2026-09-23T21:00:00+00:00",
+        )
+        draft.write_text(json.dumps(candidate_payload))
+    payload = json.loads(review.read_text())
+    payload["draft_sha256"] = hashlib.sha256(draft.read_bytes()).hexdigest()
+    payload["decisions"][0]["review_checks"] = {
+        key: {
+            "status": "not_applicable" if key == "attribution" else "passed",
+            "reason": "PRIVATE_REVIEW_SENTINEL",
+        }
+        for key in ("facts", "timing", "attribution", "source_use")
+    }
+    review.write_text(json.dumps(payload))
+    kwargs = {
+        "market_date": "2026-09-23",
+        "as_of": datetime(2026, 9, 24, 13, tzinfo=UTC),
+        "news_only": news_only,
+    }
+    if background:
+        result = load_reviewed_research(draft, review, **kwargs)
+        assert result.events
+        assert "PRIVATE_REVIEW_SENTINEL" not in repr(result)
+    else:
+        with pytest.raises(ValueError, match="review dimension"):
+            load_reviewed_research(draft, review, **kwargs)
+
+
+@pytest.mark.parametrize(
+    "checks",
+    [
+        None,
+        {},
+        {"facts": []},
+        {
+            key: {"status": [], "reason": "Checked"}
+            for key in ("facts", "timing", "attribution", "source_use")
+        },
+        {
+            key: {"status": "passed", "reason": " "}
+            for key in ("facts", "timing", "attribution", "source_use")
+        },
+    ],
+)
+def test_layered_review_rejects_malformed_checks(tmp_path, checks):
+    draft, review = _news_files(tmp_path)
+    payload = json.loads(review.read_text())
+    payload["decisions"][0]["review_checks"] = checks
+    review.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="review dimension"):
+        load_reviewed_research(
+            draft,
+            review,
+            market_date="2026-09-23",
+            as_of=datetime(2026, 9, 24, 13, tzinfo=UTC),
+            news_only=True,
+        )
+
+
 def test_date_only_review_rejects_quotation_decisions_in_legacy_mode(tmp_path):
     draft, review = _news_files(tmp_path)
     payload = json.loads(review.read_text())

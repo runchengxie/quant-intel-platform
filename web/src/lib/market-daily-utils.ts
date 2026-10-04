@@ -469,8 +469,7 @@ export function buildMarketDailyChartSvg(summary: MarketDailySummary, translate:
   if (summary.newsRevision) addSection(US_REPORT_LABELS.newsRevised[locale === 'en-US' ? 1 : 0], formatMarketDailyRevision(summary, locale), false);
   addSection("经济数据", summary.secondaryRows.map((row) => `${row.text} · 观测日 ${row.observationDate} · ${row.sourceLabel}`));
   addSection("数据状态", [summary.newsRevision ? US_REPORT_LABELS.newsOnlyStatus[locale === 'en-US' ? 1 : 0] : summary.historicalBackfill ? "历史补报：事后整理，并非报告日当天发布。" : "当日公开复盘。",
-    ...summary.gaps.map((gap) => `尚缺：${gap}`),
-    ...(summary.optionalGaps ?? []).map((gap) => `${US_REPORT_LABELS.optionalUnavailable[0]}${gap}`)]);
+    ...summary.gaps.map((gap) => `尚缺：${gap}`)]);
   const urls = [...new Set([...summary.rows.map((row) => row.sourceUrl), ...summary.claims.flatMap((claim) => claim.sourceUrls)])];
   const domains = [...new Set(urls.map((url) => new URL(url).hostname))];
   addSection("关键来源", [...domains.map((domain) => `· ${domain}`), "完整来源链接见网页报告。"]);
@@ -487,8 +486,13 @@ export function formatMarketDailyStatus(summary: MarketDailySummary): string {
   return `${summary.date} 美东报告日 · 逐项显示原始观测日。`
     + (summary.historicalBackfill ? " 事后整理。" : "")
     + (summary.nextMorningRevision ? " 次日核实更新。" : "")
-    + (summary.gaps.length ? ` 尚缺：${summary.gaps.join("、")}。` : "")
-    + (summary.optionalGaps?.length ? ` ${US_REPORT_LABELS.optionalUnavailable[0]}${summary.optionalGaps.join("、")}。` : "");
+    + (summary.gaps.length ? ` 尚缺：${summary.gaps.join("、")}。` : "");
 }
 
-export default { summarizeMarketDaily, formatMarketDailyStatus, formatMarketDailyRevision, buildMarketDailyCharts, buildMarketDailyChartSvg };
+export function formatMarketDailyDataNotes(summary: MarketDailySummary, locale: Locale): string[] {
+  const index = locale === 'en-US' ? 1 : 0;
+  const spotVerified = ['close', 'change_percent'].every(field => summary.rows.some(row => row.id === `cross_asset.bitcoin_spot.${field}`));
+  return (summary.optionalGaps ?? []).map(() => `${US_REPORT_LABELS.optionalUnavailable[index]}${US_REPORT_LABELS.btcFuturesGap[index]}${index ? '.' : '。'}${spotVerified ? `${index ? ' ' : ''}${US_REPORT_LABELS.optionalSpotUnaffected[index]}` : ''}`);
+}
+
+export default { summarizeMarketDaily, formatMarketDailyStatus, formatMarketDailyRevision, formatMarketDailyDataNotes, buildMarketDailyCharts, buildMarketDailyChartSvg };
