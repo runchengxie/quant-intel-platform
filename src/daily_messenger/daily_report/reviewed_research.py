@@ -12,6 +12,7 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from .models import MarketEvent, MarketFact, ResearchClaim
+from .publication_time import publication_time_from_candidate, validate_publication_time
 
 INDEX_IDS = {
     "spx": "S&P 500",
@@ -99,6 +100,7 @@ def _approved_item(
     *,
     market_date: str,
     as_of: datetime,
+    evidence_namespace: str | None = None,
 ) -> tuple[MarketEvent, ResearchClaim, list[MarketFact]]:
     if candidate.get("review_status") != "needs_review":
         raise ValueError("invalid candidate review state")
@@ -113,13 +115,32 @@ def _approved_item(
     parsed_url = urlsplit(source_url)
     if parsed_url.scheme != "https" or not parsed_url.hostname:
         raise ValueError("invalid reviewed source URL")
-    source_time = datetime.fromisoformat(candidate["published_at"])
-    if source_time.tzinfo is None or source_time > as_of:
-        raise ValueError("reviewed source after cutoff")
+    evidence = publication_time_from_candidate(candidate)
+    validate_publication_time(evidence, market_date=market_date, cutoff=as_of, section=section)
+    source_time = evidence.source_time
+    if candidate.get("phase") not in {"close", "intraday", "event"}:
+        raise ValueError("invalid reviewed phase")
+    if evidence.precision == "date" and candidate["phase"] != "event":
+        raise ValueError("date-only evidence cannot be close or intraday data")
+    if evidence.precision == "date" and any(
+        key in decision for key in ("index_returns", "index_evidence", "ticker")
+    ):
+        raise ValueError("date-only evidence cannot supply quotations")
     summary = decision.get("approved_summary")
     if not isinstance(summary, str) or not summary.strip():
         raise ValueError("approved claim must be independently written")
-    event_id = f"reviewed.{index}"
+    event_id = (
+        f"reviewed.{evidence_namespace}.{index}" if evidence_namespace else f"reviewed.{index}"
+    )
+    metadata = {}
+    if evidence_namespace or "publication_precision" in candidate or "time_role" in candidate:
+        metadata = {
+            "publication_precision": evidence.precision,
+            "source_date": evidence.source_date,
+            "source_timezone": evidence.source_timezone,
+            "time_role": evidence.time_role,
+            "usage": evidence.usage,
+        }
     event = MarketEvent(
         id=event_id,
         event_type=f"web_{section}_{candidate['phase']}",
@@ -132,6 +153,7 @@ def _approved_item(
         source_url=source_url,
         source_time=source_time,
         quality="reviewed",
+        **metadata,
     )
     claim = ResearchClaim(
         claim=summary.strip(),
@@ -151,12 +173,43 @@ def _approved_item(
             source_time=source_time,
             market_date=market_date,
             as_of=as_of,
-        ),
+        )
+        if source_time is not None
+        else [],
     )
 
 
+def _validate_private_approval(decision: dict, candidate: dict, as_of: datetime) -> None:
+    for name in ("source_locator", "verified_facts"):
+        value = decision.get(name)
+        if not value or not isinstance(value, (str, list)):
+            raise ValueError("private source review missing")
+        if isinstance(value, list) and any(
+            not isinstance(item, str) or not item.strip() for item in value
+        ):
+            raise ValueError("invalid private source review")
+    basis = decision.get("display_basis")
+    if not isinstance(basis, dict) or any(
+        not isinstance(basis.get(key), str) or not basis[key].strip()
+        for key in ("basis", "scope", "source_url", "verified_on")
+    ):
+        raise ValueError("display basis review missing")
+    if basis["source_url"] != candidate.get("source_url"):
+        raise ValueError("display basis review URL mismatch")
+    from datetime import date
+
+    verified_on = date.fromisoformat(basis["verified_on"])
+    if verified_on.isoformat() != basis["verified_on"] or verified_on > as_of.date():
+        raise ValueError("invalid display basis review date")
+
+
 def load_reviewed_research(
-    draft_path: Path, review_path: Path, *, market_date: str, as_of: datetime
+    draft_path: Path,
+    review_path: Path,
+    *,
+    market_date: str,
+    as_of: datetime,
+    news_only: bool = False,
 ) -> ReviewedResearch:
     """Load only individually approved candidates bound to an unchanged private draft."""
     draft_bytes = draft_path.read_bytes()
@@ -183,6 +236,10 @@ def load_reviewed_research(
     mover_tickers: list[str] = []
     mover_evidence: list[tuple[str, str]] = []
     for decision in decisions:
+        if news_only and any(
+            key in decision for key in ("index_returns", "index_evidence", "ticker")
+        ):
+            raise ValueError("news-only review cannot add quote instructions")
         status = decision.get("status")
         if status not in {"approved", "deferred", "rejected"} or not decision.get("reason"):
             raise ValueError("invalid review decision")
@@ -190,12 +247,15 @@ def load_reviewed_research(
             continue
         index = decision["index"]
         candidate = candidates[index]
+        if news_only:
+            _validate_private_approval(decision, candidate, as_of)
         event, claim, item_facts = _approved_item(
             index,
             decision,
             candidate,
             market_date=market_date,
             as_of=as_of,
+            evidence_namespace=hashlib.sha256(draft_bytes).hexdigest() if news_only else None,
         )
         ticker = decision.get("ticker")
         if ticker is not None:

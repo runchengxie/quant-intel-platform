@@ -14,6 +14,8 @@ from urllib.parse import urlsplit
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
+from .publication_time import publication_time_from_candidate, validate_publication_time
+
 SECTIONS = frozenset({"market", "drivers", "macro", "company_news", "gainers", "losers"})
 NEW_YORK = ZoneInfo("America/New_York")
 FIELDS = (
@@ -87,6 +89,15 @@ def _source_reason(row: object, market_date: date, cutoff: datetime) -> str | No
     if not _valid_source_url(source_url):
         return "invalid_source_url"
     published_at = values.get("published_at")
+    if values.get("publication_precision") == "date":
+        try:
+            evidence = publication_time_from_candidate(values)
+            validate_publication_time(
+                evidence, market_date=market_date.isoformat(), cutoff=cutoff, section=section
+            )
+        except (ValueError, TypeError):
+            return "invalid_publication_evidence"
+        return None if values.get("phase") == "event" else "invalid_phase"
     if not isinstance(published_at, str):
         return "invalid_published_at"
     try:
@@ -146,7 +157,13 @@ def validate_candidates(
             continue
         assert isinstance(row, dict)
         values = cast("dict[str, str]", row)
-        candidate: dict[str, str] = {field: values[field].strip() for field in FIELDS}
+        fields = list(FIELDS)
+        if values.get("publication_precision") == "date":
+            fields.remove("published_at")
+            fields.extend(
+                ("publication_precision", "source_date", "source_timezone", "time_role", "usage")
+            )
+        candidate: dict[str, str] = {field: values[field].strip() for field in fields}
         candidate["review_status"] = "needs_review"
         accepted.append(candidate)
     return accepted, rejected

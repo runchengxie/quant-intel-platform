@@ -10,6 +10,99 @@ from daily_messenger.daily_report.reviewed_research import load_reviewed_researc
 AS_OF = datetime(2026, 9, 24, 8, 30, tzinfo=UTC)
 
 
+def _news_files(tmp_path):
+    draft, review = _files(tmp_path)
+    payload = json.loads(draft.read_text())
+    item = payload["candidates"][0]
+    item.pop("published_at")
+    item.update(
+        section="company_news",
+        phase="event",
+        publication_precision="date",
+        source_date="2026-09-23",
+        source_timezone="unknown",
+        time_role="publication",
+        usage="background",
+    )
+    draft.write_text(json.dumps(payload))
+    approvals = json.loads(review.read_text())
+    approvals["draft_sha256"] = hashlib.sha256(draft.read_bytes()).hexdigest()
+    row = approvals["decisions"][0]
+    row.pop("index_returns")
+    row.pop("index_evidence")
+    row.update(
+        source_locator="Issuer release, revenue paragraph",
+        verified_facts=["Revenue grew"],
+        display_basis={
+            "basis": "independent_factual_summary",
+            "scope": "short factual summary",
+            "source_url": item["source_url"],
+            "verified_on": "2026-09-24",
+        },
+    )
+    review.write_text(json.dumps(approvals))
+    return draft, review
+
+
+def test_news_only_date_background_keeps_precision_and_hash_namespaced_identity(tmp_path):
+    draft, review = _news_files(tmp_path)
+    result = load_reviewed_research(
+        draft,
+        review,
+        market_date="2026-09-23",
+        as_of=datetime(2026, 9, 24, 13, tzinfo=UTC),
+        news_only=True,
+    )
+    assert result.events[0].source_time is None
+    assert result.events[0].source_date == "2026-09-23"
+    assert result.events[0].id == f"reviewed.{hashlib.sha256(draft.read_bytes()).hexdigest()}.0"
+    assert result.facts == ()
+
+
+def test_date_only_review_rejects_quotation_decisions_in_legacy_mode(tmp_path):
+    draft, review = _news_files(tmp_path)
+    payload = json.loads(review.read_text())
+    payload["decisions"][0]["index_returns"] = {"spx": 1.0}
+    review.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="date-only"):
+        load_reviewed_research(
+            draft, review, market_date="2026-09-23", as_of=datetime(2026, 9, 24, 13, tzinfo=UTC)
+        )
+
+
+@pytest.mark.parametrize("field", ["source_locator", "verified_facts", "display_basis"])
+def test_new_mode_requires_private_source_and_display_review(tmp_path, field):
+    draft, review = _news_files(tmp_path)
+    payload = json.loads(review.read_text())
+    payload["decisions"][0].pop(field)
+    review.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="review"):
+        load_reviewed_research(
+            draft,
+            review,
+            market_date="2026-09-23",
+            as_of=datetime(2026, 9, 24, 13, tzinfo=UTC),
+            news_only=True,
+        )
+
+
+@pytest.mark.parametrize("field", ["ticker", "index_returns", "index_evidence"])
+def test_news_only_rejects_quote_instructions_even_when_deferred(tmp_path, field):
+    draft, review = _news_files(tmp_path)
+    payload = json.loads(review.read_text())
+    payload["decisions"][0].update(status="deferred")
+    payload["decisions"][0][field] = None
+    review.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="news-only"):
+        load_reviewed_research(
+            draft,
+            review,
+            market_date="2026-09-23",
+            as_of=datetime(2026, 9, 24, 13, tzinfo=UTC),
+            news_only=True,
+        )
+
+
 def _files(tmp_path, *, decision="approved", summary="经核实的收盘摘要"):
     artifact = {
         "market_date": "2026-09-23",

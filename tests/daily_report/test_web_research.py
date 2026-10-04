@@ -47,6 +47,27 @@ def test_valid_candidate_is_kept_for_review():
     assert accepted[0]["observation_date"] == "2026-09-18"
 
 
+def test_date_only_background_collection_retains_real_precision():
+    row = candidate(
+        section="macro",
+        phase="event",
+        publication_precision="date",
+        source_date="2026-09-18",
+        source_timezone="unknown",
+        time_role="publication",
+        usage="background",
+    )
+    row.pop("published_at")
+    accepted, rejected = validate_candidates(
+        {"candidates": [row]}, market_date=MARKET_DATE, cutoff=datetime(2026, 9, 19, 13, tzinfo=UTC)
+    )
+    assert rejected == []
+    assert accepted[0]["source_date"] == "2026-09-18"
+    assert accepted[0]["publication_precision"] == "date"
+    assert accepted[0]["review_status"] == "needs_review"
+    assert "published_at" not in accepted[0]
+
+
 def test_previous_day_article_is_not_target_day_evidence():
     accepted, rejected = validate_candidates(
         {"candidates": [candidate(observation_date="2026-09-17")]},

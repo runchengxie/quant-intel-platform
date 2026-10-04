@@ -7,6 +7,7 @@ from datetime import datetime
 from typing import Any
 
 from .models import MarketEvent
+from .publication_time import publication_interval, publication_time_from_candidate
 
 
 def _event_id(row: Mapping[str, Any]) -> str:
@@ -51,4 +52,8 @@ def build_market_events(
 
 
 def filter_events_as_of(events: Iterable[MarketEvent], as_of: datetime) -> list[MarketEvent]:
-    return [event for event in events if event.source_time <= as_of]
+    return [
+        event
+        for event in events
+        if publication_interval(publication_time_from_candidate(event.to_dict()))[1] <= as_of
+    ]
