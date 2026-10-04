@@ -1,37 +1,40 @@
 # Report writing style
 
-Research requests, short summaries and evidence-backed market insights ask for
-plain, natural Chinese. The full and section-bounded research paths carry the
-same guidance. Human source auditors should apply it to approved paraphrases too.
+[Chinese version](report-writing-style.zh-CN.md)
 
-Check publication dates, event dates and applicable conditions. Discuss whether
-material remains applicable relative to the report's information cutoff, using
-only evidence available by that cutoff. Preserve unknown dates as unknown. Do
-not use later events to explain an earlier judgment. Display dates in prose when
-needed for understanding, rather than repeating metadata in every sentence.
+Research requests, short summaries, and evidence-backed market insights should
+use clear, natural Chinese. Apply the same guidance to full reports and
+section-specific requests. Human source reviewers should follow it when writing
+approved paraphrases.
 
-Write directly. Remove redundant negative clauses, formulaic contrasts, opaque
-words, translationese, unnecessary Chinese/English mixtures and unsupported
-conclusions. Avoid unnecessary wrap-up paragraphs. Prefer Chinese punctuation
-and avoid unnecessary quotation marks, bold text, semicolons and em dashes.
-Retain meaningful source names and inline code where the output format permits.
-Review the draft once more for these issues before returning it.
+Check publication dates, event dates, and applicable conditions. Assess whether
+information remained relevant at the report's cutoff, using only evidence
+available by then. Keep unknown dates unknown. Do not use later events to
+explain an earlier judgment. Include dates in prose only when they help readers;
+do not repeat metadata in every sentence.
 
-For example, a source-audited paraphrase can say:
+Write directly. Remove redundant negative clauses, formulaic contrasts, obscure
+wording, translation-like prose, unnecessary Chinese-English mixing, and
+unsupported conclusions. Skip formulaic closing paragraphs. Use Chinese
+punctuation. Avoid unnecessary quotation marks, bold text, semicolons, and
+em dashes. Keep meaningful source names and inline code when the output format
+allows them. Review the draft once more before returning it.
 
-嘉信理财10月1日的盘前观察主要关注科技股表现和高位美债收益率。
+For example, a source-audited paraphrase might read:
 
-The publication time and intraday phase still belong in the source metadata.
-Removing a repetitive disclaimer does not permit describing this as a closing
-explanation. Required uncertainty, missing-data disclosures, evidence references,
-JSON fields and numeric contracts remain unchanged.
+> 嘉信理财10月1日的盘前观察主要关注科技股表现和高位美债收益率。
 
-The personal Feishu commentary remains short and date-free. Its verified input
-retains dates, and it must not consult later or external material. Markdown is
-not permitted in that surface. A writing-policy change invalidates commentary
-generation caches, never successful delivery receipts.
+The source's publication time and intraday phase still belong in its metadata.
+Removing a repetitive disclaimer does not make the paraphrase a closing-market
+explanation. Preserve required uncertainty, missing-data notices, evidence
+references, JSON fields, and numeric contracts.
 
-These are prompt instructions and an editorial checklist, not a deterministic
-guarantee of human-quality prose. Offline tests establish prompt wiring and
-cache boundaries, not live model writing quality. Historical approved reports
-are not rewritten automatically. Runtime activation requires a separate release.
+Personal Feishu commentary should be brief and omit dates. Its verified input
+still retains dates, and the commentary must not use later or external
+information. Do not use Markdown in that surface. A writing-policy change
+invalidates commentary-generation caches, but not successful delivery receipts.
+
+These instructions and editorial checks do not guarantee human-quality prose.
+Offline tests verify prompt wiring and cache boundaries, not live model output.
+Previously approved reports are not rewritten automatically. Runtime changes
+require a separate release.

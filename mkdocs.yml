@@ -101,6 +101,7 @@ nav:
       - Testing: testing.en.md
       - Workflows: workflows.en.md
       - Report structure: report-structure.en.md
+      - Report writing style: how-to/report-writing-style.en.md
       - Web dashboard research note: web-dashboard.en.md
       - Daily schedule: daily-schedule.en.md
       - Report delivery: report-distribution.en.md
@@ -148,6 +149,7 @@ nav:
           - 测试说明: testing.md
           - 工作流: workflows.md
           - 报告结构: report-structure.md
+          - 报告写作规范: how-to/report-writing-style.zh-CN.md
           - 网页看板调研: web-dashboard.md
           - 日程安排: daily-schedule.md
           - 报告投递: report-distribution.md
