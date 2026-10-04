@@ -535,10 +535,12 @@ def _dispatch_news_revision(args: argparse.Namespace, logger: logging.Logger) ->
         now = datetime.now(UTC)
         cutoff = datetime.fromisoformat(args.news_cutoff) if args.news_cutoff else now
         result = revise_news(
-            Path(args.revise_news),
-            Path(args.input_manifest),
-            Path(args.reviewed_draft),
-            Path(args.reviewed_decisions),
+            (
+                Path(args.revise_news),
+                Path(args.input_manifest),
+                Path(args.reviewed_draft),
+                Path(args.reviewed_decisions),
+            ),
             Path(args.out),
             market_date=args.date,
             news_cutoff=cutoff,

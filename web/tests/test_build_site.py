@@ -95,6 +95,41 @@ def test_supported_build_renders_synthetic_reviewed_news_in_both_locales(tmp_pat
     assert "fixture-reviewer" not in (output / "data/asia_news/2026-09-30-evening.json").read_text()
 
 
+def test_supported_build_separates_us_fact_cutoff_and_news_revision_notes(tmp_path):
+    from market_intel_publication.import_market_daily_report import import_report
+
+    from tests.test_import_market_daily_report import _news_revision_payload, _payload, _source
+
+    actual = Path(__file__).resolve().parents[1]
+    root, output = tmp_path / "source", tmp_path / "site"
+    create_site(root, 1)
+    shutil.copytree(actual / "src", root / "src", dirs_exist_ok=True)
+    for name in ("package.json", "astro.config.mjs", "tsconfig.json"):
+        shutil.copy2(actual / name, root / name)
+    (root / "node_modules").symlink_to(actual / "node_modules", target_is_directory=True)
+    parent, revised = tmp_path / "parent", tmp_path / "revised"
+    parent.mkdir()
+    revised.mkdir()
+    original, _ = _source(parent, _payload())
+    payload = _news_revision_payload(
+        json.loads(original.read_text()), hashlib.sha256(original.read_bytes()).hexdigest()
+    )
+    source, manifest = _source(revised, payload)
+    import_report(source, root, manifest, previous_report=original)
+    build_site(root, output)
+    for route, labels in [
+        ("index.html", ["行情截至", "新闻修订"]),
+        ("en/index.html", ["Market facts cutoff", "News revised"]),
+    ]:
+        html = (output / route).read_text()
+        import re
+
+        notes = " ".join(re.findall(r'<p class="section-note">(.*?)</p>', html))
+        assert all(label in notes for label in labels)
+        assert "2026-09-20T01:00:00+00:00" in notes
+        assert "2026-09-21T13:00:00+00:00" in notes
+
+
 def test_evening_only_summary_is_validated_by_report_date() -> None:
     rows = [
         {"id": "old", "kind": "evening", "date": "2026-09-23"},

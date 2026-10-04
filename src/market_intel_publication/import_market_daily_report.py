@@ -282,12 +282,12 @@ def _markdown_header(payload: dict[str, Any], include_references: bool) -> list[
         lines.extend(
             [
                 f"数据状态：{payload.get('quality_summary', {}).get('status', 'unknown')}",
-                f"报告生成时间：{payload['as_of']}（美东报告日 {_date(payload)}）",
+                f"报告生成时间：{payload['generated_at']}（美东报告日 {_date(payload)}）",
                 "",
             ]
         )
         cutoff = payload.get("quality_summary", {}).get("reviewed_source_cutoff")
-        if cutoff:
+        if cutoff and not payload.get("quality_summary", {}).get("news_revision"):
             lines.extend([f"新闻资料截止：{cutoff}。", ""])
     if payload.get("quality_summary", {}).get("revision") == "historical_backfill":
         lines.extend(
@@ -449,7 +449,7 @@ def _text_report(payload: dict[str, Any]) -> str:
     cross_asset_facts = _text_fact_lines(payload, "cross_asset.")
     lines = [
         f"美股市场日报｜{report_date} 美东报告日",
-        f"报告生成时间：{payload['as_of']}；逐项显示原始观测日。",
+        f"报告生成时间：{payload['generated_at']}；逐项显示原始观测日。",
         "",
         "一、美股市场表现",
         *(market_facts or ["- 暂无经核实指数行情。"]),
@@ -479,7 +479,7 @@ def _text_report(payload: dict[str, Any]) -> str:
     cutoff = payload.get("quality_summary", {}).get("reviewed_source_cutoff")
     lines[2:2] = _news_revision_lines(payload)
     lines.extend(_publication_lines(payload, payload.get("claims", [])))
-    if cutoff:
+    if cutoff and not payload.get("quality_summary", {}).get("news_revision"):
         lines[2:2] = [f"新闻资料截止：{cutoff}。"]
     if payload.get("quality_summary", {}).get("revision") == "historical_backfill":
         lines[2:2] = ["历史补报：本次事后重建，非当日已发布报告。"]

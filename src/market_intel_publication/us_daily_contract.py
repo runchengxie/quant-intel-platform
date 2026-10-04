@@ -177,7 +177,11 @@ def _valid_report_time(payload: dict[str, Any]) -> bool:
     market_time = datetime.fromisoformat(payload["as_of"]).astimezone(ZoneInfo("America/New_York"))
     report_date = date.fromisoformat(str(payload["run_id"]).removeprefix("daily-"))
     age = (market_time.date() - report_date).days
-    if payload.get("quality_summary", {}).get("revision") == "historical_backfill":
+    quality = payload.get("quality_summary", {})
+    revision = quality.get("revision")
+    if revision == "news_only":
+        revision = quality.get("market_revision")
+    if revision == "historical_backfill":
         return 0 < age <= 10
     return market_time.date() == report_date or (
         market_time.date() == report_date + timedelta(days=1) and market_time.time() < time(9, 30)
@@ -597,6 +601,8 @@ def _public_payload(payload: dict[str, Any], manifest: dict[str, Any]) -> dict[s
     }
     if payload["schema_version"] == "1.1":
         quality = payload.get("quality_summary", {})
+        if "market_revision" in quality:
+            result["quality_summary"]["market_revision"] = quality["market_revision"]
         if "news_revision" in quality:
             result["quality_summary"]["news_revision"] = _select(
                 quality["news_revision"], REVISION_FIELDS

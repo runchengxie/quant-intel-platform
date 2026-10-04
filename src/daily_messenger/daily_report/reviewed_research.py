@@ -7,9 +7,10 @@ import json
 import math
 import re
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import UTC, date, datetime, time
 from pathlib import Path
 from urllib.parse import urlsplit
+from zoneinfo import ZoneInfo
 
 from .models import MarketEvent, MarketFact, ResearchClaim
 from .publication_time import publication_time_from_candidate, validate_publication_time
@@ -22,6 +23,18 @@ INDEX_IDS = {
 }
 INDEX_SOURCE_HOSTS = {"abcnews.com", "www-cdn.abcnews.com", "apnews.com"}
 SECTIONS = {"market", "drivers", "macro", "company_news", "gainers", "losers"}
+
+
+@dataclass(frozen=True)
+class NewsOnlyReview:
+    reviewed_at: datetime
+
+
+@dataclass(frozen=True)
+class ReviewedItemContext:
+    market_date: str
+    as_of: datetime
+    evidence_namespace: str | None = None
 
 
 @dataclass(frozen=True)
@@ -98,10 +111,13 @@ def _approved_item(
     decision: dict,
     candidate: dict,
     *,
-    market_date: str,
-    as_of: datetime,
-    evidence_namespace: str | None = None,
+    context: ReviewedItemContext,
 ) -> tuple[MarketEvent, ResearchClaim, list[MarketFact]]:
+    market_date, as_of, evidence_namespace = (
+        context.market_date,
+        context.as_of,
+        context.evidence_namespace,
+    )
     if candidate.get("review_status") != "needs_review":
         raise ValueError("invalid candidate review state")
     if candidate.get("observation_date") != market_date:
@@ -120,6 +136,15 @@ def _approved_item(
     source_time = evidence.source_time
     if candidate.get("phase") not in {"close", "intraday", "event"}:
         raise ValueError("invalid reviewed phase")
+    if (
+        candidate["phase"] == "close"
+        and source_time is not None
+        and source_time
+        < datetime.combine(
+            date.fromisoformat(market_date), time(16), tzinfo=ZoneInfo("America/New_York")
+        )
+    ):
+        raise ValueError("preclose source cannot supply reviewed close evidence")
     if evidence.precision == "date" and candidate["phase"] != "event":
         raise ValueError("date-only evidence cannot be close or intraday data")
     if evidence.precision == "date" and any(
@@ -184,6 +209,8 @@ def _validate_private_approval(decision: dict, candidate: dict, as_of: datetime)
         value = decision.get(name)
         if not value or not isinstance(value, (str, list)):
             raise ValueError("private source review missing")
+        if isinstance(value, str) and not value.strip():
+            raise ValueError("private source review missing")
         if isinstance(value, list) and any(
             not isinstance(item, str) or not item.strip() for item in value
         ):
@@ -196,10 +223,11 @@ def _validate_private_approval(decision: dict, candidate: dict, as_of: datetime)
         raise ValueError("display basis review missing")
     if basis["source_url"] != candidate.get("source_url"):
         raise ValueError("display basis review URL mismatch")
-    from datetime import date
-
     verified_on = date.fromisoformat(basis["verified_on"])
-    if verified_on.isoformat() != basis["verified_on"] or verified_on > as_of.date():
+    if (
+        verified_on.isoformat() != basis["verified_on"]
+        or verified_on > as_of.astimezone(UTC).date()
+    ):
         raise ValueError("invalid display basis review date")
 
 
@@ -209,7 +237,7 @@ def load_reviewed_research(
     *,
     market_date: str,
     as_of: datetime,
-    news_only: bool = False,
+    news_only: bool | NewsOnlyReview = False,
 ) -> ReviewedResearch:
     """Load only individually approved candidates bound to an unchanged private draft."""
     draft_bytes = draft_path.read_bytes()
@@ -248,14 +276,15 @@ def load_reviewed_research(
         index = decision["index"]
         candidate = candidates[index]
         if news_only:
-            _validate_private_approval(decision, candidate, as_of)
+            reviewed_at = news_only.reviewed_at if isinstance(news_only, NewsOnlyReview) else as_of
+            _validate_private_approval(decision, candidate, reviewed_at)
         event, claim, item_facts = _approved_item(
             index,
             decision,
             candidate,
-            market_date=market_date,
-            as_of=as_of,
-            evidence_namespace=hashlib.sha256(draft_bytes).hexdigest() if news_only else None,
+            context=ReviewedItemContext(
+                market_date, as_of, hashlib.sha256(draft_bytes).hexdigest() if news_only else None
+            ),
         )
         ticker = decision.get("ticker")
         if ticker is not None:

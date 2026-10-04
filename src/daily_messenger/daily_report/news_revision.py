@@ -11,7 +11,7 @@ from pathlib import Path
 
 from market_intel_publication.us_daily_contract import _public_manifest, _read
 
-from .reviewed_research import ReviewedResearch, load_reviewed_research
+from .reviewed_research import NewsOnlyReview, ReviewedResearch, load_reviewed_research
 from .serialization import content_digest, dumps_json
 
 
@@ -25,6 +25,14 @@ class NewsRevisionResult:
 
 def _validate_paths(inputs: tuple[Path, ...], output_dir: Path) -> None:
     output = output_dir.resolve()
+    owner_root = Path(__file__).resolve().parents[3]
+    foreign_checkout = any(
+        ((parent / ".git").exists() or (parent / ".git").is_symlink())
+        and not owner_root.is_relative_to(parent)
+        for parent in (output, *output.parents)
+    )
+    if output.is_relative_to(owner_root) or owner_root.is_relative_to(output) or foreign_checkout:
+        raise ValueError("news revision output must be outside a source repository")
     for source in inputs[:2]:
         directory = source.resolve().parent
         if (
@@ -75,10 +83,7 @@ def _append_research(payload: dict, reviewed: ReviewedResearch) -> int:
 
 
 def revise_news(
-    input_path: Path,
-    manifest_path: Path,
-    draft_path: Path,
-    review_path: Path,
+    inputs: tuple[Path, Path, Path, Path],
     output_dir: Path,
     *,
     market_date: str,
@@ -86,6 +91,7 @@ def revise_news(
     revised_at: datetime,
 ) -> NewsRevisionResult:
     """Assemble staged files without loading credentials, models or market providers."""
+    input_path, manifest_path, draft_path, review_path = inputs
     _validate_paths((input_path, manifest_path, draft_path, review_path), output_dir)
     if any(
         value.tzinfo is None or value.utcoffset() is None for value in (news_cutoff, revised_at)
@@ -103,7 +109,11 @@ def revise_news(
     if revised_at < datetime.fromisoformat(payload["generated_at"]):
         raise ValueError("news revision predates original generation")
     reviewed = load_reviewed_research(
-        draft_path, review_path, market_date=market_date, as_of=news_cutoff, news_only=True
+        draft_path,
+        review_path,
+        market_date=market_date,
+        as_of=news_cutoff,
+        news_only=NewsOnlyReview(revised_at),
     )
     result = copy.deepcopy(payload)
     added = _append_research(result, reviewed)
@@ -115,6 +125,8 @@ def revise_news(
     if "news_revision" in quality:
         history = quality.setdefault("news_revision_history", [])
         history.append(quality["news_revision"] | {"result_content_hash": payload["content_hash"]})
+    if quality.get("revision") in {"historical_backfill", "next_morning_rechecked"}:
+        quality["market_revision"] = quality["revision"]
     quality["revision"] = "news_only"
     quality["news_revision"] = {
         "input_report_sha256": hashlib.sha256(original_bytes).hexdigest(),
@@ -151,7 +163,7 @@ def revise_news(
             "run_id": result["run_id"],
         }
     )
-    output_dir.mkdir(parents=True, exist_ok=False)
+    output_dir.mkdir(parents=True, exist_ok=False, mode=0o700)
     for name, text in (
         ("daily_report.json", serialized),
         ("publication.json", manifest),

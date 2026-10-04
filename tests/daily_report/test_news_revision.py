@@ -152,7 +152,7 @@ def inputs(tmp_path):
 
 def revision(paths, output):
     return import_module("daily_messenger.daily_report.news_revision").revise_news(
-        *paths, output, market_date="2026-10-02", news_cutoff=REVISED_AT, revised_at=REVISED_AT
+        paths, output, market_date="2026-10-02", news_cutoff=REVISED_AT, revised_at=REVISED_AT
     )
 
 
@@ -224,6 +224,52 @@ def test_repeat_is_noop(tmp_path):
     assert not (tmp_path / "second").exists()
 
 
+def test_review_can_happen_after_declared_news_cutoff(tmp_path):
+    paths = inputs(tmp_path)
+    review = json.loads(paths[3].read_text())
+    review["decisions"][0]["display_basis"]["verified_on"] = "2026-10-04"
+    paths[3].write_text(dumps_json(review))
+    result = import_module("daily_messenger.daily_report.news_revision").revise_news(
+        paths,
+        tmp_path / "stage",
+        market_date="2026-10-02",
+        news_cutoff=datetime(2026, 10, 3, 12, tzinfo=UTC),
+        revised_at=REVISED_AT,
+    )
+    assert result.changed
+
+
+def test_news_revision_retains_original_backfill_boundary(tmp_path):
+    from market_intel_publication.us_daily_contract import _read
+
+    source, manifest, draft, review = inputs(tmp_path)
+    payload = json.loads(source.read_text())
+    payload["as_of"] = payload["generated_at"] = "2026-10-03T23:00:00+00:00"
+    payload["quality_summary"]["revision"] = "historical_backfill"
+    payload["content_hash"] = _legacy_digest(payload)
+    source.write_text(dumps_json(payload))
+    metadata = json.loads(manifest.read_text())
+    metadata.update(
+        report_sha256=hashlib.sha256(source.read_bytes()).hexdigest(),
+        content_hash=payload["content_hash"],
+    )
+    manifest.write_text(dumps_json(metadata))
+    result = revision((source, manifest, draft, review), tmp_path / "stage")
+    restored = _read(result.artifact_path)
+    assert restored["quality_summary"]["market_revision"] == "historical_backfill"
+    assert restored["as_of"] == payload["as_of"]
+
+
+def test_output_inside_another_repository_is_rejected(tmp_path):
+    paths = inputs(tmp_path)
+    repo = tmp_path / "other-checkout"
+    repo.mkdir()
+    (repo / ".git").mkdir()
+    with pytest.raises(ValueError, match="repository"):
+        revision(paths, repo / "generated")
+    assert not (repo / "generated").exists()
+
+
 @pytest.mark.parametrize(
     "fault", ["manifest", "hash", "decisions", "quote", "overlap", "symlink", "existing", "cutoff"]
 )
@@ -254,7 +300,7 @@ def test_invalid_revision_fails_before_writes(tmp_path, fault):
     with pytest.raises(ValueError):
         if fault == "cutoff":
             import_module("daily_messenger.daily_report.news_revision").revise_news(
-                *paths,
+                paths,
                 output,
                 market_date="2026-10-02",
                 news_cutoff=datetime(2026, 10, 5, tzinfo=UTC),

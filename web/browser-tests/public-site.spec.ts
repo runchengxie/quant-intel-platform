@@ -22,6 +22,38 @@ const routes = [
   },
 ];
 
+test('date-only news SVG keeps honest publication labels and fits mobile layout', async ({ page }) => {
+  const bundle = await readFile('src/lib/market-daily-utils.js', 'utf8');
+  await page.setViewportSize({ width: 390, height: 844 });
+  for (const route of routes) {
+    await page.goto(route.path);
+    await page.addScriptTag({ content: bundle });
+    await page.evaluate((locale) => {
+      const tools = (window as unknown as { marketDailyUtils: typeof import('../src/lib/market-daily-utils') }).marketDailyUtils;
+      const payload = { schema_version: '1.1', run_id: 'daily-2026-10-02', as_of: '2026-10-02T23:00:00Z', generated_at: '2026-10-04T01:00:00Z',
+        facts: [{ id: 'macro.cpi_yoy', value: 3.4, unit: 'percent', quality: 'ok', observation_date: '2026-08-01', source_url: 'https://fred.stlouisfed.org/series/CPIAUCSL' }],
+        events: [{ id: 'fixture', source_time: null, publication_precision: 'date', source_date: '2026-10-02', source_timezone: 'unknown', time_role: 'publication', usage: 'background' }],
+        sections: [{ key: 'company_news', claims: ['fixture'] }],
+        claims: [{ claim: 'A dated company release.', evidence_ids: ['fixture'], sources: ['https://issuer.test/release'] }],
+        quality_summary: { revision: 'news_only', news_revision: { news_cutoff: '2026-10-04T00:00:00Z', revised_at: '2026-10-04T01:00:00Z' } },
+      };
+      const container = document.createElement('div');
+      container.id = 'synthetic-news-revision';
+      container.className = 'market-chart-graphic market-report-graphic';
+      container.innerHTML = tools.buildMarketDailyChartSvg(tools.summarizeMarketDaily(payload)!, undefined, locale as 'en-US' | 'zh-CN')!;
+      document.querySelector('#us-session')!.append(container);
+    }, route.language);
+    const svg = page.locator('#synthetic-news-revision svg');
+    await expect(svg).toBeVisible();
+    await expect(svg).toContainText(route.language === 'en-US' ? 'Date only' : '仅提供日期');
+    await expect(svg).toContainText(route.language === 'en-US' ? /Timezone\s*unknown/ : '时区未知');
+    await expect(svg).not.toContainText('2026-10-02T00:00');
+    const box = await page.locator('#synthetic-news-revision').boundingBox();
+    expect(box!.width).toBeLessThanOrEqual(390);
+    expect(await page.locator('#synthetic-news-revision').evaluate(el => getComputedStyle(el).overflowX)).toBe('auto');
+  }
+});
+
 test('both locales separate China and Hong Kong news and preserve factual charts when no evidence is published', async ({ page }) => {
   for (const route of routes) {
     await page.goto(route.path);

@@ -218,6 +218,17 @@ def test_schema11_normal_timestamp_retains_verified_publication_time(tmp_path):
     import_report(source, tmp_path / "site", manifest)
 
 
+def test_news_download_header_uses_assembly_time_and_latest_news_cutoff(tmp_path):
+    from market_intel_publication.import_market_daily_report import _markdown, _text_report
+
+    payload = _news_revision_payload(_payload(), "a" * 64)
+    payload["quality_summary"]["reviewed_source_cutoff"] = "2026-09-19T23:59:00Z"
+    for text in (_markdown(payload), _text_report(payload)):
+        assert "报告生成时间：2026-09-21T13:00:00+00:00" in text
+        assert "新闻资料截止：2026-09-21T12:30:00+00:00" in text
+        assert "新闻资料截止：2026-09-19T23:59:00Z" not in text
+
+
 def test_news_revision_keeps_distinct_market_and_news_times(tmp_path):
     parent = tmp_path / "parent"
     parent.mkdir()

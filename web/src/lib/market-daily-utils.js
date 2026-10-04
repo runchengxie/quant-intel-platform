@@ -24,6 +24,7 @@ var marketDailyUtils = (() => {
     buildMarketDailyChartSvg: () => buildMarketDailyChartSvg,
     buildMarketDailyCharts: () => buildMarketDailyCharts,
     default: () => market_daily_utils_default,
+    formatMarketDailyRevision: () => formatMarketDailyRevision,
     formatMarketDailyStatus: () => formatMarketDailyStatus,
     summarizeMarketDaily: () => summarizeMarketDaily
   });
@@ -50,9 +51,23 @@ var marketDailyUtils = (() => {
     generated: ["\u751F\u6210\u65F6\u95F4", "Generated"],
     drivers: ["\u5E02\u573A\u9A71\u52A8\u56E0\u7D20", "Market drivers"],
     macroNews: ["\u7ECF\u6D4E\u6570\u636E\u4E0E\u7F8E\u8054\u50A8\u52A8\u6001", "Economic releases and Federal Reserve updates"],
-    companyNews: ["\u516C\u53F8\u65B0\u95FB", "Company news"]
+    companyNews: ["\u516C\u53F8\u65B0\u95FB", "Company news"],
+    dateOnly: ["\u4EC5\u63D0\u4F9B\u65E5\u671F", "Date only"],
+    unknownTimezone: ["\u65F6\u533A\u672A\u77E5", "Timezone unknown"],
+    sourcePublication: ["\u6765\u6E90\u53D1\u5E03\u65E5\u671F", "Source publication"],
+    filingAcceptance: ["\u7533\u62A5\u53D7\u7406\u65F6\u95F4", "Filing acceptance"],
+    marketCutoff: ["\u884C\u60C5\u622A\u81F3", "Market facts cutoff"],
+    newsRevised: ["\u65B0\u95FB\u4FEE\u8BA2", "News revised"],
+    newsCutoff: ["\u65B0\u95FB\u8D44\u6599\u622A\u6B62", "News evidence cutoff"],
+    newsMissing: ["\u6682\u65E0\u7ECF\u6838\u5B9E\u65B0\u95FB\u3002", "No reviewed news available."],
+    newsOnlyStatus: ["\u4EC5\u4FEE\u8BA2\u65B0\u95FB\uFF0C\u884C\u60C5\u6570\u636E\u4FDD\u7559\u539F\u7248\u672C\u3002", "News-only revision. Market facts retained."],
+    translationMissing: ["\u82F1\u6587\u8BD1\u6587\u7F3A\u9879\uFF0C\u4FDD\u7559\u6765\u6E90\u8BED\u8A00\u3002", "English translation unavailable. Source-language summary: "]
   };
   var US_RESEARCH_TRANSLATIONS = {
+    blsEmployment20261002: [
+      "\u7F8E\u56FD\u52B3\u5DE5\u7EDF\u8BA1\u5C40\u4E8E10\u67082\u65E5\u7F8E\u4E1C08:30\u53D1\u5E039\u6708\u5C31\u4E1A\u62A5\u544A\u3002\u975E\u519C\u5C31\u4E1A\u589E\u52A02.9\u4E07\u4EBA\uFF0C\u5931\u4E1A\u7387\u4E3A4.2%\u3002\u8FD9\u4E9B\u662F\u672C\u6B21\u516C\u5E03\u76849\u6708\u6570\u636E\uFF0C\u540E\u7EED\u4ECD\u53EF\u80FD\u4FEE\u8BA2\u3002",
+      "The U.S. Bureau of Labor Statistics released its September employment report on October 2 at 08:30 Eastern Time. Nonfarm payroll employment increased by 29,000 and the unemployment rate was 4.2%. These are the September figures available at this release and remain subject to revision."
+    ],
     schwabContext20261001: [
       "\u5609\u4FE1\u7406\u8D22\u572810\u67081\u65E5\u7F8E\u4E1C09:13\u53D1\u5E03\u7684\u76D8\u524D\u89C2\u5BDF\u5173\u6CE8\u79D1\u6280\u80A1\u8868\u73B0\u4E0E\u5904\u4E8E\u591A\u5E74\u9AD8\u4F4D\u9644\u8FD1\u7684\u7F8E\u503A\u6536\u76CA\u7387\u3002\u8FD9\u662F\u5F53\u65F6\u7684\u5E02\u573A\u80CC\u666F\uFF0C\u4E0D\u662F\u6536\u76D8\u5F52\u56E0\uFF0C\u4E5F\u4E0D\u8BC1\u660E\u5168\u5929\u8D8B\u52BF\u3002",
       "Schwab\u2019s October 1 pre-market note, published at 09:13 Eastern Time, focused on technology stocks and Treasury yields near multi-year highs. It describes the morning backdrop and does not establish the cause of the closing move or a full-day trend."
@@ -72,7 +87,8 @@ var marketDailyUtils = (() => {
   };
   function usResearchText(source, locale) {
     if (locale !== "en-US") return source;
-    return Object.values(US_RESEARCH_TRANSLATIONS).find(([original]) => original === source)?.[1] ?? source;
+    const translated = Object.values(US_RESEARCH_TRANSLATIONS).find(([original]) => original === source)?.[1];
+    return translated ?? (/[\u3400-\u9fff]/.test(source) ? US_REPORT_LABELS.translationMissing[1] + source : source);
   }
 
   // src/lib/market-daily-utils.ts
@@ -268,7 +284,8 @@ var marketDailyUtils = (() => {
     for (const claim of payload.claims ?? []) {
       if (typeof claim.claim !== "string" || !claim.claim.trim() || !Array.isArray(claim.evidence_ids) || !claim.evidence_ids.length || !claim.evidence_ids.every((id) => evidenceIds.has(id)) || !Array.isArray(claim.sources) || !claim.sources.length || !claim.sources.every(validHttpSource)) return null;
       const sectionKey = claim.evidence_ids.map((id) => sectionByEvidence.get(id)).find(Boolean) ?? "other";
-      claims.push({ text: claim.claim, sourceUrls: claim.sources, sectionKey });
+      const publication = (payload.events ?? []).filter((event) => claim.evidence_ids.includes(event.id) && event.publication_precision);
+      claims.push({ text: claim.claim, sourceUrls: claim.sources, sectionKey, ...publication.length ? { publication } : {} });
     }
     const claimSections = MARKET_DAILY_CLAIM_SECTIONS.map(([key, title]) => ({
       key,
@@ -361,8 +378,30 @@ var marketDailyUtils = (() => {
       optionalGaps,
       hasTextReport,
       nextMorningRevision: payload.quality_summary?.revision === "next_morning_rechecked",
-      historicalBackfill: payload.quality_summary?.revision === "historical_backfill"
+      historicalBackfill: payload.quality_summary?.revision === "historical_backfill" || payload.quality_summary?.revision === "news_only" && payload.quality_summary.market_revision === "historical_backfill",
+      ...payload.quality_summary?.revision === "news_only" && payload.quality_summary.news_revision ? {
+        newsRevision: { factCutoff: payload.as_of ?? "", newsCutoff: payload.quality_summary.news_revision.news_cutoff, revisedAt: payload.quality_summary.news_revision.revised_at },
+        missingNewsSections: MARKET_DAILY_CLAIM_SECTIONS.filter(([key]) => ["drivers", "macro", "company_news"].includes(key) && !claims.some((claim) => claim.sectionKey === key)).map(([, title]) => title)
+      } : {}
     };
+  }
+  function formatMarketDailyRevision(summary, locale) {
+    if (!summary.newsRevision) return [];
+    const index = locale === "en-US" ? 1 : 0;
+    return [
+      `${US_REPORT_LABELS.marketCutoff[index]}: ${summary.newsRevision.factCutoff}`,
+      `${US_REPORT_LABELS.newsRevised[index]}: ${summary.newsRevision.revisedAt}`,
+      `${US_REPORT_LABELS.newsCutoff[index]}: ${summary.newsRevision.newsCutoff}`
+    ];
+  }
+  function publicationLine(event, locale) {
+    const index = locale === "en-US" ? 1 : 0;
+    const role = event.time_role === "filing_acceptance" ? US_REPORT_LABELS.filingAcceptance[index] : US_REPORT_LABELS.sourcePublication[index];
+    if (event.publication_precision === "date") {
+      const zone = event.source_timezone === "unknown" ? US_REPORT_LABELS.unknownTimezone[index] : event.source_timezone;
+      return `${role}: ${event.source_date} (${US_REPORT_LABELS.dateOnly[index]}, ${zone})`;
+    }
+    return `${role}: ${event.source_time}`;
   }
   function buildMarketDailyCharts(summary) {
     if (!summary) return [];
@@ -486,15 +525,17 @@ var marketDailyUtils = (() => {
       }
     };
     for (const section of summary.claimSections) {
-      addSection(section.title, section.claims.map((claim) => {
+      addSection(section.title, section.claims.flatMap((claim) => {
         const sources = [...new Set(claim.sourceUrls.map((url) => new URL(url).hostname))];
         const citation = locale === "en-US" ? ` (${sources.join(", ")})` : `\uFF08${sources.join("\u3001")}\uFF09`;
-        return usResearchText(claim.text, locale) + citation;
+        return [usResearchText(claim.text, locale) + citation, ...(claim.publication ?? []).map((event) => publicationLine(event, locale))];
       }), false);
     }
+    for (const title of summary.missingNewsSections ?? []) addSection(title, [US_REPORT_LABELS.newsMissing[locale === "en-US" ? 1 : 0]], false);
+    if (summary.newsRevision) addSection(US_REPORT_LABELS.newsRevised[locale === "en-US" ? 1 : 0], formatMarketDailyRevision(summary, locale), false);
     addSection("\u7ECF\u6D4E\u6570\u636E", summary.secondaryRows.map((row) => `${row.text} \xB7 \u89C2\u6D4B\u65E5 ${row.observationDate} \xB7 ${row.sourceLabel}`));
     addSection("\u6570\u636E\u72B6\u6001", [
-      summary.historicalBackfill ? "\u5386\u53F2\u8865\u62A5\uFF1A\u4E8B\u540E\u6574\u7406\uFF0C\u5E76\u975E\u62A5\u544A\u65E5\u5F53\u5929\u53D1\u5E03\u3002" : "\u5F53\u65E5\u516C\u5F00\u590D\u76D8\u3002",
+      summary.newsRevision ? US_REPORT_LABELS.newsOnlyStatus[locale === "en-US" ? 1 : 0] : summary.historicalBackfill ? "\u5386\u53F2\u8865\u62A5\uFF1A\u4E8B\u540E\u6574\u7406\uFF0C\u5E76\u975E\u62A5\u544A\u65E5\u5F53\u5929\u53D1\u5E03\u3002" : "\u5F53\u65E5\u516C\u5F00\u590D\u76D8\u3002",
       ...summary.gaps.map((gap) => `\u5C1A\u7F3A\uFF1A${gap}`),
       ...(summary.optionalGaps ?? []).map((gap) => `${US_REPORT_LABELS.optionalUnavailable[0]}${gap}`)
     ]);
@@ -510,6 +551,6 @@ var marketDailyUtils = (() => {
   function formatMarketDailyStatus(summary) {
     return `${summary.date} \u7F8E\u4E1C\u62A5\u544A\u65E5 \xB7 \u9010\u9879\u663E\u793A\u539F\u59CB\u89C2\u6D4B\u65E5\u3002` + (summary.historicalBackfill ? " \u4E8B\u540E\u6574\u7406\u3002" : "") + (summary.nextMorningRevision ? " \u6B21\u65E5\u6838\u5B9E\u66F4\u65B0\u3002" : "") + (summary.gaps.length ? ` \u5C1A\u7F3A\uFF1A${summary.gaps.join("\u3001")}\u3002` : "") + (summary.optionalGaps?.length ? ` ${US_REPORT_LABELS.optionalUnavailable[0]}${summary.optionalGaps.join("\u3001")}\u3002` : "");
   }
-  var market_daily_utils_default = { summarizeMarketDaily, formatMarketDailyStatus, buildMarketDailyCharts, buildMarketDailyChartSvg };
+  var market_daily_utils_default = { summarizeMarketDaily, formatMarketDailyStatus, formatMarketDailyRevision, buildMarketDailyCharts, buildMarketDailyChartSvg };
   return __toCommonJS(market_daily_utils_exports);
 })();

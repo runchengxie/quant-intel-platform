@@ -135,9 +135,18 @@ def validate_news_revision(original: dict, revised: dict, *, original_sha256: st
             != section.get("claims", [])
         ):
             raise ValueError("news revision changed original sections")
+    _validate_original_quality(original, revised)
+
+
+def _validate_original_quality(original: dict, revised: dict) -> None:
     old_quality = original.get("quality_summary", {})
-    allowed = {"revision", "news_revision", "news_revision_history"}
+    allowed = {"revision", "news_revision", "news_revision_history", "market_revision"}
     new_quality = revised.get("quality_summary", {})
+    market_revision = old_quality.get("market_revision")
+    if old_quality.get("revision") in {"historical_backfill", "next_morning_rechecked"}:
+        market_revision = old_quality["revision"]
+    if new_quality.get("market_revision") != market_revision:
+        raise ValueError("news revision changed market-generation provenance")
     if {key: value for key, value in old_quality.items() if key not in allowed} != {
         key: value for key, value in new_quality.items() if key not in allowed
     }:

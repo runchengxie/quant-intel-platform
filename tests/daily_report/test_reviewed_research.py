@@ -86,6 +86,33 @@ def test_new_mode_requires_private_source_and_display_review(tmp_path, field):
         )
 
 
+def test_private_source_locator_cannot_be_blank(tmp_path):
+    draft, review = _news_files(tmp_path)
+    payload = json.loads(review.read_text())
+    payload["decisions"][0]["source_locator"] = "   "
+    review.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="review"):
+        load_reviewed_research(
+            draft,
+            review,
+            market_date="2026-09-23",
+            as_of=datetime(2026, 9, 24, 13, tzinfo=UTC),
+            news_only=True,
+        )
+
+
+def test_precise_preclose_article_cannot_supply_reviewed_index_returns(tmp_path):
+    draft, review = _files(tmp_path)
+    payload = json.loads(draft.read_text())
+    payload["candidates"][0]["published_at"] = "2026-09-23T15:59:00-04:00"
+    draft.write_text(json.dumps(payload))
+    approvals = json.loads(review.read_text())
+    approvals["draft_sha256"] = hashlib.sha256(draft.read_bytes()).hexdigest()
+    review.write_text(json.dumps(approvals))
+    with pytest.raises(ValueError, match="close"):
+        load_reviewed_research(draft, review, market_date="2026-09-23", as_of=AS_OF)
+
+
 @pytest.mark.parametrize("field", ["ticker", "index_returns", "index_evidence"])
 def test_news_only_rejects_quote_instructions_even_when_deferred(tmp_path, field):
     draft, review = _news_files(tmp_path)
