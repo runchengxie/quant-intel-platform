@@ -242,6 +242,15 @@ def _add_daily_report_parser(subparsers: argparse._SubParsersAction) -> None:
             )
             parser.add_argument("--reviewed-draft", help="Private original web-research draft")
             parser.add_argument("--reviewed-decisions", help="Private source-audit decisions")
+            parser.add_argument(
+                "--revise-news",
+                metavar="INPUT_REPORT",
+                help="Offline reviewed-news revision retaining all market facts",
+            )
+            parser.add_argument("--input-manifest", help="Public manifest for the original report")
+            parser.add_argument(
+                "--news-cutoff", help="News evidence cutoff with timezone (default: revision time)"
+            )
     research_parser = subparsers.add_parser("research", help="Create a private web research draft")
     sample_parser = subparsers.add_parser(
         "metal-sample", help="Save private timestamped metal references"
@@ -454,6 +463,11 @@ def _dispatch_state_panel(args: argparse.Namespace, logger: logging.Logger) -> i
 
 
 def _dispatch_daily_report(args: argparse.Namespace, logger: logging.Logger) -> int:
+    if getattr(args, "revise_news", None):
+        return _dispatch_news_revision(args, logger)
+    if getattr(args, "input_manifest", None) or getattr(args, "news_cutoff", None):
+        log(logger, logging.ERROR, "daily_report_revision_mode_required")
+        return 2
     from daily_messenger.daily_report.pipeline import run_daily_report
 
     now = datetime.now(UTC)
@@ -502,6 +516,44 @@ def _dispatch_daily_report(args: argparse.Namespace, logger: logging.Logger) -> 
         },
     )
     log(logger, logging.INFO, "daily_report_written", run_id=report.run_id, output=args.out)
+    return 0
+
+
+def _dispatch_news_revision(args: argparse.Namespace, logger: logging.Logger) -> int:
+    from daily_messenger.daily_report.news_revision import revise_news
+
+    if args.backfill or not all(
+        (args.date, args.input_manifest, args.reviewed_draft, args.reviewed_decisions)
+    ):
+        log(logger, logging.ERROR, "daily_report_revision_arguments_invalid")
+        return 2
+    try:
+        requested = date.fromisoformat(args.date)
+        if requested.isoformat() != args.date:
+            log(logger, logging.ERROR, "daily_report_revision_arguments_invalid")
+            return 2
+        now = datetime.now(UTC)
+        cutoff = datetime.fromisoformat(args.news_cutoff) if args.news_cutoff else now
+        result = revise_news(
+            Path(args.revise_news),
+            Path(args.input_manifest),
+            Path(args.reviewed_draft),
+            Path(args.reviewed_decisions),
+            Path(args.out),
+            market_date=args.date,
+            news_cutoff=cutoff,
+            revised_at=now,
+        )
+    except (ValueError, TypeError, KeyError, OSError):
+        log(logger, logging.ERROR, "daily_report_revision_invalid")
+        return 2
+    log(
+        logger,
+        logging.INFO,
+        "daily_report_news_revision",
+        changed=result.changed,
+        added_claims=result.added_claims,
+    )
     return 0
 
 
@@ -581,10 +633,11 @@ def _dispatch(args: argparse.Namespace, logger: logging.Logger) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    _load_runtime_env_files()
+    args = _build_parser().parse_args(argv)
+    if not (args.command == "daily-report" and getattr(args, "revise_news", None)):
+        _load_runtime_env_files()
     _ensure_run_id()
 
-    args = _build_parser().parse_args(argv)
     logger = setup_logger("cli", command=args.command)
     return _dispatch(args, logger)
 
