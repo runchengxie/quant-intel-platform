@@ -15,9 +15,10 @@ Node tests, Playwright. No new runtime dependency.
 
 Spec: `docs/superpowers/specs/2026-10-03-us-news-revision-design.md`.
 
-Status: approved for native inline implementation on October 4. Tasks 1–3 are
-implemented. Task 4 validation and provider review are underway. Task 5 follows
-the provider merge. Production activation remains out of scope.
+Status: approved for native inline implementation on October 4. Tasks 1–4 are
+implemented, tested and independently reviewed. Four review findings were
+reproduced and resolved in one fix pass. Task 5 follows the provider merge.
+Production activation remains out of scope.
 
 ## Global Constraints
 
