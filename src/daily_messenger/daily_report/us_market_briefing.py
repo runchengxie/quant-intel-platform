@@ -87,7 +87,7 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _schema_validator(filename: str) -> Draft202012Validator:
+def _schema_validator(filename: str) -> Any:
     schema_path = files("daily_messenger.daily_report").joinpath("schemas", filename)
     schema = json.loads(schema_path.read_text(encoding="utf-8"))
     Draft202012Validator.check_schema(schema)
