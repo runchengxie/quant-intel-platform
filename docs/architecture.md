@@ -2,7 +2,7 @@
 
 [Chinese version](architecture.zh-CN.md)
 
-Market Intel contains independent pipelines for global-market data, A-share reports, and public web presentation. The pipelines share operational primitives and artifact contracts but keep their owners and failure boundaries explicit.
+quant-intel-platform contains independent pipelines for global-market data, A-share reports, and public web presentation. The pipelines share operational primitives and artifact contracts but keep their owners and failure boundaries explicit.
 
 ## Pipeline boundary
 
@@ -21,4 +21,4 @@ The `web/` application renders the public daily site, downloads, source displays
 
 ## Cross-repository boundary
 
-Research and strategy owners expose public CLIs or versioned artifacts. Market Intel may validate and render those artifacts, but it must not import owner business code or maintain a second implementation. Scheduler, delivery, credentials, and real runtime state belong to `quant-intel-deploy`.
+Research and strategy owners expose public CLIs or versioned artifacts. quant-intel-platform may validate and render those artifacts, but it must not import owner business code or maintain a second implementation. Scheduler, delivery, credentials, and real runtime state belong to `quant-intel-deploy`.

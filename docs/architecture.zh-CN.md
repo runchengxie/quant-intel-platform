@@ -4,7 +4,7 @@
 
 ## 流水线全景
 
-Market Intel 包含三条独立流水线，分别负责不同市场的数据处理与报告生成。
+quant-intel-platform 包含三条独立流水线，分别负责不同市场的数据处理与报告生成。
 
 ### 全球市场日报（Daily Messenger）
 
@@ -96,7 +96,7 @@ GitHub Pages 是可选分支。私有仓库当前通过 `ENABLE_GITHUB_PAGES=0` 
 ## 仓库结构
 
 ```text
-market-intel/
+quant-intel-platform/
   src/
     daily_messenger/       # 日报系统
       cli.py              # dm 命令入口

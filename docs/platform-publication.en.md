@@ -2,11 +2,13 @@
 
 # Consuming research platform publications
 
-`market-intel` can read `research.platform-publication.v1` packages produced by `quant-research`, `quant-platform`, or `strategy-pipeline` without importing their implementation code.
+The repository name is `quant-intel-platform`. The manifest consumer ID remains `market-intel` for compatibility with existing producers and consumers; do not substitute the repository name in this field.
+
+`quant-intel-platform` can read `research.platform-publication.v1` packages produced by `quant-research`, `quant-platform`, or `strategy-pipeline` without importing their implementation code.
 
 ## Purpose
 
-The publication manifest is a handoff index. `market-intel` uses it to locate reviewed projections and render them in reports, delivery cards, or operational pages.
+The publication manifest is a handoff index. `quant-intel-platform` uses it to locate reviewed projections and render them in reports, delivery cards, or operational pages.
 
 The consumer verifies that:
 
@@ -33,7 +35,7 @@ This change depends on the owner-side platform-publication contract. Before merg
 1. Merge the contract changes from the upstream workspace.
 2. Pin `research-contracts` to the latest commit on the workspace `main` branch.
 3. Run `uv lock` and commit the updated `uv.lock`.
-4. Run the normal `market-intel` quality checks.
+4. Run the normal `quant-intel-platform` quality checks.
 
 ## Production-like fixture
 

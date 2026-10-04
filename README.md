@@ -1,4 +1,6 @@
-# quant-intel-platform (Market Intel)
+# quant-intel-platform
+
+The repository was formerly named `market-intel`. Current documentation uses `quant-intel-platform`; the Python distribution name, publication consumer ID `market-intel`, module names, and existing configuration/environment identifiers remain compatibility interfaces.
 
 `quant-intel-platform` provides automated market reports, a public web dashboard, and information delivery. It collects market and news information, consumes versioned research artifacts from owner projects, then validates, organizes, presents, and delivers the reviewed results.
 

@@ -1,4 +1,6 @@
-# quant-intel-platform（Market Intel）
+# quant-intel-platform
+
+本仓库前身为 `market-intel`。当前项目统一称为 `quant-intel-platform`，Python 分发包名、发布清单消费者标识 `market-intel`、模块名及现有配置与环境变量标识仍作为兼容接口保留。
 
 [English README](README.md)
 
