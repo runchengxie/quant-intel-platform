@@ -87,29 +87,29 @@ git commit -m "feat: validate US market briefing bundles"
 **Interfaces:**
 - Consumes: `load_us_market_briefing_bundle` from Task 1.
 - Produces: `render_us_market_briefing(bundle: UsMarketBriefingBundle) -> str` and the CLI command `dm us-briefing-preview --manifest PATH [--allow-internal]`.
-- CLI output is JSON with `schema_version: "market.briefing.preview.v1"`, `status: "preview"`, `dry_run: true`, `market_date`, `run_id`, `revision`, `audience`, `headline`, `brief_text`, and `sources` (each retaining `id`, `title`, `publisher`, `url`, and `published_at`).
+- CLI output is JSON with `schema_version: "market.briefing.preview.v1"`, `status: "preview"`, `dry_run: true`, `market_date`, `run_id`, `revision`, `audience`, `headline`, `brief_text`, `sources` (each retaining `id`, `title`, `publisher`, `url`, and `published_at`), and `rendered_text` containing the exact deterministic body for review.
 
-- [ ] **Step 1: Add failing render and CLI tests**
+- [x] **Step 1: Add failing render and CLI tests**
 
 Assert `render_us_market_briefing` returns the headline, unchanged `brief_text`, and all declared source links in deterministic order. Assert `dm us-briefing-preview` emits parseable JSON with the preview fields above. Assert it rejects internal bundles without opt-in and malformed bundles with a nonzero exit. Set environment variables resembling Feishu credentials and assert the command still never invokes subprocesses or HTTP requests.
 
-- [ ] **Step 2: Run focused tests and confirm they fail**
+- [x] **Step 2: Run focused tests and confirm they fail**
 
 Run: `uv run pytest tests/daily_report/test_us_market_briefing_cli.py -q`
 
 Expected: FAIL because the renderer and CLI command are not implemented.
 
-- [ ] **Step 3: Implement renderer and preview command**
+- [x] **Step 3: Implement renderer and preview command**
 
 Add the deterministic renderer and a dedicated argparse command in `src/daily_messenger/cli.py`. Keep the command offline: it loads the bundle, prints the preview JSON to stdout and exits. It must not read a destination variable, instantiate a sender, call `post_feishu.py`, or write a `sent` state. Add a focused dispatch handler with error logging that does not print source payload secrets or traceback data.
 
-- [ ] **Step 4: Run focused tests and ensure they pass**
+- [x] **Step 4: Run focused tests and ensure they pass**
 
 Run: `uv run pytest tests/daily_report/test_us_market_briefing_cli.py tests/test_cli_pipeline.py -q`
 
 Expected: PASS, with existing CLI behavior unchanged and the fake network/sender assertions untouched.
 
-- [ ] **Step 5: Commit the preview path**
+- [x] **Step 5: Commit the preview path**
 
 ```bash
 git add src/daily_messenger/daily_report/us_market_briefing.py src/daily_messenger/cli.py tests/daily_report/test_us_market_briefing_cli.py tests/test_cli_pipeline.py

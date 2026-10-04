@@ -36,6 +36,38 @@ class UsMarketBriefingBundle:
     artifact_paths: tuple[Path, ...]
 
 
+def render_us_market_briefing(bundle: UsMarketBriefingBundle) -> str:
+    """Render the approved briefing text and source references without rewriting it."""
+    briefing = bundle.briefing
+    source_lines = [
+        f"- {source['title']}（{source['publisher']}）：{source['url']}"
+        for source in briefing["sources"]
+    ]
+    return (
+        f"{briefing['headline']}\n\n{briefing['brief_text']}\n\n来源：\n"
+        + "\n".join(source_lines)
+        + "\n"
+    )
+
+
+def make_us_market_briefing_preview(bundle: UsMarketBriefingBundle) -> dict[str, Any]:
+    """Build a machine-readable preview receipt that cannot represent a send."""
+    briefing = bundle.briefing
+    return {
+        "schema_version": "market.briefing.preview.v1",
+        "status": "preview",
+        "dry_run": True,
+        "market_date": briefing["market_date"],
+        "run_id": bundle.run_id,
+        "revision": briefing["revision"],
+        "audience": bundle.audience,
+        "headline": briefing["headline"],
+        "brief_text": briefing["brief_text"],
+        "sources": [dict(source) for source in briefing["sources"]],
+        "rendered_text": render_us_market_briefing(bundle),
+    }
+
+
 def _read_object(path: Path, *, label: str) -> dict[str, Any]:
     def reject_constant(value: str) -> None:
         raise ValueError(f"invalid JSON constant {value!r} in {label}")
@@ -223,4 +255,9 @@ def load_us_market_briefing_bundle(
     )
 
 
-__all__ = ["UsMarketBriefingBundle", "load_us_market_briefing_bundle"]
+__all__ = [
+    "UsMarketBriefingBundle",
+    "load_us_market_briefing_bundle",
+    "make_us_market_briefing_preview",
+    "render_us_market_briefing",
+]
