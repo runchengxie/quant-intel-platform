@@ -76,7 +76,9 @@ Interfaces:
   cutoff: datetime, section: str) -> None` and
   `publication_time_from_candidate(candidate: dict) -> PublicationTime`.
 - Consume existing `load_reviewed_research` arguments unchanged. Add keyword
-  `news_only: bool = False` for new-mode evidence IDs and approval requirements.
+  `news_only: bool | NewsOnlyReview = False` for new-mode evidence IDs and
+  approval requirements. `NewsOnlyReview` carries the actual UTC review instant
+  independently of the source cutoff.
 
 - [ ] Write `test_unknown_timezone_bounds_are_conservative`: source date
   `2026-10-02`, timezone `unknown` gives bounds `2026-10-01T10:00:00Z`
@@ -133,9 +135,11 @@ Interfaces:
   unknown fields. The ordinary pipeline delegates only hashing to this helper.
 - Produce `NewsRevisionResult` with `changed: bool`, `artifact_path: Path | None`,
   `content_hash: str`, `added_claims: int`.
-- Produce `revise_news(input_path: Path, manifest_path: Path, draft_path: Path,
-  review_path: Path, output_dir: Path, *, market_date: str,
+- Produce `revise_news(inputs: tuple[Path, Path, Path, Path],
+  output_dir: Path, *, market_date: str,
   news_cutoff: datetime, revised_at: datetime) -> NewsRevisionResult`.
+  Input order is report, manifest, draft, review. Grouping inputs complies with
+  the repository's argument-count ratchet without changing CLI flags.
 - Persist `quality_summary.revision = news_only` and `news_revision` metadata:
   `input_report_sha256`, `previous_content_hash`, `news_cutoff`, `revised_at`.
   Preserve earlier review lineage as an append-only revision chain.

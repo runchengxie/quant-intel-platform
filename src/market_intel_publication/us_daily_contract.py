@@ -501,9 +501,31 @@ def _read(path: Path) -> dict[str, Any]:
         raise ValueError("every daily report claim needs evidence and HTTPS sources")
     if not _valid_sourced_fact_date(payload):
         raise ValueError("daily report market date mismatch")
+    _validate_schema_evidence(payload)
+    return payload
+
+
+def _validate_schema_evidence(payload: dict[str, Any]) -> None:
     if payload["schema_version"] == "1.1":
         validate_news_payload(payload)
-    return payload
+        return
+    metadata_fields = {
+        "publication_precision",
+        "source_date",
+        "source_timezone",
+        "time_role",
+        "usage",
+    }
+    quality = payload.get("quality_summary", {})
+    if (
+        quality.get("revision") == "news_only"
+        or any(
+            name in quality
+            for name in ("news_revision", "news_revision_history", "market_revision")
+        )
+        or any(metadata_fields.intersection(event) for event in payload.get("events", []))
+    ):
+        raise ValueError("publication/revision metadata requires schema 1.1")
 
 
 def _public_manifest(source: Path, manifest_path: Path) -> dict[str, Any]:

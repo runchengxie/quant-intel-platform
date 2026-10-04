@@ -65,6 +65,9 @@ non-research gaps. `quality_summary.news_revision` records the original byte has
 previous content hash, news cutoff and revision time. Later revisions retain an
 append-only history. Reapplying identical evidence produces no output or new
 timestamp. Conflicting evidence under the same hash-bound identity is rejected.
+If the input was a historical backfill or next-morning market recheck,
+`quality_summary.market_revision` retains that original provenance independently
+of the new `news_only` label. This does not indicate a new market fetch.
 
 Staging includes `daily_report.json`, `publication.json`, and a private immutable
 `news_revision_parent.json`. Keep the parent for full-fact comparison and rollback.

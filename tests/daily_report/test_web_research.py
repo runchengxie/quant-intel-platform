@@ -47,6 +47,45 @@ def test_valid_candidate_is_kept_for_review():
     assert accepted[0]["observation_date"] == "2026-09-18"
 
 
+def test_timestamp_collection_retains_filing_acceptance_role():
+    row = candidate(
+        section="company_news",
+        phase="event",
+        publication_precision="timestamp",
+        time_role="filing_acceptance",
+        usage="background",
+    )
+    accepted, rejected = validate_candidates(
+        {"candidates": [row]}, market_date=MARKET_DATE, cutoff=CUTOFF
+    )
+    assert rejected == []
+    for name in ("publication_precision", "time_role", "usage"):
+        assert accepted[0][name] == row[name]
+
+
+def test_timestamp_collection_rejects_invalid_explicit_role():
+    accepted, rejected = validate_candidates(
+        {"candidates": [candidate(time_role="unknown_role")]},
+        market_date=MARKET_DATE,
+        cutoff=CUTOFF,
+    )
+    assert accepted == []
+    assert rejected == ["candidate[0]:invalid_publication_evidence"]
+
+
+def test_model_schema_and_prompt_can_express_date_only_background():
+    from daily_messenger.daily_report.web_research import _output_schema, _prompt
+
+    items = _output_schema()["properties"]["candidates"]["items"]
+    properties = items["properties"]
+    assert set(properties) == set(items["required"])
+    assert "null" in properties["published_at"]["type"]
+    for name in ("publication_precision", "source_date", "source_timezone", "time_role", "usage"):
+        assert name in properties
+        assert name in _prompt(MARKET_DATE, CUTOFF)
+    assert "filing_acceptance" in _prompt(MARKET_DATE, CUTOFF)
+
+
 def test_date_only_background_collection_retains_real_precision():
     row = candidate(
         section="macro",

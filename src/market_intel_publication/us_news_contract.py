@@ -74,6 +74,8 @@ def validate_news_payload(payload: dict) -> None:
         _validate_history(quality, metadata)
     identifiers = {row["id"] for row in payload["facts"]}
     for event in payload.get("events", []):
+        if "published_at" in event:
+            raise ValueError("report event must use canonical source_time")
         if event.get("id") in identifiers:
             raise ValueError("duplicate news evidence identity")
         identifiers.add(event["id"])

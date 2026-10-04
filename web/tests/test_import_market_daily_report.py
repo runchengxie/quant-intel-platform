@@ -253,7 +253,19 @@ def test_news_revision_keeps_distinct_market_and_news_times(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "fault", ["null", "cutoff", "lineage", "earlier", "changed_fact", "no_parent", "quality", "date_close"]
+    "fault",
+    [
+        "null",
+        "cutoff",
+        "lineage",
+        "earlier",
+        "changed_fact",
+        "no_parent",
+        "quality",
+        "date_close",
+        "downgrade",
+        "time_alias",
+    ],
 )
 def test_news_revision_rejects_invalid_time_or_fact_lineage(tmp_path, fault):
     parent = tmp_path / "parent"
@@ -278,6 +290,12 @@ def test_news_revision_rejects_invalid_time_or_fact_lineage(tmp_path, fault):
         payload["quality_summary"]["status"] = "upgraded_without_review"
     elif fault == "date_close":
         payload["events"][0]["event_type"] = "web_company_news_close"
+    elif fault == "downgrade":
+        payload["schema_version"] = "1.0"
+    elif fault == "time_alias":
+        payload["events"][0].update(publication_precision="timestamp", published_at="2026-09-19T21:00:00Z")
+        payload["events"][0].pop("source_date")
+        payload["events"][0].pop("source_timezone")
     revised = tmp_path / "revised"
     revised.mkdir()
     new_source, new_manifest = _source(revised, payload)
