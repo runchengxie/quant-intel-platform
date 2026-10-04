@@ -1,6 +1,6 @@
 import { isMarketDailyPayload } from './market-facts.ts';
 import { US_REPORT_LABELS, usResearchText, type Locale } from './locale.ts';
-import type { MarketClaimSummary, MarketDailyChart, MarketDailyPayload, MarketDailyRow, MarketDailySummary } from './market-facts.ts';
+import type { MarketClaimSummary, MarketDailyChart, MarketDailyPayload, MarketDailyRow, MarketDailySummary, MarketEventEvidence } from './market-facts.ts';
 
 const MARKET_DAILY_FACTS = [
   ["index.spx.change_percent", "标普 500 日涨跌", "%"],
@@ -220,7 +220,8 @@ export function summarizeMarketDaily(payload: unknown): MarketDailySummary | nul
         || !Array.isArray(claim.sources) || !claim.sources.length
         || !claim.sources.every(validHttpSource)) return null;
     const sectionKey = claim.evidence_ids.map((id) => sectionByEvidence.get(id)).find(Boolean) ?? "other";
-    claims.push({ text: claim.claim, sourceUrls: claim.sources, sectionKey });
+    const publication = (payload.events ?? []).filter(event => claim.evidence_ids.includes(event.id) && event.publication_precision);
+    claims.push({ text: claim.claim, sourceUrls: claim.sources, sectionKey, ...(publication.length ? { publication } : {}) });
   }
   const claimSections = MARKET_DAILY_CLAIM_SECTIONS.map(([key, title]) => ({
     key, title, claims: claims.filter((claim) => claim.sectionKey === key),
@@ -307,7 +308,31 @@ export function summarizeMarketDaily(payload: unknown): MarketDailySummary | nul
   return { date, rows, rateRows, crossAssetRows, equityRows, claims, claimSections, primaryClaims,
     secondaryClaimSections, secondaryRows, gaps, optionalGaps, hasTextReport,
     nextMorningRevision: payload.quality_summary?.revision === "next_morning_rechecked",
-    historicalBackfill: payload.quality_summary?.revision === "historical_backfill" };
+    historicalBackfill: payload.quality_summary?.revision === "historical_backfill" || (payload.quality_summary?.revision === 'news_only' && payload.quality_summary.market_revision === 'historical_backfill'),
+    ...(payload.quality_summary?.revision === 'news_only' && payload.quality_summary.news_revision ? {
+      newsRevision: { factCutoff: payload.as_of ?? '', newsCutoff: payload.quality_summary.news_revision.news_cutoff, revisedAt: payload.quality_summary.news_revision.revised_at },
+      missingNewsSections: MARKET_DAILY_CLAIM_SECTIONS.filter(([key]) => ['drivers', 'macro', 'company_news'].includes(key) && !claims.some(claim => claim.sectionKey === key)).map(([, title]) => title),
+    } : {}) };
+}
+
+export function formatMarketDailyRevision(summary: MarketDailySummary, locale: Locale): string[] {
+  if (!summary.newsRevision) return [];
+  const index = locale === 'en-US' ? 1 : 0;
+  return [
+    `${US_REPORT_LABELS.marketCutoff[index]}: ${summary.newsRevision.factCutoff}`,
+    `${US_REPORT_LABELS.newsRevised[index]}: ${summary.newsRevision.revisedAt}`,
+    `${US_REPORT_LABELS.newsCutoff[index]}: ${summary.newsRevision.newsCutoff}`,
+  ];
+}
+
+function publicationLine(event: MarketEventEvidence, locale: Locale): string {
+  const index = locale === 'en-US' ? 1 : 0;
+  const role = event.time_role === 'filing_acceptance' ? US_REPORT_LABELS.filingAcceptance[index] : US_REPORT_LABELS.sourcePublication[index];
+  if (event.publication_precision === 'date') {
+    const zone = event.source_timezone === 'unknown' ? US_REPORT_LABELS.unknownTimezone[index] : event.source_timezone;
+    return `${role}: ${event.source_date} (${US_REPORT_LABELS.dateOnly[index]}, ${zone})`;
+  }
+  return `${role}: ${event.source_time}`;
 }
 
 export function buildMarketDailyCharts(summary: MarketDailySummary | null): MarketDailyChart[] {
@@ -434,14 +459,16 @@ export function buildMarketDailyChartSvg(summary: MarketDailySummary, translate:
     }
   };
   for (const section of summary.claimSections) {
-    addSection(section.title, section.claims.map((claim) => {
+    addSection(section.title, section.claims.flatMap((claim) => {
       const sources = [...new Set(claim.sourceUrls.map((url) => new URL(url).hostname))];
       const citation = locale === 'en-US' ? ` (${sources.join(', ')})` : `（${sources.join('、')}）`;
-      return usResearchText(claim.text, locale) + citation;
+      return [usResearchText(claim.text, locale) + citation, ...(claim.publication ?? []).map(event => publicationLine(event, locale))];
     }), false);
   }
+  for (const title of summary.missingNewsSections ?? []) addSection(title, [US_REPORT_LABELS.newsMissing[locale === 'en-US' ? 1 : 0]], false);
+  if (summary.newsRevision) addSection(US_REPORT_LABELS.newsRevised[locale === 'en-US' ? 1 : 0], formatMarketDailyRevision(summary, locale), false);
   addSection("经济数据", summary.secondaryRows.map((row) => `${row.text} · 观测日 ${row.observationDate} · ${row.sourceLabel}`));
-  addSection("数据状态", [summary.historicalBackfill ? "历史补报：事后整理，并非报告日当天发布。" : "当日公开复盘。",
+  addSection("数据状态", [summary.newsRevision ? US_REPORT_LABELS.newsOnlyStatus[locale === 'en-US' ? 1 : 0] : summary.historicalBackfill ? "历史补报：事后整理，并非报告日当天发布。" : "当日公开复盘。",
     ...summary.gaps.map((gap) => `尚缺：${gap}`),
     ...(summary.optionalGaps ?? []).map((gap) => `${US_REPORT_LABELS.optionalUnavailable[0]}${gap}`)]);
   const urls = [...new Set([...summary.rows.map((row) => row.sourceUrl), ...summary.claims.flatMap((claim) => claim.sourceUrls)])];
@@ -464,4 +491,4 @@ export function formatMarketDailyStatus(summary: MarketDailySummary): string {
     + (summary.optionalGaps?.length ? ` ${US_REPORT_LABELS.optionalUnavailable[0]}${summary.optionalGaps.join("、")}。` : "");
 }
 
-export default { summarizeMarketDaily, formatMarketDailyStatus, buildMarketDailyCharts, buildMarketDailyChartSvg };
+export default { summarizeMarketDaily, formatMarketDailyStatus, formatMarketDailyRevision, buildMarketDailyCharts, buildMarketDailyChartSvg };

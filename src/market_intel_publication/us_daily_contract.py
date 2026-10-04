@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from .us_news_contract import REVISION_FIELDS, validate_news_payload
+
 SCHEMA_PREFIX = "1."
 DATE_FIELDS = {"as_of", "generated_at", "source_time", "retrieved_at"}
 REQUIRED_FIELDS = {
@@ -175,7 +177,11 @@ def _valid_report_time(payload: dict[str, Any]) -> bool:
     market_time = datetime.fromisoformat(payload["as_of"]).astimezone(ZoneInfo("America/New_York"))
     report_date = date.fromisoformat(str(payload["run_id"]).removeprefix("daily-"))
     age = (market_time.date() - report_date).days
-    if payload.get("quality_summary", {}).get("revision") == "historical_backfill":
+    quality = payload.get("quality_summary", {})
+    revision = quality.get("revision")
+    if revision == "news_only":
+        revision = quality.get("market_revision")
+    if revision == "historical_backfill":
         return 0 < age <= 10
     return market_time.date() == report_date or (
         market_time.date() == report_date + timedelta(days=1) and market_time.time() < time(9, 30)
@@ -480,7 +486,7 @@ def _read(path: Path) -> dict[str, Any]:
     missing = sorted(REQUIRED_FIELDS.difference(payload))
     if missing:
         raise ValueError(f"daily report missing fields: {', '.join(missing)}")
-    if not str(payload["schema_version"]).startswith(SCHEMA_PREFIX):
+    if payload["schema_version"] not in {"1.0", "1.1"}:
         raise ValueError("unsupported daily report schema")
     if payload.get("quality_summary", {}).get("status") == "fixture":
         raise ValueError("fixture daily report cannot be published")
@@ -495,7 +501,31 @@ def _read(path: Path) -> dict[str, Any]:
         raise ValueError("every daily report claim needs evidence and HTTPS sources")
     if not _valid_sourced_fact_date(payload):
         raise ValueError("daily report market date mismatch")
+    _validate_schema_evidence(payload)
     return payload
+
+
+def _validate_schema_evidence(payload: dict[str, Any]) -> None:
+    if payload["schema_version"] == "1.1":
+        validate_news_payload(payload)
+        return
+    metadata_fields = {
+        "publication_precision",
+        "source_date",
+        "source_timezone",
+        "time_role",
+        "usage",
+    }
+    quality = payload.get("quality_summary", {})
+    if (
+        quality.get("revision") == "news_only"
+        or any(
+            name in quality
+            for name in ("news_revision", "news_revision_history", "market_revision")
+        )
+        or any(metadata_fields.intersection(event) for event in payload.get("events", []))
+    ):
+        raise ValueError("publication/revision metadata requires schema 1.1")
 
 
 def _public_manifest(source: Path, manifest_path: Path) -> dict[str, Any]:
@@ -531,11 +561,26 @@ def _public_payload(payload: dict[str, Any], manifest: dict[str, Any]) -> dict[s
         for row in payload.get("source_status", {}).get("equities", {}).get("reviewed_movers", [])
     }
     events = [
-        _select(event, PUBLIC_EVENT_FIELDS if event.get("id") in mover_evidence_ids else ("id",))
+        _select(
+            event,
+            PUBLIC_EVENT_FIELDS
+            + (
+                "source_time",
+                "publication_precision",
+                "source_date",
+                "source_timezone",
+                "time_role",
+                "usage",
+            )
+            if payload["schema_version"] == "1.1"
+            else PUBLIC_EVENT_FIELDS
+            if event.get("id") in mover_evidence_ids
+            else ("id",),
+        )
         for event in payload.get("events", [])
         if event.get("id") in evidence_ids
     ]
-    return {
+    result = {
         "schema_version": payload["schema_version"],
         "publication": "public",
         "report_formats": ["md", "txt"],
@@ -576,6 +621,20 @@ def _public_payload(payload: dict[str, Any], manifest: dict[str, Any]) -> dict[s
         "content_hash": payload.get("content_hash"),
         "source_report_sha256": manifest["report_sha256"],
     }
+    if payload["schema_version"] == "1.1":
+        quality = payload.get("quality_summary", {})
+        if "market_revision" in quality:
+            result["quality_summary"]["market_revision"] = quality["market_revision"]
+        if "news_revision" in quality:
+            result["quality_summary"]["news_revision"] = _select(
+                quality["news_revision"], REVISION_FIELDS
+            )
+        if "news_revision_history" in quality:
+            result["quality_summary"]["news_revision_history"] = [
+                _select(item, REVISION_FIELDS + ("result_content_hash",))
+                for item in quality["news_revision_history"]
+            ]
+    return result
 
 
 def _date(payload: dict[str, Any]) -> str:

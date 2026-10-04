@@ -14,6 +14,8 @@ from urllib.parse import urlsplit
 from uuid import uuid4
 from zoneinfo import ZoneInfo
 
+from .publication_time import publication_time_from_candidate, validate_publication_time
+
 SECTIONS = frozenset({"market", "drivers", "macro", "company_news", "gainers", "losers"})
 NEW_YORK = ZoneInfo("America/New_York")
 FIELDS = (
@@ -25,6 +27,13 @@ FIELDS = (
     "summary",
     "supporting_passage",
     "phase",
+)
+PUBLICATION_FIELDS = (
+    "publication_precision",
+    "source_date",
+    "source_timezone",
+    "time_role",
+    "usage",
 )
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 MODEL = "gpt-6-sol"
@@ -86,14 +95,31 @@ def _source_reason(row: object, market_date: date, cutoff: datetime) -> str | No
     source_url = values.get("source_url")
     if not _valid_source_url(source_url):
         return "invalid_source_url"
-    published_at = values.get("published_at")
-    if not isinstance(published_at, str):
-        return "invalid_published_at"
-    try:
-        source_time = datetime.fromisoformat(published_at)
-    except ValueError:
-        return "invalid_published_at"
+    if values.get("publication_precision") == "date":
+        try:
+            evidence = publication_time_from_candidate(values)
+            validate_publication_time(
+                evidence, market_date=market_date.isoformat(), cutoff=cutoff, section=section
+            )
+        except (ValueError, TypeError):
+            return "invalid_publication_evidence"
+        return None if values.get("phase") == "event" else "invalid_phase"
+    return _timestamp_reason(values, market_date, cutoff)
+
+
+def _publication_timestamp(value: object) -> datetime:
+    if not isinstance(value, str):
+        raise ValueError("timestamp missing")
+    source_time = datetime.fromisoformat(value)
     if source_time.tzinfo is None or source_time.utcoffset() is None:
+        raise ValueError("timestamp requires timezone")
+    return source_time
+
+
+def _timestamp_reason(values: dict[str, object], market_date: date, cutoff: datetime) -> str | None:
+    try:
+        source_time = _publication_timestamp(values.get("published_at"))
+    except ValueError:
         return "invalid_published_at"
     if source_time > cutoff:
         return "source_after_cutoff"
@@ -103,6 +129,16 @@ def _source_reason(row: object, market_date: date, cutoff: datetime) -> str | No
     market_close = datetime.combine(market_date, time(16), tzinfo=NEW_YORK)
     if values.get("phase") == "close" and source_time < market_close:
         return "preclose_source"
+    if any(name in values for name in PUBLICATION_FIELDS):
+        try:
+            validate_publication_time(
+                publication_time_from_candidate(values),
+                market_date=market_date.isoformat(),
+                cutoff=cutoff,
+                section=str(values["section"]),
+            )
+        except (ValueError, TypeError):
+            return "invalid_publication_evidence"
     return None
 
 
@@ -146,14 +182,28 @@ def validate_candidates(
             continue
         assert isinstance(row, dict)
         values = cast("dict[str, str]", row)
-        candidate: dict[str, str] = {field: values[field].strip() for field in FIELDS}
+        fields = list(FIELDS)
+        if values.get("publication_precision") == "date":
+            fields.remove("published_at")
+        fields.extend(name for name in PUBLICATION_FIELDS if isinstance(values.get(name), str))
+        candidate: dict[str, str] = {field: values[field].strip() for field in fields}
         candidate["review_status"] = "needs_review"
         accepted.append(candidate)
     return accepted, rejected
 
 
 def _output_schema() -> dict[str, object]:
-    properties = {field: {"type": "string"} for field in FIELDS}
+    properties: dict[str, dict[str, object]] = {field: {"type": "string"} for field in FIELDS}
+    properties["published_at"] = {"type": ["string", "null"]}
+    properties.update(
+        {
+            "publication_precision": {"type": "string", "enum": ["timestamp", "date"]},
+            "source_date": {"type": ["string", "null"]},
+            "source_timezone": {"type": ["string", "null"]},
+            "time_role": {"type": "string", "enum": ["publication", "filing_acceptance"]},
+            "usage": {"type": "string", "enum": ["background", "context"]},
+        }
+    )
     return {
         "type": "object",
         "properties": {
@@ -162,7 +212,7 @@ def _output_schema() -> dict[str, object]:
                 "items": {
                     "type": "object",
                     "properties": properties,
-                    "required": list(FIELDS),
+                    "required": list(properties),
                     "additionalProperties": False,
                 },
             }
@@ -201,8 +251,17 @@ def _prompt(market_date: date, cutoff: datetime) -> str:
         "Treat snippets, aggregators, and paywall teasers only as discovery leads; omit any item "
         "whose original page cannot be opened and checked. Return JSON matching the provided schema only. "
         "For each candidate, supply the original HTTP(S) source_url, source article title, "
-        "timezone-aware published_at, explicit observation_date, a short original paraphrase "
+        "explicit observation_date, a short original paraphrase "
         "in summary, and supporting_passage of at most 160 characters. "
+        "Set publication_precision to timestamp for a verified timezone-aware published_at, "
+        "with source_date and source_timezone null. If only a date is given, set publication_precision "
+        "to date, published_at null, source_date to its original ISO date, and source_timezone to an "
+        "independently verified IANA zone or unknown. Date-only evidence is limited to macro/company_news "
+        "background with phase event and usage background; omit it if its whole possible publication "
+        "interval exceeds the cutoff. Do not guess midnight or the issuer headquarters timezone. "
+        "Set time_role to publication or filing_acceptance according to the actual source label. "
+        "Filing acceptance does not establish original publication and is limited to macro/company_news. "
+        "Set usage to background or context; never use date-only evidence for close/mover attribution. "
         "Set phase to close, intraday, or event. A close item needs an article published after "
         "the 4 p.m. New York cash close for that observation date; never label a midday item as close. "
         "Do not infer a market date from the publication date. Do not invent timestamps, numbers, "

@@ -166,6 +166,9 @@ def test_runner_requests_live_read_only_search_and_writes_review_draft(monkeypat
     def fake_run(command, **kwargs):
         captured["command"] = command
         captured["kwargs"] = kwargs
+        captured["schema"] = json.loads(
+            Path(command[command.index("--output-schema") + 1]).read_text()
+        )
         output_index = command.index("--output-last-message") + 1
         Path(command[output_index]).write_text(json.dumps(VALID), encoding="utf-8")
         return subprocess.CompletedProcess(command, 0, "", "")
@@ -180,6 +183,9 @@ def test_runner_requests_live_read_only_search_and_writes_review_draft(monkeypat
     assert command[command.index("--sandbox") + 1] == "read-only"
     assert command[command.index("-c") + 1] == "model_reasoning_effort=medium"
     assert "--output-schema" in command
+    properties = captured["schema"]["properties"]["candidates"]["items"]["properties"]
+    assert "null" in properties["published_at"]["type"]
+    assert properties["publication_precision"]["enum"] == ["timestamp", "date"]
     assert "--dangerously-bypass-approvals-and-sandbox" not in command
     assert "2026-09-18" in command[-1]
     assert "company investor-relations releases" in command[-1]

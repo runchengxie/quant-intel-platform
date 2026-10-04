@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
-import json
 from dataclasses import dataclass, replace
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
@@ -18,7 +16,7 @@ from .index_quotes import fetch_index_facts
 from .macro import fetch_us_macro_facts
 from .models import DailyReport, MarketFact, ReportSection
 from .reviewed_research import ReviewedResearch, load_reviewed_research
-from .serialization import write_json
+from .serialization import content_digest, write_json
 
 
 @dataclass(frozen=True)
@@ -254,7 +252,9 @@ def run_daily_report(
         if revision:
             quality_summary["revision"] = revision
     report = DailyReport(
-        schema_version="1.0",
+        schema_version="1.1"
+        if reviewed and any(event.publication_precision for event in reviewed.events)
+        else "1.0",
         as_of=report_cutoff,
         generated_at=report_cutoff,
         run_id=run_id,
@@ -266,11 +266,7 @@ def run_daily_report(
         source_status=source_status,
         missing_sources=missing_sources,
     )
-    base = report.to_dict()
-    base["content_hash"] = None
-    digest = hashlib.sha256(
-        json.dumps(base, default=str, sort_keys=True, ensure_ascii=False).encode()
-    ).hexdigest()
+    digest = content_digest(report.to_dict())
     report = replace(report, content_hash=digest)
     write_json(output_path / "daily_report.json", report)
     return report

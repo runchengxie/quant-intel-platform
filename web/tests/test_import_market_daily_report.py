@@ -60,6 +60,255 @@ def _source(tmp_path, payload):
     return source, manifest
 
 
+def _news_revision_payload(original, original_sha):
+    payload = json.loads(json.dumps(original))
+    payload["schema_version"] = "1.1"
+    payload["generated_at"] = "2026-09-21T13:00:00+00:00"
+    payload["quality_summary"].update(
+        revision="news_only",
+        news_revision={
+            "input_report_sha256": original_sha,
+            "previous_content_hash": original["content_hash"],
+            "news_cutoff": "2026-09-21T12:30:00+00:00",
+            "revised_at": payload["generated_at"],
+        },
+    )
+    payload["events"] = [
+        {
+            "id": "reviewed.date",
+            "event_type": "web_company_news_event",
+            "actual": "Revenue grew",
+            "source_url": "https://issuer.test/release",
+            "quality": "reviewed",
+            "source_time": None,
+            "publication_precision": "date",
+            "source_date": "2026-09-19",
+            "source_timezone": "unknown",
+            "time_role": "publication",
+            "usage": "background",
+        }
+    ]
+    payload["claims"].append(
+        {
+            "claim": "Revenue grew",
+            "evidence_ids": ["reviewed.date"],
+            "sources": ["https://issuer.test/release"],
+        }
+    )
+    payload["sections"] = payload.get("sections", []) + [
+        {"key": "company_news", "title": "公司新闻", "facts": [], "claims": ["reviewed.date"]}
+    ]
+    return payload
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "missing_meta",
+        "naive_time",
+        "nonstring_time",
+        "future_cutoff",
+        "assembly_mismatch",
+        "cross_kind_id",
+        "unknown_evidence",
+        "wrong_parent",
+        "removed_claim",
+        "status",
+        "gap",
+        "section",
+        "history_type",
+        "history_digest",
+        "history_link",
+        "history_head",
+    ],
+)
+def test_news_revision_guardrails_reject_tampered_artifacts(tmp_path, fault):
+    parent = tmp_path / "parent"
+    parent.mkdir()
+    original = _payload()
+    original["sections"] = [
+        {
+            "key": "market",
+            "title": "Market",
+            "facts": ["index.spx.change_percent"],
+            "claims": ["index.spx.change_percent"],
+        }
+    ]
+    original["missing_sources"] = ["cross_asset"]
+    source, _ = _source(parent, original)
+    payload = _news_revision_payload(original, hashlib.sha256(source.read_bytes()).hexdigest())
+    quality = payload["quality_summary"]
+    metadata = quality["news_revision"]
+    mutations = {
+        "missing_meta": lambda: quality.pop("news_revision"),
+        "naive_time": lambda: metadata.update(news_cutoff="2026-09-21T12:30:00"),
+        "nonstring_time": lambda: metadata.update(news_cutoff=None),
+        "future_cutoff": lambda: metadata.update(news_cutoff="2026-09-22T12:00:00Z"),
+        "assembly_mismatch": lambda: metadata.update(revised_at="2026-09-22T13:00:00Z"),
+        "cross_kind_id": lambda: payload["events"][0].update(id="index.spx.change_percent"),
+        "unknown_evidence": lambda: payload["claims"][-1].update(evidence_ids=["unknown.event"]),
+        "wrong_parent": lambda: metadata.update(input_report_sha256="0" * 64),
+        "removed_claim": lambda: payload.update(claims=payload["claims"][1:]),
+        "status": lambda: payload["source_status"]["facts"].update(quality="changed"),
+        "gap": lambda: payload.update(missing_sources=[]),
+        "section": lambda: payload["sections"][0].update(facts=[]),
+        "history_type": lambda: quality.update(news_revision_history={}),
+    }
+    if fault in mutations:
+        mutations[fault]()
+    else:
+        item = metadata | {"result_content_hash": "a" * 64}
+        if fault == "history_digest":
+            item["result_content_hash"] = "invalid"
+        quality["news_revision_history"] = [item]
+        if fault == "history_link":
+            quality["news_revision_history"].append(item | {"previous_content_hash": "b" * 64})
+    revised = tmp_path / "revised"
+    revised.mkdir()
+    new_source, manifest = _source(revised, payload)
+    with pytest.raises(ValueError):
+        import_report(new_source, tmp_path / "site", manifest, previous_report=source)
+    assert not (tmp_path / "site/artifacts/public").exists()
+
+
+def test_news_revision_preserves_valid_prior_chain_in_public_projection(tmp_path):
+    parent = tmp_path / "parent"
+    parent.mkdir()
+    original = _payload()
+    original["schema_version"] = "1.1"
+    original["quality_summary"].update(
+        revision="news_only",
+        news_revision={
+            "input_report_sha256": "a" * 64,
+            "previous_content_hash": "b" * 64,
+            "news_cutoff": "2026-09-20T00:00:00Z",
+            "revised_at": original["generated_at"],
+        },
+    )
+    source, _ = _source(parent, original)
+    payload = _news_revision_payload(original, hashlib.sha256(source.read_bytes()).hexdigest())
+    payload["quality_summary"]["news_revision_history"] = [
+        original["quality_summary"]["news_revision"] | {"result_content_hash": original["content_hash"]}
+    ]
+    revised = tmp_path / "revised"
+    revised.mkdir()
+    new_source, manifest = _source(revised, payload)
+    import_report(new_source, tmp_path / "site", manifest, previous_report=source)
+    public = json.loads((tmp_path / "site/artifacts/public/data/market_daily_report.json").read_text())
+    assert (
+        public["quality_summary"]["news_revision_history"][0]["result_content_hash"]
+        == original["content_hash"]
+    )
+
+
+def test_schema11_normal_timestamp_retains_verified_publication_time(tmp_path):
+    payload = _payload()
+    payload["schema_version"] = "1.1"
+    payload["events"] = [
+        {
+            "id": "filing",
+            "event_type": "web_company_news_event",
+            "source_time": "2026-09-19T22:00:00Z",
+            "publication_precision": "timestamp",
+            "time_role": "filing_acceptance",
+            "usage": "background",
+        }
+    ]
+    source, manifest = _source(tmp_path, payload)
+    import_report(source, tmp_path / "site", manifest)
+
+
+def test_news_download_header_uses_assembly_time_and_latest_news_cutoff(tmp_path):
+    from market_intel_publication.import_market_daily_report import _markdown, _text_report
+
+    payload = _news_revision_payload(_payload(), "a" * 64)
+    payload["quality_summary"]["reviewed_source_cutoff"] = "2026-09-19T23:59:00Z"
+    for text in (_markdown(payload), _text_report(payload)):
+        assert "报告生成时间：2026-09-21T13:00:00+00:00" in text
+        assert "新闻资料截止：2026-09-21T12:30:00+00:00" in text
+        assert "新闻资料截止：2026-09-19T23:59:00Z" not in text
+
+
+def test_news_revision_keeps_distinct_market_and_news_times(tmp_path):
+    parent = tmp_path / "parent"
+    parent.mkdir()
+    source, _manifest = _source(parent, _payload())
+    original = json.loads(source.read_text())
+    payload = _news_revision_payload(original, hashlib.sha256(source.read_bytes()).hexdigest())
+    revised = tmp_path / "revised"
+    revised.mkdir()
+    new_source, new_manifest = _source(revised, payload)
+    import_report(new_source, tmp_path / "site", new_manifest, previous_report=source)
+    public = json.loads((tmp_path / "site/artifacts/public/data/market_daily_report.json").read_text())
+    assert public["facts"] == original["facts"]
+    assert public["events"][0]["source_time"] is None
+    assert public["events"][0]["publication_precision"] == "date"
+    assert public["events"][0]["source_date"] == "2026-09-19"
+    assert public["quality_summary"]["news_revision"]["revised_at"] == "2026-09-21T13:00:00+00:00"
+    for suffix in (".md", "-no-citations.md", ".txt"):
+        text = (tmp_path / f"site/artifacts/public/reports/2026-09-19-market-daily{suffix}").read_text()
+        assert "行情截至" in text and "新闻修订" in text
+        assert "仅提供日期" in text and "时区未知" in text
+        assert "2026-09-19" in text
+
+
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "null",
+        "cutoff",
+        "lineage",
+        "earlier",
+        "changed_fact",
+        "no_parent",
+        "quality",
+        "date_close",
+        "downgrade",
+        "time_alias",
+    ],
+)
+def test_news_revision_rejects_invalid_time_or_fact_lineage(tmp_path, fault):
+    parent = tmp_path / "parent"
+    parent.mkdir()
+    source, _ = _source(parent, _payload())
+    payload = _news_revision_payload(
+        json.loads(source.read_text()), hashlib.sha256(source.read_bytes()).hexdigest()
+    )
+    if fault == "null":
+        payload["events"][0].pop("publication_precision")
+    elif fault == "cutoff":
+        payload["quality_summary"]["news_revision"]["news_cutoff"] = "2026-09-19T01:00:00Z"
+    elif fault == "lineage":
+        payload["quality_summary"]["news_revision"]["previous_content_hash"] = "not-a-digest"
+    elif fault == "earlier":
+        payload["generated_at"] = payload["quality_summary"]["news_revision"]["revised_at"] = (
+            "2026-09-19T01:00:00Z"
+        )
+    elif fault == "changed_fact":
+        payload["facts"][0]["value"] = 90
+    elif fault == "quality":
+        payload["quality_summary"]["status"] = "upgraded_without_review"
+    elif fault == "date_close":
+        payload["events"][0]["event_type"] = "web_company_news_close"
+    elif fault == "downgrade":
+        payload["schema_version"] = "1.0"
+    elif fault == "time_alias":
+        payload["events"][0].update(publication_precision="timestamp", published_at="2026-09-19T21:00:00Z")
+        payload["events"][0].pop("source_date")
+        payload["events"][0].pop("source_timezone")
+    revised = tmp_path / "revised"
+    revised.mkdir()
+    new_source, new_manifest = _source(revised, payload)
+    with pytest.raises(ValueError):
+        import_report(
+            new_source,
+            tmp_path / "site",
+            new_manifest,
+            previous_report=None if fault == "no_parent" else source,
+        )
+    assert not (tmp_path / "site/artifacts/public/data/market_daily_report.json").exists()
+
+
 def test_import_report_writes_public_json_and_markdown(tmp_path):
     source, manifest = _source(tmp_path, _payload())
     output = tmp_path / "site"

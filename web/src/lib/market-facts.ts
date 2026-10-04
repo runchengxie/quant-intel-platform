@@ -33,13 +33,25 @@ export interface MarketDailyPayload {
   schema_version: string;
   run_id: string;
   facts: MarketFact[];
-  events?: Array<{ id: string }>;
+  as_of?: string;
+  generated_at?: string;
+  events?: MarketEventEvidence[];
   claims?: MarketClaim[];
   sections?: MarketSection[];
   missing_sources?: string[];
   report_formats?: string[];
-  quality_summary?: { status?: string; revision?: string };
+  quality_summary?: { status?: string; revision?: string; market_revision?: string; news_revision?: { news_cutoff: string; revised_at: string } };
   source_status?: Record<string, MarketSourceStatus | undefined>;
+}
+
+export interface MarketEventEvidence {
+  id: string;
+  source_time?: string | null;
+  publication_precision?: string;
+  source_date?: string;
+  source_timezone?: string;
+  time_role?: string;
+  usage?: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -72,6 +84,7 @@ export interface MarketClaimSummary {
   text: string;
   sourceUrls: string[];
   sectionKey: string;
+  publication?: MarketEventEvidence[];
 }
 
 export interface MarketClaimSection {
@@ -120,6 +133,8 @@ export interface MarketDailySummary {
   hasTextReport: boolean;
   nextMorningRevision: boolean;
   historicalBackfill: boolean;
+  newsRevision?: { factCutoff: string; newsCutoff: string; revisedAt: string };
+  missingNewsSections?: string[];
 }
 
 export interface MarketDailyChartRow extends MarketDailyRow {

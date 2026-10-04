@@ -24,6 +24,16 @@ export const US_REPORT_LABELS = {
   drivers: ['市场驱动因素', 'Market drivers'],
   macroNews: ['经济数据与美联储动态', 'Economic releases and Federal Reserve updates'],
   companyNews: ['公司新闻', 'Company news'],
+  dateOnly: ['仅提供日期', 'Date only'],
+  unknownTimezone: ['时区未知', 'Timezone unknown'],
+  sourcePublication: ['来源发布日期', 'Source publication'],
+  filingAcceptance: ['申报受理时间', 'Filing acceptance'],
+  marketCutoff: ['行情截至', 'Market facts cutoff'],
+  newsRevised: ['新闻修订', 'News revised'],
+  newsCutoff: ['新闻资料截止', 'News evidence cutoff'],
+  newsMissing: ['暂无经核实新闻。', 'No reviewed news available.'],
+  newsOnlyStatus: ['仅修订新闻，行情数据保留原版本。', 'News-only revision. Market facts retained.'],
+  translationMissing: ['英文译文缺项，保留来源语言。', 'English translation unavailable. Source-language summary: '],
 } as const;
 
 /** Exact source-bound presentation translations, not approval of new research. */
@@ -52,7 +62,8 @@ export const US_RESEARCH_TRANSLATIONS = {
 
 export function usResearchText(source: string, locale: Locale): string {
   if (locale !== 'en-US') return source;
-  return Object.values(US_RESEARCH_TRANSLATIONS).find(([original]) => original === source)?.[1] ?? source;
+  const translated = Object.values(US_RESEARCH_TRANSLATIONS).find(([original]) => original === source)?.[1];
+  return translated ?? (/[\u3400-\u9fff]/.test(source) ? US_REPORT_LABELS.translationMissing[1] + source : source);
 }
 
 /** Stable semantic keys; each label has an English and Chinese presentation. */

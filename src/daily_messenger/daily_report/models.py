@@ -67,11 +67,28 @@ class MarketEvent:
     revised: str | float | int | None
     source: str
     source_url: str | None
-    source_time: datetime
+    source_time: datetime | None
     quality: str
+    publication_precision: str | None = None
+    source_date: str | None = None
+    source_timezone: str | None = None
+    time_role: str | None = None
+    usage: str | None = None
+
+    EVIDENCE_FIELDS: ClassVar[tuple[str, ...]] = (
+        "publication_precision",
+        "source_date",
+        "source_timezone",
+        "time_role",
+        "usage",
+    )
 
     def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
+        result = asdict(self)
+        for name in self.EVIDENCE_FIELDS:
+            if result[name] is None:
+                del result[name]
+        return result
 
     @classmethod
     def from_dict(cls, payload: dict[str, Any]) -> MarketEvent:
@@ -94,7 +111,9 @@ class MarketEvent:
         values = dict(payload)
         if isinstance(values["source_time"], str):
             values["source_time"] = datetime.fromisoformat(values["source_time"])
-        return cls(**{name: values[name] for name in required})
+        result = {name: values[name] for name in required}
+        result.update({name: values[name] for name in cls.EVIDENCE_FIELDS if name in values})
+        return cls(**result)
 
 
 @dataclass(frozen=True)

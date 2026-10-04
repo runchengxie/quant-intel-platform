@@ -3,6 +3,39 @@ const assert = require("node:assert/strict");
 const { summarizeMarketDaily, formatMarketDailyStatus, buildMarketDailyCharts, buildMarketDailyChartSvg } = require("../src/lib/market-daily-utils.ts");
 const { toEnglishPresentation } = require("../src/lib/english-content.ts");
 
+function dateOnlyRevision() {
+  return { schema_version: '1.1', run_id: 'daily-2026-10-02', as_of: '2026-10-02T23:00:00Z', generated_at: '2026-10-04T01:00:00Z',
+    facts: [{ id: 'macro.cpi_yoy', value: 3.4, unit: 'percent', quality: 'ok', observation_date: '2026-08-01', source_url: 'https://fred.stlouisfed.org/series/CPIAUCSL' }],
+    events: [{ id: 'release', event_type: 'web_macro_event', source_time: null, publication_precision: 'date', source_date: '2026-10-02', source_timezone: 'unknown', time_role: 'publication', usage: 'background' }],
+    sections: [{ key: 'macro', claims: ['release'] }],
+    claims: [{ claim: 'A dated macro release.', evidence_ids: ['release'], sources: ['https://issuer.test/release'] }],
+    quality_summary: { revision: 'news_only', news_revision: { news_cutoff: '2026-10-04T00:00:00Z', revised_at: '2026-10-04T01:00:00Z' } },
+  };
+}
+
+test('date-only background has no invented clock and distinguishes revision times', () => {
+  for (const [locale, translate, labels] of [['en-US', toEnglishPresentation, ['Date only', 'Timezone unknown', 'Market facts cutoff', 'News revised']], ['zh-CN', x => x, ['仅提供日期', '时区未知', '行情截至', '新闻修订']]]) {
+    const summary = summarizeMarketDaily(dateOnlyRevision());
+    const svg = buildMarketDailyChartSvg(summary, translate, locale);
+    const text = [...svg.matchAll(/<text\b[^>]*>(.*?)<\/text>/g)].map(match => match[1]).join(' ');
+    for (const label of labels) assert.ok(text.includes(label), `Missing ${label}`);
+    assert.ok(text.includes('2026-10-02'));
+    assert.doesNotMatch(text, /2026-10-02T00:00/);
+    assert.equal(summary.rows[0].value, 3.4);
+    assert.ok(text.includes(locale === 'en-US' ? 'News-only revision. Market facts retained.' : '仅修订新闻，行情数据保留原版本。'));
+    assert.ok(!text.includes('当日公开复盘。'));
+  }
+});
+
+test('partial news retains empty company and drivers labels', () => {
+  const summary = summarizeMarketDaily(dateOnlyRevision());
+  const svg = buildMarketDailyChartSvg(summary, toEnglishPresentation, 'en-US');
+  assert.match(svg, /Company news/);
+  assert.match(svg, /Market drivers/);
+  assert.match(svg, /No reviewed news available/);
+  assert.doesNotMatch(svg, /暂无|时区未知|仅提供日期/);
+});
+
 test('reviewed BLS macro background renders in English without changing its release figures', () => {
   const payload = { schema_version: '1.0', run_id: 'daily-2026-10-02',
     facts: [{ id: 'macro.cpi_yoy', value: 3.4, unit: 'percent', quality: 'ok', observation_date: '2026-08-01', source_url: 'https://fred.stlouisfed.org/series/CPIAUCSL' }],

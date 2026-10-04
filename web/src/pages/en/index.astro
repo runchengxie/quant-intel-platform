@@ -28,14 +28,16 @@ const asiaReportSvg = latestEvening && latestEveningMarkdown ? toEnglishPresenta
 const market = loadMarketDaily();
 const marketChartSummary = market?.publication === 'public' ? marketDailyUtils.summarizeMarketDaily(market) : null;
 const marketChartSvg = marketChartSummary ? marketDailyUtils.buildMarketDailyChartSvg(marketChartSummary, toEnglishPresentation, 'en-US') : null;
+const marketRevisionNotes = marketChartSummary ? marketDailyUtils.formatMarketDailyRevision(marketChartSummary, 'en-US') : [];
 const marketHistory = loadMarketDailyHistory()
   .filter((row) => row.date >= VISUAL_REPORT_START_DATE && row.date !== market?.date)
   .map((row) => {
     const summary = marketDailyUtils.summarizeMarketDaily(row);
     return { ...row, chartSvg: summary ? marketDailyUtils.buildMarketDailyChartSvg(summary, toEnglishPresentation, 'en-US') : null };
   });
-const marketGeneratedLabel = market?.as_of && !Number.isNaN(Date.parse(String(market.as_of)))
-  ? new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(String(market.as_of))) : null;
+const marketGeneratedTime = market?.generated_at || market?.as_of;
+const marketGeneratedLabel = marketGeneratedTime && !Number.isNaN(Date.parse(String(marketGeneratedTime)))
+  ? new Intl.DateTimeFormat('en-US', { timeZone: 'America/New_York', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }).format(new Date(String(marketGeneratedTime))) : null;
 const sourceRows = marketChartSummary?.rows || [];
 const sourceLinks = [...new Map([
   ...sourceRows.map((row) => [row.sourceUrl, { href: row.sourceUrl, label: toEnglishPresentation(row.sourceLabel), context: toEnglishPresentation(row.label) }]),
@@ -66,6 +68,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
       <section class="panel" id="us-session" aria-labelledby="market-title"><div class="section-heading"><span class="eyebrow">Latest U.S. daily report · {market?.date || 'Pending'}</span><h2 id="market-title">07:00 U.S. market close review</h2></div>
         {market?.markdown ? <>
           <p class="section-note">The report date is {market.date}. {marketGeneratedLabel && <>{labels.generated}: {marketGeneratedLabel} (America/New_York). </>}The image and facts below use only verified market data and preserve source dates.</p>
+          {marketRevisionNotes.map(note => <p class="section-note">{note}</p>)}
           <div class="link-row report-actions"><a href={`${base}/reports/${market.date}-market-daily.md`}>Source Markdown</a>{market.hasCitationFreeMarkdown && <a href={`${base}/reports/${market.date}-market-daily-no-citations.md`}>Reading copy</a>}<a href={`${base}/reports/${market.date}-market-daily.txt`}>Plain text</a>{marketChartSvg && <button type="button" id="download-market-chart" data-report-image data-report-date={market.date} data-report-kind="market-daily" data-report-content-hash={market.content_hash} data-chart-target="#market-daily-chart svg" data-status-target="#market-chart-download-status">{labels.downloadPng}</button>}</div>
           <p id="market-chart-download-status" class="section-note" role="status" aria-live="polite"></p>
           {marketChartSvg ? <div class="market-brief"><div class="market-chart-graphic market-report-graphic" id="market-daily-chart" set:html={marketChartSvg} /><details class="secondary-report market-sources"><summary>Check source links ({sourceLinks.length})</summary><ul>{sourceLinks.map((source) => <li>{source.context} · <a href={source.href} target="_blank" rel="noreferrer">{source.label}</a></li>)}</ul></details></div> : <p class="empty">No verified U.S. chart is currently available.</p>}

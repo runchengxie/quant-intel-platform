@@ -1,3 +1,4 @@
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
 from daily_messenger.daily_report.events import build_market_events, filter_events_as_of
@@ -43,3 +44,18 @@ def test_future_event_is_excluded_from_report_cutoff():
     ]
     events = build_market_events(rows, as_of=AS_OF)
     assert [event.id for event in filter_events_as_of(events, AS_OF)] == ["past"]
+
+
+def test_date_only_event_filter_uses_end_of_possible_interval():
+    event = build_market_events([{"id": "release", "source_time": AS_OF}], as_of=AS_OF)[0]
+    event = replace(
+        event,
+        source_time=None,
+        publication_precision="date",
+        source_date="2026-09-18",
+        source_timezone="unknown",
+        time_role="publication",
+        usage="background",
+    )
+    assert filter_events_as_of([event], AS_OF) == []
+    assert filter_events_as_of([event], datetime(2026, 9, 19, 12, tzinfo=UTC)) == [event]
