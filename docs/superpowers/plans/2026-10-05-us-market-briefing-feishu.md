@@ -47,32 +47,32 @@
 - Produces: `load_us_market_briefing_bundle(manifest_path: str | Path, *, allow_internal: bool = False) -> UsMarketBriefingBundle`.
 - `UsMarketBriefingBundle` exposes manifest identity, audience, validated briefing/review mappings and resolved source artifact paths as immutable fields.
 
-- [ ] **Step 1: Add failing bundle validation tests**
+- [x] **Step 1: Add failing bundle validation tests**
 
 Create a synthetic five-file bundle in `tests/fixtures/publications/us_market_briefing/` with five Chinese paragraphs, unique final claim IDs, HTTPS `example.com` source URLs, one decision per claim, and review hashes computed from the exact evidence, analysis and briefing bytes.
 
 Add tests asserting a valid internal bundle is rejected without `allow_internal=True` and accepted with it; a public bundle is accepted in public mode; unsupported schema versions, extra or missing briefing/review artifacts, incorrect consumer IDs, missing files, traversal/symlink escapes, hash tampering, date/run mismatches, non-`validated_draft` status, invalid sources, unknown contract fields, non-five-paragraph text, `brief_text` mismatch, and missing/extra/duplicate/non-approved claim decisions all raise `ValueError` or `FileNotFoundError` before returning a bundle.
 
-- [ ] **Step 2: Run the focused tests and confirm they fail**
+- [x] **Step 2: Run the focused tests and confirm they fail**
 
 Run: `uv run pytest tests/daily_report/test_us_market_briefing.py -q`
 
 Expected: FAIL because `load_us_market_briefing_bundle` and `UsMarketBriefingBundle` are not implemented.
 
-- [ ] **Step 3: Implement the bundle loader**
+- [x] **Step 3: Implement the bundle loader**
 
 Implement `UsMarketBriefingBundle` and `load_us_market_briefing_bundle` in `src/daily_messenger/daily_report/us_market_briefing.py`. Add `jsonschema>=4.23,<5` as an explicit runtime dependency and package frozen copies of the producer's v1 briefing and review JSON Schemas as consumer-supported contract snapshots. Require exactly one briefing and one review artifact for `market-intel`, require the corresponding schema versions, and delegate generic path/audience/hash checks to `verify_platform_publication`. Load only fixed sibling names `evidence.json` and `analysis.json`, resolve them beneath the bundle root, and verify them against the review hashes. Run Draft 2020-12 validation with format checking, then validate same market date and run identity, review time not earlier than briefing generation, `brief_text` equality, exact claim-decision set and all decisions `approved`. Do not import producer code.
 
-- [ ] **Step 4: Run focused tests and ensure they pass**
+- [x] **Step 4: Run focused tests and ensure they pass**
 
 Run: `uv run pytest tests/daily_report/test_us_market_briefing.py -q`
 
 Expected: PASS for all valid and fail-closed cases; no test accesses the network.
 
-- [ ] **Step 5: Commit the bundle contract implementation**
+- [x] **Step 5: Commit the bundle contract implementation**
 
 ```bash
-git add src/daily_messenger/daily_report/us_market_briefing.py tests/fixtures/publications/us_market_briefing tests/daily_report/test_us_market_briefing.py
+git add pyproject.toml uv.lock src/daily_messenger/daily_report/us_market_briefing.py src/daily_messenger/daily_report/schemas tests/fixtures/publications/us_market_briefing tests/daily_report/test_us_market_briefing.py
 git commit -m "feat: validate US market briefing bundles"
 ```
 

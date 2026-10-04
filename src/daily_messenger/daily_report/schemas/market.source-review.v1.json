@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "market.source-review.v1",
+      "type": "string"
+    },
+    "market_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "reviewer": {
+      "type": "string",
+      "minLength": 1
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "hashes": {
+      "type": "object",
+      "properties": {
+        "evidence": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "analysis": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "briefing": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "evidence",
+        "analysis",
+        "briefing"
+      ],
+      "additionalProperties": false
+    },
+    "decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "claim_id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "status": {
+            "enum": [
+              "approved",
+              "deferred",
+              "rejected"
+            ],
+            "type": "string"
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "claim_id",
+          "status",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    }
+  },
+  "required": [
+    "schema_version",
+    "market_date",
+    "reviewer",
+    "reviewed_at",
+    "hashes",
+    "decisions"
+  ],
+  "additionalProperties": false
+}

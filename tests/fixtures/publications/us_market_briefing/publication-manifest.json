@@ -1,0 +1,31 @@
+{
+  "schema_version": "research.platform-publication.v1",
+  "generated_at": "2099-01-03T00:00:00+00:00",
+  "producer_repository": "quant-market-briefing",
+  "producer_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+  "run_id": "us-2099-01-02-close-r1",
+  "artifacts": [
+    {
+      "artifact_id": "us-briefing-briefing",
+      "relative_path": "briefing.json",
+      "schema_version": "market.briefing.v1",
+      "sha256": "a43d86186462a9b5b8766999aad0bc029687aa52a517943e90a47b3908840cd4",
+      "media_type": "application/json",
+      "audience": "internal",
+      "consumers": [
+        "market-intel"
+      ]
+    },
+    {
+      "artifact_id": "us-briefing-review",
+      "relative_path": "review.json",
+      "schema_version": "market.source-review.v1",
+      "sha256": "26ddea19fa3f6684c53f5e31ec0c6b313f3ea83bba272b11adc1e48f2d30e6b7",
+      "media_type": "application/json",
+      "audience": "internal",
+      "consumers": [
+        "market-intel"
+      ]
+    }
+  ]
+}

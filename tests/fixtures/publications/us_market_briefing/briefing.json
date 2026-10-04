@@ -1,0 +1,66 @@
+{
+  "schema_version": "market.briefing.v1",
+  "market": "US",
+  "market_date": "2099-01-02",
+  "evidence_cutoff": "2099-01-03T00:00:00Z",
+  "generated_at": "2099-01-03T00:00:00Z",
+  "run_id": "us-2099-01-02-close-r1",
+  "revision": 1,
+  "status": "validated_draft",
+  "headline": "合成美股收盘简报",
+  "paragraphs": [
+    {
+      "text": "合成测试段落 1。",
+      "claim_ids": [
+        "claim-1"
+      ]
+    },
+    {
+      "text": "合成测试段落 2。",
+      "claim_ids": [
+        "claim-2"
+      ]
+    },
+    {
+      "text": "合成测试段落 3。",
+      "claim_ids": [
+        "claim-3"
+      ]
+    },
+    {
+      "text": "合成测试段落 4。",
+      "claim_ids": [
+        "claim-4"
+      ]
+    },
+    {
+      "text": "合成测试段落 5。",
+      "claim_ids": [
+        "claim-5"
+      ]
+    }
+  ],
+  "brief_text": "合成测试段落 1。\n\n合成测试段落 2。\n\n合成测试段落 3。\n\n合成测试段落 4。\n\n合成测试段落 5。",
+  "thesis": {
+    "stance": "neutral",
+    "confidence": "low",
+    "horizon": "6-12m"
+  },
+  "sources": [
+    {
+      "id": "source-1",
+      "title": "Synthetic source",
+      "publisher": "Example",
+      "url": "https://example.com/synthetic-us-market-briefing",
+      "published_at": null
+    }
+  ],
+  "quality": {
+    "structure_passed": true,
+    "evidence_links_passed": true,
+    "editorial_rules_passed": true,
+    "source_audit_passed": false,
+    "errors": [],
+    "warnings": []
+  }
+}

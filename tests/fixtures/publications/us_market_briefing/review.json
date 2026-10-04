@@ -1,0 +1,38 @@
+{
+  "schema_version": "market.source-review.v1",
+  "market_date": "2099-01-02",
+  "reviewer": "synthetic-reviewer",
+  "reviewed_at": "2099-01-03T00:01:00Z",
+  "hashes": {
+    "evidence": "e3a0f89caf064ede6d50343cb1a69c2607c324ebef8cc9c8de43c81c8a5eb043",
+    "analysis": "b8e3e249d875c69779fd79d92c1572277560ba41f12452905bf7259119c6c74e",
+    "briefing": "a43d86186462a9b5b8766999aad0bc029687aa52a517943e90a47b3908840cd4"
+  },
+  "decisions": [
+    {
+      "claim_id": "claim-1",
+      "status": "approved",
+      "reason": "Source checked."
+    },
+    {
+      "claim_id": "claim-2",
+      "status": "approved",
+      "reason": "Source checked."
+    },
+    {
+      "claim_id": "claim-3",
+      "status": "approved",
+      "reason": "Source checked."
+    },
+    {
+      "claim_id": "claim-4",
+      "status": "approved",
+      "reason": "Source checked."
+    },
+    {
+      "claim_id": "claim-5",
+      "status": "approved",
+      "reason": "Source checked."
+    }
+  ]
+}
