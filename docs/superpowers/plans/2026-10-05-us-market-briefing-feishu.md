@@ -128,11 +128,11 @@ git commit -m "feat: add offline US briefing preview"
 - Consumes: `dm us-briefing-preview --manifest PATH [--allow-internal]` from Task 2.
 - Produces: bilingual operating notes identifying the accepted schema versions, synthetic no-send preview command, source-review gate and the remaining private-deployment/live-send work.
 
-- [ ] **Step 1: Update both language pages**
+- [x] **Step 1: Update both language pages**
 
 Document the supported v1 bundle inputs, the separate approval record requirement, the command's offline/no-send guarantee, and that real audiences, schedules, credentials, delivery idempotency and recovery remain owned by quant-intel-deploy and a future separately approved rollout.
 
-- [ ] **Step 2: Run documentation validation**
+- [x] **Step 2: Run documentation validation**
 
 Run: `uv run mkdocs build --strict`
 
@@ -140,7 +140,7 @@ Run: `uv run python project_tools/check_locale_navigation.py --site-dir site`
 
 Expected: both commands exit zero and both language pages are present in the rendered site.
 
-- [ ] **Step 3: Commit the documentation**
+- [x] **Step 3: Commit the documentation**
 
 ```bash
 git add docs/us-market-briefing.md docs/us-market-briefing.en.md docs/superpowers/specs/2026-10-05-us-market-briefing-feishu-design.md

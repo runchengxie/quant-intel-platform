@@ -2,7 +2,7 @@
 
 ## Status
 
-Draft for user review. No implementation or production activation is authorized by this document.
+Approved for implementation on 2026-10-05. Phase 1 adds the public bundle consumer and no-send preview in PR #195. Phase 1 does not resolve destinations, invoke Feishu, or enable a schedule. Live delivery remains a separate task after the audience and rollout scope are confirmed.
 
 ## Goal
 
@@ -81,16 +81,22 @@ All bundle, schema, hash, date, audience and approval failures stop before rende
 
 ## Acceptance criteria
 
-- A valid synthetic v1 internal bundle passes validation and renders exactly five paragraphs plus source references.
-- A public bundle is accepted only in a public-capable run; an internal bundle cannot leak through a public-only path.
+Phase 1, the approved scope for PR #195:
+
+- A valid synthetic v1 internal bundle passes validation and previews exactly five paragraphs plus source references.
+- A public bundle is accepted in public mode; an internal bundle fails closed unless the caller explicitly opts in.
 - Tampered briefing/review/evidence/analysis bytes, path traversal, unsupported versions, date/run mismatches and hash mismatches fail closed.
-- Missing, extra, deferred or rejected claim decisions fail before delivery.
-- A changed `brief_text`, missing source URL, non-five-paragraph report, or draft status fails before delivery.
-- Dry-run emits the same payload and a dry-run receipt without making a network call.
+- Missing, extra, duplicate, deferred or rejected claim decisions fail before preview.
+- A changed `brief_text`, missing source URL, non-five-paragraph report, or draft status fails before preview.
+- The preview JSON contains `dry_run: true` and the exact rendered text. Running it never reads destination configuration or makes a network or subprocess call.
+- Tests use synthetic fixtures only. Public CI does not access live market data, model APIs, credentials or Feishu.
+- Documentation describes the supported consumer version and keeps real audience/schedule settings in quant-intel-deploy.
+
+Later live-delivery scope, requiring the destination and rollout scope to be confirmed:
+
 - Repeating an identical product/date/revision/target attempt does not send a duplicate; changing revision has an explicit test and receipt identity.
 - Missing destination configuration and sender failures produce actionable failure results without exposing secrets.
-- Tests use synthetic fixtures and fake senders only. Public CI does not access live market data, model APIs, credentials or Feishu.
-- Documentation describes the supported consumer version and keeps real audience/schedule settings in quant-intel-deploy.
+- Delivery uses the existing platform sender and writes a private receipt without changing or re-generating the approved text.
 
 ## Out of scope
 
