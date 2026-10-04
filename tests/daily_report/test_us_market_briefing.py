@@ -70,9 +70,7 @@ def _make_bundle(
     consumer = str(options.get("consumer", "market-intel"))
     briefing_overrides = cast(dict | None, options.get("briefing_overrides"))
     review_overrides = cast(dict | None, options.get("review_overrides"))
-    extra_manifest_artifacts = cast(
-        list[dict] | None, options.get("extra_manifest_artifacts")
-    )
+    extra_manifest_artifacts = cast(list[dict] | None, options.get("extra_manifest_artifacts"))
     root.mkdir(parents=True, exist_ok=True)
     evidence = {
         "schema_version": "market.evidence.v1",
