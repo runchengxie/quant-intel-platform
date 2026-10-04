@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from datetime import datetime
 from typing import Any, cast
@@ -12,6 +13,13 @@ from daily_messenger.daily_report.publication_time import (
 )
 
 REVISION_FIELDS = ("input_report_sha256", "previous_content_hash", "news_cutoff", "revised_at")
+
+
+def _json_equal(left: object, right: object) -> bool:
+    """Compare retained JSON without Python's boolean/numeric coercion."""
+    return json.dumps(left, sort_keys=True, allow_nan=False) == json.dumps(
+        right, sort_keys=True, allow_nan=False
+    )
 
 
 def _instant(value: object) -> datetime:
@@ -104,7 +112,7 @@ def validate_news_revision(original: dict, revised: dict, *, original_sha256: st
     ] != original.get("content_hash"):
         raise ValueError("news revision parent mismatch")
     if (
-        revised["facts"] != original["facts"]
+        not _json_equal(revised["facts"], original["facts"])
         or revised["as_of"] != original["as_of"]
         or revised["run_id"] != original["run_id"]
     ):
@@ -113,28 +121,37 @@ def validate_news_revision(original: dict, revised: dict, *, original_sha256: st
         raise ValueError("news revision predates original generation")
     for name in ("claims", "events"):
         before = original.get(name, [])
-        if revised.get(name, [])[: len(before)] != before:
+        if not _json_equal(revised.get(name, [])[: len(before)], before):
             raise ValueError("news revision removed or changed prior evidence")
+    old_claims = original.get("claims", [])
+    if not any(
+        not any(_json_equal(claim, old) for old in old_claims)
+        for claim in revised.get("claims", [])[len(old_claims) :]
+    ):
+        raise ValueError("news revision requires new claims")
     old_status = {
         key: value for key, value in original.get("source_status", {}).items() if key != "research"
     }
     new_status = {
         key: value for key, value in revised.get("source_status", {}).items() if key != "research"
     }
-    if old_status != new_status:
+    if not _json_equal(old_status, new_status):
         raise ValueError("news revision changed non-research status")
-    if [key for key in original.get("missing_sources", []) if key != "research"] != [
-        key for key in revised.get("missing_sources", []) if key != "research"
-    ]:
+    if not _json_equal(
+        [key for key in original.get("missing_sources", []) if key != "research"],
+        [key for key in revised.get("missing_sources", []) if key != "research"],
+    ):
         raise ValueError("news revision removed non-research gaps")
     by_key = {item["key"]: item for item in revised.get("sections", [])}
     for section in original.get("sections", []):
         target = by_key.get(section["key"], {})
         if (
-            target.get("facts", []) != section.get("facts", [])
-            or target.get("title") != section.get("title")
-            or target.get("claims", [])[: len(section.get("claims", []))]
-            != section.get("claims", [])
+            not _json_equal(target.get("facts", []), section.get("facts", []))
+            or not _json_equal(target.get("title"), section.get("title"))
+            or not _json_equal(
+                target.get("claims", [])[: len(section.get("claims", []))],
+                section.get("claims", []),
+            )
         ):
             raise ValueError("news revision changed original sections")
     _validate_original_quality(original, revised)
@@ -147,16 +164,19 @@ def _validate_original_quality(original: dict, revised: dict) -> None:
     market_revision = old_quality.get("market_revision")
     if old_quality.get("revision") in {"historical_backfill", "next_morning_rechecked"}:
         market_revision = old_quality["revision"]
-    if new_quality.get("market_revision") != market_revision:
+    if not _json_equal(new_quality.get("market_revision"), market_revision):
         raise ValueError("news revision changed market-generation provenance")
-    if {key: value for key, value in old_quality.items() if key not in allowed} != {
-        key: value for key, value in new_quality.items() if key not in allowed
-    }:
+    if not _json_equal(
+        {key: value for key, value in old_quality.items() if key not in allowed},
+        {key: value for key, value in new_quality.items() if key not in allowed},
+    ):
         raise ValueError("news revision changed original quality")
     history = old_quality.get("news_revision_history", [])
     if old_quality.get("revision") == "news_only":
         history = history + [
             old_quality["news_revision"] | {"result_content_hash": original["content_hash"]}
         ]
-    if revised.get("quality_summary", {}).get("news_revision_history", []) != history:
+    if not _json_equal(
+        revised.get("quality_summary", {}).get("news_revision_history", []), history
+    ):
         raise ValueError("news revision changed history")
