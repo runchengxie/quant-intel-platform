@@ -81,6 +81,7 @@ git commit -m "feat: validate US market briefing bundles"
 **Files:**
 - Modify: `src/daily_messenger/daily_report/us_market_briefing.py`
 - Modify: `src/daily_messenger/cli.py`
+- Modify: `docs/cli-reference.md` through `project_tools/update_cli_help.py`
 - Create: `tests/daily_report/test_us_market_briefing_cli.py`
 - Modify: `tests/test_cli_pipeline.py` only for top-level CLI parser/dispatch coverage
 
@@ -112,7 +113,7 @@ Expected: PASS, with existing CLI behavior unchanged and the fake network/sender
 - [x] **Step 5: Commit the preview path**
 
 ```bash
-git add src/daily_messenger/daily_report/us_market_briefing.py src/daily_messenger/cli.py tests/daily_report/test_us_market_briefing_cli.py tests/test_cli_pipeline.py
+git add src/daily_messenger/daily_report/us_market_briefing.py src/daily_messenger/cli.py docs/cli-reference.md tests/daily_report/test_us_market_briefing_cli.py tests/test_cli_pipeline.py
 git commit -m "feat: add offline US briefing preview"
 ```
 
