@@ -342,8 +342,6 @@ def _markdown(
     gaps = _missing_labels(payload)
     if gaps:
         lines.extend([f"尚缺：{'、'.join(gaps)}。", ""])
-    if optional := _optional_missing_labels(payload):
-        lines.extend([f"可选数据未提供：{'、'.join(optional)}。", ""])
     grouped = _group_claims(payload)
     report_sections = (
         ("market", "美股市场表现"),
@@ -377,6 +375,8 @@ def _markdown(
         else []
     )
     lines.extend(source_status)
+    if optional := _optional_missing_labels(payload):
+        lines.extend(["## 数据说明", "", f"可选数据未提供：{'、'.join(optional)}。", ""])
     if not source_status:
         lines.append("")
     return "\n".join(lines)
@@ -489,7 +489,7 @@ def _text_report(payload: dict[str, Any]) -> str:
     if gaps:
         lines.extend(["", f"尚缺：{'、'.join(gaps)}。"])
     if optional := _optional_missing_labels(payload):
-        lines.extend(["", f"可选数据未提供：{'、'.join(optional)}。"])
+        lines.extend(["", "数据说明", f"可选数据未提供：{'、'.join(optional)}。"])
     lines.extend(["", "风险提示：市场有风险，投资需谨慎。", ""])
     return "\n".join(lines)
 

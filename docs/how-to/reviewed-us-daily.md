@@ -51,6 +51,42 @@ postdate revision assembly. All candidates need a decision, and
 any `index_returns`, `index_evidence`, or `ticker` instruction is rejected in this
 mode, including instructions on deferred candidates.
 
+### Layered review decisions
+
+New private review decisions should include `review_checks` with four dimensions:
+`facts`, `timing`, `attribution`, and `source_use`. Each dimension has a `status`
+and a nonempty `reason`. An approved decision requires `passed` in every dimension,
+except that `attribution` may be `not_applicable` for factual background without a
+market-causality claim. Contradictory or incomplete checks block ingestion in both
+ordinary report assembly and news-only revisions. Existing decisions without this
+optional field remain compatible. These checks stay private and do not replace the
+source locator, verified facts, or display-basis requirements of news-only review.
+
+```json
+{
+  "review_checks": {
+    "facts": {"status": "passed", "reason": "Figures checked against the issuer release"},
+    "timing": {"status": "passed", "reason": "Verified publication date precedes the cutoff interval"},
+    "attribution": {"status": "not_applicable", "reason": "Company background only, without closing causality"},
+    "source_use": {"status": "passed", "reason": "Documented basis covers this independent factual summary"}
+  }
+}
+```
+
+Assess factual accuracy, admissible publication timing, market attribution, and
+source-use basis separately. A date-only issuer disclosure can support background
+when its full possible publication interval is before the cutoff. It cannot
+support closing causality. Assess an independent factual summary separately from
+copying or republication, using the actual source terms and intended scope. Do not
+infer permission from page accessibility or unrelated provider authorizations.
+Keep unresolved restrictions as `blocked` on a deferred or rejected decision.
+Reviewers still make the approval decision. The model does not approve candidates.
+
+Optional CME Bitcoin futures availability is disclosed in the web report's data
+notes, not in the single image or headline gap list. Required Bitcoin spot gaps
+remain visible. Original source diagnostics are preserved, and spot availability
+is not inferred from a futures quote.
+
 For date-only macro/company background, use `publication_precision: date`,
 `source_date: YYYY-MM-DD`, an independently verified IANA `source_timezone` or
 `unknown`, explicit `time_role`, and `usage: background`. Omit `published_at`.

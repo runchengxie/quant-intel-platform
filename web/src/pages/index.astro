@@ -9,7 +9,7 @@ import { formatEvidenceLine } from '../lib/evidence.ts';
 import { buildEveningNotes } from '../lib/evening-notes.ts';
 import marketDailyUtils from '../lib/market-daily-utils.ts';
 import { buildAsiaReportSvg } from '../lib/asia-report-image.ts';
-import { localePath } from '../lib/locale.ts';
+import { localePath, US_REPORT_LABELS } from '../lib/locale.ts';
 import { publicReportIdentity } from '../lib/report-image-identity.ts';
 
 const reports = loadReports();
@@ -30,6 +30,7 @@ const market = loadMarketDaily();
 const marketChartSummary = market?.publication === 'public' ? marketDailyUtils.summarizeMarketDaily(market) : null;
 const marketChartSvg = marketChartSummary ? marketDailyUtils.buildMarketDailyChartSvg(marketChartSummary) : null;
 const marketRevisionNotes = marketChartSummary ? marketDailyUtils.formatMarketDailyRevision(marketChartSummary, 'zh-CN') : [];
+const marketDataNotes = marketChartSummary ? marketDailyUtils.formatMarketDailyDataNotes(marketChartSummary, 'zh-CN') : [];
 const marketHistory = loadMarketDailyHistory()
   .filter((row) => row.date >= VISUAL_REPORT_START_DATE && row.date !== market?.date)
   .map((row) => {
@@ -99,6 +100,7 @@ const base = import.meta.env.BASE_URL.replace(/\/$/, '');
             <div class="report-downloads report-downloads-top" aria-label="下载这份美股报告"><span class="download-label">获取这份复盘</span><div class="link-row"><a href={`${base}/reports/${market.date}-market-daily.md`}>Markdown 原文</a>{market.hasCitationFreeMarkdown && <a href={`${base}/reports/${market.date}-market-daily-no-citations.md`}>Markdown 阅读版（无引用）</a>}<a href={`${base}/reports/${market.date}-market-daily.txt`}>纯文本报告</a>{marketChartSvg && <button type="button" id="download-market-chart" data-report-image data-report-date={market.date} data-report-kind="market-daily" data-report-content-hash={market.content_hash} data-chart-target="#market-daily-chart svg" data-status-target="#market-chart-download-status">下载图片版 PNG</button>}</div><p id="market-chart-download-status" class="section-note" role="status" aria-live="polite"></p></div>
             <p class="section-note">美股报告日期：{market.date}{marketGeneratedLabel ? ` · 生成时间：${marketGeneratedLabel}（美东时间）` : ''}。图片版包含已核实的行情、解读和来源。缺少的数据会标为缺项。</p>
             {marketRevisionNotes.map(note => <p class="section-note">{note}</p>)}
+            {marketDataNotes.length > 0 && <details class="secondary-report market-data-notes"><summary>{US_REPORT_LABELS.dataNotes[0]}</summary>{marketDataNotes.map(note => <p>{note}</p>)}</details>}
             {marketChartSvg ? <div class="market-brief">
               <div class="market-chart-graphic market-report-graphic" id="market-daily-chart" set:html={marketChartSvg} />
               <details class="secondary-report market-sources"><summary>核对来源链接（{sourceLinks.length}）</summary><ul>{sourceLinks.map((source) => <li>{source.context} · <a href={source.href} target="_blank" rel="noreferrer">{source.label}</a></li>)}</ul></details>

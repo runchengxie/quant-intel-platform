@@ -14,6 +14,8 @@ export const US_REPORT_LABELS = {
   btcSpotGap: ['比特币现货行情', 'Bitcoin spot prices'],
   btcFuturesGap: ['比特币期货行情', 'Bitcoin futures prices'],
   optionalUnavailable: ['可选数据未提供：', 'Optional data unavailable: '],
+  dataNotes: ['数据说明', 'Data notes'],
+  optionalSpotUnaffected: ['不影响已核实的现货行情。', 'Verified spot prices are unaffected.'],
   researchContext: ['已核实解读', 'Reviewed interpretation'],
   downloadPng: ['下载图片版 PNG', 'Download PNG'],
   pngGenerating: ['正在生成 PNG…', 'Generating PNG…'],
