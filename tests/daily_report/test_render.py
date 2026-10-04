@@ -79,3 +79,49 @@ def test_render_markdown_supports_english_shell_without_translating_source_facts
     assert "Data status: degraded" in text
     assert "## Data gaps" in text
     assert "暂无已校验内容。" not in text
+
+
+def test_render_revision_labels_date_only_evidence_in_both_locales():
+    report = DailyReport(
+        schema_version="1.1",
+        as_of=datetime(2026, 10, 2, 23, tzinfo=UTC),
+        generated_at=datetime(2026, 10, 4, 1, tzinfo=UTC),
+        run_id="daily-2026-10-02",
+        sections=(ReportSection("company_news", "公司新闻", claims=("news",)),),
+        events=(
+            MarketEvent(
+                "news",
+                "web_company_news_event",
+                "Release",
+                "Revenue grew",
+                None,
+                None,
+                None,
+                "issuer",
+                "https://issuer.test",
+                None,
+                "reviewed",
+                "date",
+                "2026-10-02",
+                "unknown",
+                "publication",
+                "background",
+            ),
+        ),
+        claims=(ResearchClaim("Revenue grew", ("news",), ("https://issuer.test",), "confirmed"),),
+        quality_summary={
+            "revision": "news_only",
+            "news_revision": {
+                "revised_at": "2026-10-04T01:00:00+00:00",
+                "news_cutoff": "2026-10-04T00:00:00+00:00",
+            },
+        },
+    )
+    for locale, labels in [
+        ("en-US", ["Market facts cutoff", "News revised", "Date only", "Timezone unknown"]),
+        ("zh-CN", ["行情截至", "新闻修订", "仅提供日期", "时区未知"]),
+    ]:
+        text = render_markdown(report, locale=locale)
+        assert all(label in text for label in labels)
+        assert "2026-10-02" in text
+        assert "2026-10-02T00:00" not in text

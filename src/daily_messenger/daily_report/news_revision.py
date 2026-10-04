@@ -95,6 +95,9 @@ def revise_news(
         raise ValueError("news cutoff exceeds revision time")
     payload = _read(input_path)
     _public_manifest(input_path, manifest_path)
+    original_bytes = input_path.read_bytes()
+    if json.loads(original_bytes) != payload:
+        raise ValueError("news revision input changed during validation")
     if payload["run_id"] != f"daily-{market_date}":
         raise ValueError("news revision market date mismatch")
     if revised_at < datetime.fromisoformat(payload["generated_at"]):
@@ -114,7 +117,7 @@ def revise_news(
         history.append(quality["news_revision"] | {"result_content_hash": payload["content_hash"]})
     quality["revision"] = "news_only"
     quality["news_revision"] = {
-        "input_report_sha256": hashlib.sha256(input_path.read_bytes()).hexdigest(),
+        "input_report_sha256": hashlib.sha256(original_bytes).hexdigest(),
         "previous_content_hash": payload["content_hash"],
         "news_cutoff": news_cutoff.isoformat(),
         "revised_at": revised_at.isoformat(),
@@ -128,6 +131,15 @@ def revise_news(
     ]
     result["content_hash"] = content_digest(result)
     serialized = dumps_json(result)
+    from market_intel_publication.us_news_contract import (
+        validate_news_payload,
+        validate_news_revision,
+    )
+
+    validate_news_payload(result)
+    validate_news_revision(
+        payload, result, original_sha256=hashlib.sha256(original_bytes).hexdigest()
+    )
     report_sha = hashlib.sha256(serialized.encode()).hexdigest()
     manifest = dumps_json(
         {
@@ -140,7 +152,11 @@ def revise_news(
         }
     )
     output_dir.mkdir(parents=True, exist_ok=False)
-    for name, text in (("daily_report.json", serialized), ("publication.json", manifest)):
+    for name, text in (
+        ("daily_report.json", serialized),
+        ("publication.json", manifest),
+        ("news_revision_parent.json", original_bytes.decode("utf-8")),
+    ):
         destination = output_dir / name
         with destination.open("x", encoding="utf-8") as handle:
             handle.write(text)

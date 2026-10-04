@@ -9,10 +9,14 @@ from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
+from .models import DailyReport, MarketEvent
+
 
 def _default(value: Any) -> Any:
     if isinstance(value, (datetime, date)):
         return value.isoformat()
+    if isinstance(value, (DailyReport, MarketEvent)):
+        return value.to_dict()
     if is_dataclass(value):
         return asdict(value)
     raise TypeError(f"unsupported JSON value: {type(value).__name__}")

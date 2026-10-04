@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 import re
@@ -28,6 +29,7 @@ from .us_daily_contract import (
 from .us_daily_contract import (
     _normalize as _normalize,
 )
+from .us_news_contract import validate_news_revision
 
 
 def _missing_labels(payload: dict[str, Any]) -> list[str]:
@@ -275,6 +277,7 @@ def _claim_markdown_lines(claim: dict[str, Any], include_references: bool) -> li
 
 def _markdown_header(payload: dict[str, Any], include_references: bool) -> list[str]:
     lines = [f"# 美股市场日报（{_date(payload)}）", ""]
+    lines.extend(_news_revision_lines(payload))
     if include_references:
         lines.extend(
             [
@@ -295,6 +298,37 @@ def _markdown_header(payload: dict[str, Any], include_references: bool) -> list[
                 "",
             ]
         )
+    return lines
+
+
+def _news_revision_lines(payload: dict[str, Any]) -> list[str]:
+    revision = payload.get("quality_summary", {}).get("news_revision")
+    if not revision:
+        return []
+    return [
+        f"行情截至：{payload['as_of']}。",
+        f"新闻修订：{revision['revised_at']}。",
+        f"新闻资料截止：{revision['news_cutoff']}。",
+        "",
+    ]
+
+
+def _publication_lines(payload: dict[str, Any], claims: list[dict[str, Any]]) -> list[str]:
+    identifiers = {key for claim in claims for key in claim.get("evidence_ids", [])}
+    lines = []
+    for event in payload.get("events", []):
+        if event.get("id") not in identifiers or "publication_precision" not in event:
+            continue
+        role = "申报受理时间" if event.get("time_role") == "filing_acceptance" else "来源发布日期"
+        if event["publication_precision"] == "date":
+            zone = (
+                "时区未知"
+                if event.get("source_timezone") == "unknown"
+                else event["source_timezone"]
+            )
+            lines.append(f"{role}：{event['source_date']}（仅提供日期，{zone}）。")
+        else:
+            lines.append(f"{role}：{event['source_time']}。")
     return lines
 
 
@@ -329,6 +363,7 @@ def _markdown(
         lines.extend(facts)
         for claim in grouped.get(key, []):
             lines.extend(_claim_markdown_lines(claim, include_references))
+        lines.extend(_publication_lines(payload, grouped.get(key, [])))
         if not facts and not grouped.get(key, []):
             lines.append("暂无经核实内容。")
         lines.append("")
@@ -442,6 +477,8 @@ def _text_report(payload: dict[str, Any]) -> str:
         "",
     ]
     cutoff = payload.get("quality_summary", {}).get("reviewed_source_cutoff")
+    lines[2:2] = _news_revision_lines(payload)
+    lines.extend(_publication_lines(payload, payload.get("claims", [])))
     if cutoff:
         lines[2:2] = [f"新闻资料截止：{cutoff}。"]
     if payload.get("quality_summary", {}).get("revision") == "historical_backfill":
@@ -457,11 +494,24 @@ def _text_report(payload: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
-def import_report(source: Path, root: Path, manifest_path: Path) -> str:
+def import_report(
+    source: Path, root: Path, manifest_path: Path, *, previous_report: Path | None = None
+) -> str:
     from .public_paths import public_snapshot_root
 
     manifest = _public_manifest(source, manifest_path)
-    payload = _public_payload(_read(source), manifest)
+    raw = _read(source)
+    if raw.get("quality_summary", {}).get("revision") == "news_only":
+        if previous_report is None:
+            candidate = source.parent / "news_revision_parent.json"
+            previous_report = candidate if candidate.is_file() else None
+        if previous_report is None:
+            raise ValueError("news revision requires its immutable original artifact")
+        original = _read(previous_report)
+        validate_news_revision(
+            original, raw, original_sha256=hashlib.sha256(previous_report.read_bytes()).hexdigest()
+        )
+    payload = _public_payload(raw, manifest)
     report_date = _date(payload)
     public_root = public_snapshot_root(root)
     data_path = public_root / "data/market_daily_report.json"
@@ -515,8 +565,11 @@ def main() -> int:
     parser.add_argument("--input", required=True, type=Path)
     parser.add_argument("--manifest", required=True, type=Path)
     parser.add_argument("--root", required=True, type=Path)
+    parser.add_argument(
+        "--previous-report", type=Path, help="Immutable parent for a news-only revision"
+    )
     args = parser.parse_args()
-    print(import_report(args.input, args.root, args.manifest))
+    print(import_report(args.input, args.root, args.manifest, previous_report=args.previous_report))
     return 0
 
 

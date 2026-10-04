@@ -252,7 +252,9 @@ def run_daily_report(
         if revision:
             quality_summary["revision"] = revision
     report = DailyReport(
-        schema_version="1.0",
+        schema_version="1.1"
+        if reviewed and any(event.publication_precision for event in reviewed.events)
+        else "1.0",
         as_of=report_cutoff,
         generated_at=report_cutoff,
         run_id=run_id,

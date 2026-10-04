@@ -165,6 +165,28 @@ def test_content_digest_matches_legacy_report_hash(tmp_path):
     assert digest(payload) == payload["content_hash"]
 
 
+def test_normal_generation_with_explicit_precision_selects_schema11(tmp_path, monkeypatch):
+    from daily_messenger.daily_report.pipeline import LiveInputs, run_daily_report
+    from daily_messenger.daily_report.reviewed_research import load_reviewed_research
+
+    _source, _manifest, draft, review = inputs(tmp_path)
+    reviewed = load_reviewed_research(
+        draft, review, market_date="2026-10-02", as_of=REVISED_AT, news_only=True
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline._live_inputs",
+        lambda *args: LiveInputs((), {}, (), "degraded", reviewed),
+    )
+    report = run_daily_report(
+        datetime(2026, 10, 2, 23, tzinfo=UTC), tmp_path / "normal", provider_config={"mode": "live"}
+    )
+    assert report.schema_version == "1.1"
+    assert (
+        json.loads((tmp_path / "normal/daily_report.json").read_text())["events"][0]["source_time"]
+        is None
+    )
+
+
 def test_revision_preserves_all_facts_and_nonresearch_status(tmp_path):
     paths = inputs(tmp_path)
     original_bytes = paths[0].read_bytes()

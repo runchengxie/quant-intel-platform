@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from .us_news_contract import REVISION_FIELDS, validate_news_payload
+
 SCHEMA_PREFIX = "1."
 DATE_FIELDS = {"as_of", "generated_at", "source_time", "retrieved_at"}
 REQUIRED_FIELDS = {
@@ -480,7 +482,7 @@ def _read(path: Path) -> dict[str, Any]:
     missing = sorted(REQUIRED_FIELDS.difference(payload))
     if missing:
         raise ValueError(f"daily report missing fields: {', '.join(missing)}")
-    if not str(payload["schema_version"]).startswith(SCHEMA_PREFIX):
+    if payload["schema_version"] not in {"1.0", "1.1"}:
         raise ValueError("unsupported daily report schema")
     if payload.get("quality_summary", {}).get("status") == "fixture":
         raise ValueError("fixture daily report cannot be published")
@@ -495,6 +497,8 @@ def _read(path: Path) -> dict[str, Any]:
         raise ValueError("every daily report claim needs evidence and HTTPS sources")
     if not _valid_sourced_fact_date(payload):
         raise ValueError("daily report market date mismatch")
+    if payload["schema_version"] == "1.1":
+        validate_news_payload(payload)
     return payload
 
 
@@ -531,11 +535,26 @@ def _public_payload(payload: dict[str, Any], manifest: dict[str, Any]) -> dict[s
         for row in payload.get("source_status", {}).get("equities", {}).get("reviewed_movers", [])
     }
     events = [
-        _select(event, PUBLIC_EVENT_FIELDS if event.get("id") in mover_evidence_ids else ("id",))
+        _select(
+            event,
+            PUBLIC_EVENT_FIELDS
+            + (
+                "source_time",
+                "publication_precision",
+                "source_date",
+                "source_timezone",
+                "time_role",
+                "usage",
+            )
+            if payload["schema_version"] == "1.1"
+            else PUBLIC_EVENT_FIELDS
+            if event.get("id") in mover_evidence_ids
+            else ("id",),
+        )
         for event in payload.get("events", [])
         if event.get("id") in evidence_ids
     ]
-    return {
+    result = {
         "schema_version": payload["schema_version"],
         "publication": "public",
         "report_formats": ["md", "txt"],
@@ -576,6 +595,18 @@ def _public_payload(payload: dict[str, Any], manifest: dict[str, Any]) -> dict[s
         "content_hash": payload.get("content_hash"),
         "source_report_sha256": manifest["report_sha256"],
     }
+    if payload["schema_version"] == "1.1":
+        quality = payload.get("quality_summary", {})
+        if "news_revision" in quality:
+            result["quality_summary"]["news_revision"] = _select(
+                quality["news_revision"], REVISION_FIELDS
+            )
+        if "news_revision_history" in quality:
+            result["quality_summary"]["news_revision_history"] = [
+                _select(item, REVISION_FIELDS + ("result_content_hash",))
+                for item in quality["news_revision_history"]
+            ]
+    return result
 
 
 def _date(payload: dict[str, Any]) -> str:
