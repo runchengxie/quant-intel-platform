@@ -1,0 +1,213 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": "market.briefing.v1",
+      "type": "string"
+    },
+    "market": {
+      "const": "US",
+      "type": "string"
+    },
+    "market_date": {
+      "type": "string",
+      "format": "date"
+    },
+    "evidence_cutoff": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "generated_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "revision": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "enum": [
+        "draft",
+        "validated_draft"
+      ],
+      "type": "string"
+    },
+    "headline": {
+      "type": "string",
+      "minLength": 1
+    },
+    "paragraphs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "minLength": 1
+          },
+          "claim_ids": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          }
+        },
+        "required": [
+          "text",
+          "claim_ids"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 5,
+      "maxItems": 5
+    },
+    "brief_text": {
+      "type": "string",
+      "minLength": 1
+    },
+    "thesis": {
+      "type": "object",
+      "properties": {
+        "stance": {
+          "enum": [
+            "constructive",
+            "neutral",
+            "cautious"
+          ],
+          "type": "string"
+        },
+        "confidence": {
+          "enum": [
+            "high",
+            "medium",
+            "low"
+          ],
+          "type": "string"
+        },
+        "horizon": {
+          "const": "6-12m",
+          "type": "string"
+        }
+      },
+      "required": [
+        "stance",
+        "confidence",
+        "horizon"
+      ],
+      "additionalProperties": false
+    },
+    "sources": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1
+          },
+          "publisher": {
+            "type": "string",
+            "minLength": 1
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://"
+          },
+          "published_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "title",
+          "publisher",
+          "url",
+          "published_at"
+        ],
+        "additionalProperties": false
+      },
+      "minItems": 1
+    },
+    "quality": {
+      "type": "object",
+      "properties": {
+        "structure_passed": {
+          "type": "boolean"
+        },
+        "evidence_links_passed": {
+          "type": "boolean"
+        },
+        "editorial_rules_passed": {
+          "type": "boolean"
+        },
+        "source_audit_passed": {
+          "const": false,
+          "type": "boolean"
+        },
+        "errors": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        },
+        "warnings": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 0
+        }
+      },
+      "required": [
+        "structure_passed",
+        "evidence_links_passed",
+        "editorial_rules_passed",
+        "source_audit_passed",
+        "errors",
+        "warnings"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "market",
+    "market_date",
+    "evidence_cutoff",
+    "generated_at",
+    "run_id",
+    "revision",
+    "status",
+    "headline",
+    "paragraphs",
+    "brief_text",
+    "thesis",
+    "sources",
+    "quality"
+  ],
+  "additionalProperties": false
+}

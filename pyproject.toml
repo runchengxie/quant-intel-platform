@@ -10,6 +10,7 @@ authors = [
 ]
 dependencies = [
   "requests>=2.31,<3",
+  "jsonschema>=4.23,<5",
   "PyYAML>=6,<7",
   "Jinja2>=3.1,<3.2",
   "numpy>=1.26,<3",
@@ -50,6 +51,7 @@ include = ["daily_messenger*", "tushare_jobs*", "ops_common*", "a_share_daily*",
 [tool.setuptools.package-data]
 "daily_messenger.digest" = ["templates/*.j2"]
 "daily_messenger.dashboard" = ["templates/*.html"]
+"daily_messenger.daily_report" = ["schemas/*.json"]
 "market_intel_commentary" = ["prompts/*.md"]
 
 [project.scripts]

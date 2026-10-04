@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import logging
 import os
 import sys
@@ -272,6 +273,16 @@ def _add_daily_report_parser(subparsers: argparse._SubParsersAction) -> None:
     )
     research_parser.add_argument(
         "--cutoff", help="Latest source publication time (ISO 8601 with timezone; default now)"
+    )
+    us_briefing = subparsers.add_parser(
+        "us-briefing-preview",
+        help="Validate and preview a reviewed U.S. market briefing bundle without sending",
+    )
+    us_briefing.add_argument("--manifest", required=True, help="Publication manifest JSON path")
+    us_briefing.add_argument(
+        "--allow-internal",
+        action="store_true",
+        help="Allow previewing an internal-only publication bundle",
     )
 
 
@@ -586,6 +597,25 @@ def _dispatch_research(args: argparse.Namespace, logger: logging.Logger) -> int:
     return 0
 
 
+def _dispatch_us_briefing_preview(args: argparse.Namespace, logger: logging.Logger) -> int:
+    from daily_messenger.daily_report.us_market_briefing import (
+        load_us_market_briefing_bundle,
+        make_us_market_briefing_preview,
+    )
+
+    try:
+        bundle = load_us_market_briefing_bundle(
+            args.manifest,
+            allow_internal=args.allow_internal,
+        )
+        preview = make_us_market_briefing_preview(bundle)
+    except (KeyError, OSError, TypeError, ValueError) as exc:
+        log(logger, logging.ERROR, "us_market_briefing_preview_failed", reason=str(exc))
+        return 2
+    print(json.dumps(preview, ensure_ascii=False, indent=2))
+    return 0
+
+
 def _dispatch_metal_sample(args: argparse.Namespace, logger: logging.Logger) -> int:
     from daily_messenger.daily_report.metal_samples import sample_metals
 
@@ -604,6 +634,8 @@ def _dispatch(args: argparse.Namespace, logger: logging.Logger) -> int:
 
     if args.command == "research":
         return _dispatch_research(args, logger)
+    if args.command == "us-briefing-preview":
+        return _dispatch_us_briefing_preview(args, logger)
     if args.command == "metal-sample":
         return _dispatch_metal_sample(args, logger)
 
@@ -636,7 +668,9 @@ def _dispatch(args: argparse.Namespace, logger: logging.Logger) -> int:
 
 def main(argv: list[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
-    if not (args.command == "daily-report" and getattr(args, "revise_news", None)):
+    if args.command != "us-briefing-preview" and not (
+        args.command == "daily-report" and getattr(args, "revise_news", None)
+    ):
         _load_runtime_env_files()
     _ensure_run_id()
 
