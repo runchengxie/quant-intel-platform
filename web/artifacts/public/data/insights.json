@@ -1,12 +1,14 @@
 {
   "schema_version": "market_intel_pages.insights.v1",
   "generation": {
-    "status": "generated",
+    "status": "unavailable",
     "provider": "deepseek",
     "model": "deepseek-chat",
-    "checked_at": "2026-09-30T18:45:32+08:00",
-    "target_date": "2026-09-30",
-    "analysis_attempts": 2
+    "checked_at": "2026-10-05T21:43:32+08:00",
+    "target_date": "2026-10-05",
+    "analysis_attempts": 3,
+    "error_type": "ValueError",
+    "error_code": "analysis_claim_count_invalid"
   },
   "insights": [
     {
@@ -3189,24 +3191,24 @@
     {
       "insight_id": "6e050729c33da4379ce1e7ae",
       "watchpoint_index": 0,
-      "status": "pending",
-      "report_id": null,
-      "observed_date": null,
+      "status": "unverifiable",
+      "report_id": "2026-10-05-evening",
+      "observed_date": "2026-10-05",
       "observed_value": null,
       "evidence_ids": [],
       "evidence": [],
-      "source_hash": null
+      "source_hash": "f9d12bed07d5559a25ce27d3d86f6aa61b334d75a26aa16162ff6b55a280775d"
     },
     {
       "insight_id": "6e050729c33da4379ce1e7ae",
       "watchpoint_index": 1,
-      "status": "pending",
-      "report_id": null,
-      "observed_date": null,
+      "status": "unverifiable",
+      "report_id": "2026-10-05-evening",
+      "observed_date": "2026-10-05",
       "observed_value": null,
       "evidence_ids": [],
       "evidence": [],
-      "source_hash": null
+      "source_hash": "f9d12bed07d5559a25ce27d3d86f6aa61b334d75a26aa16162ff6b55a280775d"
     },
     {
       "insight_id": "06c90e065efea1318086e2c7",
