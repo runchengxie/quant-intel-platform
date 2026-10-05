@@ -159,6 +159,20 @@ def validate_evening(payload: dict, date: str) -> None:
 
 
 def evening_markdown(run: OwnerRun) -> str:
+    data_root = Path(run.env["DATA_PLATFORM_ROOT"])
+    calendar = data_root / "assets/tushare/a_share/trade_cal/a_share_trade_cal_latest.parquet"
+    if calendar.is_file():
+        from .asia_session import render_holiday_report, session_status, validate_holiday_report
+
+        markets = session_status(calendar, run.date)
+        if not markets["CN"]:
+            path = data_root / "reports/market-intel/asia_evening" / f"{run.date}.json"
+            payload = read_object(path, "dated Asia evening facts")
+            validate_holiday_report(payload, run.date, markets)
+            (run.stage / "asia_evening.json").write_text(
+                json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+            )
+            return render_holiday_report(payload)
     facts = run.call("evening", ["--date", run.date, "--json"], "evening_review.json")
     validate_evening(read_object(facts, "evening JSON"), run.date)
     return run.call("evening", ["--date", run.date], "evening_review.md").read_text(
