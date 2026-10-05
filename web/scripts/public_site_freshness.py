@@ -29,9 +29,9 @@ class _NoRedirectHandler(HTTPRedirectHandler):
 
 
 def _finding(key: str, status: str) -> dict[str, str]:
-    label = "A-share evening report" if key == "asia" else "U.S. daily report"
+    label = "Asia evening report" if key == "asia" else "U.S. daily report"
     summaries = {
-        "deferred": "SSE calendar defers the A-share evening freshness check until the next session deadline; existing alerts remain open.",
+        "deferred": "Asia calendar defers the Asia evening freshness check until the next session deadline; existing alerts remain open.",
         "ok": f"{label} is within the configured freshness window.",
         "review": f"Review freshness of the {label}; a market closure may explain the age.",
         "unavailable": f"{label} snapshot is unavailable or has invalid metadata; review the public data.",
@@ -44,7 +44,7 @@ def _calendar_expectation(calendar, now, latest_date):
         return None
     expectation = session_expectation(calendar, now)
     if not calendar["days"].get(latest_date, False):
-        raise ValueError("report target is not an SSE session")
+        raise ValueError("report target is not an Asia session")
     return expectation
 
 

@@ -20,6 +20,7 @@ dependencies = [
   "tzdata>=2023.3",
   "yfinance>=0.2.59",
   "matplotlib>=3.8,<4",
+  "exchange-calendars>=4.13,<5",
 ]
 
 [project.optional-dependencies]

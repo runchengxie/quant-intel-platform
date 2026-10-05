@@ -274,7 +274,7 @@ def test_fetch_rejects_non_pages_base(base):
         fetch_public_snapshots(base)
 
 
-def calendar_findings(day, reports=None, calendar=None):
+def calendar_findings(day, reports=None, calendar=None, max_age_hours=96):
     from scripts.public_site_calendar import load_calendar
 
     if calendar is None:
@@ -285,19 +285,21 @@ def calendar_findings(day, reports=None, calendar=None):
         us(),
         now=datetime.fromisoformat(day),
         calendar=calendar,
+        max_age_hours=max_age_hours,
     )[0]
 
 
 @pytest.mark.parametrize(
     "day",
     [
-        "2026-10-05T12:00:00+08:00",
-        "2026-10-07T23:00:00+08:00",
-        "2026-10-08T21:59:59+08:00",
+        "2026-10-04T23:00:00+08:00",
     ],
 )
-def test_verified_sse_closure_defers_existing_alert(day):
-    assert calendar_findings(day)["status"] == "deferred"
+def test_all_asian_markets_closed_defers_existing_alert(day):
+    assert (
+        calendar_findings(day, asia("2026-10-02", "2026-10-02 20:00:00"), max_age_hours=24)["status"]
+        == "deferred"
+    )
 
 
 def test_sse_overdue_session_resumes_alert_and_real_recovery_is_ok():
@@ -313,7 +315,21 @@ def test_closure_cannot_mask_behind_or_invalid_snapshot(reports):
     assert calendar_findings("2026-10-05T12:00:00+08:00", reports)["status"] in {"review", "unavailable"}
 
 
-@pytest.mark.parametrize("fault", ["missing", "gap", "flag", "exchange", "hash", "expired", "future"])
+@pytest.mark.parametrize(
+    "fault",
+    [
+        "missing",
+        "gap",
+        "flag",
+        "exchange",
+        "hash",
+        "expired",
+        "future",
+        "version",
+        "references",
+        "reference_url",
+    ],
+)
 def test_calendar_invalidity_fails_closed(fault):
     from scripts.public_site_calendar import load_calendar
 
@@ -326,11 +342,17 @@ def test_calendar_invalidity_fails_closed(fault):
     elif fault == "flag":
         calendar["days"]["2026-10-05"] = "closed"
     elif fault == "exchange":
-        calendar["exchange"] = "Asia"
+        calendar["exchange"] = "SSE"
     elif fault == "hash":
         calendar["source_sha256"] = "invalid"
     elif fault == "expired":
         now = "2027-01-01T12:00:00+08:00"
+    elif fault == "version":
+        calendar["exchange_calendars_version"] = "unknown"
+    elif fault == "references":
+        calendar["exchange_sources"] = {}
+    elif fault == "reference_url":
+        calendar["exchange_sources"]["HK"]["url"] = "https://untrusted.example/"
     else:
         calendar["generated_at"] = "2027-01-01T00:00:00+00:00"
     assert calendar_findings(now, calendar=calendar)["status"] == "unavailable"
@@ -343,10 +365,18 @@ def test_reopening_report_arriving_before_deadline_is_healthy():
     )
 
 
-def test_closed_date_cannot_be_presented_as_an_sse_report():
+def test_hk_japan_session_is_accepted_during_sse_holiday():
     assert (
         calendar_findings("2026-10-05T20:00:00+08:00", asia("2026-10-05", "2026-10-05 18:00:00"))["status"]
-        == "unavailable"
+        == "ok"
+    )
+
+
+def test_hk_japan_open_day_requires_current_evening_after_deadline():
+    assert calendar_findings("2026-10-05T23:00:00+08:00")["status"] == "review"
+    assert (
+        calendar_findings("2026-10-05T23:00:00+08:00", asia("2026-10-05", "2026-10-05 20:00:00"))["status"]
+        == "ok"
     )
 
 

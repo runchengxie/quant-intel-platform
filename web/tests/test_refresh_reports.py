@@ -62,6 +62,11 @@ class RefreshReportsTests(unittest.TestCase):
     def setUp(self):
         self.module = importlib.import_module("scripts.refresh_reports")
         self.refresh = self.module.refresh_reports
+        # The executable fixture models an admitted A-share session. Calendar
+        # admission itself is exercised by the platform's real parquet tests.
+        calendar_guard = patch("a_share_daily.public_report_refresh.is_a_share_session", return_value=True)
+        calendar_guard.start()
+        self.addCleanup(calendar_guard.stop)
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         self.base = Path(temporary.name)
