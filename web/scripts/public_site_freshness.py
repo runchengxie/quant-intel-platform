@@ -12,8 +12,10 @@ from zoneinfo import ZoneInfo
 
 try:
     from .pipeline_health import health_report
+    from .public_site_calendar import session_expectation
 except ImportError:
     from pipeline_health import health_report
+    from public_site_calendar import session_expectation
 
 
 US_TZ = ZoneInfo("America/New_York")
@@ -27,8 +29,9 @@ class _NoRedirectHandler(HTTPRedirectHandler):
 
 
 def _finding(key: str, status: str) -> dict[str, str]:
-    label = "Asian evening report" if key == "asia" else "U.S. daily report"
+    label = "A-share evening report" if key == "asia" else "U.S. daily report"
     summaries = {
+        "deferred": "SSE calendar defers the A-share evening freshness check until the next session deadline; existing alerts remain open.",
         "ok": f"{label} is within the configured freshness window.",
         "review": f"Review freshness of the {label}; a market closure may explain the age.",
         "unavailable": f"{label} snapshot is unavailable or has invalid metadata; review the public data.",
@@ -36,7 +39,29 @@ def _finding(key: str, status: str) -> dict[str, str]:
     return {"key": key, "status": status, "summary": summaries[status]}
 
 
-def _asia_status(reports: dict, now: datetime, max_age_hours: int) -> str:
+def _calendar_expectation(calendar, now, latest_date):
+    if calendar is None:
+        return None
+    expectation = session_expectation(calendar, now)
+    if not calendar["days"].get(latest_date, False):
+        raise ValueError("report target is not an SSE session")
+    return expectation
+
+
+def _calendar_report_status(latest_date, generated, status, expectation, now, max_age_hours):
+    expected, deferred, _deadline = expectation
+    if generated is None or status in {"missing", "invalid_timestamp"}:
+        return "unavailable"
+    if latest_date < expected:
+        return "review"
+    if generated.astimezone(ZoneInfo("Asia/Shanghai")).date() < date.fromisoformat(latest_date):
+        return "unavailable"
+    if deferred and latest_date == expected and status == "stale":
+        return "deferred"
+    return "review" if (now - generated).total_seconds() > max_age_hours * 3600 else "ok"
+
+
+def _asia_status(reports: dict, now: datetime, max_age_hours: int, calendar: dict | None) -> str:
     rows = reports.get("reports")
     if not isinstance(rows, list) or not rows or any(not isinstance(row, dict) for row in rows):
         return "unavailable"
@@ -46,6 +71,7 @@ def _asia_status(reports: dict, now: datetime, max_age_hours: int) -> str:
     try:
         latest_date = max(row["date"] for row in evenings)
         latest = [row for row in evenings if row["date"] == latest_date]
+        expectation = _calendar_expectation(calendar, now, latest_date)
         result = health_report({"reports": latest}, now=now, max_age_hours=max_age_hours)
         source_time = result["latest_source_generated_at"]
         generated = datetime.fromisoformat(source_time) if source_time else None
@@ -53,6 +79,10 @@ def _asia_status(reports: dict, now: datetime, max_age_hours: int) -> str:
         return "unavailable"
     if generated is not None and generated > now:
         return "unavailable"
+    if expectation is not None:
+        return _calendar_report_status(
+            latest_date, generated, result["status"], expectation, now, max_age_hours
+        )
     if result["status"] == "stale":
         return "review"
     if result["status"] == "calendar_unverified":
@@ -88,14 +118,16 @@ def _us_status(us_report: dict, now: datetime, max_age_hours: int) -> str:
 
 
 def evaluate_public_snapshots(
-    reports: dict, us_report: dict, *, now: datetime, max_age_hours: int = 96
+    reports: dict, us_report: dict, *, now: datetime, max_age_hours: int = 96, calendar: dict | None = None
 ) -> list[dict[str, str]]:
     """Return bounded, content-free findings for the two published report streams."""
     if now.tzinfo is None or now.utcoffset() is None:
         raise ValueError("check time must include timezone")
     if max_age_hours <= 0:
         raise ValueError("max_age_hours must be positive")
-    asia_status = _asia_status(reports, now, max_age_hours) if isinstance(reports, dict) else "unavailable"
+    asia_status = (
+        _asia_status(reports, now, max_age_hours, calendar) if isinstance(reports, dict) else "unavailable"
+    )
     us_status = _us_status(us_report, now, max_age_hours) if isinstance(us_report, dict) else "unavailable"
     return [_finding("asia", asia_status), _finding("us", us_status)]
 
