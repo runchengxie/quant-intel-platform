@@ -9,10 +9,20 @@ def primary_navigation(site: Path, path: str) -> str:
     return html.split("md-sidebar--primary", 1)[1].split("md-sidebar--secondary", 1)[0]
 
 
+def document_language(site: Path, path: str) -> str:
+    html = (site / path).read_text(encoding="utf-8")
+    return html.split('<html lang="', 1)[1].split('"', 1)[0]
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--site-dir", type=Path, default=Path("site"))
     site = parser.parse_args().site_dir
+
+    assert document_language(site, "index.html") == "en"
+    assert document_language(site, "index.zh-CN/index.html") == "zh-CN"
+    assert document_language(site, "configuration/index.html") == "en"
+    assert document_language(site, "configuration.zh-CN/index.html") == "zh-CN"
 
     english = primary_navigation(site, "index.html")
     chinese = primary_navigation(site, "index.zh-CN/index.html")
