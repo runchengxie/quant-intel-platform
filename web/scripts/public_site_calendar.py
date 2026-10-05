@@ -1,4 +1,4 @@
-"""Validate the public SSE calendar projection consumed by the freshness monitor."""
+"""Validate the public Asia calendar projection consumed by the freshness monitor."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 
 CHINA_TZ = ZoneInfo("Asia/Shanghai")
-CALENDAR_PATH = Path(__file__).resolve().parents[1] / "configs" / "a-share-calendar.json"
+CALENDAR_PATH = Path(__file__).resolve().parents[1] / "configs" / "asia-calendar.json"
 
 
 def load_calendar() -> dict:
@@ -20,15 +20,33 @@ def load_calendar() -> dict:
         return {}
 
 
+def _validate_foreign_sources(calendar: dict) -> None:
+    if not calendar["exchange_calendars_version"].startswith("4."):
+        raise ValueError("invalid foreign calendar provenance")
+    sources = calendar["exchange_sources"]
+    expected = {
+        "HK": ("XHKG", "www.hkex.com.hk"),
+        "JP": ("XTKS", "www.jpx.co.jp"),
+        "KR": ("XKRX", "global.krx.co.kr"),
+    }
+    if set(sources) != set(expected):
+        raise ValueError("missing foreign exchange references")
+    for market, (name, domain) in expected.items():
+        source = sources[market]
+        if source["calendar"] != name or not source["url"].startswith(f"https://{domain}/"):
+            raise ValueError("invalid foreign exchange reference")
+
+
 def session_expectation(calendar: dict, now: datetime) -> tuple[str, bool, datetime]:
-    """Return the last due SSE session, closure deferral, and its publication deadline."""
-    if calendar["schema_version"] != "public_sse_calendar.v1" or calendar["exchange"] != "SSE":
-        raise ValueError("invalid SSE calendar identity")
-    if calendar["source"] != "TuShare trade_cal" or len(calendar["source_sha256"]) != 64:
+    """Return the last due Asia session, closure deferral, and its publication deadline."""
+    if calendar["schema_version"] != "public_asia_calendar.v1" or calendar["exchange"] != "Asia":
+        raise ValueError("invalid Asia calendar identity")
+    if calendar["source"] != "TuShare trade_cal + exchange_calendars" or len(calendar["source_sha256"]) != 64:
         raise ValueError("missing calendar provenance")
     int(calendar["source_sha256"], 16)
     if not calendar["source_url"].startswith("https://www.sse.com.cn/"):
         raise ValueError("missing exchange reference")
+    _validate_foreign_sources(calendar)
     generated = datetime.fromisoformat(calendar["generated_at"])
     if generated.tzinfo is None or generated > now:
         raise ValueError("invalid calendar timestamp")

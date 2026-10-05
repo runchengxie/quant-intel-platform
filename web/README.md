@@ -46,16 +46,16 @@ python3 -m http.server 8000 --directory "$preview_root"
 
 如何导入报告或运行完整检查？参见[开发与数据维护](docs/technical-guide.md)、[每日生成与维护说明](docs/daily-generation-options.md)和[仓库协作约定](AGENTS.md)。原六图数据的公开审核另见[审核记录](docs/chart-review-2026-09-25.md)。
 
-### SSE calendar and public freshness alerts
+### Asia calendar and public freshness alerts
 
-The public monitor reads `configs/a-share-calendar.json` from the checked-out
-`main` branch. This bounded public metadata projects only SSE session dates and
-open flags from the data owner's TuShare `trade_cal` artifact; the source SHA-256,
-export timestamp, continuous coverage, and SSE reference URL retain provenance.
-It describes A-share publication expectations, not all Asian markets. U.S.
+The public monitor reads `configs/asia-calendar.json` from the checked-out
+`main` branch. This bounded public metadata combines SSE sessions from the data owner's TuShare
+`trade_cal` artifact with Hong Kong, Japan and Korea sessions from the pinned
+`exchange_calendars` library. The SSE source SHA-256, export timestamp, continuous
+coverage, foreign library version and exchange reference URLs retain provenance. U.S.
 report freshness continues to use its own existing age window.
 
-An evening report is due by **22:00 Asia/Shanghai** on each open SSE session.
+An evening report is due by **22:00 Asia/Shanghai** whenever any covered Asian market opens.
 This is the monitor's explicit publication allowance, not the scheduler's
 actual start time. During verified closure, and before the next open session's
 deadline, an exact last-due-session snapshot with valid generation metadata
@@ -80,10 +80,11 @@ uv run python project_tools/export_public_sse_calendar.py \
   --source "$QUANT_DATA_ROOT/quant-market-data-platform/assets/tushare/a_share/trade_cal/a_share_trade_cal_latest.parquet" \
   --output web/configs/a-share-calendar.json --year 2026 \
   --source-url https://www.sse.com.cn/disclosure/announcement/general/c/c_20260915_10832273.shtml
+uv run python project_tools/export_public_asia_calendar.py
 ```
 
 Run this command from the platform repository root, with `QUANT_DATA_ROOT`
-resolved to the quant data domain. Only this intentionally public calendar
-projection belongs in source control; raw owner parquet and credentials remain
+resolved to the quant data domain. Only these intentionally public calendar
+projections belong in source control; raw owner parquet and credentials remain
 outside the repository. The monitor needs no owner checkout, parquet library,
 or authenticated data access at runtime.
