@@ -190,3 +190,25 @@ def test_rendered_sidebars_use_the_language_of_each_page(tmp_path: Path) -> None
     visible = re.sub(r"<blockquote\b[^>]*>[\s\S]*?</blockquote>", "", visible)
     visible = re.sub(r"<[^>]+>", "", visible)
     assert not re.search(r"[\u4e00-\u9fff]", visible)
+
+
+def test_machine_specific_data_root_page_is_not_published(tmp_path: Path) -> None:
+    root = Path(__file__).resolve().parents[1]
+    site_dir = tmp_path / "site"
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "mkdocs",
+            "build",
+            "--strict",
+            "--site-dir",
+            str(site_dir),
+        ],
+        cwd=root,
+        capture_output=True,
+        check=False,
+        text=True,
+    )
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert not (site_dir / "data-root-layout/index.html").exists()
