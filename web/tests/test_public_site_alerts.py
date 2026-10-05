@@ -395,7 +395,7 @@ def test_freshness_reconciles_stale_and_healthy_findings(monkeypatch: pytest.Mon
     ]
     monkeypatch.setattr("scripts.public_site_alerts.fetch_public_snapshots", lambda base_url: ({}, {}))
     monkeypatch.setattr(
-        "scripts.public_site_alerts.evaluate_public_snapshots", lambda reports, us, now: findings
+        "scripts.public_site_alerts.evaluate_public_snapshots", lambda reports, us, now, **kwargs: findings
     )
     assert process_freshness_event(client, repository="example/site", run_id=123) == ["created", "unchanged"]
     findings[0] = {"key": "asia", "status": "ok", "summary": "Asian report healthy."}
@@ -410,7 +410,9 @@ def test_dry_run_issues_no_write_calls(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("scripts.public_site_alerts.fetch_public_snapshots", lambda base_url: ({}, {}))
     monkeypatch.setattr(
         "scripts.public_site_alerts.evaluate_public_snapshots",
-        lambda reports, us, now: [{"key": "asia", "status": "review", "summary": "Review freshness."}],
+        lambda reports, us, now, **kwargs: [
+            {"key": "asia", "status": "review", "summary": "Review freshness."}
+        ],
     )
     assert process_freshness_event(client, repository="example/site", run_id=123, dry_run=True) == [
         "would-create"
@@ -447,3 +449,20 @@ def test_workflow_has_trusted_checkout_and_global_issue_write_serialization() ->
     assert "${{ github.event.workflow_run" not in source
     assert "if: inputs.dry_run == false" in source
     assert "Only dry-run workflow_dispatch is supported" in source
+
+
+def test_calendar_deferral_preserves_open_issue_without_comments(monkeypatch):
+    from scripts.public_site_alerts import process_freshness_event
+
+    client = FakeIssues()
+    reconcile_alert(
+        client, key="freshness:asia", finding="Existing stale alert", run_url=RUN_URL, event_id=100
+    )
+    monkeypatch.setattr("scripts.public_site_alerts.fetch_public_snapshots", lambda base_url: ({}, {}))
+    monkeypatch.setattr(
+        "scripts.public_site_alerts.evaluate_public_snapshots",
+        lambda *args, **kwargs: [{"key": "asia", "status": "deferred", "summary": "SSE closure"}],
+    )
+    assert process_freshness_event(client, repository="example/site", run_id=101) == ["deferred"]
+    assert client.issues[0]["state"] == "open"
+    assert client.comments == [] and client.closed == []

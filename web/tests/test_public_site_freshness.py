@@ -272,3 +272,101 @@ def test_fetch_failure_yields_availability_finding_without_exposing_response(mon
 def test_fetch_rejects_non_pages_base(base):
     with pytest.raises(ValueError):
         fetch_public_snapshots(base)
+
+
+def calendar_findings(day, reports=None, calendar=None):
+    from scripts.public_site_calendar import load_calendar
+
+    if calendar is None:
+        calendar = load_calendar()
+        calendar["generated_at"] = "2026-09-30T00:00:00+00:00"
+    return evaluate_public_snapshots(
+        asia("2026-09-30", "2026-09-30 20:00:00") if reports is None else reports,
+        us(),
+        now=datetime.fromisoformat(day),
+        calendar=calendar,
+    )[0]
+
+
+@pytest.mark.parametrize(
+    "day",
+    [
+        "2026-10-05T12:00:00+08:00",
+        "2026-10-07T23:00:00+08:00",
+        "2026-10-08T21:59:59+08:00",
+    ],
+)
+def test_verified_sse_closure_defers_existing_alert(day):
+    assert calendar_findings(day)["status"] == "deferred"
+
+
+def test_sse_overdue_session_resumes_alert_and_real_recovery_is_ok():
+    day = "2026-10-08T22:00:00+08:00"
+    assert calendar_findings(day)["status"] == "review"
+    assert calendar_findings(day, asia("2026-10-08", "2026-10-08 20:00:00"))["status"] == "ok"
+
+
+@pytest.mark.parametrize(
+    "reports", [asia(), asia("2026-09-30", "bad"), asia("2026-09-30", "2026-09-29 20:00:00"), {"reports": []}]
+)
+def test_closure_cannot_mask_behind_or_invalid_snapshot(reports):
+    assert calendar_findings("2026-10-05T12:00:00+08:00", reports)["status"] in {"review", "unavailable"}
+
+
+@pytest.mark.parametrize("fault", ["missing", "gap", "flag", "exchange", "hash", "expired", "future"])
+def test_calendar_invalidity_fails_closed(fault):
+    from scripts.public_site_calendar import load_calendar
+
+    calendar = load_calendar()
+    now = "2026-10-05T12:00:00+08:00"
+    if fault == "missing":
+        calendar = {}
+    elif fault == "gap":
+        del calendar["days"]["2026-10-02"]
+    elif fault == "flag":
+        calendar["days"]["2026-10-05"] = "closed"
+    elif fault == "exchange":
+        calendar["exchange"] = "Asia"
+    elif fault == "hash":
+        calendar["source_sha256"] = "invalid"
+    elif fault == "expired":
+        now = "2027-01-01T12:00:00+08:00"
+    else:
+        calendar["generated_at"] = "2027-01-01T00:00:00+00:00"
+    assert calendar_findings(now, calendar=calendar)["status"] == "unavailable"
+
+
+def test_reopening_report_arriving_before_deadline_is_healthy():
+    assert (
+        calendar_findings("2026-10-08T21:00:00+08:00", asia("2026-10-08", "2026-10-08 20:00:00"))["status"]
+        == "ok"
+    )
+
+
+def test_closed_date_cannot_be_presented_as_an_sse_report():
+    assert (
+        calendar_findings("2026-10-05T20:00:00+08:00", asia("2026-10-05", "2026-10-05 18:00:00"))["status"]
+        == "unavailable"
+    )
+
+
+@pytest.mark.parametrize("content", ["not JSON", "[]", None])
+def test_calendar_loader_missing_or_unreadable_fails_closed(monkeypatch, tmp_path, content):
+    from scripts import public_site_calendar
+
+    path = tmp_path / "calendar.json"
+    if content is not None:
+        path.write_text(content)
+    monkeypatch.setattr(public_site_calendar, "CALENDAR_PATH", path)
+    assert public_site_calendar.load_calendar() == {}
+
+
+def test_postholiday_fresh_report_recovers_at_next_overnight_monitor():
+    assert (
+        calendar_findings("2026-10-09T02:00:00+08:00", asia("2026-10-08", "2026-10-08 20:00:00"))["status"]
+        == "ok"
+    )
+
+
+def test_recent_last_session_during_closure_remains_healthy():
+    assert calendar_findings("2026-10-01T12:00:00+08:00")["status"] == "ok"

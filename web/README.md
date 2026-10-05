@@ -45,3 +45,45 @@ python3 -m http.server 8000 --directory "$preview_root"
 数据和报告为什么不直接放在网站根目录？`artifacts/public/` 是 Git 中的公开输入，构建器会把它们放到网站的 `/data/` 和 `/reports/`。因此下载网址没有增加 `artifacts/public/` 这一层。
 
 如何导入报告或运行完整检查？参见[开发与数据维护](docs/technical-guide.md)、[每日生成与维护说明](docs/daily-generation-options.md)和[仓库协作约定](AGENTS.md)。原六图数据的公开审核另见[审核记录](docs/chart-review-2026-09-25.md)。
+
+### SSE calendar and public freshness alerts
+
+The public monitor reads `configs/a-share-calendar.json` from the checked-out
+`main` branch. This bounded public metadata projects only SSE session dates and
+open flags from the data owner's TuShare `trade_cal` artifact; the source SHA-256,
+export timestamp, continuous coverage, and SSE reference URL retain provenance.
+It describes A-share publication expectations, not all Asian markets. U.S.
+report freshness continues to use its own existing age window.
+
+An evening report is due by **22:00 Asia/Shanghai** on each open SSE session.
+This is the monitor's explicit publication allowance, not the scheduler's
+actual start time. During verified closure, and before the next open session's
+deadline, an exact last-due-session snapshot with valid generation metadata
+whose age exceeds the ordinary freshness window returns `deferred`. A recent
+matching session report returns `ok`, allowing actual postholiday recovery at
+the next monitor run even if it precedes the following session deadline. Deferral performs no Issue reconciliation: existing alerts
+stay open without repeated comments. A report behind the last due session,
+missing or invalid metadata, or an overdue new session still alerts. A successful
+post-deadline report permits normal recovery reconciliation.
+
+Calendar validation fails closed if metadata is absent, malformed, from another
+exchange, dated in the future, missing any covered day, outside its coverage,
+or unable to identify adjacent open sessions. Calendar coverage must be renewed
+before its final open session; calendar expiry raises an availability finding
+rather than guessing weekdays or silently suppressing alerts.
+
+Regenerate the safe projection from the owner artifact with the platform Python
+environment, review its source and date coverage, and submit it through a PR:
+
+```bash
+uv run python project_tools/export_public_sse_calendar.py \
+  --source "$QUANT_DATA_ROOT/quant-market-data-platform/assets/tushare/a_share/trade_cal/a_share_trade_cal_latest.parquet" \
+  --output web/configs/a-share-calendar.json --year 2026 \
+  --source-url https://www.sse.com.cn/disclosure/announcement/general/c/c_20260915_10832273.shtml
+```
+
+Run this command from the platform repository root, with `QUANT_DATA_ROOT`
+resolved to the quant data domain. Only this intentionally public calendar
+projection belongs in source control; raw owner parquet and credentials remain
+outside the repository. The monitor needs no owner checkout, parquet library,
+or authenticated data access at runtime.

@@ -14,8 +14,10 @@ from urllib.parse import quote, urlencode, urlsplit
 from urllib.request import HTTPRedirectHandler, Request, build_opener
 
 try:
+    from .public_site_calendar import load_calendar
     from .public_site_freshness import evaluate_public_snapshots, fetch_public_snapshots
 except ImportError:
+    from public_site_calendar import load_calendar
     from public_site_freshness import evaluate_public_snapshots, fetch_public_snapshots
 
 LABEL = "public-site-alert"
@@ -274,9 +276,11 @@ def process_freshness_event(
 ) -> list[str]:
     """Evaluate live public snapshots and reconcile each independent stream."""
     reports, us_report = fetch_public_snapshots(PAGES_BASE)
-    findings = evaluate_public_snapshots(reports, us_report, now=datetime.now(UTC))
+    findings = evaluate_public_snapshots(reports, us_report, now=datetime.now(UTC), calendar=load_calendar())
     return [
-        _alert(
+        "deferred"
+        if item["status"] == "deferred"
+        else _alert(
             client,
             key=f"freshness:{item['key']}",
             finding=item["summary"] if item["status"] != "ok" else None,
