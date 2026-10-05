@@ -192,7 +192,9 @@ def _apply_import(  # noqa: PLR0913 - private helper keeps the staged publicatio
         else {}
     )
     # Stage the entire snapshot; source parsing and validation precede public writes.
-    with tempfile.TemporaryDirectory(prefix="market-intel-import-") as temporary:
+    with tempfile.TemporaryDirectory(
+        prefix="market-intel-import-", dir=public_snapshot_root(root).parent
+    ) as temporary:
         stage = Path(temporary)
         stage_public = public_snapshot_root(stage)
         shutil.copytree(public_snapshot_root(root), stage_public, symlinks=True)
@@ -238,7 +240,18 @@ def _apply_import(  # noqa: PLR0913 - private helper keeps the staged publicatio
                 "report_revisions",
                 {"report": incoming[key], "markdown": markdown[key]},
             )
+        # Unindexed legacy reports belong to another publisher. Snapshot retention
+        # may prune indexed reports, but this importer must preserve those files.
+        indexed = {row["source_url"] for row in (*existing.values(), *incoming.values())}
+        legacy = [
+            file
+            for file in (public_snapshot_root(root) / "reports").glob("*.md")
+            if file.relative_to(public_snapshot_root(root)).as_posix() not in indexed
+        ]
         sync_snapshot(stage, archive_dir)
+        for file in legacy:
+            source = safe_public_report_path(root, f"reports/{file.name}")
+            shutil.copy2(source, stage_public / "reports" / file.name)
         public = json.loads((stage_public / "data/reports.json").read_text(encoding="utf-8"))
         _publish_news(stage, archive_dir, incoming, news, public["reports"])
         destination = public_snapshot_root(root)
