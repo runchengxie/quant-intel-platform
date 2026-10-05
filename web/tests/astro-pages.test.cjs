@@ -39,7 +39,7 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   execFileSync('npm', ['run', 'build'], { cwd: root, stdio: 'pipe' });
   const index = readFileSync(path.join(root, 'dist/index.html'), 'utf8');
   const reports = JSON.parse(readFileSync(path.join(root, 'artifacts/public/data/reports.json'), 'utf8')).reports;
-  const reportId = reports[0].id;
+  const latestEvening = reports.filter((row) => row.kind === 'evening').sort((a, b) => b.date.localeCompare(a.date))[0];
   assert.match(index, /Quant 市场情报/);
   assert.ok(index.includes('/quant-intel-platform/'));
   assert.ok(index.includes('href="/quant-intel-platform/docs/"'));
@@ -92,14 +92,23 @@ test('Astro emits a readable recent-report site with Asian market chart states',
   assert.match(chart, /关键来源/);
   assert.ok(chart.includes(`观测日 ${usDate}`));
   const asia = index.match(/id="asia-daily-chart">([\s\S]*?)<\/div>/)?.[1];
-  const latestEvening = reports.filter((row) => row.kind === 'evening').sort((a, b) => b.date.localeCompare(a.date))[0];
   const eveningHash = execFileSync('python', ['-c', 'import hashlib,json,sys; row=json.load(sys.stdin); print(hashlib.sha256(json.dumps(row,ensure_ascii=False,sort_keys=True,separators=(",",":")).encode()).hexdigest())'], {
     input: JSON.stringify(latestEvening), encoding: 'utf8',
   }).trim();
   assert.ok(index.includes(`data-report-content-hash="${eveningHash}"`));
   assert.ok(asia);
-  assert.match(asia, /亚洲市场图表/);
-  assert.match(asia, /综合盘面/);
+  const eveningMarkdown = readFileSync(path.join(root, 'artifacts/public', latestEvening.source_url), 'utf8');
+  const holiday = eveningMarkdown.includes('## 亚洲市场收盘复盘（');
+  const reportId = holiday ? latestEvening.id : reports[0].id;
+  if (holiday) {
+    assert.match(asia, /亚洲市场收盘复盘/);
+    assert.match(asia, /data-table="asia-sessions"/);
+    assert.match(asia, /A 股今日休市/);
+    assert.doesNotMatch(asia, /综合盘面/);
+  } else {
+    assert.match(asia, /亚洲市场图表/);
+    assert.match(asia, /综合盘面/);
+  }
   assert.doesNotMatch(asia, /美股隔夜图/);
   assert.match(asia, /数据缺项|缺项/);
   const styles = readdirSync(path.join(root, 'dist/_astro')).filter((name) => name.endsWith('.css'))

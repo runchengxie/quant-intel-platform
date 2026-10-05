@@ -176,3 +176,27 @@ def test_snapshot_swap_failure_restores_every_public_file(tmp_path, monkeypatch)
     with pytest.raises(OSError):
         import_reports(root, manifest, archive, apply=True)
     assert {p.relative_to(public): p.read_bytes() for p in public.rglob("*") if p.is_file()} == before
+
+
+def test_import_uses_destination_filesystem_when_default_temp_is_elsewhere(tmp_path, monkeypatch):
+    import tempfile
+    from pathlib import Path
+
+    other = Path("/dev/shm")
+    if not other.is_dir() or other.stat().st_dev == tmp_path.stat().st_dev:
+        pytest.skip("requires a separate temporary filesystem")
+    monkeypatch.setattr(tempfile, "tempdir", str(other))
+    root, output, archive = (tmp_path / name for name in ("site", "output", "archive"))
+    public = site(root)
+    output.mkdir()
+    stage = tmp_path / "batch"
+    stage.mkdir()
+    text = "# 收盘复盘\n生成时间: 2026-09-30 20:00\n## 盘面\n亚洲市场收盘。\n"
+    legacy = public / "reports/2026-09-30-market-daily.md"
+    legacy.write_text("legacy publisher report")
+    (public / "reports/2026-09-30-evening.md").write_text("stale orphan")
+    manifest = publish_batch(output, stage, {"evening": text}, "2026-09-30")
+    assert import_reports(root, manifest, archive, apply=True)["applied"]
+    assert legacy.read_text() == "legacy publisher report"
+    assert (public / "reports/2026-09-30-evening.md").read_text() == text
+    assert not list(public.parent.glob("market-intel-import-*"))
