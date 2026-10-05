@@ -313,10 +313,45 @@ function weekly(draw: SvgDraw, points: ChartPoint[]): void {
   trend(draw, points, '成交额', '成交额走势（亿）', '亿');
 }
 
+function holidayRows(markdown: string, date: string): string[][] | null {
+  const heading = /^## 亚洲市场收盘复盘（(\d{8})）\s*$/m.exec(markdown);
+  if (!heading || heading[1] !== date.replaceAll('-', '') || !markdown.includes('A 股今日休市。')) return null;
+  const section = markdown.slice(heading.index + heading[0].length).split(/^## /m)[0];
+  const rows = section.split('\n').filter((line) => /^\|/.test(line.trim()))
+    .map((line) => line.trim().split('|').slice(1, -1).map((cell) => cell.trim()))
+    .filter((cells) => ['A 股', '香港', '日本', '韩国'].includes(cells[0]));
+  if (rows.length !== 4 || new Set(rows.map((row) => row[0])).size !== 4) return null;
+  for (const row of rows) {
+    if (row.length !== 4) return null;
+    if (['休市', '当日数据缺失'].includes(row[1])) {
+      if (row[2] !== '—' || row[3] !== '—') return null;
+    } else if (row[1] !== date || !/^\d+(?:\.\d+)?$/.test(row[2])
+      || !/^[+-]?\d+(?:\.\d+)?%$/.test(row[3])
+      || !Number.isFinite(Number(row[2])) || Number(row[2]) <= 0
+      || !Number.isFinite(Number(row[3].slice(0, -1)))) return null;
+  }
+  return rows[0][0] === 'A 股' && rows[0][1] === '休市' && rows.some((row) => row[1] === date) ? rows : null;
+}
+
+function holidayTable(draw: SvgDraw, rows: string[][]): void {
+  draw.parts.push('<g data-table="asia-sessions">');
+  const headers = [labels.market[0], labels.sessionDate[0], labels.close[0], labels.return[0]];
+  for (const [index, row] of [headers, ...rows].entries()) {
+    if (index === 0) draw.parts.push(`<rect x="54" y="${draw.y - 18}" width="852" height="34" fill="${TRACK}"/>`);
+    row.forEach((cell, column) => draw.parts.push(draw.node([66, 286, 600, 890][column], draw.y, cell,
+      { size: 15, anchor: column > 1 ? 'end' : 'start', weight: index === 0 ? '600' : '400' })));
+    draw.y += 42;
+  }
+  draw.parts.push('</g>');
+}
+
 export function buildAsiaReportSvg(report: EveningReport, charts: ChartCard[], markdown: string, present: (value: string) => string = (value) => value, locale?: Locale): string | null {
   if (report?.kind !== 'evening' || !/^\d{4}-\d{2}-\d{2}-evening$/.test(report.id)
     || report.id !== `${report.date}-evening`
     || !Array.isArray(charts) || typeof markdown !== 'string') return null;
+  const isHoliday = /^## 亚洲市场收盘复盘/m.test(markdown);
+  const sessions = isHoliday ? holidayRows(markdown, report.date) : null;
+  if (isHoliday && !sessions) return null;
   // Preserve legacy English callers that supply only the fourth presenter argument.
   const selectedLocale = locale ?? (present('亚洲市场收盘复盘') === 'Asia market close review' ? 'en-US' : 'zh-CN');
   const catalog = new Map<string, string>(Object.entries(labels).map(([key, values]) =>
@@ -326,7 +361,7 @@ export function buildAsiaReportSvg(report: EveningReport, charts: ChartCard[], m
   const parts = [
     '<svg xmlns="http://www.w3.org/2000/svg" width="960" height="__HEIGHT__" viewBox="0 0 960 __HEIGHT__" role="img">',
     `<title>${escapeText(report.date)} ${escapeText(asiaImageLabel('title', selectedLocale))}</title>`,
-    `<desc>${escapeText(asiaImageLabel('description', selectedLocale))}</desc>`,
+    `<desc>${escapeText(asiaImageLabel(isHoliday ? 'holidayDescription' : 'description', selectedLocale))}</desc>`,
     `<rect width="960" height="__HEIGHT__" fill="${REPORT_BG}"/>`,
     `<text x="54" y="60" fill="${INK}" font-family="sans-serif" font-size="28" font-weight="700">${escapeText(report.date)} ${escapeText(asiaImageLabel('title', selectedLocale))}</text>`,
     `<text x="54" y="88" fill="${MUTED}" font-family="sans-serif" font-size="14">${escapeText(asiaImageLabel('edition', selectedLocale))}${report.generation_mode === 'backfill' ? ` · ${escapeText(asiaImageLabel('backfill', selectedLocale))}` : ''}</text>`,
@@ -350,6 +385,15 @@ export function buildAsiaReportSvg(report: EveningReport, charts: ChartCard[], m
     set y(value) { y = value; },
     text: addText,
   };
+  if (sessions) {
+    addText(labels.holidayNote[0], MUTED, 14);
+    addHeading(labels.holidayTitle[0]);
+    holidayTable(draw, sessions);
+    addText(labels.missingFooter[0], MUTED, 12);
+    parts.push('</svg>');
+    return parts.join('').replaceAll('__HEIGHT__', String(y + 28))
+      .replaceAll('font-family="sans-serif"', `font-family="${FONT}"`);
+  }
   addText(report.summary);
   for (const [heading, title, limit] of ([
     ['## 一、市场状态', '市场状态', 3], ['### 六维观察', '六维观察', 7],

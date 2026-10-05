@@ -376,3 +376,51 @@ test('Asia report image escapes public text and rejects a morning identity', asy
   assert.match(buildAsiaReportSvg(report, [], ''), /&lt;script&gt;/);
   assert.equal(buildAsiaReportSvg({ ...report, kind: 'morning' }, [], ''), null);
 });
+
+const holidayReport = { id: '2026-10-05-evening', kind: 'evening', date: '2026-10-05', summary: '' };
+const holidayMarkdown = `# 收盘复盘（2026-10-05）
+## 亚洲市场收盘复盘（20261005）
+A 股今日休市。
+| 市场 | 状态 | 收盘 | 涨跌幅 |
+| --- | --- | --- | --- |
+| A 股 | 休市 | — | — |
+| 香港 | 2026-10-05 | 25000.00 | +1.00% |
+| 日本 | 2026-10-05 | 44000.00 | +1.15% |
+| 韩国 | 休市 | — | — |
+## 数据来源
+- 港股、日本数据见网页报告。
+`;
+
+test('China holiday image renders dated Asian closes and closed markets without A-share charts', async () => {
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.ts');
+  const svg = buildAsiaReportSvg(holidayReport, [], holidayMarkdown);
+  assert.match(svg, /data-table="asia-sessions"/);
+  for (const fact of ['香港', '日本', '25000.00', '44000.00', '+1.00%', '+1.15%', '休市']) assert.ok(svg.includes(fact));
+  assert.doesNotMatch(svg, /综合盘面|资金流向|市场温度|周度概览|data-report-panel/);
+  const en = buildAsiaReportSvg(holidayReport, [], holidayMarkdown, value => value, 'en-US');
+  for (const fact of ['Hong Kong', 'Japan', 'Closed', 'Session date', 'Close level', '25000.00']) assert.ok(en.includes(fact));
+  assert.doesNotMatch(en, /[\u3400-\u9fff]/);
+});
+
+test('holiday image rejects stale dates and malformed close values', async () => {
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.ts');
+  for (const markdown of [
+    holidayMarkdown.replace('| 香港 | 2026-10-05', '| 香港 | 2026-10-02'),
+    holidayMarkdown.replace('（20261005）', '（20261002）'),
+    holidayMarkdown.replace('25000.00', 'NaN'),
+    holidayMarkdown.replace('+1.00%', 'Infinity%'),
+  ]) assert.equal(buildAsiaReportSvg(holidayReport, [], markdown), null);
+});
+
+
+test('holiday image shows missing sessions explicitly and requires one current open-market close', async () => {
+  const { buildAsiaReportSvg } = await import('../src/lib/asia-report-image.ts');
+  const missingJapan = holidayMarkdown.replace('| 日本 | 2026-10-05 | 44000.00 | +1.15% |', '| 日本 | 当日数据缺失 | — | — |');
+  const svg = buildAsiaReportSvg(holidayReport, [], missingJapan, value => value, 'en-US');
+  assert.match(svg, /Current session data missing/);
+  assert.match(svg, /25000.00/);
+  assert.doesNotMatch(svg, /44000.00/);
+  assert.equal(buildAsiaReportSvg(holidayReport, [], missingJapan.replace('| 香港 | 2026-10-05 | 25000.00 | +1.00% |', '| 香港 | 当日数据缺失 | — | — |')), null);
+  assert.equal(buildAsiaReportSvg(holidayReport, [], holidayMarkdown.replace('A 股今日休市。', '')), null);
+  assert.equal(buildAsiaReportSvg(holidayReport, [], holidayMarkdown.replace('| A 股 | 休市', '| A 股 | 当日数据缺失')), null);
+});

@@ -70,6 +70,18 @@ export function usResearchText(source: string, locale: Locale): string {
 
 /** Stable semantic keys; each label has an English and Chinese presentation. */
 export const ASIA_IMAGE_LABELS = {
+  holidayDescription: ['包含各亚洲市场的交易状态、当日收盘与涨跌幅。', 'Includes Asian market session status, current closes and daily returns.'],
+  holidayTitle: ['各市场交易状态与收盘', 'Market sessions and closes'],
+  holidayNote: ['A 股今日休市。开市市场使用当日数据；休市市场不展示旧行情。', 'Mainland China is closed today. Open markets use current session data; closed markets have no carried-over prices.'],
+  sessionDate: ['交易日期', 'Session date'],
+  market: ['市场', 'Market'],
+  closed: ['休市', 'Closed'],
+  sessionMissing: ['当日数据缺失', 'Current session data missing'],
+  mainland: ['A 股', 'Mainland China'],
+  hongKong: ['香港', 'Hong Kong'],
+  japan: ['日本', 'Japan'],
+  korea: ['韩国', 'Korea'],
+
   title: ['亚洲市场收盘复盘', 'Asia market close review'],
   description: ['包含亚洲市场收盘摘要、市场广度、资金流向、市场温度、周度变化及关键来源。', 'Includes the Asia close summary, market breadth, money flow, market temperature, weekly changes, and key sources.'],
   index: ['指数', 'Index'],
