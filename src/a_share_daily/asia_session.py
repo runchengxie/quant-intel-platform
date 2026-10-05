@@ -85,7 +85,8 @@ def _fetch_quotes(day: pd.Timestamp, markets: dict[str, bool]) -> dict:
                 end=(day.to_pydatetime() + timedelta(days=1)).strftime("%Y-%m-%d"),
                 auto_adjust=False,
             )
-            if len(frame) >= 2:
+            expected_previous = xcals.get_calendar(MARKETS[key][0]).previous_session(day)
+            if len(frame) >= 2 and _day(frame.index[-2].strftime("%Y%m%d")) == expected_previous:
                 quotes[key] = {
                     "date": frame.index[-1].strftime("%Y%m%d"),
                     "close": float(frame.Close.iloc[-1]),
@@ -96,9 +97,20 @@ def _fetch_quotes(day: pd.Timestamp, markets: dict[str, bool]) -> dict:
     return quotes
 
 
+def _valid_price(value: object) -> bool:
+    return (
+        isinstance(value, (int, float))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and value > 0
+    )
+
+
 def _observation(key: str, day: pd.Timestamp, quote: dict) -> dict:
     if _day(str(quote["date"])) != day:
         raise ValueError("quote date differs from session")
+    if not all(_valid_price(quote[field]) for field in ("close", "previous_close")):
+        raise ValueError("quote prices invalid")
     close, previous = float(quote["close"]), float(quote["previous_close"])
     if not all(math.isfinite(value) and value > 0 for value in (close, previous)):
         raise ValueError("quote prices invalid")
@@ -189,9 +201,10 @@ def _validate_observation(row: dict, date: str, key: str) -> None:
     if row.get("observation_date") != _day(date).strftime("%Y-%m-%d"):
         raise ValueError("observation session stale")
     if (
-        not math.isfinite(float(row["close"]))
-        or float(row["close"]) <= 0
-        or not math.isfinite(float(row["change_pct"]))
+        not _valid_price(row["close"])
+        or not isinstance(row["change_pct"], (int, float))
+        or isinstance(row["change_pct"], bool)
+        or not math.isfinite(row["change_pct"])
     ):
         raise ValueError("observation prices invalid")
     source_time = datetime.fromisoformat(row["source_time"])
