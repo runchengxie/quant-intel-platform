@@ -71,3 +71,10 @@ def holiday_payload():
             },
         },
     }
+
+
+def test_missing_session_calendar_cannot_fall_back_to_a_share_review(tmp_path):
+    data, calendar, snapshots, owner = inputs(tmp_path)
+    calendar.unlink()
+    with pytest.raises(ValueError, match="calendar"):
+        refresh_reports(RefreshRequest(owner, data, snapshots, tmp_path / "out", "2026-10-05"))
