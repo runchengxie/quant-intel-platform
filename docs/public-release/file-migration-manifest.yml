@@ -13,9 +13,9 @@ files:
     action: retain
     reason: public documentation site configuration without production settings
   - path: web/
-    classification: public
-    action: retain
-    reason: public market website, reviewed snapshots, and isolated website checks
+    classification: remove
+    action: remove
+    reason: report frontend, public snapshots, and website checks moved to quant-intel-pages; Git history remains available
   - path: src/
     classification: public
     action: retain

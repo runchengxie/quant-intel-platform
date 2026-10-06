@@ -25,7 +25,7 @@ and repairing production paths require separate production authorization. A code
 merge is not proof of production activation or a new message delivery.
 
 The checked-in legacy browser bundle must match the TypeScript implementation.
-Regenerate it from `web/` after changes:
+Regenerate it from the `quant-intel-pages` repository after changes:
 
 ```sh
 npx esbuild src/lib/market-daily-utils.ts --bundle --format=iife \

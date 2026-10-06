@@ -1,4 +1,4 @@
-name: Public website
+name: Platform documentation
 
 on:
   pull_request:
@@ -10,13 +10,13 @@ permissions:
   contents: read
 
 concurrency:
-  group: public-website-${{ github.ref }}
+  group: platform-documentation-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -26,81 +26,28 @@ jobs:
         with:
           enable-cache: true
           python-version: "3.11"
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "24"
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-      - name: Install dependencies
+      - name: Install documentation dependencies
         run: uv sync --locked --group dev
-      - name: Install website dependencies
-        working-directory: web
-        run: |
-          npm ci
-          python -m pip install --group dev
-      - name: Check website
-        working-directory: web
-        run: |
-          ruff check scripts tests tools
-          ruff format --check scripts tests tools
-          ty check
-          vulture scripts tests tools --min-confidence 80
-          python -m pytest
-          npm test
-          node --check src/legacy/app.js
-          python scripts/build_site.py --output "${{ runner.temp }}/website-check"
-      - name: Install Chromium for browser checks
-        working-directory: web
-        run: npx playwright install --with-deps chromium
-      - name: Check public site in Chromium
-        id: browser
-        working-directory: web
-        run: npm run test:browser
-      - name: Upload browser failure artifacts
-        if: failure() && steps.browser.outcome == 'failure'
-        uses: actions/upload-artifact@v4
-        with:
-          name: public-site-browser-failure
-          path: web/test-results/
-          if-no-files-found: ignore
-          retention-days: 7
-      - name: Build market website
-        working-directory: web
-        env:
-          SITE_OUTPUT: ${{ runner.temp }}/public-site
-        run: python scripts/build_site.py --output "$SITE_OUTPUT"
-      - name: Build documentation under /docs
-        run: uv run mkdocs build --strict --site-dir "${{ runner.temp }}/public-site/docs"
+      - name: Build docs and report-site redirect
+        run: uv run python project_tools/build_docs_site.py --output "${{ runner.temp }}/platform-site"
       - name: Check language-specific documentation navigation
-        run: uv run python project_tools/check_locale_navigation.py --site-dir "${{ runner.temp }}/public-site/docs"
-      - name: Upload public report ledger for the private publisher
-        if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v4
-        with:
-          name: market-intel-ledger-${{ github.run_id }}-1
-          path: |
-            web/artifacts/public/data
-            web/artifacts/public/reports
-          if-no-files-found: error
-          retention-days: 7
+        run: uv run python project_tools/check_locale_navigation.py --site-dir "${{ runner.temp }}/platform-site/docs"
       - name: Upload preview artifact
         if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-pages-artifact@v3
         with:
-          name: public-site-preview
-          path: ${{ runner.temp }}/public-site
+          path: ${{ runner.temp }}/platform-site
       - name: Upload Pages artifact
         if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ${{ runner.temp }}/public-site
+          path: ${{ runner.temp }}/platform-site
 
   deploy:
     if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
     needs: build
     runs-on: ubuntu-latest
     permissions:
-      contents: read
       pages: write
       id-token: write
     environment:
@@ -108,6 +55,6 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - uses: actions/configure-pages@v5
-      - name: Deploy combined website
+      - name: Deploy documentation and report-site redirect
         id: deployment
         uses: actions/deploy-pages@v4

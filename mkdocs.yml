@@ -72,7 +72,7 @@ extra:
       name: GitHub
 
 nav:
-  - Daily site: https://runchengxie.github.io/quant-intel-platform/
+  - Market reports: https://runchengxie.github.io/quant-intel-pages/
   - Home: index.md
   - Language policy: LANGUAGE_POLICY.md
   - Getting started:

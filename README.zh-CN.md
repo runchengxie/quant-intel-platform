@@ -4,11 +4,11 @@
 
 [English README](README.md)
 
-[市场日报](https://runchengxie.github.io/quant-intel-platform/) · [在线文档](https://runchengxie.github.io/quant-intel-platform/docs/)
+[市场日报](https://runchengxie.github.io/quant-intel-pages/) · [在线文档](https://runchengxie.github.io/quant-intel-platform/docs/)
 
 语言规范：[English](docs/LANGUAGE_POLICY.md) · [简体中文](docs/LANGUAGE_POLICY.zh-CN.md)
 
-`quant-intel-platform` 为市场研究提供自动化报告、网页看板和信息投递。它汇总市场与新闻信息，读取其他项目发布的版本化研究结果，再负责校验、整理、展示和投递。
+`quant-intel-platform` 负责自动生成市场报告、维护公开发布契约并投递信息。它汇总市场与新闻信息，读取其他项目发布的版本化研究结果，再负责校验、整理和投递。独立的 `quant-intel-pages` 仓库负责渲染和托管公开日报。
 
 本项目属于 Quant Research 项目系列，与同系列的数据平台、研究项目和生产部署项目各自独立维护、按接口协作。策略研究和回测由各自的 owner 项目负责，本项目不复制这些实现。
 
@@ -26,7 +26,7 @@ uv run dm --help
 ## 你可以在这里做什么
 
 - 生成市场日报、A 股晨报晚报和风格周报
-- 查看静态网页看板
+- 导出经过校验的公开报告快照和版本化消费契约
 - 查看每日更新的美股与亚洲市场公开日报，阅读近五个报告日期的归档
 - 按配置向指定受众投递报告并记录回执
 

@@ -9,7 +9,7 @@ This guide installs the public framework and runs offline checks. It does not re
 - Python 3.11, 3.12, or 3.13
 - Git
 - `uv`
-- Node.js and npm when working on `web/`
+- Node.js and npm only when developing the separate `quant-intel-pages` frontend
 
 ## Install and verify
 
@@ -28,4 +28,4 @@ For the complete repository gate, run:
 uv run python project_tools/check_all.py --scope all
 ```
 
-The public site consumes reviewed artifacts and static snapshots. Configure private paths explicitly when running production integrations; do not add credentials or runtime output to the repository.
+The report website consumes reviewed artifacts and static snapshots from the separate Pages repository. Configure private paths explicitly when running production integrations; do not add credentials or runtime output to the repository.

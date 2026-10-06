@@ -5,7 +5,7 @@ from pathlib import Path
 
 from project_tools.export_public_asia_calendar import build_calendar
 
-CONFIGS = Path(__file__).resolve().parents[1] / "web" / "configs"
+CONFIGS = Path(__file__).resolve().parents[1] / "config" / "public_calendars"
 
 
 def test_public_projection_matches_offline_source_and_retains_sse_provenance():

@@ -71,7 +71,6 @@ market-chart-review = "market_intel_publication.chart_review:main"
 [tool.ruff]
 line-length = 100
 target-version = "py311"
-extend-exclude = ["web"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "UP", "B", "SIM", "C4", "RET", "RUF059", "C90", "PLR", "TRY", "EM", "S", "DTZ", "N"]
@@ -134,7 +133,6 @@ quote-style = "double"
 [tool.ty.src]
 exclude = [
   "tests/",
-  "web/",
   "project_tools/check_all.py",
   "project_tools/update_cli_help.py",
 ]

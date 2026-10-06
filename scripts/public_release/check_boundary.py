@@ -27,12 +27,9 @@ SKIP_PREFIXES = (
     "docs/public-release/private-migration-notes.md",
     "tests/public_release/",
     ".venv/",
+    "node_modules/",
     "build/",
     "dist/",
-    "web/.venv/",
-    "web/node_modules/",
-    "web/dist/",
-    "web/.astro/",
 )
 
 

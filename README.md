@@ -2,11 +2,11 @@
 
 The repository was formerly named `market-intel`. Current documentation uses `quant-intel-platform`; the Python distribution name, publication consumer ID `market-intel`, module names, and existing configuration/environment identifiers remain compatibility interfaces.
 
-`quant-intel-platform` provides automated market reports, a public web dashboard, and information delivery. It collects market and news information, consumes versioned research artifacts from owner projects, then validates, organizes, presents, and delivers the reviewed results.
+`quant-intel-platform` provides automated market reports, publication contracts, and information delivery. It collects market and news information, consumes versioned research artifacts from owner projects, then validates, organizes, and delivers the reviewed results. The separate `quant-intel-pages` repository renders and hosts public reports.
 
 [中文 README](README.zh-CN.md) · [English language policy](docs/LANGUAGE_POLICY.md) · [中文语言政策](docs/LANGUAGE_POLICY.zh-CN.md)
 
-[Market reports](https://runchengxie.github.io/quant-intel-platform/) · [Documentation](https://runchengxie.github.io/quant-intel-platform/docs/)
+[Market reports](https://runchengxie.github.io/quant-intel-pages/) · [Documentation](https://runchengxie.github.io/quant-intel-platform/docs/)
 
 Strategy research and backtesting remain in their owner repositories. This project does not copy those implementations.
 
@@ -24,7 +24,7 @@ Start with the [getting started guide](docs/getting-started.md). Global market r
 ## What this project provides
 
 - Market daily reports, A-share morning and evening reports, and style-factor weekly reports.
-- A static public web dashboard.
+- Validated public report snapshots and versioned consumer contracts.
 - Daily US and Asian market snapshots with a five-report-date archive window.
 - Configured report delivery with audience isolation and delivery receipts.
 

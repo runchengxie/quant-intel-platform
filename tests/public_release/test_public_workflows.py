@@ -32,18 +32,17 @@ def test_disabled_workflow_candidates_are_not_active_public_ci() -> None:
     assert disabled == ()
 
 
-def test_public_site_uploads_report_ledger_for_private_archival() -> None:
+def test_platform_site_contains_only_documentation_and_report_redirect() -> None:
     workflow = (WORKFLOW_ROOT / "public-site.yml").read_text(encoding="utf-8")
-    assert "market-intel-ledger-${{ github.run_id }}-1" in workflow
-    assert "web/artifacts/public/data" in workflow
-    assert "web/artifacts/public/reports" in workflow
-    assert "if-no-files-found: error" in workflow
+    assert "build_docs_site.py" in workflow
+    assert "market-intel-ledger" not in workflow
+    assert "web/" not in workflow
 
 
 def test_public_site_only_uploads_and_deploys_from_main() -> None:
     workflow = yaml.safe_load((WORKFLOW_ROOT / "public-site.yml").read_text(encoding="utf-8"))
     main_only = "github.ref == 'refs/heads/main' && github.event_name != 'pull_request'"
     steps = workflow["jobs"]["build"]["steps"]
-    for name in ("Upload public report ledger for the private publisher", "Upload Pages artifact"):
-        assert next(step for step in steps if step.get("name") == name)["if"] == main_only
+    upload = next(step for step in steps if step.get("name") == "Upload Pages artifact")
+    assert upload["if"] == main_only
     assert workflow["jobs"]["deploy"]["if"] == main_only

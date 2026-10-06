@@ -7,7 +7,7 @@ from pathlib import Path
 
 from mkdocs.structure.nav import Navigation
 
-LINK_TITLES = {"Daily site": "日报网站"}
+LINK_TITLES = {"Market reports": "市场日报"}
 
 
 def _is_chinese(page) -> bool:
