@@ -64,6 +64,9 @@ market-commentary = "market_intel_commentary.generate_commentary:main"
 market-import-reports = "market_intel_publication.import_reports:main"
 market-import-daily-report = "market_intel_publication.import_market_daily_report:main"
 market-sync-public-snapshot = "market_intel_publication.sync_public_snapshot:main"
+market-export-site-snapshot = "market_intel_publication.export_site_snapshot:main"
+market-import-charts = "market_intel_publication.import_charts:main"
+market-chart-review = "market_intel_publication.chart_review:main"
 
 [tool.ruff]
 line-length = 100
