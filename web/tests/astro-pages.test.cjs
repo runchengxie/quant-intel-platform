@@ -341,14 +341,18 @@ test('new Asian evening reports build a visual history while old direct links re
     cpSync(path.join(root, 'artifacts/public'), fixture, { recursive: true });
     const indexFile = path.join(fixture, 'data/reports.json');
     const reportIndex = JSON.parse(readFileSync(indexFile, 'utf8'));
-    const template = reportIndex.reports.find((row) => row.id === '2026-09-24-evening');
-    assert.ok(template);
+    const sample = path.join(__dirname, 'fixtures/asia-evening');
+    const template = JSON.parse(readFileSync(path.join(sample, 'report.json'), 'utf8'));
+    const morning = { ...template, id: '2026-09-24-morning', kind: 'morning',
+      source_url: 'reports/2026-09-24-morning.md' };
+    reportIndex.reports = [morning];
+    writeFileSync(path.join(fixture, morning.source_url), '# Historical morning fixture\n');
     for (const date of ['2026-09-28', '2026-09-29']) {
       const id = `${date}-evening`;
       reportIndex.reports.push({ ...template, id, date, title: `收盘复盘（${date}）`,
         source_url: `reports/${id}.md`, generation_mode: 'scheduled' });
-      cpSync(path.join(fixture, 'reports/2026-09-24-evening.md'), path.join(fixture, `reports/${id}.md`));
-      const chart = JSON.parse(readFileSync(path.join(fixture, 'data/charts/2026-09-24-evening.json'), 'utf8'));
+      cpSync(path.join(sample, 'report.md'), path.join(fixture, `reports/${id}.md`));
+      const chart = JSON.parse(readFileSync(path.join(sample, 'charts.json'), 'utf8'));
       chart.report_id = id;
       chart.date = date;
       writeFileSync(path.join(fixture, `data/charts/${id}.json`), JSON.stringify(chart));
@@ -486,14 +490,22 @@ test('verified watchpoint outcome shows labelled table evidence', () => {
     cpSync(path.join(root, 'artifacts/public/data'), path.join(fixture, 'data'), { recursive: true });
     cpSync(path.join(root, 'artifacts/public/reports'), path.join(fixture, 'reports'), { recursive: true });
     const file = path.join(fixture, 'data/insights.json');
-    const insights = JSON.parse(readFileSync(file, 'utf8'));
-    const outcome = insights.outcomes[0];
-    outcome.status = 'met';
-    outcome.report_id = '2026-09-23-evening';
-    outcome.observed_date = '2026-09-23';
-    outcome.observed_value = 25.4;
-    outcome.evidence = [{ report_id: outcome.report_id, section: '六维观察', text: '| 流动性 | 25.4 | 偏弱 | 成交额/历史中位 0.90x |' }];
-    writeFileSync(file, JSON.stringify(insights));
+    const reports = JSON.parse(readFileSync(path.join(fixture, 'data/reports.json'), 'utf8')).reports;
+    const report = reports.filter((row) => row.kind === 'evening')
+      .sort((a, b) => b.date.localeCompare(a.date))[0];
+    assert.ok(report, 'an evening report is available for the evidence link');
+    const timestamp = `${report.date}T19:00:00+08:00`;
+    const insight = { id: 'watchpoint-fixture', date: report.date, as_of: timestamp,
+      generated_at: timestamp, evidence: [], metrics: { liquidity: { label: '流动性', unit: '%' } },
+      analysis: { overview: { text: 'Synthetic watchpoint rendering example.', evidence_ids: [] },
+        changes: [], tensions: [], watchpoints: [{ question: 'Is liquidity above the threshold?',
+          metric: 'liquidity', operator: '>=', threshold: 25, evidence_ids: [] }] } };
+    const outcome = { insight_id: insight.id, watchpoint_index: 0, status: 'met',
+      report_id: report.id, observed_date: report.date, observed_value: 25.4,
+      evidence: [{ report_id: report.id, section: '六维观察',
+        text: '| 流动性 | 25.4 | 偏弱 | 成交额/历史中位 0.90x |' }] };
+    writeFileSync(file, JSON.stringify({ schema_version: 'market_intel_pages.insights.v1',
+      insights: [insight], outcomes: [outcome] }));
     execFileSync('npm', ['run', 'build', '--', '--outDir', path.join(fixture, 'built')], {
       cwd: root, stdio: 'pipe', env: { ...process.env, ASTRO_DATA_ROOT: fixture },
     });
