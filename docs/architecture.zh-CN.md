@@ -20,14 +20,11 @@ flowchart TD
     F -- 是 --> H[渲染日报]
     F -- 否 --> G
     G --> Hd[降级渲染]
-    H & Hd --> P{Pages 已启用?}
-    P -- 是 --> W[静态 Web Dashboard]
-    W --> I[GitHub Pages 部署]
-    P -- 否 --> K[跳过 Pages]
+    H & Hd --> W[可选静态看板文件]
     H & Hd --> J[飞书推送]
 ```
 
-GitHub Pages 是可选分支。私有仓库当前通过 `ENABLE_GITHUB_PAGES=0` 并移除 Pages/OIDC 写权限，来暂停看板渲染、artifact 上传和部署。日报渲染与飞书投递继续运行。
+静态看板文件可由本地流程生成。日报网页的公开托管由独立的 `quant-intel-pages` 仓库负责，平台 Pages 只发布技术文档与日报网站兼容重定向。
 
 | 阶段 | 入口 | 输入 | 输出 |
 |------|------|------|------|

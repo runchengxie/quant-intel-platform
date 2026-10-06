@@ -2,58 +2,8 @@
 
 [English page](market-site.en.md)
 
-[打开市场日报](https://runchengxie.github.io/quant-intel-platform/)。网站每天按北京时间 07:00 美股收盘、19:00 亚洲收盘两个时段组织内容。页面展示最近五个有报告的日期，具体以实际生成时间、观测日和缺项提示为准。
+[打开市场日报](https://runchengxie.github.io/quant-intel-pages/)。Pages 网站展示最近五个有报告的日期、来源和可下载报告。报告生成与审核由本仓负责；Astro 页面、静态渲染、托管和线上新鲜度监控由独立的 [`quant-intel-pages`](https://github.com/runchengxie/quant-intel-pages) 仓库负责。
 
-日报与本文档共用暖色设计语言，两边都可切换浅色和深色。首次访问会参考设备的外观设置；日报首页按指数、个股、美债和跨资产分组，指数小图只使用观测日与报告日一致的公开数据。
+本仓的 `market_intel_publication` 校验报告和版本化公开数据契约，再导出 Pages 可消费的快照。`quant-intel-deploy` 负责生产发布、回执和恢复。公开网站只读取已审核并标记为公开的产物。
 
-网站代码、构建工具和公开快照都在本仓的 `web/`。生产定时任务和密钥由私有部署仓库管理。公开 GitHub Actions 只校验已提交的数据并构建页面，不抓取带凭据的数据，也不调用模型。
-
-## 本地预览
-
-准备 Python 3.11 至 3.13、Node.js 24 和 npm，在仓库根目录运行：
-
-```bash
-cd web
-npm ci
-preview_root=$(mktemp -d /tmp/qmi-preview.XXXXXX)
-python3 scripts/build_site.py --output "$preview_root/quant-intel-platform"
-python3 -m http.server 8000 --directory "$preview_root"
-```
-
-打开 <http://localhost:8000/quant-intel-platform/>。构建器会重新创建指定输出目录，不要把业务资料目录作为 `--output`。
-
-## 浏览器回归检查
-
-在 `web/` 安装依赖后，安装 Chromium 并运行公开样本站点的浏览器检查：
-
-```bash
-cd web
-npm ci
-npx playwright install chromium
-npm run test:browser
-```
-
-该命令先构建 Astro 站点，再在本机预览中检查英文入口 `/quant-intel-platform/en/` 和中文入口 `/quant-intel-platform/?locale=zh-CN` 的三档宽度、导航、主题持久化、报告 SVG、PNG 下载及历史晚报。CI 的 build job 使用 `npx playwright install --with-deps chromium`；检查失败时上传 `web/test-results/` 中的截图与重试 trace，PR 构建不会部署 Pages。截图和 trace 只包含仓库公开样本。
-
-## 内容从哪里来
-
-- `web/artifacts/public/` 保存完成公开审核的近期数据和报告。构建后下载路径仍是 `/data/`、`/reports/`。
-- `web/src/` 负责 Astro 页面和旧版归档页面。`web/tests/` 覆盖契约与渲染。
-- 平台包的 `market_intel_publication` 负责报告导入与公开快照，`market_intel_commentary` 负责模型解读。`web/scripts/` 保留兼容入口、图表审核与静态构建。市场数据权威资产及生产调度不在此处。
-- 亚洲收盘解读先尝试本机 Codex，再按已配置密钥尝试 DeepSeek、Gemini、MiniMax。连续晚报可用最新晚报与前次晚报形成对照。历史晨晚报配对仍可阅读。
-
-私有部署的配置、回执和恢复步骤在 `quant-intel-deploy/docs/market-pages-publisher.md`。网站内部的开发细节见 [`web/docs/technical-guide.md`](https://github.com/runchengxie/quant-intel-platform/blob/main/web/docs/technical-guide.md)。
-
-## 线上快照新鲜度
-
-公开网站的亚洲晚报索引是 [reports.json](https://runchengxie.github.io/quant-intel-platform/data/reports.json)，美股日报是 [market_daily_report.json](https://runchengxie.github.io/quant-intel-platform/data/market_daily_report.json)。检查应在运行时读取这两个线上 JSON，分别核对最近报告的市场日期和原始生成时间；静态构建时的健康信息不能代表当前状态。
-
-任一报告超过 96 小时、快照无法读取或时间字段无效时，需要人工核查。96 小时只是保守提醒阈值；长假或其他休市可能触发提醒，不能据此断言发布失败，也不应阻塞网站部署。
-
-## 发布与新鲜度提醒
-
-仓库的 `Public site monitor` 每 6 小时（UTC 00:00、06:00、12:00、18:00）读取上述两个线上快照，分别为亚洲晚报和美股日报维护带 `public-site-alert` 标签的 GitHub Issue。`Public website` 工作流完成后，监控仅处理 `main` 与 `automation/pages-*` 分支：失败时提醒，随后同一分支成功时关闭对应 Issue。延迟到达的旧构建事件会先与该分支最新的已完成运行比较，避免旧失败重新打开已恢复提醒。监控自身的 GitHub API 错误会让 Actions 运行失败，需要直接查看运行状态。
-
-维护者应在仓库页面的 **Watch → Custom** 中订阅 **Issues** 和 **Actions** 通知，并确认个人 GitHub 通知投递方式；未订阅时，Issue 不保证主动送达。收到新鲜度 Issue 后，先核对公开快照的报告日期和生成时间，再确认是否为休市或上游发布异常。Issue 只提供简短状态及 Actions 运行链接，不包含报告正文或原始 HTTP 响应。
-
-人工验证时，打开仓库 **Actions → Public site monitor → Run workflow**，在 `main` 上保留 `dry_run` 为启用并运行。该入口只读取线上快照、输出汇总状态，不创建、评论或关闭 Issue；关闭 `dry_run` 会明确报错，不能手动触发 Issue 写入。要检查实际告警，查看定时或 `Public website` 完成后触发的监控运行及带 `public-site-alert` 标签的 Issue；不要通过制造真实失败来测试通知。
+亚洲报告索引为 [reports.json](https://runchengxie.github.io/quant-intel-pages/data/reports.json)，美股日报索引为 [market_daily_report.json](https://runchengxie.github.io/quant-intel-pages/data/market_daily_report.json)。完整配置、发布状态和恢复步骤见 Deploy 仓库的[市场日报发布手册](https://github.com/runchengxie/quant-intel-deploy/blob/main/docs/market-pages-publisher.md)。

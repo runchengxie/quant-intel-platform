@@ -1,6 +1,6 @@
 # Independent Quant Intel Pages
 
-Status: proposed; repository inspection complete, implementation and production switch pending.
+Status: architecture implemented; Platform frontend retirement PR in progress (2026-10-06).
 
 ## Outcome
 
@@ -8,7 +8,7 @@ Status: proposed; repository inspection complete, implementation and production 
 
 ## Current state
 
-Inspected Platform `origin/main` at `3318dc9`, Pages at `a67720e`, and Deploy at `7c47a5b`. All primary checkouts were clean. Platform owns the current Astro application under `web/`; Pages preserves an older application and redirects to Platform. Platform's `public-site.yml` combines Astro with MkDocs under `/docs/`. Deploy publishers, chart review tools, path allowlists, and workflow polling select `web/artifacts/public` and `public-site.yml`.
+The maintained Astro frontend and monitor now live in Pages, while Platform exports the public snapshot through its publication CLI. Deploy publishers target the Pages repository. On 2026-10-06 the production releases were switched to Platform `c7a73f9`, Pages `4d7581f`, and Deploy `e0ab330`; the A-share and US publication routes both verified successfully. The remaining Platform PR removes the duplicate frontend while keeping MkDocs under `/docs/` and a root compatibility redirect.
 
 Platform already provides `market_intel_publication`, `market_intel_commentary`, and report refresh capabilities. Its publication path helper accepts a target root and selects `artifacts/public`; these are suitable handoff contracts, subject to verification of every caller.
 
@@ -32,7 +32,7 @@ Publish framework documentation independently at the existing `/quant-intel-plat
 
 Point both Asia and US report publishers at Pages and change target paths from `web/artifacts/public/...` to `artifacts/public/...`. Update chart tooling invocation, publication allowlists, report identity checks, ledger retrieval, workflow polling, URL health checks, examples, and smoke tests together. Keep Platform CLI executables and Pages frontend release paths distinct.
 
-Actual private configuration, release aliases, and schedulers require a separately authorized production switch under the repository instructions. Prepare the implementation, no-send verification, and rollback procedure before that approval.
+The production switch was explicitly authorized, prepared with a no-send preflight and completed under the Deploy release procedure. Future production configuration and scheduler changes remain governed by the repository instructions.
 
 ## Alternatives
 

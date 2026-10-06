@@ -29,9 +29,10 @@
 - `tushare_jobs/`：报告专用轻量任务与兼容导出；权威 A 股数据 owner 为 `quant-market-data-platform`。
 - `style_replica_bridge/`：将 owner 回测产物转换为报告 tearsheet。
 - `ops_common/`：环境、投递窗口、freshness、恢复和通知。
-- `web/`：公开日报网站、近期公开快照、下载、来源展示和网站专属测试。根路径发布日报，平台文档发布到 `/docs/`。`web/` 是本仓目录，不是 submodule。
+- `market_intel_publication/`：校验并导出 Pages 消费的公开报告快照；前端和托管由独立的 `quant-intel-pages` 仓库负责。
+- `schemas/public/`：由 Platform 维护的跨语言公开交接契约；Pages 实施消费端校验。
 
-配置在 `config/`，运行状态在 `state/`，报告产物在 `out/`，文档在 `docs/`，本地质量工具在 `project_tools/`。网站的 Node 和 Python 开发依赖留在 `web/`，不加入平台运行包。
+配置在 `config/`，运行状态在 `state/`，报告产物在 `out/`，文档在 `docs/`，本地质量工具在 `project_tools/`。本仓 GitHub Pages 只发布 `/docs/` 和根路径日报网站兼容重定向。
 
 ## 开发命令
 
@@ -83,7 +84,8 @@ bash scripts/setup_cron.sh --layer3
 
 新增代码前先判断 owner：
 
-- 市场资讯抓取、报告内容、渲染、Dashboard、飞书、投递回执、报告窗口、故障恢复 → `quant-intel-platform`
+- 市场资讯抓取、报告内容、报告侧渲染、公开快照校验、飞书、投递回执、报告窗口、故障恢复 → `quant-intel-platform`
+- 日报网站 Astro 前端、公开下载、静态托管和线上新鲜度监控 → `quant-intel-pages`
 - 市场数据权威资产 → `quant-market-data-platform`
 - 特征/模型/统计推断 → `alpha-research`
 - 回测、成本、容量、组合与历史成交模拟 → `portfolio-backtester`
@@ -103,7 +105,7 @@ bash scripts/setup_cron.sh --layer3
 - DailyWatch20 等正式 owner artifact 的消费与投递
 - 飞书幂等、受众隔离和 delivery receipt
 - scheduler / recovery 的状态机与旧 unit 清理
-- Dashboard 和报告渲染回归
+- 报告渲染、公开快照和交接契约回归
 
 研究算法的 OOS、ablation、walk-forward、Hermite 等测试归 `quant-research` owner，本仓不保留镜像测试。
 
@@ -136,7 +138,7 @@ QUANT_RESEARCH_ROOT=/path/to/quant-research
 
 public framework 的 lint、类型检查、离线测试和构建应优先放在本仓运行。私有部署仓库的 GitHub Actions 默认关闭，以避免消耗有限的 private-repository minutes；private 部署变更必须先通过本地 `uv sync --locked`、部署 smoke tests 和调度模板检查。只有在 production shadow/canary 或正式切换前确实需要时，才临时启用 private workflow，并在任务完成后关闭。
 
-统一网站 workflow 先构建 `web/` 的 Astro 日报，再把 MkDocs 文档构建进同一产物的 `/docs/`，只部署一次。公开 workflow 不读取模型密钥。需要凭据的新闻研究和模型回退由受控发布链路完成；网页只展示已审核公开产物。
+Platform Pages workflow 只构建 MkDocs 文档与根路径日报重定向。日报 Astro 前端、公开下载和线上新鲜度监控由 `quant-intel-pages` 维护。公开 workflow 不读取模型密钥。
 
 ## Worktree-first 目录规范
 

@@ -40,13 +40,13 @@ def main() -> None:
         assert "五分钟开始" in navigation
         assert "Getting started" not in navigation
         assert "简体中文" not in navigation
-    assert "日报网站" in chinese
-    assert "Daily site" not in chinese
+    assert "市场日报" in chinese
+    assert "Market reports" not in chinese
     for navigation in (chinese_unsuffixed, chinese_boundary):
         assert "五分钟开始" in navigation
         assert "Getting started" not in navigation
-        assert "日报网站" in navigation
-        assert "Daily site" not in navigation
+        assert "市场日报" in navigation
+        assert "Market reports" not in navigation
     assert "Getting started" in english_paired
     assert "五分钟开始" not in english_paired
 

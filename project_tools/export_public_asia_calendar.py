@@ -10,7 +10,7 @@ from pathlib import Path
 
 import exchange_calendars
 
-CONFIGS = Path(__file__).resolve().parents[1] / "web" / "configs"
+CONFIGS = Path(__file__).resolve().parents[1] / "config" / "public_calendars"
 EXCHANGES = {
     "HK": ("XHKG", "https://www.hkex.com.hk/Services/Trading/Securities/Overview/Trading-Hours"),
     "JP": ("XTKS", "https://www.jpx.co.jp/english/corporate/about-jpx/calendar/"),

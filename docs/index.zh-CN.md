@@ -13,7 +13,7 @@
 <p class="mi-home__links" markdown="1">
 
 [五分钟开始](getting-started.md){ .md-button .md-button--primary }
-[阅读最新日报](https://runchengxie.github.io/quant-intel-platform/){ .md-button }
+[阅读最新日报](https://runchengxie.github.io/quant-intel-pages/){ .md-button }
 
 </p>
 </div>

@@ -2,7 +2,7 @@
 
 [Chinese version](architecture.zh-CN.md)
 
-quant-intel-platform contains independent pipelines for global-market data, A-share reports, and public web presentation. The pipelines share operational primitives and artifact contracts but keep their owners and failure boundaries explicit.
+quant-intel-platform contains independent pipelines for global-market data and A-share reports. The pipelines share operational primitives and artifact contracts but keep their owners and failure boundaries explicit.
 
 ## Pipeline boundary
 
@@ -11,13 +11,13 @@ source data
 -> fetch and normalize
 -> facts / events / research artifacts
 -> schema, date, freshness, and hash validation
--> report and dashboard assembly
--> public pages or delivery receipt
+-> report assembly
+-> public snapshot / delivery receipt
 ```
 
 `daily_messenger/` owns global-market ETL, topic scoring, reports, dashboards, and the `dm` CLI. `a_share_daily/` owns A-share reports, published strategy-artifact validation, charts, and delivery. `a_share_analysis/` consumes published research rather than implementing new research algorithms. `tushare_jobs/` is a lightweight report-side compatibility layer; authoritative A-share data belongs to `quant-market-data-platform`.
 
-The `web/` application renders the public daily site, downloads, source displays, and `/docs/`. It consumes reviewed public snapshots and does not read production credentials.
+The platform produces validated public report snapshots through `market_intel_publication`. The separate `quant-intel-pages` repository renders and hosts the daily site. MkDocs publishes platform documentation at `/docs/`; the platform site's root redirects to Pages for compatibility.
 
 ## Cross-repository boundary
 
