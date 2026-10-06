@@ -2,19 +2,6 @@
   "schema_version": "market_intel_pages.daily_summaries.v1",
   "summaries": [
     {
-      "date": "2026-09-28",
-      "text": "市场从偏冷转向偏冷且脆弱，亏钱风险明显抬升，高成交方向承压更重。",
-      "morning_report_id": "2026-09-28-evening",
-      "evening_report_id": "2026-09-24-evening",
-      "generated_at": "2026-09-29T07:53:00+08:00",
-      "model": "deepseek-chat",
-      "provider": "deepseek",
-      "prompt_version": "daily-commentary-v1",
-      "fingerprint": "588f0945c0ba746bfa84510fe07b23b2f07f5cf02f35a8b49a59035be61e5b25",
-      "source_hash": "5ed73bc09b13fb09594f0521b384bc0038eeaf38eef09432312cb45c8d4fa1bc",
-      "insight_source_hash": "8b6a0b730dc0abe98de119739932ba27ce7d052a9535d6da8ee00a57dd3c43b1"
-    },
-    {
       "date": "2026-09-29",
       "text": "市场从前一日的偏冷脆弱转为温和活跃，指数与行业普遍收涨，但成交额继续收缩，上涨质量仍待确认。",
       "morning_report_id": "2026-09-29-evening",
@@ -39,6 +26,19 @@
       "fingerprint": "ce22158ca64809973985bc6d6987e0f026fdb9757bcd8da518eacec60cde1bcd",
       "source_hash": "8b3b0a7164e74ca54af1090452655448e4d07231d60cd2de187a4ad76335667b",
       "insight_source_hash": "36cdcd1222dfb357a1a582181ca23291461e948e5a7787ee68b29266eaec6e6b"
+    },
+    {
+      "date": "2026-10-06",
+      "text": "亚洲主要市场今日多数收涨，香港和日本延续了前一交易日的上行，韩国恢复交易后走弱。",
+      "morning_report_id": "2026-10-06-evening",
+      "evening_report_id": "2026-10-05-evening",
+      "generated_at": "2026-10-06T18:45:24+08:00",
+      "model": "deepseek-chat",
+      "provider": "deepseek",
+      "prompt_version": "daily-commentary-v1",
+      "fingerprint": "4131d9efd7af4cccd5e5d08e4ff19a8d37c619e2283d11befbfc1bd1628dc40c",
+      "source_hash": "40de96d06086ed7f7a9acb11690e88cccf5aa9c0ca940e4c55ca674bd4bdf605",
+      "insight_source_hash": "afef6b6ad64b1eb62b5c437aaca9ef36ce22d6fa29195d18992c7514e7654f05"
     }
   ]
 }
