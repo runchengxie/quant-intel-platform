@@ -49,6 +49,23 @@ def test_export_site_snapshot_copies_valid_indexes_without_html(tmp_path):
     assert not (output / "index.html").exists()
 
 
+def test_export_site_snapshot_ignores_charts_outside_the_public_report_window(tmp_path):
+    from market_intel_publication.export_site_snapshot import export_site_snapshot
+
+    root, output = tmp_path / "pages", tmp_path / "output"
+    public = _public_root(root)
+    chart_dir = public / "data/charts"
+    chart_dir.mkdir()
+    stale_chart = chart_dir / "2026-09-24-evening.json"
+    stale_chart.write_text(
+        json.dumps({"report_id": "2026-09-24-evening", "publication": "private"})
+    )
+
+    export_site_snapshot(root, output)
+
+    assert not (output / "data/charts/2026-09-24-evening.json").exists()
+
+
 def test_export_site_snapshot_rejects_more_than_five_dates_and_keeps_old_output(tmp_path):
     from market_intel_publication.export_site_snapshot import export_site_snapshot
 

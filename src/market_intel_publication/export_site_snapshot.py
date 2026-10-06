@@ -86,13 +86,13 @@ def _copy_charts(public_root: Path, output: Path, report_ids: set[str]) -> None:
     if chart_dir.is_symlink():
         raise ValueError("unsafe public chart directory")
     for path in chart_dir.iterdir():
-        if (
-            path.is_symlink()
-            or not path.is_file()
-            or path.suffix != ".json"
-            or path.stem not in report_ids
-        ):
+        if path.is_symlink() or not path.is_file() or path.suffix != ".json":
             raise ValueError(f"chart identity or file type is unsafe: {path.name}")
+        # Historical charts can remain in the Pages source repository after the
+        # rolling public report window advances. Only indexed charts are part of
+        # this snapshot, so stale files must not block an otherwise valid export.
+        if path.stem not in report_ids:
+            continue
         payload = validate_public_chart(
             json.loads(path.read_text(encoding="utf-8")), expected_id=path.stem
         )
