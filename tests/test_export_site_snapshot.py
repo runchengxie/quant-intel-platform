@@ -113,3 +113,27 @@ def test_export_site_snapshot_rejects_symlinked_chart_directory(tmp_path):
 
     with pytest.raises(ValueError, match="unsafe public chart directory"):
         export_site_snapshot(root, tmp_path / "output")
+
+
+def test_export_site_snapshot_emits_bound_us_status_and_preserves_report_bytes(tmp_path):
+    from market_intel_publication.export_site_snapshot import export_site_snapshot
+
+    root, output = tmp_path / "pages", tmp_path / "output"
+    public = _public_root(root)
+    report = {
+        "publication": "public",
+        "run_id": "daily-2026-10-06",
+        "content_hash": "a" * 64,
+        "facts": [],
+        "claims": [],
+        "source_status": {},
+        "sections": [],
+    }
+    source = public / "data/market_daily_report.json"
+    source.write_text(json.dumps(report))
+    export_site_snapshot(root, output)
+    status = json.loads((output / "data/us_daily_status.json").read_text())
+    assert status["reports"][0]["date"] == "2026-10-06"
+    assert status["reports"][0]["content_hash"] == report["content_hash"]
+    assert status["reports"][0]["report_status"]["market"] == "incomplete"
+    assert (output / "data/market_daily_report.json").read_bytes() == source.read_bytes()

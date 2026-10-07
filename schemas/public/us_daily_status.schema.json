@@ -1,0 +1,112 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "market_intel_pages.us_daily_status.v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "reports"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "market_intel_pages.us_daily_status.v1"
+    },
+    "reports": {
+      "type": "array",
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "run_id",
+          "date",
+          "content_hash",
+          "report_status",
+          "missing_market_facts"
+        ],
+        "properties": {
+          "run_id": {
+            "type": "string",
+            "pattern": "^daily-\\d{4}-\\d{2}-\\d{2}$"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "content_hash": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "report_status": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "market",
+              "research",
+              "publication"
+            ],
+            "properties": {
+              "market": {
+                "enum": [
+                  "complete",
+                  "incomplete"
+                ]
+              },
+              "research": {
+                "enum": [
+                  "reviewed",
+                  "not_included",
+                  "unknown"
+                ]
+              },
+              "publication": {
+                "const": "published"
+              }
+            }
+          },
+          "missing_market_facts": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": {
+              "type": "string",
+              "enum": [
+                "cross_asset.bitcoin_spot.change_percent",
+                "cross_asset.bitcoin_spot.close",
+                "cross_asset.brent.change_percent",
+                "cross_asset.brent.close",
+                "cross_asset.gold.change_percent",
+                "cross_asset.gold.close",
+                "cross_asset.silver.change_percent",
+                "cross_asset.silver.close",
+                "equity.aapl.change_percent",
+                "equity.aapl.close",
+                "equity.amzn.change_percent",
+                "equity.amzn.close",
+                "equity.googl.change_percent",
+                "equity.googl.close",
+                "equity.meta.change_percent",
+                "equity.meta.close",
+                "equity.msft.change_percent",
+                "equity.msft.close",
+                "equity.nvda.change_percent",
+                "equity.nvda.close",
+                "index.dow.change_percent",
+                "index.nasdaq.change_percent",
+                "index.russell2000.change_percent",
+                "index.spx.change_percent",
+                "treasury.10y.change_bp",
+                "treasury.10y.level_percent",
+                "treasury.2y.change_bp",
+                "treasury.2y.level_percent",
+                "treasury.30y.change_bp",
+                "treasury.30y.level_percent",
+                "treasury.5y.change_bp",
+                "treasury.5y.level_percent"
+              ]
+            }
+          }
+        }
+      }
+    }
+  }
+}
