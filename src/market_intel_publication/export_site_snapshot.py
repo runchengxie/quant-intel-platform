@@ -18,6 +18,7 @@ from market_intel_publication.asia_news_contract import public_asia_projection
 from market_intel_publication.import_market_daily_report import _markdown as render_daily_report
 from market_intel_publication.pipeline_health import health_report
 from market_intel_publication.public_paths import public_snapshot_root, safe_public_report_path
+from market_intel_publication.us_daily_status import status_index
 
 REPORT_SCHEMA = "market_intel_pages.reports.v1"
 SUMMARY_SCHEMA = "market_intel_pages.daily_summaries.v1"
@@ -153,6 +154,9 @@ def _copy_us_daily(public_root: Path, output: Path) -> None:
         _copy_checked_file(history_path, output / "data/market_daily_reports.json", public_root)
     else:
         rows = [json.loads(latest.read_text(encoding="utf-8"))] if latest.is_file() else []
+    (output / "data/us_daily_status.json").write_text(
+        json.dumps(status_index(rows), ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     if latest.is_file():
         _copy_checked_file(latest, output / "data/market_daily_report.json", public_root)
     for row in rows:
