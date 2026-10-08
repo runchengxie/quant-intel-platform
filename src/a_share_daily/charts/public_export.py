@@ -84,6 +84,7 @@ def _chart_card(
     degraded: set[str],
     failed: set[str],
     skipped: set[str],
+    missing: set[str] | frozenset[str] = frozenset(),
     errors: Mapping[str, object],
 ) -> dict[str, object]:
     title = "市场温度计" if key == "sentiment" and kind == "evening" else _TITLES[key]
@@ -99,7 +100,13 @@ def _chart_card(
         isinstance(point, Mapping) and point.get("source_label") == "Tushare A股晚报六维观察"
         for point in points
     )
-    if key in skipped:
+    if key in missing:
+        status, reason, points = (
+            "missing",
+            "当日概念板块数据暂缺" if key == "topic" else "当日图表数据暂缺",
+            [],
+        )
+    elif key in skipped:
         status, reason, points = "skipped", "上游明确跳过该图表", []
     elif kind == "evening" and key == "sentiment" and not evening_temperature_points:
         status, reason, points = "missing", "晚报六维观察尚无同口径已核实点集", []
@@ -150,6 +157,7 @@ def export_candidate(manifest: object, *, date: str, kind: str) -> dict[str, obj
     degraded = _names(charts, "degraded")
     skipped = _names(charts, "skipped")
     failed = _names(charts, "failed")
+    missing = _names(charts, "missing")
     raw_errors = charts.get("errors", {})
     if not isinstance(raw_errors, Mapping):
         raise ValueError("charts.errors must be an object")
@@ -165,6 +173,7 @@ def export_candidate(manifest: object, *, date: str, kind: str) -> dict[str, obj
             degraded=degraded,
             failed=failed,
             skipped=skipped,
+            missing=missing,
             errors=raw_errors,
         )
         for key in CHART_KEYS
