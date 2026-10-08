@@ -1,6 +1,7 @@
 import copy
 import hashlib
 import json
+from dataclasses import replace
 from datetime import UTC, datetime
 
 import pytest
@@ -17,7 +18,22 @@ def _input(tmp_path, monkeypatch):
         "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
         lambda symbol, *, target_date: QuoteSnapshot("2026-10-07", 1000.12, 0.25, symbol),
     )
-    facts, _ = fetch_index_facts(datetime(2026, 10, 7, tzinfo=UTC).date())
+
+    def timely_fetch(day):
+        facts, missing = fetch_index_facts(day)
+        return [
+            replace(
+                fact,
+                source_time=datetime(2026, 10, 7, 20, tzinfo=UTC),
+                retrieved_at=datetime(2026, 10, 7, 20, 15, tzinfo=UTC),
+            )
+            for fact in facts
+        ], missing
+
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.index_close_revision.fetch_index_facts", timely_fetch
+    )
+    facts, _ = timely_fetch(datetime(2026, 10, 7, tzinfo=UTC).date())
     payload = {
         "schema_version": "1.0",
         "run_id": "daily-2026-10-07",
@@ -126,3 +142,18 @@ def test_close_contract_rejects_incomplete_set_and_invalid_value(tmp_path, monke
     source, manifest = _write(tmp_path, enriched)
     with pytest.raises(ValueError):
         _read(source)
+
+
+def test_late_enrichment_fails_before_staging_or_changing_parent(tmp_path, monkeypatch):
+    source, manifest = _input(tmp_path, monkeypatch)
+    original = source.read_bytes()
+    facts, missing = fetch_index_facts(datetime(2026, 10, 7, tzinfo=UTC).date())
+    late = [replace(fact, source_time=datetime(2026, 10, 8, 2, tzinfo=UTC)) for fact in facts]
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.index_close_revision.fetch_index_facts",
+        lambda day: (late, missing),
+    )
+    with pytest.raises(ValueError, match="after original evidence cutoff; not publish-ready"):
+        enrich_index_closes(source, manifest, tmp_path / "stage")
+    assert source.read_bytes() == original
+    assert not (tmp_path / "stage").exists()
