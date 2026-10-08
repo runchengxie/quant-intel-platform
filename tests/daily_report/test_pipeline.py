@@ -92,6 +92,10 @@ def test_live_pipeline_publishes_complete_same_day_index_set(monkeypatch, tmp_pa
 
     index_ids = {fact.id for fact in report.facts if fact.id.startswith("index.")}
     assert index_ids == {
+        "index.spx.close",
+        "index.dow.close",
+        "index.nasdaq.close",
+        "index.russell2000.close",
         "index.spx.change_percent",
         "index.dow.change_percent",
         "index.nasdaq.change_percent",

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from datetime import UTC, date, datetime
 from urllib.parse import quote
 
@@ -58,4 +59,16 @@ def fetch_index_facts(report_date: date) -> tuple[list[MarketFact], tuple[str, .
         )
         for symbol, key, instrument, snapshot in snapshots
     ]
-    return facts, ()
+    closes = [
+        replace(
+            fact,
+            id=f"index.{key}.close",
+            metric="index_close",
+            value=snapshot.close,
+            previous=None,
+            change=None,
+            unit="points",
+        )
+        for fact, (_, key, _, snapshot) in zip(facts, snapshots, strict=True)
+    ]
+    return facts + closes, ()

@@ -25,6 +25,10 @@ REQUIRED_FIELDS = {
     "source_status",
 }
 FACT_LABELS = {
+    "index.spx.close": ("标普 500 收盘", "点"),
+    "index.dow.close": ("道指收盘", "点"),
+    "index.nasdaq.close": ("纳指收盘", "点"),
+    "index.russell2000.close": ("罗素 2000 收盘", "点"),
     "index.spx.change_percent": ("标普 500 日涨跌", "%"),
     "index.dow.change_percent": ("道指日涨跌", "%"),
     "index.nasdaq.change_percent": ("纳指日涨跌", "%"),
@@ -254,19 +258,30 @@ def _valid_market_fact(  # noqa: PLR0911 - preserve audited validation branches
             and (fact["value"] > 0 if field == "close" else abs(fact["value"]) <= 100)
         )
     if fact_id.startswith("index."):
-        key = fact_id.removeprefix("index.").removesuffix(".change_percent")
+        is_close = fact_id.endswith(".close")
+        key = fact_id.removeprefix("index.").removesuffix(
+            ".close" if is_close else ".change_percent"
+        )
         yahoo_pattern = YAHOO_INDEX_URLS.get(key)
         return (
-            unit == "percent"
+            unit == ("points" if is_close else "percent")
+            and isinstance(fact.get("value"), (int, float))
+            and not isinstance(fact.get("value"), bool)
+            and math.isfinite(fact["value"])
+            and (fact["value"] > 0 if is_close else True)
             and observed == report_date
             and (
-                (fact.get("quality") == "reviewed" and source_url.startswith("https://"))
+                (
+                    not is_close
+                    and fact.get("quality") == "reviewed"
+                    and source_url.startswith("https://")
+                )
                 or (
                     yahoo_pattern is not None
                     and bool(re.fullmatch(yahoo_pattern, source_url))
                     and fact.get("quality") == "ok"
                     and fact.get("source") == "Yahoo Finance"
-                    and fact.get("metric") == "daily_return"
+                    and fact.get("metric") == ("index_close" if is_close else "daily_return")
                 )
             )
         )
@@ -470,11 +485,21 @@ def _valid_sourced_fact_date(  # noqa: PLR0911 - preserve audited validation bra
     yahoo_indices = [
         fact
         for fact in known_facts
-        if fact["id"].startswith("index.") and fact.get("quality") == "ok"
+        if fact["id"].startswith("index.")
+        and fact["id"].endswith(".change_percent")
+        and fact.get("quality") == "ok"
     ]
     if yahoo_indices and {fact["id"] for fact in yahoo_indices} != {
         f"index.{key}.change_percent" for key in YAHOO_INDEX_URLS
     }:
+        return False
+    index_closes = {
+        key for key in facts_by_id if key.startswith("index.") and key.endswith(".close")
+    }
+    if index_closes and (
+        index_closes != {f"index.{key}.close" for key in YAHOO_INDEX_URLS}
+        or not all(f"index.{key}.change_percent" in facts_by_id for key in YAHOO_INDEX_URLS)
+    ):
         return False
     return _valid_rate_and_asset_pairs(facts_by_id)
 

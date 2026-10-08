@@ -27,3 +27,35 @@ signed source identity remain unchanged; the sidecar is an additive projection.
 The sidecar contains only the documented fields. It exposes neither private
 research receipts nor internal paths. Overall legacy `quality_summary.status`
 remains available and is not rewritten by status export.
+
+## Index close enrichment
+
+New deterministic reports include `index.<key>.close` facts for `spx`, `dow`,
+`nasdaq` and `russell2000`, using `metric: index_close`, `unit: points`, same-day
+Yahoo completed daily bars and the corresponding history URL. Old return-only
+reports remain valid. New close sets must contain all four positive finite
+numeric values and their existing daily returns. Index closes are additive and
+do not change the 32-field market completeness policy.
+
+To create an isolated candidate from a signed original report while preserving
+its facts, claims, research status and market cutoff:
+
+```bash
+market-enrich-index-closes --input /external/original/daily_report.json \
+  --manifest /external/original/publication.json --output /external/new-candidate
+```
+
+The command fetches all four same-day bars, checks their returns against the
+retained report (0.0051 percentage-point rounding tolerance), and fails before
+staging on conflict or unavailable sources. It writes a newly hashed report and
+signed publication manifest, the unchanged parent, and a versioned private
+`index_close_enrichment.json` lineage receipt. Keep the parent and receipt outside
+public assets. This command stages a candidate; production promotion and public
+publication use the deployment workflow. It rejects existing `news_only`
+revisions, because changing market facts requires a separate market revision
+contract. It also rejects reports already containing closes.
+
+Run the CLI from an immutable merged Platform release or wheel. Preview generation
+can use that wheel and an external candidate directory without switching the
+production release. Existing reviewed-return-only pipelines may still omit index
+closes; a source-verified enrichment is needed for those reports.

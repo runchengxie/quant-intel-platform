@@ -106,17 +106,30 @@ def _markdown_source(fact: dict[str, Any]) -> str:
 
 
 def _market_table(facts: list[dict[str, Any]], include_references: bool = True) -> list[str]:
-    lines = (
-        ["| 指数 | 收盘涨跌 | 观测日 | 来源 |", "|---|---:|---|---|"]
-        if include_references
-        else ["| 指数 | 收盘涨跌 | 观测日 |", "|---|---:|---|"]
-    )
+    by_id = {fact["id"]: fact for fact in facts}
+    has_closes = any(key.endswith(".close") for key in by_id)
+    close_header = " 收盘点位 |" if has_closes else ""
+    lines = [
+        f"| 指数 |{close_header} 收盘涨跌 | 观测日 |" + (" 来源 |" if include_references else ""),
+        "|---|"
+        + ("---:|" if has_closes else "")
+        + "---:|---|"
+        + ("---|" if include_references else ""),
+    ]
     for fact in facts:
+        if not fact["id"].endswith(".change_percent"):
+            continue
         label = FACT_LABELS[fact["id"]][0].removesuffix("日涨跌").strip()
+        close = by_id.get(fact["id"].removesuffix(".change_percent") + ".close")
+        close_cell = (
+            (f" {float(close['value']):,.2f} |" if close else " 缺项 |") if has_closes else ""
+        )
         lines.append(
-            f"| {label} | {float(fact['value']):+.2f}% | {fact['observation_date']} |"
+            f"| {label} |{close_cell} {float(fact['value']):+.2f}% | {fact['observation_date']} |"
             + (f" {_markdown_source(fact)} |" if include_references else "")
         )
+        if close and include_references and close["source_url"] != fact["source_url"]:
+            lines.append(f"\n{label}收盘点位来源：{_markdown_source(close)}\n")
     return lines
 
 
@@ -389,7 +402,7 @@ def _text_fact_lines(payload: dict[str, Any], prefix: str) -> list[str]:
         if not fact_id.startswith(prefix) or fact_id not in facts:
             continue
         fact = facts[fact_id]
-        signed = fact_id.startswith("index.") or fact_id.endswith((".change_bp", ".change_percent"))
+        signed = fact_id.endswith((".change_bp", ".change_percent"))
         value = f"{fact['value']:+.2f}" if signed else f"{fact['value']:.2f}"
         suffix = unit if unit == "%" else f" {unit}"
         lines.extend(
