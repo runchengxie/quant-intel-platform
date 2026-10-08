@@ -59,3 +59,11 @@ Keep snapshots private while checking source-use permissions. Verify material cl
 Retain company tickers, company names, attribution, financial periods, rating changes, guidance conditions and important numerical detail. Avoid replacing a detailed mover with a generic sentence such as “earnings beat”. Preserve the source's selected companies without padding to a fixed count. Split company and industry news into separate entries; a report about a financing or partnership may reference multiple tickers in the same entry. Do not infer a legal company identity from an unfamiliar ticker without verification.
 
 For example, a mover entry can be `{"text": "XYZ +3.2%｜Company: ...", "block_ids": ["gainers-1"]}`. This input is prepared separately, manually or by an editor. The command still does not invoke a model or produce source approval.
+
+## Targeted enrichment: manual spike workflow
+
+Keep the complete source bulletin, then select two or three material events for targeted primary-source research. Preserve reporting periods, accounting bases, business segments, currencies and transaction conditions. Present additional facts, interpretation and follow-up separately. Record disagreements only after comparing periods and units; never silently overwrite the original source or weaken its numeric validator.
+
+The capture CLI and editorial format remain source-only. Additional material currently belongs in an external manual research record and representative preview, not a supported publication or consumer artifact. Record the base preview hash, original block references, source URLs, publication-date precision, actual retrieval times, response hashes or extraction method, selected facts, calculations, inference and conflict status. Research retrieved after the session is retrospective; publication dates alone do not prove historical availability. This workflow does not provide automatic merging, source approval or delivery.
+
+Use primary releases to add decision-relevant detail rather than padding every item. Missing breadth, equal-weight performance or flow data must stay missing. Do not treat copies of the same report as independent confirmation. The [Chinese guide](news-source-preview.zh-CN.md) includes a reusable research prompt.
