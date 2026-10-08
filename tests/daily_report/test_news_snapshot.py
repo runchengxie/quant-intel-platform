@@ -6,6 +6,76 @@ from daily_messenger.daily_report.news_snapshot import CaptureOptions, capture, 
 from daily_messenger.daily_report.news_snapshot_preview import render_preview
 
 
+def itemized(snapshot):
+    return {
+        "source_sha256": snapshot["source_sha256"],
+        "sections": [
+            {
+                "key": s["key"],
+                "items": [{"text": b["text"], "block_ids": [b["id"]]} for b in s["blocks"]],
+            }
+            for s in snapshot["sections"]
+        ],
+    }
+
+
+def test_itemized_preview_and_coverage(tmp_path):
+    snapshot = capture(
+        rss(),
+        expected_date=date(2026, 10, 7),
+        captured_at=CAPTURED,
+        output_dir=tmp_path / "capture",
+    )
+    edited = itemized(snapshot)
+    assert "1、+3.2% XYZ: results beat." in render_preview(snapshot, editorial=edited)
+    edited["sections"][0]["items"].append(edited["sections"][0]["items"][0])
+    with pytest.raises(ValueError, match="order"):
+        render_preview(snapshot, editorial=edited)
+    edited["sections"][0]["items"].pop()
+    edited["sections"][0]["items"].pop()
+    with pytest.raises(ValueError, match="coverage"):
+        render_preview(snapshot, editorial=edited)
+
+
+def test_itemized_scaled_amount_and_per_entry_validation(tmp_path):
+    snapshot = capture(
+        rss(),
+        expected_date=date(2026, 10, 7),
+        captured_at=CAPTURED,
+        output_dir=tmp_path / "capture",
+    )
+    edited = itemized(snapshot)
+    edited["sections"][2]["items"][0]["text"] = "XYZ 据报道拟融资400亿美元。"
+    assert "400亿美元" in render_preview(snapshot, editorial=edited)
+    edited["sections"][2]["items"][0]["text"] = "XYZ 拟融资40亿美元。"
+    with pytest.raises(ValueError, match="numeric"):
+        render_preview(snapshot, editorial=edited)
+    edited["sections"][2]["items"][0]["text"] = "XYZ 据报道拟融资400亿美元。"
+    edited["sections"][4]["items"][0]["text"] = "XYZ +4.8%"
+    with pytest.raises(ValueError, match="numeric"):
+        render_preview(snapshot, editorial=edited)
+
+
+def test_declining_headline_accepts_original_and_signed_representation(tmp_path):
+    raw = rss().replace(
+        b"US equities finish lower</title>", b"US equities finish lower: Dow (0.66%)</title>"
+    )
+    snapshot = capture(
+        raw, expected_date=date(2026, 10, 7), captured_at=CAPTURED, output_dir=tmp_path / "capture"
+    )
+    edited = itemized(snapshot)
+    assert "Dow (0.66%)" in render_preview(snapshot, editorial=edited)
+    edited["sections"][0]["items"][0]["text"] = "道指 -0.66%"
+    assert "道指 -0.66%" in render_preview(snapshot, editorial=edited)
+    for section in edited["sections"]:
+        entries = section.pop("items")
+        section["text"] = entries[0]["text"]
+        section["block_ids"] = entries[0]["block_ids"]
+    assert "道指 -0.66%" in render_preview(snapshot, editorial=edited)
+    edited["sections"][0]["text"] = "US equities finish lower: Dow (0.66%)"
+    assert "Dow (0.66%)" in render_preview(snapshot, editorial=edited)
+
+
 def rss(*, build="Wed, 07 Oct 2026 21:00:08 GMT", market="Wednesday", extra=""):
     return f"""<?xml version="1.0" encoding="utf-8"?>
     <rss xmlns:a="http://www.w3.org/2005/Atom"><channel><lastBuildDate>{build}</lastBuildDate>
