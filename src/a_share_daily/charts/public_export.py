@@ -84,7 +84,7 @@ def _chart_card(
     degraded: set[str],
     failed: set[str],
     skipped: set[str],
-    missing: set[str],
+    missing: set[str] | frozenset[str] = frozenset(),
     errors: Mapping[str, object],
 ) -> dict[str, object]:
     title = "市场温度计" if key == "sentiment" and kind == "evening" else _TITLES[key]
