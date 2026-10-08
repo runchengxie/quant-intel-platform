@@ -117,3 +117,63 @@ def test_load_performance_rejects_untrustworthy_proxy(tmp_path, overrides, messa
 
     with pytest.raises(PerformanceArtifactError, match=message):
         load_performance(path, report_date="20260911")
+
+
+def _holiday_artifact(path, **overrides):
+    rows = [{"date": "20260901", "nav": 1.0}, {"date": "20260930", "nav": 1.1}]
+    _write(path, series=rows, benchmark=rows, report_date="20261008", **overrides)
+
+
+def _freshness(**overrides):
+    return {
+        "method": "prior_open_session",
+        "report_date": "20261008",
+        "expected_session": "20260930",
+        "calendar_sha256": "a" * 64,
+        **overrides,
+    }
+
+
+def test_holiday_performance_accepts_hash_bound_prior_open_session(tmp_path):
+    path = tmp_path / "performance.json"
+    _holiday_artifact(path, freshness=_freshness())
+    assert load_performance(path, report_date="20261008").points[-1][0] == "20260930"
+
+
+def test_holiday_performance_without_calendar_evidence_remains_stale(tmp_path):
+    path = tmp_path / "performance.json"
+    _holiday_artifact(path)
+    with pytest.raises(PerformanceArtifactError, match="stale"):
+        load_performance(path, report_date="20261008")
+
+
+@pytest.mark.parametrize(
+    "freshness",
+    [
+        None,
+        {},
+        _freshness(method="calendar_days"),
+        _freshness(report_date="20261009"),
+        _freshness(expected_session="20260929"),
+        _freshness(expected_session="20261008"),
+        _freshness(expected_session="20260230"),
+        _freshness(expected_session="2026-09-30"),
+        _freshness(calendar_sha256=""),
+        _freshness(calendar_sha256="G" * 64),
+    ],
+)
+def test_performance_rejects_invalid_calendar_evidence(tmp_path, freshness):
+    path = tmp_path / "performance.json"
+    _holiday_artifact(path, freshness=freshness)
+    with pytest.raises(PerformanceArtifactError, match="freshness"):
+        load_performance(path, report_date="20261008")
+
+
+def test_performance_calendar_evidence_is_hash_bound(tmp_path):
+    path = tmp_path / "performance.json"
+    _holiday_artifact(path, freshness=_freshness())
+    payload = json.loads(path.read_text())
+    payload["freshness"]["expected_session"] = "20260929"
+    path.write_text(json.dumps(payload))
+    with pytest.raises(PerformanceArtifactError, match="hash mismatch"):
+        load_performance(path, report_date="20261008")

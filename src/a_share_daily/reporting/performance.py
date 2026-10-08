@@ -5,8 +5,10 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -116,6 +118,33 @@ def _metadata(
     return metrics, evidence_tier, methodology, tuple(str(item) for item in raw_limitations)
 
 
+def _validate_freshness(payload: Mapping[str, Any], report_date: str, last_date: str) -> None:
+    if "freshness" not in payload:
+        if (pd.Timestamp(report_date) - pd.Timestamp(last_date)).days > 7:
+            raise PerformanceArtifactError("performance is stale")
+        return
+    freshness = payload["freshness"]
+    if not isinstance(freshness, Mapping) or freshness.get("method") != "prior_open_session":
+        raise PerformanceArtifactError("invalid performance freshness method")
+    for key in ("report_date", "expected_session"):
+        date = freshness.get(key)
+        if not isinstance(date, str) or re.fullmatch(r"[0-9]{8}", date) is None:
+            raise PerformanceArtifactError("invalid performance freshness date")
+        try:
+            datetime.strptime(date, "%Y%m%d")
+        except ValueError as exc:
+            raise PerformanceArtifactError("invalid performance freshness date") from exc
+    if (
+        freshness["report_date"] != report_date
+        or freshness["expected_session"] >= report_date
+        or freshness["expected_session"] != last_date
+    ):
+        raise PerformanceArtifactError("performance freshness does not match report or series")
+    digest = freshness.get("calendar_sha256")
+    if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+        raise PerformanceArtifactError("invalid performance freshness calendar hash")
+
+
 def load_performance(
     path: Path, *, report_date: str, allow_legacy: bool = False
 ) -> PerformanceSeries:
@@ -153,9 +182,7 @@ def load_performance(
             or execution_audit.get("preserve_gross_exposure") is not True
         ):
             raise PerformanceArtifactError("performance execution audit is required")
-        last_date = pd.Timestamp(points[-1][0])
-        if (pd.Timestamp(report_date) - last_date).days > 7:
-            raise PerformanceArtifactError("performance is stale")
+        _validate_freshness(payload, report_date, points[-1][0])
     first = points[0][1]
     normalized = tuple((date, value / first) for date, value in points)
     normalized_benchmark = None
