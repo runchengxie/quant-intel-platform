@@ -44,6 +44,15 @@ def enrich_index_closes(source: Path, manifest: Path, output: Path) -> Path:
             or abs(float(previous["value"]) - float(fact.value)) > 0.0051
         ):
             raise ValueError("fetched index return conflicts with retained report evidence")
+    cutoff = datetime.fromisoformat(original["as_of"])
+    if cutoff.tzinfo is None or any(
+        fact.source_time.tzinfo is None or fact.source_time > cutoff
+        for fact in facts
+        if fact.id.endswith(".close")
+    ):
+        raise ValueError(
+            "index close enrichment acquired after original evidence cutoff; not publish-ready"
+        )
     result = copy.deepcopy(original)
     added = [json.loads(dumps_json(fact.to_dict())) for fact in facts if fact.id.endswith(".close")]
     result["facts"].extend(added)

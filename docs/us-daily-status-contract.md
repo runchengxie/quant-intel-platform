@@ -45,6 +45,13 @@ market-enrich-index-closes --input /external/original/daily_report.json \
   --manifest /external/original/publication.json --output /external/new-candidate
 ```
 
+The command rejects newly acquired close evidence whose truthful `source_time`
+is later than the original report `as_of`, before creating output. A retrospective
+fetch normally falls into this case: it is not a publish-ready enrichment. Never
+backdate retrieval-derived timestamps to make a candidate pass. A previously
+rendered supplemental preview must remain private and must not be promoted.
+Ordinary future generation includes the four closes in its original report.
+
 The command fetches all four same-day bars, checks their returns against the
 retained report (0.0051 percentage-point rounding tolerance), and fails before
 staging on conflict or unavailable sources. It writes a newly hashed report and
