@@ -22,8 +22,12 @@ def test_index_quotes_require_all_four_completed_same_day_bars(monkeypatch):
     facts, missing = fetch_index_facts(date(2026, 9, 25))
 
     assert missing == ()
-    assert len(facts) == 4
+    assert len(facts) == 8
     assert {fact.id for fact in facts} == {
+        "index.spx.close",
+        "index.dow.close",
+        "index.nasdaq.close",
+        "index.russell2000.close",
         "index.spx.change_percent",
         "index.dow.change_percent",
         "index.nasdaq.change_percent",
@@ -53,3 +57,20 @@ def test_index_quotes_do_not_publish_partial_set(monkeypatch):
 
     assert facts == []
     assert missing == ("^IXIC", "^RUT")
+
+
+def test_index_close_fact_values_and_metadata(monkeypatch):
+    from daily_messenger.daily_report.index_quotes import fetch_index_facts
+
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
+        lambda symbol, *, target_date: QuoteSnapshot("2026-10-07", 123.45, 0.25, symbol),
+    )
+    facts, missing = fetch_index_facts(date(2026, 10, 7))
+    closes = [fact for fact in facts if fact.id.endswith(".close")]
+    assert not missing
+    assert len(closes) == 4
+    assert all(
+        fact.value == 123.45 and fact.metric == "index_close" and fact.unit == "points"
+        for fact in closes
+    )
