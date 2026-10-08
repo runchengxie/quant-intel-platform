@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from collections.abc import Mapping
 from datetime import date
 from typing import cast
@@ -29,7 +30,7 @@ def _iso(value: object) -> str:
 def _point(
     label: str, value: object, unit: str, day: str, source: Mapping[str, str]
 ) -> dict[str, object]:
-    if isinstance(value, bool) or not isinstance(value, int | float):
+    if isinstance(value, bool) or not isinstance(value, int | float) or not math.isfinite(value):
         raise ValueError(f"non-numeric chart point: {label}")
     return {
         "label": label,
@@ -54,8 +55,8 @@ def extract_evening_review_points(
     if review_date != target:
         raise ValueError(f"review date {review_date!r} != target {target!r}")
 
-    sectors = _mapping(review.get("hot_sectors"), "hot_sectors")
-    raw_top = sectors.get("top_by_change")
+    sectors = _mapping(review.get("hot_sectors", {}), "hot_sectors")
+    raw_top = sectors.get("top_by_change", []) if not sectors else sectors.get("top_by_change")
     if not isinstance(raw_top, list):
         raise ValueError("hot_sectors.top_by_change must be a list")
     topic_source = {
@@ -66,7 +67,7 @@ def extract_evening_review_points(
     for item in raw_top[:5]:
         row = _mapping(item, "hot sector row")
         topic.append(_point(str(row["name"]), row["pct_change"], "%", review_date, topic_source))
-    if len(topic) < 5:
+    if sectors and len(topic) < 5:
         raise ValueError("hot_sectors.top_by_change has fewer than five rows")
 
     temperature = _mapping(review.get("market_temperature"), "market_temperature")

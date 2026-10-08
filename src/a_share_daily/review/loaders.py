@@ -335,8 +335,10 @@ def load_hot_sectors(trade_date: str) -> dict[str, Any]:
             "top_by_fund": top_fund_in,
             "total_concepts": int(len(df)),
         }
-    except Exception:
+    except FileNotFoundError:
         return {}
+    except Exception as exc:
+        raise ValueError("invalid concept sector input") from exc
 
 
 def load_industry_stats(trade_date: str) -> pd.DataFrame:

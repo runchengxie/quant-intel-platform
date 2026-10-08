@@ -48,7 +48,11 @@ def build_evening_manifest(
         public_points = dict(charts.get("public_points", {}))
         public_points.update(points)
         charts["public_points"] = public_points
-        charts["ok"] = sorted(set(charts.get("ok", [])) | {"topic", "sentiment"})
+        available = {key for key, rows in points.items() if rows}
+        absent = set(points) - available
+        charts["ok"] = sorted((set(charts.get("ok", [])) - absent) | available)
+        charts["degraded"] = [key for key in charts.get("degraded", []) if key not in points]
+        charts["missing"] = sorted((set(charts.get("missing", [])) - available) | absent)
         charts["failed"] = [
             key for key in charts.get("failed", []) if key not in {"topic", "sentiment"}
         ]
