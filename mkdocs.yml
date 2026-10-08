@@ -83,6 +83,7 @@ nav:
       - Build the web dashboard: how-to/build-dashboard.en.md
       - Market report website: how-to/market-site.en.md
       - Add a data source: how-to/add-data-source.en.md
+      - Preview news source snapshots: how-to/news-source-preview.en.md
       - FAQ: faq.en.md
   - Understand the platform:
       - System architecture: architecture.md
@@ -132,6 +133,7 @@ nav:
           - 生成网页看板: how-to/build-dashboard.md
           - 市场日报网站: how-to/market-site.md
           - 增加数据源: how-to/add-data-source.md
+          - 新闻原文与六栏目预览: how-to/news-source-preview.zh-CN.md
           - 常见问题: faq.md
       - 了解平台:
           - 系统架构: architecture.zh-CN.md
