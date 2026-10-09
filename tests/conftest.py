@@ -6,6 +6,12 @@ from pathlib import Path
 
 import pytest
 
+
+@pytest.fixture(autouse=True)
+def isolate_delivery_intents(tmp_path, monkeypatch):
+    monkeypatch.setenv("A_SHARE_DELIVERY_INTENT_ROOT", str(tmp_path / "delivery-intents"))
+
+
 SRC_PATH = Path(__file__).resolve().parents[1] / "src"
 if str(SRC_PATH) not in sys.path:
     sys.path.insert(0, str(SRC_PATH))

@@ -8,15 +8,18 @@ and tests working unchanged.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import os
 import subprocess
 import sys
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from a_share_daily.delivery.intents import DeliveryIntentStore
+from a_share_daily.delivery.outcomes import UnknownDeliveryError
 from a_share_daily.delivery.state import _idempotency_key, _sha256_file, _write_delivery_status
 from a_share_daily.delivery.targets import (
     _delivery_mode,
@@ -27,8 +30,88 @@ from a_share_daily.delivery.targets import (
     _lark_target_arg_sets,
     _lark_targets_for_status,
 )
+from ops_common.paths import resolve_owner_path
 
 from .notifier import FeishuWebhookNotifier, Notifier
+
+
+def _guard_delivery(
+    *,
+    route: str,
+    target: Sequence[str],
+    artifact: str,
+    send: Callable[[], tuple[bool, dict[str, Any]]],
+) -> tuple[bool, dict[str, Any]]:
+    target_hash = hashlib.sha256(json.dumps(list(target)).encode()).hexdigest()
+    artifact_hash = hashlib.sha256(artifact.encode()).hexdigest()
+    key = hashlib.sha256(json.dumps([route, target_hash, artifact_hash]).encode()).hexdigest()
+    root = resolve_owner_path(
+        "quant-intel-platform",
+        category="state",
+        override_env="A_SHARE_DELIVERY_INTENT_ROOT",
+        suffix=("delivery-intents",),
+    )
+    ledger = DeliveryIntentStore(root)
+    if not ledger.begin(key, route=route, target_hash=target_hash, artifact_sha256=artifact_hash):
+        ids = ledger.message_ids(key)
+        if ledger.outcome(key) != "confirmed":
+            print(
+                f"[report_delivery] unknown delivery intent {key}; explicit resolution required",
+                file=sys.stderr,
+            )
+            raise UnknownDeliveryError(key)
+        return True, {"message_id": ids[0]} if ids else {}
+    ok, payload = send()
+    if ok:
+        message_id = _message_id(payload)
+        try:
+            ledger.acknowledge(key, message_ids=[message_id] if message_id else [])
+        except OSError as error:
+            raise UnknownDeliveryError(key, str(error)) from error
+    else:
+        raise UnknownDeliveryError(key)
+    return ok, payload
+
+
+def _guard_lark(
+    command: Sequence[str], *, artifact: str, cwd: Path | None = None, capture_ids: bool = True
+) -> tuple[bool, dict[str, Any]]:
+    target = (
+        list(command[3 : command.index("--markdown")])
+        if "--markdown" in command
+        else list(command[3 : command.index("--msg-type")])
+    )
+    return _guard_delivery(
+        route="lark-text" if "--markdown" in command else "lark-image",
+        target=target,
+        artifact=artifact,
+        send=(lambda: _run_lark_result(command, cwd=cwd))
+        if capture_ids
+        else (lambda: (_run_lark(command, cwd=cwd), {})),
+    )
+
+
+def _guard_hermes(command: Sequence[str]) -> bool:
+    target = command[command.index("--to") + 1]
+    if "--file" in command:
+        path = Path(command[command.index("--file") + 1])
+        role = "hermes-file"
+        subject = command[command.index("--subject") + 1]
+    else:
+        path = Path(
+            next(value.removeprefix("MEDIA:") for value in command if value.startswith("MEDIA:"))
+        )
+        role, subject = "hermes-image", ""
+    digest = _sha256_file(path)
+    if digest is None:
+        return False
+    ok, _ = _guard_delivery(
+        route=role,
+        target=[target],
+        artifact=f"{subject}:{path.name}:{digest}",
+        send=lambda: (_run_hermes(command), {}),
+    )
+    return ok
 
 
 def _run_hermes(args: Sequence[str]) -> bool:
@@ -226,7 +309,7 @@ def _send_hermes_file(
     results = []
     for resolved_target in resolved_targets:
         results.append(
-            _run_hermes(
+            _guard_hermes(
                 [
                     cli,
                     "send",
@@ -260,7 +343,7 @@ def _send_hermes_image(
     results = []
     for resolved_target in resolved_targets:
         results.append(
-            _run_hermes(
+            _guard_hermes(
                 [
                     cli,
                     "send",
@@ -289,7 +372,7 @@ def _send_lark_markdown(
         return False
     results = []
     for target in targets:
-        key_material = tuple(idempotency_scope) if idempotency_scope is not None else (text,)
+        key_material = (*tuple(idempotency_scope or ()), text)
         idempotency_key = _idempotency_key("markdown", *target, *key_material)
         command = [
             cli,
@@ -306,9 +389,10 @@ def _send_lark_markdown(
             "json",
         ]
         if message_ids is None:
-            results.append(_run_lark(command))
+            ok, _ = _guard_lark(command, artifact=f"{idempotency_key}:{text}", capture_ids=False)
+            results.append(ok)
         else:
-            ok, payload = _run_lark_result(command)
+            ok, payload = _guard_lark(command, artifact=f"{idempotency_key}:{text}")
             message_id = _message_id(payload)
             if message_id is not None:
                 message_ids.append(message_id)
@@ -355,9 +439,14 @@ def _send_lark_image(
             "json",
         ]
         if message_ids is None:
-            results.append(_run_lark(command, cwd=image.parent))
+            ok, _ = _guard_lark(
+                command, artifact=f"{image.name}:{image_hash}", cwd=image.parent, capture_ids=False
+            )
+            results.append(ok)
         else:
-            ok, payload = _run_lark_result(command, cwd=image.parent)
+            ok, payload = _guard_lark(
+                command, artifact=f"{image.name}:{image_hash}", cwd=image.parent
+            )
             message_id = _message_id(payload)
             if message_id is not None:
                 message_ids.append(message_id)

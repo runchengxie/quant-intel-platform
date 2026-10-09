@@ -106,6 +106,8 @@ def successful_delivery_attempt(
 ) -> bool:
     return any(
         attempt.get("returncode") == 0
+        and attempt.get("business_recovered") is not False
+        and attempt.get("delivery_outcome") not in {"unknown", "sending", "not_sent"}
         and attempt.get("target_date") == target_date
         and attempt.get("report_mode") == report_mode
         for attempt in attempts

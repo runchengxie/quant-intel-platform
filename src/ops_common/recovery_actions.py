@@ -171,6 +171,8 @@ def attempt_recovery(
         report_mode=report_mode,
     )
     recovered = result.returncode == 0 and final.fresh
+    stage_attempts[-1]["business_recovered"] = recovered
+    stage_attempts[-1]["final_freshness"] = final.to_dict()
     return {
         "attempt_count": len(budget),
         "action": command,

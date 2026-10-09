@@ -198,6 +198,7 @@ def _write_delivery_status(
     hermes_targets: Sequence[str],
     signal_date: str | None = None,
     message_ids: Mapping[str, Sequence[str]] | None = None,
+    delivery_outcome: str | None = None,
 ) -> dict[str, Any]:
     state_dir = _delivery_state_dir()
     try:
@@ -214,6 +215,8 @@ def _write_delivery_status(
             lark_targets=lark_targets,
             hermes_targets=hermes_targets,
         )
+        if delivery_outcome is not None:
+            payload["delivery_outcome"] = delivery_outcome
         timestamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
         output = state_dir / f"{kind}_{trade_date}_{timestamp}.json"
         output.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")

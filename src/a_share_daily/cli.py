@@ -254,6 +254,13 @@ def _add_weekly_basket_command(sub: argparse._SubParsersAction) -> None:
 
 
 def _add_operational_commands(sub: argparse._SubParsersAction) -> None:
+    resolution = sub.add_parser(
+        "delivery-resolve", help="Resolve an unknown delivery with evidence"
+    )
+    resolution.add_argument("--root", required=True, type=Path)
+    resolution.add_argument("--key", required=True)
+    resolution.add_argument("--outcome", required=True, choices=("sent", "not_sent"))
+    resolution.add_argument("--evidence", required=True)
     candidate = sub.add_parser(
         "chart-candidate", help="Export an offline, source-dated six-chart candidate"
     )
@@ -530,6 +537,13 @@ def _dispatch(args: argparse.Namespace) -> int | None:
     if args.command == "daily-watch20":
         return _cmd_daily_watch20(args)
 
+    if args.command == "delivery-resolve":
+        from a_share_daily.delivery.intents import DeliveryIntentStore
+
+        DeliveryIntentStore(args.root).resolve(
+            args.key, outcome=args.outcome, evidence=args.evidence
+        )
+        return 0
     if args.command == "doctor":
         return _cmd_doctor(args)
 
