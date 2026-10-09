@@ -81,6 +81,7 @@ from a_share_daily.delivery._render import (
     _render_evening_transmission,
     build_evening_summary,
 )
+from a_share_daily.delivery.outcomes import unknown_delivery_receipt
 
 delivery_routes = routes
 
@@ -139,6 +140,7 @@ def _send_morning_charts(
                 print(f"[report_delivery] morning chart failed: {label}", file=sys.stderr)
 
 
+@unknown_delivery_receipt()
 def _deliver_markdown_files_and_images(
     *,
     kind: str,
@@ -273,6 +275,7 @@ def _prepare_morning_context(
     return (context, trade_date, signal_date, chart_paths, artifacts, mode)
 
 
+@unknown_delivery_receipt(exit_code=True)
 def _deliver_morning_routes(
     *,
     args: argparse.Namespace,

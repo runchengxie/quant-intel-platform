@@ -270,7 +270,7 @@ def test_deliver_morning_records_lark_preflight_failure(
     assert state["routes"]["lark_preflight"]["reason"] == "bind_returned_1"
 
 
-def test_deliver_evening_falls_back_to_hermes_images_only_when_lark_images_fail(
+def test_deliver_evening_blocks_fallback_when_lark_image_outcome_unknown(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     _set_delivery_state(monkeypatch, tmp_path)
@@ -321,14 +321,15 @@ def test_deliver_evening_falls_back_to_hermes_images_only_when_lark_images_fail(
         lark_cli="/bin/echo",
     )
 
-    assert report_delivery.deliver_evening(args) == 0
+    assert report_delivery.deliver_evening(args) == 1
     hermes_calls = [call for call in calls if call[1] == "send"]
     lark_calls = [call for call in calls if call[1] == "im"]
-    assert len(lark_calls) == 8
-    assert len(hermes_calls) == 6
-    assert all("--msg-type" in call and "image" in call for call in lark_calls[2:])
-    assert all(any(arg.startswith("MEDIA:") for arg in call) for call in hermes_calls)
-    assert not any("--file" in call for call in hermes_calls)
+    assert len(lark_calls) == 3
+    assert not hermes_calls
+    assert "--msg-type" in lark_calls[-1]
+    receipt = json.loads((tmp_path / "delivery_state" / "evening_latest.json").read_text())
+    assert receipt["delivery_outcome"] == "unknown"
+    assert receipt["success"] is False
 
 
 def test_deliver_morning_falls_back_to_webhook_without_lark_target(

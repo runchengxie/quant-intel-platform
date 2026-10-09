@@ -19,6 +19,7 @@ from pathlib import Path
 from typing import Any
 
 from a_share_daily.delivery.intents import DeliveryIntentStore
+from a_share_daily.delivery.outcomes import UnknownDeliveryError
 from a_share_daily.delivery.state import _idempotency_key, _sha256_file, _write_delivery_status
 from a_share_daily.delivery.targets import (
     _delivery_mode,
@@ -58,13 +59,17 @@ def _guard_delivery(
                 f"[report_delivery] unknown delivery intent {key}; explicit resolution required",
                 file=sys.stderr,
             )
-        return ledger.outcome(key) == "confirmed", {"message_id": ids[0]} if ids else {}
+            raise UnknownDeliveryError(key)
+        return True, {"message_id": ids[0]} if ids else {}
     ok, payload = send()
     if ok:
         message_id = _message_id(payload)
-        ledger.acknowledge(key, message_ids=[message_id] if message_id else [])
+        try:
+            ledger.acknowledge(key, message_ids=[message_id] if message_id else [])
+        except OSError as error:
+            raise UnknownDeliveryError(key, str(error)) from error
     else:
-        print(f"[report_delivery] delivery outcome unknown for intent {key}", file=sys.stderr)
+        raise UnknownDeliveryError(key)
     return ok, payload
 
 
@@ -367,7 +372,7 @@ def _send_lark_markdown(
         return False
     results = []
     for target in targets:
-        key_material = tuple(idempotency_scope) if idempotency_scope is not None else (text,)
+        key_material = (*tuple(idempotency_scope or ()), text)
         idempotency_key = _idempotency_key("markdown", *target, *key_material)
         command = [
             cli,

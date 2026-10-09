@@ -249,6 +249,7 @@ def test_deliver_evening_sends_two_texts_and_six_images_via_lark(
             "evening",
             "20260630",
             "evening_summary.md",
+            (out_dir / "evening_summary.md").read_text(encoding="utf-8").strip(),
         ),
         state._idempotency_key(
             "markdown",
@@ -257,6 +258,7 @@ def test_deliver_evening_sends_two_texts_and_six_images_via_lark(
             "evening",
             "20260630",
             "evening_review.md",
+            review.read_text(encoding="utf-8").strip(),
         ),
     ]
     assert all("--image" in call["cmd"] for call in calls[2:])
