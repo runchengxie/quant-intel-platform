@@ -109,7 +109,7 @@ def test_send_lark_markdown_sends_to_chat_id(
         assert "--format" in call and call[call.index("--format") + 1] == "json"
 
 
-def test_send_lark_markdown_stable_scope_ignores_dynamic_body(
+def test_send_lark_markdown_scope_and_content_both_define_identity(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("A_SHARE_FEISHU_CHAT_ID", "oc_one")
@@ -136,22 +136,28 @@ def test_send_lark_markdown_stable_scope_ignores_dynamic_body(
 
     keys = [call[call.index("--idempotency-key") + 1] for call in calls]
     assert len(keys) == 3
-    assert keys[0] == keys[1]
+    assert keys[0] != keys[1]
     assert keys[1] != keys[2]
 
 
-def test_send_lark_markdown_returns_false_if_any_target_fails(
+def test_send_lark_markdown_unknown_target_blocks_retry_without_resending_confirmed(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
     monkeypatch.setenv("A_SHARE_FEISHU_CHAT_ID", "oc_one,oc_two")
 
+    calls = []
+
     def fake_run_lark(cmd: list[str], **_kwargs: Any) -> bool:
-        # Fail the second target only.
-        return cmd[cmd.index("--chat-id") + 1] != "oc_two"
+        target = cmd[cmd.index("--chat-id") + 1]
+        calls.append(target)
+        return target != "oc_two"
 
     monkeypatch.setattr(senders, "_run_lark", fake_run_lark)
 
-    assert senders._send_lark_markdown("x", lark_cli="/bin/echo") is False
+    for _ in range(2):
+        with pytest.raises(senders.UnknownDeliveryError):
+            senders._send_lark_markdown("x", lark_cli="/bin/echo")
+    assert calls == ["oc_one", "oc_two"]
 
 
 def test_send_lark_markdown_collects_confirmed_message_ids(monkeypatch: pytest.MonkeyPatch) -> None:
