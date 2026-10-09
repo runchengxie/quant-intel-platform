@@ -409,6 +409,7 @@ def _formal_delivery_ok(
             payload.get("success") is True,
             payload.get("trade_date") == source_date,
             payload.get("signal_date") == signal_date,
+            payload.get("delivery_outcome") not in {"unknown", "sending", "not_sent"},
         )
     )
 
@@ -500,7 +501,10 @@ def _report_probe(
         fresh=formal_ok,
         status="fresh" if formal_ok else "stale",
         target_date=source_date,
-        actual_date=source_date if formal_ok else None,
+        actual_date=str(
+            _read_json(delivery_state_dir / f"{kind}_latest.json").get("trade_date") or ""
+        )
+        or None,
         detail=f"{kind} delivery receipts align"
         if formal_ok
         else f"{kind} delivery receipts are stale",

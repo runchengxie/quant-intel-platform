@@ -352,6 +352,7 @@ def test_deliver_morning_falls_back_to_webhook_without_lark_target(
     monkeypatch.delenv("A_SHARE_FEISHU_USER_ID", raising=False)
     monkeypatch.delenv("FEISHU_USER_ID", raising=False)
     monkeypatch.setattr(post_feishu, "run", fake_post)
+    monkeypatch.setenv("FEISHU_WEBHOOK_DAILY", "https://synthetic.invalid/webhook")
 
     args = argparse.Namespace(
         report=str(report),
