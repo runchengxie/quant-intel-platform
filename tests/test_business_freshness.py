@@ -336,6 +336,48 @@ def test_report_probe_uses_stable_delivery_state_dir(monkeypatch, tmp_path: Path
     assert result.evidence == (str(delivery_dir / "evening_latest.json"),)
 
 
+def test_evening_publish_only_probe_checks_dated_archive_and_image(
+    monkeypatch, tmp_path: Path
+) -> None:
+    context = FreshnessContext(tmp_path / "release", tmp_path / "data", OPEN_DATES)
+    output = tmp_path / "stable-output" / "a_share_daily"
+    history = output / "history"
+    history.mkdir(parents=True)
+    trade_date = "20261009"
+    (history / f"evening_review_{trade_date}.json").write_text(
+        json.dumps({"trade_date": trade_date, "generated_at": "2026-10-09T18:45:00"}),
+        encoding="utf-8",
+    )
+    (history / f"evening_review_{trade_date}.md").write_text(
+        f"## {trade_date} 周五盘后点评\n", encoding="utf-8"
+    )
+    (history / f"market_temperature_{trade_date}.png").write_bytes(b"\x89PNG\r\n\x1a\nfixture")
+    monkeypatch.setenv("A_SHARE_OUTPUT_DIR", str(output))
+
+    result = probe_stage(
+        context,
+        stage_key="evening_report",
+        target_date=trade_date,
+        signal_date=trade_date,
+        report_mode="publish_only",
+    )
+
+    assert result.fresh is True
+    assert result.actual_date == trade_date
+    assert "evening_latest.json" not in " ".join(result.evidence)
+
+    (history / f"evening_review_{trade_date}.md").unlink()
+    stale = probe_stage(
+        context,
+        stage_key="evening_report",
+        target_date=trade_date,
+        signal_date=trade_date,
+        report_mode="publish_only",
+    )
+    assert stale.fresh is False
+    assert any(item.startswith("missing:") and item.endswith(".md") for item in stale.evidence)
+
+
 def test_morning_probe_uses_stable_strategy_delivery_receipts(monkeypatch, tmp_path: Path) -> None:
     context = FreshnessContext(tmp_path / "release", tmp_path / "data", OPEN_DATES)
     delivery_dir = tmp_path / "stable-delivery-state"
