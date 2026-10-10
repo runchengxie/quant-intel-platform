@@ -466,6 +466,8 @@ def _report_probe(
     signal_date: str,
     mode: str,
 ) -> FreshnessResult:
+    if mode == "publish_only" and kind == "evening":
+        return _evening_report_artifact_probe(context, source_date)
     if mode == "audit_only":
         path = report_audit_path(context, kind, signal_date)
         payload = _read_json(path)
@@ -509,6 +511,64 @@ def _report_probe(
         if formal_ok
         else f"{kind} delivery receipts are stale",
         evidence=tuple(evidence),
+    )
+
+
+def _evening_report_artifact_probe(context: FreshnessContext, source_date: str) -> FreshnessResult:
+    """Check the archived evening report independently from Feishu delivery."""
+    root = _strategy_delivery_root(context)
+    history = root / "history"
+    markdown = history / f"evening_review_{source_date}.md"
+    report_path = history / f"evening_review_{source_date}.json"
+    chart = history / f"market_temperature_{source_date}.png"
+    report = _read_json(report_path)
+    try:
+        with chart.open("rb") as stream:
+            chart_valid = chart.stat().st_size > 8 and stream.read(8) == b"\x89PNG\r\n\x1a\n"
+    except OSError:
+        chart_valid = False
+    try:
+        markdown_content = markdown.read_text(encoding="utf-8")
+    except OSError:
+        markdown_content = ""
+    markdown_date = bool(
+        re.search(
+            rf"^##\s+{re.escape(source_date)}(?:\s|$)",
+            markdown_content,
+            re.MULTILINE,
+        )
+    )
+    valid = all(
+        (
+            report.get("trade_date") == source_date,
+            isinstance(report.get("generated_at"), str) and bool(report["generated_at"]),
+            markdown_date,
+            chart_valid,
+        )
+    )
+    missing = tuple(
+        path
+        for path, okay in (
+            (report_path, report.get("trade_date") == source_date),
+            (markdown, markdown_date),
+            (chart, chart_valid),
+        )
+        if not okay
+    )
+    return FreshnessResult(
+        fresh=valid,
+        status="fresh" if valid else "stale",
+        target_date=source_date,
+        actual_date=str(report.get("trade_date") or "") or None,
+        detail="archived evening report and image are ready"
+        if valid
+        else "archived evening report or image is missing or mismatched",
+        evidence=(
+            str(report_path),
+            str(markdown),
+            str(chart),
+            *(f"missing:{path}" for path in missing),
+        ),
     )
 
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 import subprocess
 from datetime import UTC, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 from ops_common import recovery_actions
 from ops_common.business_freshness import BusinessTargets, FreshnessContext
@@ -12,6 +13,7 @@ from ops_common.scheduled_recovery import (
     RecoverySpec,
     _build_alert,
     _disabled_stage_statuses,
+    _stage_gate,
     reconcile,
 )
 
@@ -30,6 +32,27 @@ def test_disabling_morning_model_disables_dependent_morning_report() -> None:
         "morning_model": "disabled_by_configuration",
         "morning_report": "disabled_dependency",
     }
+
+
+def test_evening_report_recovery_validates_publication_artifacts_not_feishu_delivery() -> None:
+    spec = next(item for item in DEFAULT_SPECS if item.key == "evening_report")
+    targets = BusinessTargets(
+        signal_date="20261009",
+        signal_is_open=True,
+        previous_open_date="20261008",
+        eod_date="20261009",
+        minute_date="20261008",
+        report_data_date="20261008",
+    )
+
+    status, mode = _stage_gate(
+        spec,
+        local_now=datetime(2026, 10, 9, 19, 30, tzinfo=ZoneInfo("Asia/Shanghai")),
+        targets=targets,
+    )
+
+    assert status is None
+    assert mode == "publish_only"
 
 
 def test_failed_recovery_alert_is_retried_for_same_failure(tmp_path: Path) -> None:

@@ -374,6 +374,11 @@ def _stage_gate(
     )
     if decision.mode == "wait":
         return "waiting_delivery_window", decision.mode
+    if spec.report_kind == "evening":
+        # The scheduled evening pipeline publishes a website report and does
+        # not send a Feishu recap. Verify its dated archive artifacts here;
+        # public Pages freshness has its own watcher.
+        return None, "publish_only"
     return None, decision.mode
 
 
