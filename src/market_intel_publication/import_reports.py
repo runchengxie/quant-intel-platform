@@ -16,7 +16,12 @@ from market_intel_commentary.generate_insights import archive_once, write_json
 
 from .asia_news_contract import public_asia_projection
 from .public_paths import public_snapshot_root, safe_public_report_path
-from .sync_public_snapshot import _safe_report_path, sync_snapshot
+from .sync_public_snapshot import (
+    REPORT_SCHEMA,
+    _safe_report_path,
+    _validate_index,
+    sync_snapshot,
+)
 
 
 def parse_markdown(text: str, date: str, kind: str) -> dict:
@@ -186,11 +191,12 @@ def _apply_import(  # noqa: PLR0913 - private helper keeps the staged publicatio
 ) -> None:
     _preflight_news(root, incoming, existing)
     archive_index = archive_dir / "data/reports.json"
-    archived = (
-        {r["id"]: r for r in json.loads(archive_index.read_text(encoding="utf-8"))["reports"]}
-        if archive_index.exists()
-        else {}
-    )
+    if archive_index.exists():
+        archive_payload = json.loads(archive_index.read_text(encoding="utf-8"))
+        archive_reports = _validate_index(archive_payload, REPORT_SCHEMA, "reports")
+        archived = {row["id"]: row for row in archive_reports}
+    else:
+        archived = {}
     # Stage the entire snapshot; source parsing and validation precede public writes.
     with tempfile.TemporaryDirectory(
         prefix="market-intel-import-", dir=public_snapshot_root(root).parent

@@ -26,6 +26,14 @@ def offline_treasury(monkeypatch):
         "daily_messenger.daily_report.pipeline.fetch_cross_asset_facts",
         lambda _market_date: ([], ("BZ=F", "GC=F", "SI=F", "BTC=F")),
     )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_btc_spot_facts",
+        lambda _market_date: ([], "all_spot_sources_unavailable"),
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_equity_facts",
+        lambda _market_date, _movers: ([], ("MSFT",)),
+    )
 
 
 def test_live_report_uses_fred_observations_and_never_fixture_values(monkeypatch, tmp_path):
