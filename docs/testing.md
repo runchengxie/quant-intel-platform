@@ -19,15 +19,22 @@ uv run python project_tools/update_cli_help.py --check
 
 `check_all.py` 只检查 `market-intel` 根仓及其脚本。历史三个 submodule 已退休，各 owner 仓运行各自门禁。本仓不得再次通过相邻目录扫描替 owner 跑测试。
 
-`check_all.py` 在全量测试中采集覆盖率，并在测试通过后检查每个生产包的最低行覆盖率。当前起始门槛以本地全量测试测得的覆盖率为基准，逐包留出回归空间：
+`check_all.py` 统计 `src/` 下全部 Python 生产模块，包括未被测试导入的文件，并逐包检查最低行覆盖率。漏测文件或新增包缺少门槛时，门禁会失败。以下基线来自 2026-10-12 的锁定依赖全量合成测试，已有五个包的门槛保持不变，新增包的门槛留出少量回归空间。市场评论和发布包的覆盖率仍偏低，当前门槛只用于防止继续退化，不能视为充分验证。
 
-| 生产包 | 当前基线 | 最低门槛 |
+| 生产包 | 本次基线 | 最低门槛 |
 | --- | ---: | ---: |
 | `a_share_analysis` | 81.14% | 70% |
-| `a_share_daily` | 75.82% | 65% |
-| `daily_messenger` | 76.90% | 65% |
-| `ops_common` | 58.47% | 50% |
+| `a_share_daily` | 76.82% | 65% |
+| `daily_messenger` | 79.13% | 65% |
+| `market_intel_commentary` | 15.11% | 10% |
+| `market_intel_config` | 100.00% | 90% |
+| `market_intel_publication` | 38.33% | 35% |
+| `ops_common` | 64.27% | 50% |
+| `research_contracts` | 79.74% | 70% |
+| `style_replica_bridge` | 31.34% | 25% |
 | `tushare_jobs` | 44.51% | 35% |
+
+覆盖率数据默认保存到 `.coverage`，可通过 `COVERAGE_FILE` 指定仓库外路径，采集器和逐包门禁使用同一个文件。合成测试的临时产物应写入仓库外目录。若临时目录的祖先有 `.git` 标记，发布边界测试会拒绝写入，应通过 `TMPDIR` 选择干净目录。
 
 PR 和 `main` 推送会运行 `check_all.py --scope all --strict-tools`，并构建 Python 包、检查公开边界。完整质量结果由 GitHub Actions 提供；本地可运行同一门禁提前验证。
 
