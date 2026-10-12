@@ -62,30 +62,22 @@ PR 和 `main` 推送会运行完整本仓门禁。各 owner 仓运行各自的�
 uv run dm run
 uv run a-share-daily morning
 uv run a-share-daily doctor --live
-bash scripts/refresh_tushare_report_datasets.sh YYYYMMDD
-bash scripts/refresh_daily_watch20.sh
 ```
 
-`refresh_daily_watch20.sh` 是运维桥，不是模型 owner：它处理必要的 freshness / 分钟数据恢复后调用 `strategy-pipeline` 的公开 `strategy watchlist20 run/freshness`。DailyWatch20 的候选池、特征、训练和消融逻辑必须留在 `quant-research` / `strategy-pipeline`。
-
-定时任务安装：
-
-```bash
-export DATA_PLATFORM_ROOT=/path/to/data/market-data-platform
-export MDP_DIR=/path/to/quant-market-data-platform
-export QUANT_RESEARCH_ROOT=/path/to/quant-research
-bash scripts/setup_cron.sh --layer2
-bash scripts/setup_cron.sh --layer3
-```
-
-`setup_cron.sh` 会主动卸载本仓历史研究 timer，包括 factor-observation、DW20 ablation、hotsector standalone 和 legacy AI freshness unit。
+生产桥接脚本、恢复与 timer 安装由 `quant-intel-deploy` 维护，包括
+`scripts/refresh_tushare_report_datasets.sh`、`scripts/refresh_daily_watch20.sh`
+和 `scripts/setup_cron.sh`。这些路径属于 Deploy，不在本仓提供。部署环境显式
+提供 owner 路径，调度任务使用稳定的生产 release，不使用开发 worktree。
+DailyWatch20 运维桥调用已安装的 `daily-watch20-owner run/freshness`，报告侧只消费
+owner artifact，不维护候选池、训练或消融逻辑。
 
 ## 代码放置规则
 
 新增代码前先判断 owner：
 
 - 市场资讯抓取、报告内容、报告侧渲染、公开快照校验、飞书、投递回执、报告窗口、故障恢复 → `quant-intel-platform`
-- 日报网站 Astro 前端、公开下载、静态托管和线上新鲜度监控 → `quant-intel-pages`
+- 日报网站 Astro 前端、公开下载和静态托管 → `quant-intel-pages`
+- 生产发布、调度和公开报告新鲜度监控 → `quant-intel-deploy`
 - 市场数据权威资产 → `quant-market-data-platform`
 - 特征/模型/统计推断 → `alpha-research`
 - 回测、成本、容量、组合与历史成交模拟 → `portfolio-backtester`
@@ -138,7 +130,7 @@ QUANT_RESEARCH_ROOT=/path/to/quant-research
 
 public framework 的 lint、类型检查、离线测试和构建应优先放在本仓运行。私有部署仓库的 GitHub Actions 默认关闭，以避免消耗有限的 private-repository minutes；private 部署变更必须先通过本地 `uv sync --locked`、部署 smoke tests 和调度模板检查。只有在 production shadow/canary 或正式切换前确实需要时，才临时启用 private workflow，并在任务完成后关闭。
 
-Platform Pages workflow 只构建 MkDocs 文档与根路径日报重定向。日报 Astro 前端、公开下载和线上新鲜度监控由 `quant-intel-pages` 维护。公开 workflow 不读取模型密钥。
+Platform Pages workflow 只构建 MkDocs 文档与根路径日报重定向。日报 Astro 前端和公开下载由 `quant-intel-pages` 维护，公开报告新鲜度由 `quant-intel-deploy` 监控。公开 workflow 不读取模型密钥。
 
 ## Worktree-first 目录规范
 

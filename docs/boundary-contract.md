@@ -33,28 +33,18 @@
 仅当显式设置 `MDP_FALLBACK_ROOT` 时才追加该路径，正式接口为 `DATA_PLATFORM_ROOT`。
 这意味着未配置的新部署会明确报错，不再隐式依赖固定目录结构。
 
-### 脚本、systemd 和 Windows（本批次已完成收口）
+### 脚本和调度器
 
-- `scripts/*.sh`（morning、evening、publish、refresh_tushare_daily、weekly_recap、morning_product_supervisor、refresh_tushare_report_datasets）：移除 `MDP_DIR` 默认值，改为强制要求，并通过已安装的 `marketdata config run` 从 owner 管理的私有 `config.json` 注入凭证。
-- `scripts/refresh_daily_watch20.sh`：只通过 `QUANT_RESEARCH_ROOT` 和 `MDP_DIR` 调用公开 producer CLI。缺少 news heat 时继续运行，不在本仓重建。
-- `scripts/daily_watch20_delivery.sh`：只校验 `strategy-pipeline` 产出的 DailyWatch20 artifact，再调用本仓渲染/投递入口。
-- 原 `scripts/hotsector_research_handoff.sh`、`scripts/send_hotsector_client_preview.py` 兼容壳已于 2026-10 从 `quant-intel-deploy` 删除。当前入口直接使用 DailyWatch20 delivery commands；迁移清单中的旧路径仅作历史来源记录。
-- `scripts/windows/common.ps1`：`MDP_DIR` 默认去掉，未设则派生或报错
-- `scripts/setup_cron.sh`：安装时把
-  `DATA_PLATFORM_ROOT`/`MDP_DIR`/`QUANT_RESEARCH_ROOT` 写入权限为 `0600` 的
-  部署环境文件。systemd 通过 `EnvironmentFile=` 加载，Hermes 三个入口在边界检查前
-  source，同一部署配置覆盖两类调度器
-- 依赖跨仓路径的 systemd service（包括 DailyWatch20 producer、morning supervisor 与
-  TuShare 刷新）：统一加载上述部署环境文件。service 模板不再
-  自行持有路径默认值
+生产桥接脚本、Windows 入口和调度模板由 `quant-intel-deploy` 维护，不在本仓提供。Deploy 的 `scripts/refresh_daily_watch20.sh` 通过显式配置的 `QUANT_RESEARCH_ROOT` 调用已安装的 `daily-watch20-owner run/freshness`。市场数据恢复通过 `MDP_DIR` 下已安装的 `marketdata` CLI 执行。`installed_owner` 在启动命令前清除 `PYTHONPATH` 和 `PYTHONHOME`。报告生成和投递消费 owner 产物，不导入相邻源码。
+
+Deploy 的 provider 任务通过 `marketdata config run --config "$DATA_PLATFORM_CONFIG" -- COMMAND ARGS...` 加载 owner 管理的供应商凭据，不 source JSON，也不把 provider `.env.local` 作为权威凭据库。其他凭据 owner 保留各自配置。
 
 ### Python 源码（已完成收口）
 
 - `src/a_share_daily/deploy_check.py`、`tushare_credentials.py` 只接受显式 `MDP_DIR`
 - DailyWatch20 分钟完整性由 `src/a_share_daily/daily_watch20_raw_completeness.py` 负责。
   因子、Hermite、walk-forward、OOS 和消融实现均由 `quant-research` owner 负责。
-- `scripts/setup_cron.sh` 要求显式 `MDP_DIR` 和 `QUANT_RESEARCH_ROOT`，不再提供
-  开发机固定路径默认值。
+- 部署调度配置由 `quant-intel-deploy` 维护。
 
 仓库扫描与定点测试共同约束上述入口，不再把开发机目录结构当部署契约。
 
@@ -77,7 +67,7 @@
 - 通过 `research_contracts` 校验 ArtifactEnvelopeV2、SHA-256、文件大小与 lineage
 - 复制完整 owner 产物并写 `consumption_receipt.json`。
 
-`quant-intel-platform` 已通过安装依赖锁定 `research-contracts` 的明确 Git 提交，契约校验不再是本仓复制的一套实现。
+本分发包包含 `research_contracts` 兼容包。`pyproject.toml` 没有声明单独通过 Git 提交锁定的 `research-contracts` 依赖。
 
 同理 `src/tushare_jobs/` 中与 `quant-market-data-platform` 数据湖重复的下载任务（如 `stock_st`、`index_weight`、`listed_company` 部分字段）应逐步迁回其唯一 owner。`quant-intel-platform` 仅保留报告专用轻量快照（`lightweight_snapshot.py`）与跨市场数据。
 
