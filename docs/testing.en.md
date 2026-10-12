@@ -19,15 +19,22 @@ uv run python project_tools/update_cli_help.py --check
 
 `check_all.py` checks the `market-intel` root repository and its scripts. Three historical submodules have been retired; each owner repository runs its own checks. This repository must not scan adjacent directories to run tests on behalf of those owners.
 
-`check_all.py` collects coverage during the full test run and then checks each production package against its minimum line-coverage threshold. The current starting thresholds leave regression headroom below the measured local baselines:
+`check_all.py` measures every Python production module under `src/`, including files that tests never import, and enforces a line-coverage floor for each package. Missing source files or a new package without a configured floor fail the gate. These baselines were measured on 2026-10-12 using the complete synthetic suite and locked dependencies. The existing five floors are unchanged; added packages have modest regression headroom. Commentary and publication coverage remain low: their initial floors prevent deterioration and do not establish sufficient behavioral validation.
 
-| Production package | Current baseline | Minimum |
+| Production package | Measured baseline | Minimum |
 | --- | ---: | ---: |
 | `a_share_analysis` | 81.14% | 70% |
-| `a_share_daily` | 75.82% | 65% |
-| `daily_messenger` | 76.90% | 65% |
-| `ops_common` | 58.47% | 50% |
+| `a_share_daily` | 76.82% | 65% |
+| `daily_messenger` | 79.13% | 65% |
+| `market_intel_commentary` | 15.11% | 10% |
+| `market_intel_config` | 100.00% | 90% |
+| `market_intel_publication` | 38.33% | 35% |
+| `ops_common` | 64.27% | 50% |
+| `research_contracts` | 79.74% | 70% |
+| `style_replica_bridge` | 31.34% | 25% |
 | `tushare_jobs` | 44.51% | 35% |
+
+Coverage data defaults to `.coverage`. Set `COVERAGE_FILE` to store it outside the repository; the collector and package gate read the same file. Synthetic test outputs should also use an external temporary directory. Publication-boundary tests reject directories beneath a `.git` marker, so select a clean directory with `TMPDIR` when necessary.
 
 Pull requests and pushes to `main` run `check_all.py --scope all --strict-tools`, build the Python package, and check the public boundary. GitHub Actions provides the complete quality result; the same gate can be run locally before submission.
 

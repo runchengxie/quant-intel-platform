@@ -146,13 +146,7 @@ allowed-unresolved-imports = ["quant_market_data_platform.**"]
 
 [tool.coverage.run]
 branch = true
-source = [
-    "daily_messenger",
-    "a_share_daily",
-    "a_share_analysis",
-    "tushare_jobs",
-    "ops_common",
-]
+source = ["src"]
 
 [tool.coverage.report]
 fail_under = 10

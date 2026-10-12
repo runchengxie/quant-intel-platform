@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 import tempfile
 from collections import defaultdict
@@ -18,7 +19,12 @@ PACKAGE_MINIMUMS = {
     "a_share_analysis": 70.0,
     "a_share_daily": 65.0,
     "daily_messenger": 65.0,
+    "market_intel_commentary": 10.0,
+    "market_intel_config": 90.0,
+    "market_intel_publication": 35.0,
     "ops_common": 50.0,
+    "research_contracts": 70.0,
+    "style_replica_bridge": 25.0,
     "tushare_jobs": 35.0,
 }
 
@@ -29,7 +35,7 @@ def package_coverage_percentages(
     """Return statement-weighted line coverage for source packages."""
     counts: defaultdict[str, list[int]] = defaultdict(lambda: [0, 0])
     for filename, details in report_files.items():
-        parts = Path(filename).parts
+        parts = Path(filename.replace("\\", "/")).parts
         if len(parts) < 3 or parts[0] != "src":
             continue
         summary = details["summary"]
@@ -60,8 +66,23 @@ def package_threshold_violations(
     return violations
 
 
+def coverage_scope_violations(report_files: Mapping[str, Mapping[str, Any]]) -> list[str]:
+    measured_files = {filename.replace("\\", "/") for filename in report_files}
+    source_files = {path.relative_to(ROOT).as_posix() for path in (ROOT / "src").rglob("*.py")}
+    packages = {Path(filename).parts[1] for filename in source_files}
+    violations = [
+        f"{package}: no package coverage minimum is configured"
+        for package in sorted(packages - PACKAGE_MINIMUMS.keys())
+    ]
+    violations.extend(
+        f"{filename}: source file was not measured"
+        for filename in sorted(source_files - measured_files)
+    )
+    return violations
+
+
 def _coverage_report_files() -> Mapping[str, Mapping[str, Any]]:
-    data_file = ROOT / ".coverage"
+    data_file = Path(os.environ.get("COVERAGE_FILE", str(ROOT / ".coverage")))
     if not data_file.is_file():
         raise CoverageException("coverage data is missing; run pytest with --cov first")
 
@@ -71,12 +92,13 @@ def _coverage_report_files() -> Mapping[str, Mapping[str, Any]]:
         output = Path(temp_dir) / "coverage.json"
         coverage.json_report(outfile=str(output))
         report = json.loads(output.read_text(encoding="utf-8"))
-    return report["files"]
+    return {filename.replace("\\", "/"): details for filename, details in report["files"].items()}
 
 
 def main() -> int:
     try:
-        percentages = package_coverage_percentages(_coverage_report_files())
+        report_files = _coverage_report_files()
+        percentages = package_coverage_percentages(report_files)
     except (CoverageException, OSError, KeyError, json.JSONDecodeError) as exc:
         print(f"[FAIL] cannot read package coverage: {exc}", file=sys.stderr)
         return 1
@@ -86,7 +108,7 @@ def main() -> int:
         if actual is not None:
             print(f"[coverage] {package}: {actual:.2f}% (minimum {minimum:.1f}%)")
 
-    violations = package_threshold_violations(percentages)
+    violations = coverage_scope_violations(report_files) + package_threshold_violations(percentages)
     if violations:
         for violation in violations:
             print(f"[FAIL] {violation}", file=sys.stderr)

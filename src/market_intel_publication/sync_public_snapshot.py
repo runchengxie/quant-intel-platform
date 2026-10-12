@@ -67,6 +67,7 @@ def _merge_summaries(existing: list[dict], incoming: list[dict]) -> list[dict]:
 
 
 def _archive_reports(root: Path, archive_dir: Path, reports: list[dict]) -> None:
+    transfers = []
     for report in reports:
         source_url = report.get("source_url")
         if not source_url:
@@ -75,6 +76,8 @@ def _archive_reports(root: Path, archive_dir: Path, reports: list[dict]) -> None
         if not source.is_file():
             raise ValueError(f"report Markdown is missing: {source_url}")
         destination = _safe_report_path(archive_dir, source_url)
+        transfers.append((source, destination))
+    for source, destination in transfers:
         destination.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(source, destination)
 
@@ -92,8 +95,6 @@ def sync_snapshot(root: Path, archive_dir: Path) -> None:
     incoming_summary_index = _read_json(summary_index_path)
     incoming_reports = _validate_index(incoming_report_index, REPORT_SCHEMA, "reports")
     incoming_summaries = _validate_index(incoming_summary_index, SUMMARY_SCHEMA, "summaries")
-
-    _archive_reports(root, archive_dir, incoming_reports)
 
     archive_report_path = archive_dir / "data/reports.json"
     archive_summary_path = archive_dir / "data/daily_summaries.json"
@@ -121,6 +122,22 @@ def sync_snapshot(root: Path, archive_dir: Path) -> None:
         ):
             raise ValueError("summary source report is missing from local archive")
 
+    # Validate every source and archive destination before overwriting any file.
+    incoming_ids = {report["id"] for report in incoming_reports}
+    public_dates = set(
+        sorted({report["date"] for report in all_reports}, reverse=True)[:PUBLIC_SESSION_COUNT]
+    )
+    for report in all_reports:
+        if not report.get("source_url"):
+            raise ValueError(f"report {report.get('id')} has no source_url")
+        destination = _safe_report_path(archive_dir, report["source_url"])
+        if report["date"] in public_dates:
+            safe_public_report_path(root, report["source_url"])
+        if report["id"] not in incoming_ids and not destination.is_file():
+            raise ValueError(f"archived report Markdown is missing: {report['source_url']}")
+
+    _archive_reports(root, archive_dir, incoming_reports)
+
     archive_report_index = {
         **archived_report_index,
         **incoming_report_index,
@@ -135,12 +152,6 @@ def sync_snapshot(root: Path, archive_dir: Path) -> None:
     }
     _write_json(archive_report_path, archive_report_index)
     _write_json(archive_summary_path, archive_summary_index)
-
-    # Verify the complete archive before changing the public working tree.
-    for report in all_reports:
-        archived_markdown = _safe_report_path(archive_dir, report["source_url"])
-        if not archived_markdown.is_file():
-            raise ValueError(f"archived report Markdown is missing: {report['source_url']}")
 
     _publish_snapshot(
         root=root,
