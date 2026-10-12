@@ -6,6 +6,7 @@ import argparse
 import json
 import os
 import re
+import subprocess
 from pathlib import Path
 
 from .generate_codex_commentary import run as run_codex
@@ -22,7 +23,14 @@ def _try_codex(  # noqa: PLR0913 - private helper keeps the explicit Codex artif
     try:
         status = run_codex(reports, summaries, insights, archive, work_dir, cli)
         return {"provider": "codex", "status": status}
-    except (OSError, RuntimeError, ValueError, KeyError, TypeError) as exc:
+    except (
+        OSError,
+        RuntimeError,
+        ValueError,
+        KeyError,
+        TypeError,
+        subprocess.TimeoutExpired,
+    ) as exc:
         attempt = {"provider": "codex", "status": "unavailable", "error_type": type(exc).__name__}
         if isinstance(exc, RuntimeError):
             match = re.fullmatch(
