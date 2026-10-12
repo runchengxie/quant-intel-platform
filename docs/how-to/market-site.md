@@ -7,3 +7,5 @@
 本仓的 `market_intel_publication` 校验报告和版本化公开数据契约，再导出 Pages 可消费的快照。`quant-intel-deploy` 负责生产发布、回执和恢复。公开网站只读取已审核并标记为公开的产物。
 
 亚洲报告索引为 [reports.json](https://runchengxie.github.io/quant-intel-pages/data/reports.json)，美股日报索引为 [market_daily_report.json](https://runchengxie.github.io/quant-intel-pages/data/market_daily_report.json)。完整配置、发布状态和恢复步骤见 Deploy 仓库的[市场日报发布手册](https://github.com/runchengxie/quant-intel-deploy/blob/main/docs/market-pages-publisher.md)。
+
+`market-sync-public-snapshot --root <repository> --archive-dir <archive>` 将完整报告集保留在仓库外，并让公开快照只包含最近五个报告日期。同步前先校验已有索引、摘要引用及报告文件；这些校验失败时，不覆盖归档或公开快照。写入阶段的磁盘或进程故障不属于事务保证。
