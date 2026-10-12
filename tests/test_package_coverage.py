@@ -67,7 +67,10 @@ def test_unimported_production_modules_are_present_in_real_coverage(tmp_path: Pa
         coverage.stop()
     report = tmp_path / "report.json"
     coverage.json_report(outfile=str(report))
-    files = json.loads(report.read_text(encoding="utf-8"))["files"]
+    files = {
+        filename.replace("\\", "/"): details
+        for filename, details in json.loads(report.read_text(encoding="utf-8"))["files"].items()
+    }
     for filename in (
         "src/market_intel_publication/import_reports.py",
         "src/market_intel_commentary/generate_commentary.py",
@@ -136,3 +139,17 @@ def test_scope_gate_rejects_unmeasured_files_and_packages_without_a_floor(tmp_pa
         "src/new_package/run.py: source file was not measured",
         "src/ops_common/new.py: source file was not measured",
     ]
+
+
+def test_windows_report_paths_are_compared_as_source_files(tmp_path, monkeypatch):
+    source = tmp_path / "src/ops_common/operation.py"
+    source.parent.mkdir(parents=True)
+    source.write_text("value = 1\n", encoding="utf-8")
+    monkeypatch.setattr(package_coverage, "ROOT", tmp_path)
+    files = {r"src\ops_common\operation.py": {"summary": {"covered_lines": 1, "num_statements": 1}}}
+    assert package_coverage.coverage_scope_violations(files) == []
+
+
+def test_windows_report_paths_retain_package_coverage():
+    files = {r"src\ops_common\operation.py": {"summary": {"covered_lines": 1, "num_statements": 1}}}
+    assert package_coverage_percentages(files) == {"ops_common": 100.0}

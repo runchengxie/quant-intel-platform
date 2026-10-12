@@ -35,7 +35,7 @@ def package_coverage_percentages(
     """Return statement-weighted line coverage for source packages."""
     counts: defaultdict[str, list[int]] = defaultdict(lambda: [0, 0])
     for filename, details in report_files.items():
-        parts = Path(filename).parts
+        parts = Path(filename.replace("\\", "/")).parts
         if len(parts) < 3 or parts[0] != "src":
             continue
         summary = details["summary"]
@@ -67,6 +67,7 @@ def package_threshold_violations(
 
 
 def coverage_scope_violations(report_files: Mapping[str, Mapping[str, Any]]) -> list[str]:
+    measured_files = {filename.replace("\\", "/") for filename in report_files}
     source_files = {path.relative_to(ROOT).as_posix() for path in (ROOT / "src").rglob("*.py")}
     packages = {Path(filename).parts[1] for filename in source_files}
     violations = [
@@ -75,7 +76,7 @@ def coverage_scope_violations(report_files: Mapping[str, Mapping[str, Any]]) -> 
     ]
     violations.extend(
         f"{filename}: source file was not measured"
-        for filename in sorted(source_files - report_files.keys())
+        for filename in sorted(source_files - measured_files)
     )
     return violations
 
@@ -91,7 +92,7 @@ def _coverage_report_files() -> Mapping[str, Mapping[str, Any]]:
         output = Path(temp_dir) / "coverage.json"
         coverage.json_report(outfile=str(output))
         report = json.loads(output.read_text(encoding="utf-8"))
-    return report["files"]
+    return {filename.replace("\\", "/"): details for filename, details in report["files"].items()}
 
 
 def main() -> int:
