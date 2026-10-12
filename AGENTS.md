@@ -12,7 +12,7 @@
 
 跨仓协作只允许两类接口：
 
-- 公开 CLI，例如 `marketdata ...`、`strategy watchlist20 ...`
+- 公开 CLI，例如 `marketdata ...`、`daily-watch20-owner ...`
 - 版本化文件 artifact / receipt
 
 不得从 `quant-intel-platform` import owner 仓库的业务源码，也不得把研究实现复制回本仓。报告侧可以验证、消费和渲染 owner artifact；运维恢复可以调用 owner 的公开 CLI，但不能维护第二套模型逻辑。
