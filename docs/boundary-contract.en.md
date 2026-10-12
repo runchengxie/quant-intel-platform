@@ -24,15 +24,13 @@ Use explicit deployment environment variables and public CLIs instead of hard-co
 
 ### Scripts and service managers
 
-The following scripts no longer default `MDP_DIR` to a local path: morning/evening pipelines, publication, TuShare refresh, weekly recap, morning-product supervisor, and report-dataset refresh. They require `MDP_DIR` and consistently reference `.env.local` beneath that checkout.
+Production bridge scripts, Windows launchers, and scheduler templates belong to `quant-intel-deploy`, not this repository. Its `scripts/refresh_daily_watch20.sh` invokes the installed `daily-watch20-owner run/freshness` interface through the explicitly configured `QUANT_RESEARCH_ROOT`; market-data recovery uses the installed `marketdata` CLI at `MDP_DIR`. Its `installed_owner` helper clears `PYTHONPATH` and `PYTHONHOME` before invoking the installed executable. Report generation and delivery consume owner artifacts rather than importing sibling source trees.
 
-`scripts/refresh_daily_watch20.sh` invokes the public producer CLI using only `QUANT_RESEARCH_ROOT` and `MDP_DIR`. If news heat is missing, it continues without rebuilding it in this repository. `scripts/daily_watch20_delivery.sh` validates the DailyWatch20 artifact produced by `strategy-pipeline`, then calls local rendering/delivery entry points. The former `scripts/hotsector_research_handoff.sh` and `scripts/send_hotsector_client_preview.py` compatibility shells were removed from `quant-intel-deploy` in 2026-10. Current callers use the DailyWatch20 delivery commands directly; old paths in the migration manifest are provenance only.
-
-`scripts/windows/common.ps1` no longer supplies a default `MDP_DIR`; it derives an allowed value or fails. `scripts/setup_cron.sh` writes `DATA_PLATFORM_ROOT`, `MDP_DIR`, and `QUANT_RESEARCH_ROOT` to a deployment environment file with mode `0600`. systemd loads it using `EnvironmentFile=`; Hermes entry points source the same deployment configuration before boundary checks. Services that depend on cross-repository paths, including the DailyWatch20 producer, morning supervisor, and TuShare refresh, load this file rather than defining their own defaults.
+Provider jobs in Deploy use `marketdata config run --config "$DATA_PLATFORM_CONFIG" -- COMMAND ARGS...` to load owner-managed supplier credentials. They do not source provider JSON or use provider `.env.local` as the canonical credential store. Other credential owners retain their configuration.
 
 ### Python source
 
-`src/a_share_daily/deploy_check.py` and `tushare_credentials.py` accept only explicit `MDP_DIR`. `src/a_share_daily/daily_watch20_raw_completeness.py` owns DailyWatch20 minute-data completeness checks. Factor, Hermite, walk-forward, OOS, and ablation implementations belong to `quant-research`. `scripts/setup_cron.sh` requires explicit `MDP_DIR` and `QUANT_RESEARCH_ROOT`; it does not use developer-specific defaults.
+`src/a_share_daily/deploy_check.py` and `tushare_credentials.py` accept only explicit `MDP_DIR`. `src/a_share_daily/daily_watch20_raw_completeness.py` owns DailyWatch20 minute-data completeness checks. Factor, Hermite, walk-forward, OOS, and ablation implementations belong to `quant-research`. Deployment scheduler configuration is maintained in `quant-intel-deploy`.
 
 Repository scans and focused tests enforce these boundaries. Development-machine directory layout is not a deployment contract.
 
@@ -49,7 +47,7 @@ Responsibilities are assigned as follows:
 
 The duplicated `src/a_share_analysis/style/` package, including `data.py`, `attribution.py`, `factor_calc.py`, `factor_backtest.py`, `charts.py`, and `report.py`, was removed on 2026-07-30. It was a frozen copy of `research-workspace/src/style_factors` and had only test references; its removal did not affect production code.
 
-`src/a_share_analysis/style_analysis.py` remains as the consumer adapter. It reads `$DATA_PLATFORM_ROOT/strategy_outputs/style-factors/latest.txt`, validates `ArtifactEnvelopeV2`, SHA-256, file size, and lineage through `research_contracts`, then copies the owner artifact and writes `consumption_receipt.json`. The installed dependency pins `research-contracts` to an explicit Git commit; the validation implementation is no longer duplicated here.
+`src/a_share_analysis/style_analysis.py` remains as the consumer adapter. It reads `$DATA_PLATFORM_ROOT/strategy_outputs/style-factors/latest.txt`, validates `ArtifactEnvelopeV2`, SHA-256, file size, and lineage through `research_contracts`, then copies the owner artifact and writes `consumption_receipt.json`. The `research_contracts` compatibility package is included in this distribution; `pyproject.toml` does not declare a separate Git-pinned `research-contracts` dependency.
 
 ### `tushare_jobs` migration
 

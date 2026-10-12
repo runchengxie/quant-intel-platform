@@ -22,4 +22,4 @@ The repository gate is:
 uv run python project_tools/check_all.py --scope all
 ```
 
-It covers tests, lint, type checks, CLI help synchronization, package coverage, scripts, and public-boundary checks. CI does not fetch real market data, call Feishu, or use broker credentials.
+It covers tests, lint, type checks, CLI help synchronization, package coverage, and scripts. CI runs public-boundary checks separately. CI does not fetch real market data, call Feishu, or use broker credentials.
