@@ -106,3 +106,19 @@ def test_calendar_main_and_reference_rendering(monkeypatch, capsys):
         )
     )
     assert "美债休市" in text and "2026-10-09" in text
+
+
+def test_packaged_calendar_artifact_matches_reviewed_sessions():
+    import json
+    from importlib.resources import files
+
+    from daily_messenger.daily_report.treasury_calendar import CALENDAR_VERSION, END, START
+
+    payload = json.loads(
+        files("daily_messenger.daily_report").joinpath("data/treasury_sessions_v1.json").read_text()
+    )
+    assert payload["schema_version"] == "market_intel.treasury_calendar.v1"
+    assert payload["calendar_version"] == CALENDAR_VERSION
+    assert len(payload["expected_observations"]) == (END - START).days + 1
+    for day, expected in payload["expected_observations"].items():
+        assert expected_observation_date(date.fromisoformat(day)).isoformat() == expected
