@@ -14,7 +14,7 @@ The scoring system reads five dimensions from ETL output `raw_market.json` and c
 | `valuation` | 0.25 | Average P/E | `_inverse_ratio_score(pe, baseline=35, sensitivity=90)` |
 | `sentiment` | 0.20 | Cboe Put/Call and AAII | Z-score, `tanh` compression, then mapping to 0–100 |
 | `liquidity` | 0.15 | Average P/S | `_inverse_ratio_score(ps, baseline=8, sensitivity=70)` |
-| `event` | 0.10 | Macro events and earnings | Fixed value or event-intensity mapping |
+| `event` | 0.10 | Configured constants | Fixed constants: AI 70, Magnificent 7 68, BTC 65 |
 
 ## Scoring functions
 
@@ -93,3 +93,13 @@ When changing `config/weights.yml`:
 1. Update `version` and `changed_at`.
 2. Run `pytest -k contract` to check contract tests.
 3. Update expected values in `tests/test_scoring.py`.
+
+## Actual meanings of compatibility keys
+
+These are descriptive heuristics, not out-of-sample validated predictions.
+AI `fundamental` measures market performance; Magnificent 7 measures aggregate
+market cap. Both equity `liquidity` keys measure P/S valuation, not trading
+liquidity or fund flow. BTC uses ETF net inflow. Event scores are fixed constants
+(AI 70, Magnificent 7 68, BTC 65), not measured event intensity.
+`breakdown_detail` includes the actual metric, display label, evidence level
+and limitations. See [Agent access and score semantics](agent-market-brief.md).

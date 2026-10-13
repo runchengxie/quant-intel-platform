@@ -128,3 +128,9 @@ options:
                         internal allowlist
 ```
 <!-- cli-help:end -->
+
+## Agent 只读日报入口
+
+`quant-market-brief --input <daily_report.json> --manifest <publication.json>
+--expected-date <YYYY-MM-DD>` 校验现有公开日报并输出 JSON。新闻修订还需
+`--previous-report <immutable-parent.json>`。详见 [使用说明](agent-market-brief.md)。

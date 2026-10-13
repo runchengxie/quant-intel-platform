@@ -386,3 +386,21 @@ def test_config_update_adjusts_scores_and_actions(
     meta = json.loads((out_dir / "run_meta.json").read_text(encoding="utf-8"))
     scoring_meta = meta["steps"]["scoring"]
     assert scoring_meta["config_version"] == 2
+
+
+@pytest.mark.parametrize(
+    ("score_function", "name", "metric"),
+    [
+        (scoring._score_ai, "ai", "theme_performance"),
+        (scoring._score_magnificent7, "magnificent7", "market_cap"),
+    ],
+)
+def test_equity_score_exposes_real_metric_semantics(score_function, name, metric):
+    result = score_function({"themes": {name: {"avg_ps": 5}}}, {}, degraded=False)
+    details = result.to_dict()["breakdown_detail"]
+    assert details["fundamental"]["metric"] == metric
+    assert details["liquidity"]["metric"] == "avg_ps"
+    assert details["liquidity"]["label"] == "市销率估值"
+    assert details["event"]["metric"] == "configured_constant"
+    assert details["liquidity"]["evidence_level"] == "descriptive"
+    assert details["liquidity"]["limitations"]

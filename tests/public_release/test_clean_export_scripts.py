@@ -46,6 +46,7 @@ def test_clean_export_omits_private_process_docs_and_scheduler_assets(tmp_path: 
     assert result.returncode == 0, result.stderr
     assert (destination / "src").is_dir()
     assert (destination / "tests/public_release").is_dir()
+    assert (destination / "skills/quant-market-brief/SKILL.md").is_file()
     assert not (destination / "docs/superpowers").exists()
     assert not (destination / "scripts/systemd").exists()
     assert not (destination / "scripts/windows").exists()

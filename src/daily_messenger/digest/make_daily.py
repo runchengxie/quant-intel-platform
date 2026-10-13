@@ -27,6 +27,7 @@ from daily_messenger.common.market_news import (
     AI_NEWS_MARKET_SPECS,
     extract_news_section,
 )
+from daily_messenger.scoring.semantics import metric_semantics
 
 PACKAGE_ROOT = Path(__file__).resolve().parent
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -75,9 +76,15 @@ class ThemePayload:
                     continue
         detail_raw = data.get("breakdown_detail", {})
         if isinstance(detail_raw, Mapping):
-            detail = {str(k): dict(v) for k, v in detail_raw.items() if isinstance(v, Mapping)}
+            detail = {
+                str(k): {**dict(v), **metric_semantics(name, str(k))}
+                for k, v in detail_raw.items()
+                if isinstance(v, Mapping)
+            }
         else:
             detail = {}
+        for key in breakdown:
+            detail.setdefault(key, metric_semantics(name, key))
         meta_raw = data.get("meta")
         meta = dict(meta_raw) if isinstance(meta_raw, Mapping) else {}
         return cls(
@@ -235,7 +242,9 @@ def _build_summary_lines(
             line += f" (Δ {delta:+.1f})"
         fundamental = breakdown.get("fundamental")
         if isinstance(fundamental, (int, float)):
-            line += f"｜基本面 {fundamental:.0f}"
+            meaning = metric_semantics(str(theme.get("name", "")), "fundamental")
+            metric_label = meaning.get("label", "基本面")
+            line += f"｜{metric_label} {fundamental:.0f}"
         valuation_detail = _as_mapping(detail.get("valuation", {}))
         valuation_value = breakdown.get("valuation")
         if valuation_detail.get("fallback"):
