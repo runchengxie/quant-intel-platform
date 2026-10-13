@@ -51,8 +51,22 @@ def test_each_sqlite_connection_is_closed_after_an_intent_operation(tmp_path, mo
     assert connections and all(connection.closed for connection in connections)
     assert begin(ledger)
     assert connections and all(connection.closed for connection in connections)
+    assert ledger.outcome("one") == "unknown"
+    assert not begin(ledger)
+    assert all(connection.closed for connection in connections)
+    with pytest.raises(ValueError, match="identity"):
+        ledger.begin("one", route="hermes", target_hash="a" * 64, artifact_sha256="b" * 64)
+    assert all(connection.closed for connection in connections)
+    ledger.resolve("one", outcome="not_sent", evidence="provider verified absence")
+    assert ledger.outcome("one") == "not_sent"
+    assert all(connection.closed for connection in connections)
+    assert begin(ledger)
     ledger.acknowledge("one", message_ids=["message-1"])
     assert ledger.message_ids("one") == ["message-1"]
+    assert all(connection.closed for connection in connections)
+    with pytest.raises(ValueError, match="acknowledgement"):
+        ledger.acknowledge("one", message_ids=["duplicate"])
+    assert ledger.outcome("one") == "confirmed"
     assert all(connection.closed for connection in connections)
 
 
