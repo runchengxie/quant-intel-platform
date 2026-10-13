@@ -9,6 +9,8 @@ from datetime import date, datetime, timedelta
 
 import requests
 
+from .treasury_calendar import expected_observation_date
+
 TREASURY_URL = (
     "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/"
     "daily-treasury-rates.csv/all/{month}?_format=csv&field_tdr_date_value_month={month}"
@@ -36,23 +38,22 @@ def _rows(csv_text: str) -> dict[date, dict[str, float]]:
 
 def fetch_treasury_yield_observations(market_date: date) -> dict[str, dict[str, float]] | None:
     """Return same-day levels and prior-observation moves from one official curve fetch."""
+    prior_date = expected_observation_date(market_date - timedelta(days=1))
     try:
         response = requests.get(source_url(market_date), timeout=45)
         response.raise_for_status()
         observations = _rows(response.text)
-        if market_date.day <= 4:
-            prior_month = market_date.replace(day=1) - timedelta(days=1)
-            previous = requests.get(source_url(prior_month), timeout=45)
+        if prior_date.month != market_date.month or prior_date.year != market_date.year:
+            previous = requests.get(source_url(prior_date), timeout=45)
             previous.raise_for_status()
             observations.update(_rows(previous.text))
     except (requests.RequestException, csv.Error):
         return None
     if market_date not in observations:
         return None
-    previous_days = [day for day in observations if day < market_date]
-    if not previous_days:
+    if prior_date not in observations:
         return None
-    prior = observations[max(previous_days)]
+    prior = observations[prior_date]
     current = observations[market_date]
     return {
         tenor: {
