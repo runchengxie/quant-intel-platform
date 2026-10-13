@@ -37,7 +37,11 @@ def refresh_treasury_reference(
     ):
         raise ValueError("expected Treasury observations unavailable")
     revised_at = refreshed_at or datetime.now(UTC)
-    if revised_at.tzinfo is None or any(fact.source_time > revised_at for fact in facts):
+    if (
+        revised_at.tzinfo is None
+        or revised_at < datetime.fromisoformat(original["as_of"])
+        or any(fact.source_time > revised_at for fact in facts)
+    ):
         raise ValueError("Treasury refresh evidence after revision cutoff")
     result = copy.deepcopy(original)
     updated = [json.loads(dumps_json(fact.to_dict())) for fact in facts]
@@ -48,7 +52,14 @@ def refresh_treasury_reference(
     result["source_status"]["rates"] = status
     result["missing_sources"] = [name for name in result["missing_sources"] if name != "rates_lag"]
     result["quality_summary"]["status"] = "degraded" if result["missing_sources"] else "ok"
-    result["as_of"] = max(datetime.fromisoformat(original["as_of"]), revised_at).isoformat()
+    result["quality_summary"]["treasury_revision"] = {
+        "schema_version": "market_intel.treasury_revision.v1",
+        "parent_content_hash": original["content_hash"],
+        "original_as_of": original["as_of"],
+        "revised_at": revised_at.isoformat(),
+        "expected_observation_date": status["expected_observation_date"],
+    }
+    result["source_status"]["rates"]["reference_rechecked_at"] = revised_at.isoformat()
     result["generated_at"] = revised_at.isoformat()
     result["content_hash"] = content_digest(result)
     serialized = dumps_json(result)

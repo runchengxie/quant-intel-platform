@@ -32,7 +32,7 @@ python -m daily_messenger.daily_report.treasury_revision \
 ```
 
 The output must be new and outside source repositories. The owner preserves the
-parent bytes, non-Treasury facts, news and research, records original/revised
+parent bytes, non-Treasury facts, news and research, preserves the original general cutoff and records separate Treasury revision
 cutoffs and hashes in a private receipt, and emits a validated candidate.
 Promotion and website publication remain deployment-owned operations.
 Sources: https://www.sifma.org/resources/general/holiday-schedule and

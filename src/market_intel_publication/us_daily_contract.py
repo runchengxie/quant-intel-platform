@@ -641,7 +641,7 @@ def _public_payload(payload: dict[str, Any], manifest: dict[str, Any]) -> dict[s
         ],
         "quality_summary": _select(
             payload.get("quality_summary", {}),
-            ("status", "revision", "reviewed_source_cutoff"),
+            ("status", "revision", "reviewed_source_cutoff", "treasury_revision"),
         ),
         "source_status": {
             key: _select(
@@ -656,6 +656,7 @@ def _public_payload(payload: dict[str, Any], manifest: dict[str, Any]) -> dict[s
                     "observation_date",
                     "calendar_version",
                     "calendar_source",
+                    "reference_rechecked_at",
                 )
                 if key == "rates"
                 else ("quality", "reason"),

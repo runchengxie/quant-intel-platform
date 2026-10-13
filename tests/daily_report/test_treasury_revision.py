@@ -143,3 +143,19 @@ def test_revision_module_cli_stages_without_promoting(tmp_path, monkeypatch, cap
     main()
     assert Path(capsys.readouterr().out.strip()) == output / "daily_report.json"
     assert (output / "treasury_refresh_parent.json").read_bytes() == source.read_bytes()
+
+
+def test_reference_refresh_preserves_general_cutoff_after_ny_midnight(tmp_path, monkeypatch):
+    source, manifest, original = parent(tmp_path)
+    mock_rates(monkeypatch)
+    revised_at = datetime(2026, 10, 13, 12, tzinfo=UTC)
+    result = refresh_treasury_reference(
+        source, manifest, tmp_path / "late-stage", refreshed_at=revised_at
+    )
+    payload = json.loads(result.read_text())
+    assert payload["as_of"] == original["as_of"]
+    assert payload["quality_summary"]["treasury_revision"]["revised_at"] == revised_at.isoformat()
+    assert (
+        payload["quality_summary"]["treasury_revision"]["parent_content_hash"]
+        == original["content_hash"]
+    )
