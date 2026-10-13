@@ -1,4 +1,5 @@
 import importlib
+import sqlite3
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
@@ -24,6 +25,49 @@ def test_crash_after_send_blocks_retry_and_explicit_resolution(tmp_path):
     ledger.acknowledge("one", message_ids=["synthetic-id"])
     assert ledger.outcome("one") == "confirmed"
     assert not begin(ledger)
+
+
+def test_each_sqlite_connection_is_closed_after_an_intent_operation(tmp_path, monkeypatch):
+    module = importlib.import_module("a_share_daily.delivery.intents")
+    original_connect = sqlite3.connect
+    connections = []
+
+    class TrackedConnection(sqlite3.Connection):
+        closed = False
+
+        def close(self):
+            self.closed = True
+            super().close()
+
+    def connect(*args, **kwargs):
+        kwargs["factory"] = TrackedConnection
+        connection = original_connect(*args, **kwargs)
+        connections.append(connection)
+        return connection
+
+    monkeypatch.setattr(module.sqlite3, "connect", connect)
+
+    ledger = module.DeliveryIntentStore(tmp_path)
+    assert connections and all(connection.closed for connection in connections)
+    assert begin(ledger)
+    assert connections and all(connection.closed for connection in connections)
+    assert ledger.outcome("one") == "unknown"
+    assert not begin(ledger)
+    assert all(connection.closed for connection in connections)
+    with pytest.raises(ValueError, match="identity"):
+        ledger.begin("one", route="hermes", target_hash="a" * 64, artifact_sha256="b" * 64)
+    assert all(connection.closed for connection in connections)
+    ledger.resolve("one", outcome="not_sent", evidence="provider verified absence")
+    assert ledger.outcome("one") == "not_sent"
+    assert all(connection.closed for connection in connections)
+    assert begin(ledger)
+    ledger.acknowledge("one", message_ids=["message-1"])
+    assert ledger.message_ids("one") == ["message-1"]
+    assert all(connection.closed for connection in connections)
+    with pytest.raises(ValueError, match="acknowledgement"):
+        ledger.acknowledge("one", message_ids=["duplicate"])
+    assert ledger.outcome("one") == "confirmed"
+    assert all(connection.closed for connection in connections)
 
 
 def test_concurrent_exact_retry_only_one_sender_and_conflict_rejected(tmp_path):

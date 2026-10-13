@@ -5,7 +5,8 @@ from __future__ import annotations
 import json
 import re
 import sqlite3
-from collections.abc import Sequence
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -15,7 +16,7 @@ class DeliveryIntentStore:
         root = Path(root)
         root.mkdir(parents=True, exist_ok=True)
         self.database = root / "delivery-intents.sqlite"
-        with self._connect() as connection:
+        with self._transaction() as connection:
             connection.execute(
                 "CREATE TABLE IF NOT EXISTS intents "
                 "(key TEXT PRIMARY KEY, identity TEXT NOT NULL, state TEXT NOT NULL, "
@@ -29,6 +30,15 @@ class DeliveryIntentStore:
 
     def _connect(self):
         return sqlite3.connect(self.database, timeout=30)
+
+    @contextmanager
+    def _transaction(self) -> Iterator[sqlite3.Connection]:
+        connection = self._connect()
+        try:
+            with connection:
+                yield connection
+        finally:
+            connection.close()
 
     @staticmethod
     def _event(connection, key, state, evidence=None):
@@ -47,7 +57,7 @@ class DeliveryIntentStore:
         ):
             raise ValueError("invalid intent identity")
         identity = json.dumps([route, target_hash, artifact_sha256])
-        with self._connect() as connection:
+        with self._transaction() as connection:
             connection.execute("BEGIN IMMEDIATE")
             existing = connection.execute(
                 "SELECT identity,state FROM intents WHERE key=?", (key,)
@@ -68,7 +78,7 @@ class DeliveryIntentStore:
     def acknowledge(self, key: str, *, message_ids: Sequence[str]) -> None:
         if isinstance(message_ids, str) or any(not isinstance(value, str) for value in message_ids):
             raise ValueError("invalid message IDs")
-        with self._connect() as connection:
+        with self._transaction() as connection:
             connection.execute("BEGIN IMMEDIATE")
             changed = connection.execute(
                 "UPDATE intents SET state=?,message_ids=? WHERE key=? AND state=?",
@@ -82,7 +92,7 @@ class DeliveryIntentStore:
         if outcome not in {"sent", "not_sent"} or not evidence.strip():
             raise ValueError("resolution requires outcome and evidence")
         state = "confirmed" if outcome == "sent" else "not_sent"
-        with self._connect() as connection:
+        with self._transaction() as connection:
             connection.execute("BEGIN IMMEDIATE")
             row = connection.execute(
                 "SELECT state,evidence FROM intents WHERE key=?", (key,)
@@ -99,12 +109,12 @@ class DeliveryIntentStore:
             self._event(connection, key, state, evidence)
 
     def outcome(self, key: str) -> str:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute("SELECT state FROM intents WHERE key=?", (key,)).fetchone()
         return "missing" if row is None else "unknown" if row[0] == "sending" else row[0]
 
     def message_ids(self, key: str) -> list[str]:
-        with self._connect() as connection:
+        with self._transaction() as connection:
             row = connection.execute(
                 "SELECT message_ids FROM intents WHERE key=?", (key,)
             ).fetchone()
