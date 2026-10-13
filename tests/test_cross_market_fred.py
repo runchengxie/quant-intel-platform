@@ -8,6 +8,10 @@
 
 from __future__ import annotations
 
+import sys
+from types import SimpleNamespace
+
+import pandas as pd
 import pytest
 
 from a_share_daily import cross_market
@@ -91,11 +95,32 @@ def test_fred_csv_raises_when_fewer_than_two(fake_fetcher: _FakeFredFetcher) -> 
 # ── 端点函数测试（默认 FredAdapter 路径，monkeypatch 隔离网络）──
 
 
-def test_fetch_macros_contains_fred_source(patched_fred: None) -> None:
+def test_fetch_macros_contains_fred_source(patched_fred: None, monkeypatch) -> None:
+    calls = []
+
+    def fake_get(url, *, timeout):
+        calls.append(url)
+        return SimpleNamespace(
+            raise_for_status=lambda: None,
+            text="DATE,CLOSE,VVIX\n06/29/2026,17.5,17.5\n06/30/2026,18.2,18.2\n",
+        )
+
+    def fake_download(symbols, **kwargs):
+        assert symbols == cross_market._DXY_SYMBOLS
+        assert kwargs == {"period": "5d", "progress": False, "auto_adjust": False}
+        return pd.DataFrame({("Close", "DX-Y.NYB"): [100.0, 102.0]})
+
+    monkeypatch.setattr(cross_market.requests, "get", fake_get)
+    monkeypatch.setitem(sys.modules, "yfinance", SimpleNamespace(download=fake_download))
     macros = cross_market._fetch_macros()
     # ^TNX (DGS10) 仅走 FRED 路径，应含 source: "fred"
     assert "^TNX" in macros
     assert macros["^TNX"]["source"] == "fred"
+    assert len(calls) == 2
+    assert macros["^VIX"]["source"] == "cboe_history"
+    assert macros["^VVIX"]["close"] == 18.2
+    assert macros["DX-Y.NYB"]["close"] == 102.0
+    assert macros["DX-Y.NYB"]["pct_chg"] == 2.0
     # 整体结构应完整返回（FRED/CBOE/yfinance 各分支均不崩）
     for sym in ("^VIX", "^VVIX", "^TNX", "DX-Y.NYB"):
         assert sym in macros
