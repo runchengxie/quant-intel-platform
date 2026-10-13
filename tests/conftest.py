@@ -130,6 +130,10 @@ class PipelineRunner:
 
 @pytest.fixture
 def pipeline_runner(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> PipelineRunner:
+    # Synthetic pipeline tests must not import machine-local credentials and
+    # delivery settings from the repository's .env files into pytest's process.
+    monkeypatch.setattr(cli, "_load_runtime_env_files", lambda: None)
+
     out_dir = tmp_path / "out"
     state_dir = tmp_path / "state"
 

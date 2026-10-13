@@ -1,4 +1,5 @@
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -51,3 +52,13 @@ def test_cli_pipeline_run_respects_custom_date(pipeline_runner) -> None:
     summary_text = (out_dir / "digest_summary.txt").read_text(encoding="utf-8")
     assert target_date in (out_dir / f"{target_date}.html").read_text(encoding="utf-8")
     assert summary_text.strip(), "digest summary should not be empty"
+
+
+def test_synthetic_pipeline_does_not_override_process_delivery_settings(
+    pipeline_runner, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("MORNING_SEND_WEBHOOK", "1")
+
+    pipeline_runner.run()
+
+    assert os.environ["MORNING_SEND_WEBHOOK"] == "1"
