@@ -6,8 +6,8 @@ This page supplements [Data ownership](data-ownership.en.md) and [Artifact contr
 
 ## General rules
 
-- `quant-intel-platform`, `quant-research`, `quant-platform`, and `market-data-platform` are independent systems with different responsibilities. Research prioritizes version locking, reproducibility, and auditability; intelligence prioritizes daily scheduling, live retrieval, and delivery timeliness.
-- Do not import another repository's business source code. Cross-repository communication uses public installed commands such as `marketdata ...`, `strategy ...`, `marketops ...`, and `aipick ...`, or versioned file artifacts such as `watchlist_20`, `selection_receipt`, `signals.parquet`, and `news_heat` (see `contracts.md`).
+- `quant-intel-platform`, `quant-research`, `quant-platform`, and `quant-market-data-platform` are independent systems with different responsibilities. Research prioritizes version locking, reproducibility, and auditability; intelligence prioritizes daily scheduling, live retrieval, and delivery timeliness.
+- Do not import another repository's business source code. Cross-repository communication uses public installed commands such as `marketdata ...`, `strategy ...`, `daily-watch20-owner ...`, and `marketops ...`, or versioned file artifacts such as `watchlist_20`, `selection_receipt`, `signals.parquet`, and `news_heat` (see `contracts.md`). Retired AI-selection products do not become production defaults through a legacy CLI or artifact name.
 - Repository paths are not APIs. Scripts and modules must not depend on another checkout's fixed directory layout, including paths tied to one developer's machine.
 
 ## Path-coupling rules
@@ -38,10 +38,13 @@ Repository scans and focused tests enforce these boundaries. Development-machine
 
 Responsibilities are assigned as follows:
 
-- Factor definitions and calculations: `alpha-research`.
-- Backtesting and attribution: `portfolio-backtester`.
-- Strategy execution and artifact publication: `strategy-pipeline`.
+- Private factor definitions and strategy calculations: `quant-research`.
+- Reusable backtesting, execution simulation, and attribution: `quant-platform`.
+- Generic backtest job state, workers, and result publication: `quant-backtest-runtime`.
+- Strategy orchestration and artifact publication: `quant-research`.
 - Report rendering and Feishu delivery: `quant-intel-platform`.
+
+The old repository names describe migration history. Existing Python namespaces, CLI names, configuration keys, and artifact identifiers remain compatible interfaces, not independent current owners.
 
 ### Style-analysis migration
 
@@ -61,3 +64,16 @@ Overlapping downloads were reduced to compatibility exporters:
 On 2026-07-30, MDP completed the equivalent retrieval capability for `stock_st`, `index_weight`, `index_weight_daily`, `stock_company`, `stk_managers`, and `share_float`, including `DatasetSpec`, download, `drift_weight` expansion, publication, CLI registration, registry, and asset paths. MDP is the authoritative owner. `quant-intel-platform` consumes `<DATA_PLATFORM_ROOT>/assets/tushare/a_share/<dataset>/a_share_all_<dataset>_latest.parquet` and the matching `.receipt.json`.
 
 These consumers use fail-closed validation. Missing assets/receipts, schema mismatch, SHA-256 mismatch, row-count mismatch, or a missing requested slice cause an explicit failure; they do not fall back to direct TuShare retrieval. `force_full_refresh` also directs operators to MDP's public CLI. Consistency scripts may audit historical compatibility files but no longer control fallback behavior.
+
+## Owner JSON configuration
+
+Provider jobs launch through the installed, merged owner CLI:
+`marketdata config run --config "$DATA_PLATFORM_CONFIG" -- COMMAND ARGS...`.
+The selected versioned private JSON follows the data owner's contract. Version 1
+can hold supplier credentials directly; version 2 references the owner-managed
+credential registry and a separate job JSON. This consumer neither imports the
+owner's loader nor parses supplier JSON. Doctor helpers inspect selected-file
+metadata and inherited credential status only. With JSON selected, legacy
+provider env files and provider entries in project env files are excluded;
+other credential owners retain their configuration. Use the pinned owner's
+`config check` for JSON validation and run doctor through `config run`.

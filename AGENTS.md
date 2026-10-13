@@ -79,12 +79,15 @@ owner artifact，不维护候选池、训练或消融逻辑。
 - 日报网站 Astro 前端、公开下载和静态托管 → `quant-intel-pages`
 - 生产发布、调度和公开报告新鲜度监控 → `quant-intel-deploy`
 - 市场数据权威资产 → `quant-market-data-platform`
-- 特征/模型/统计推断 → `alpha-research`
-- 回测、成本、容量、组合与历史成交模拟 → `portfolio-backtester`
-- 策略专用纯计算与冻结研究合同 → `strategy-app`
-- 策略运行、发布门禁、原子 artifact 发布 → `strategy-pipeline`
-- 策略身份、生命周期、研究规格和证据导航 → `strategy-research`
-- 实盘/模拟执行与券商审计 → `quant-execution-engine`
+- 策略专属特征、模型、统计推断、冻结合同 → `quant-research`
+- 通用回测、成本、容量、组合与历史成交模拟 → `quant-platform`
+- 通用回测任务状态、worker 和结果发布 → `quant-backtest-runtime`
+- 策略运行、发布门禁、原子 artifact 发布 → `quant-research` 的编排层
+- 策略身份、生命周期、研究规格和证据导航 → `quant-research`
+- 券商适配与执行审计 → `quant-research` 的执行层
+
+`alpha_research`、`portfolio_backtester`、`strategy_app`、`strategy_pipeline`、
+`strategy_research` 和 `quant_execution_engine` 等兼容命名空间不因此改名。
 
 当 quant-intel-platform 需要研究侧能力时，优先补 owner API/CLI 或 artifact 契约。不要以“暂时方便”为理由在本仓再实现一次。
 
@@ -108,7 +111,7 @@ owner artifact，不维护候选池、训练或消融逻辑。
 - 每个任务在自己的 worktree 中完成修改和相关验证，再提交、推送任务分支并创建目标为 `main` 的 PR。完成 review、必需检查和冲突处理后再合并。
 - 确认 PR 已合并且 worktree 没有唯一未保存内容后，只清理本任务资源。先移除 worktree，再删除本地分支；核实远端分支归属后再删除。未合并或状态不明时保留现场并报告。
 - Commit 聚焦单一目的，标题尽量控制在 72 字符以内。
-- 跨仓 owner 变更按 provider → consumer → superproject gitlink 的顺序合并；不得让 quant-intel-platform 临时依赖未合并的本地源码路径。
+- 跨仓 owner 变更按 provider → consumer 的顺序合并；只有消费者实际登记了 submodule 时才更新 gitlink。本仓当前没有 submodule，不得临时依赖未合并的本地源码路径。
 - 涉及报告版面、卡片或权重时附代表性产物；涉及契约时同步文档和 contract tests。
 - 无法真实执行本地门禁时，PR 必须保持 Draft，并明确列出未验证项，禁止写“tests passed”之类的祈祷式声明。
 

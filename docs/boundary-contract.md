@@ -11,8 +11,9 @@
 - `quant-intel-platform` 与 `quant-research`、`quant-platform`、`quant-market-data-platform` 是职责不同的独立系统：
   研究侧强调版本锁定、复现与审计，情报侧强调每日调度、联网抓取、投递时效。
 - 双方不直接 import 对方业务源码。跨仓协作只通过：
-  - 已安装的公开命令（`marketdata ...`、`strategy ...`、`marketops ...`、`aipick ...`）
+  - 已安装的公开命令（`marketdata ...`、`strategy ...`、`daily-watch20-owner ...`、`marketops ...`）
   - 版本化文件产物（`watchlist_20`、`selection_receipt`、`signals.parquet`、`news_heat` 等，见 `contracts.md`）。
+- 已退役的 AI 精选产品不能通过旧 CLI 或 artifact 名称重新成为生产默认。
 - 仓库路径不当作接口。任何脚本、模块都不得以相邻仓库的固定目录布局（如
   任意开发机固定路径）作为功能依赖。
 
@@ -52,10 +53,13 @@ Deploy 的 provider 任务通过 `marketdata config run --config "$DATA_PLATFORM
 
 `src/a_share_analysis/style/` 曾与 `research-workspace/src/style_factors/` 同源重复（因子计算、回测、OLS 归因、图表、报告）。按评估报告职责划分：
 
-- 因子定义与计算 → `alpha-research`
-- 回测与归因 → `portfolio-backtester`
-- 运行与产物发布 → `strategy-pipeline`
+- 私有因子定义与策略计算 → `quant-research`
+- 通用回测、执行模拟与归因 → `quant-platform`
+- 通用回测任务状态、worker 和结果发布 → `quant-backtest-runtime`
+- 策略编排与产物发布 → `quant-research`
 - 报告渲染与飞书投递 → `quant-intel-platform`
+
+旧仓库名称只描述迁移历史。既有 Python 命名空间、CLI 名称、配置键和 artifact 标识仍是兼容接口，不是当前独立 owner。
 
 ### style 重复实现收口状态
 
@@ -97,13 +101,8 @@ SHA-256 不匹配、行数不符或请求切片不存在时明确失败，不会
 是否回退。
 
 
-## Owner JSON configuration
+## Owner JSON 配置
 
-Provider jobs launch through the installed merged data owner CLI:
-`marketdata config run --config "$DATA_PLATFORM_CONFIG" -- COMMAND ARGS...`.
-The selected private schema-v1 JSON owns supplier credentials. This consumer
-never imports the owner's loader or parses the supplier JSON. Doctor helpers
-check selected-file metadata and inherited credential status only. With JSON
-selected, legacy provider env files and provider entries in project env files
-are excluded; other credential owners retain their configuration. Use owner
-`config check` to validate JSON content and run doctor through `config run`.
+供应商任务通过已合并、已安装的 owner CLI 启动：
+`marketdata config run --config "$DATA_PLATFORM_CONFIG" -- COMMAND ARGS...`。
+所选私有 JSON 按数据 owner 的版本化契约配置。版本 1 可以直接保存供应商凭据，版本 2 引用 owner 管理的凭据库和独立任务 JSON。消费者不导入 owner loader，也不解析供应商 JSON。doctor 只检查所选文件的元数据和继承的凭据状态。选择 JSON 后，排除旧 provider env 文件和项目 env 中的 provider 条目；其他凭据 owner 的配置仍保留。JSON 内容由固定版本 owner 的 `config check` 验证，doctor 应通过 `config run` 启动。

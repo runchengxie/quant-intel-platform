@@ -82,9 +82,10 @@ def _check_shell_scripts(strict_tools: bool) -> int:
     _print_header("shell scripts")
     if shutil.which("bash") is None:
         return 1 if strict_tools else 0
-    code = _run(("bash", "-n", *shell_files))
-    if code != 0:
-        return code
+    for file_path in shell_files:
+        code = _run(("bash", "-n", file_path))
+        if code != 0:
+            return code
     code = _run_if_available("shellcheck", ("shellcheck", *shell_files), strict=strict_tools)
     if code != 0:
         return code

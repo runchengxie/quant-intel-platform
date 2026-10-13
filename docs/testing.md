@@ -34,7 +34,7 @@ uv run python project_tools/update_cli_help.py --check
 | `style_replica_bridge` | 31.34% | 25% |
 | `tushare_jobs` | 44.51% | 35% |
 
-覆盖率数据默认保存到 `.coverage`，可通过 `COVERAGE_FILE` 指定仓库外路径，采集器和逐包门禁使用同一个文件。合成测试的临时产物应写入仓库外目录。若临时目录的祖先有 `.git` 标记，发布边界测试会拒绝写入，应通过 `TMPDIR` 选择干净目录。
+覆盖率数据默认保存到 `.coverage`，可通过 `COVERAGE_FILE` 指定仓库外路径，采集器和逐包门禁使用同一个文件。合成测试的临时产物应写入仓库外目录。发布边界测试拒绝写入 owner checkout 或其他源码仓库。默认临时目录受其他 `.git` 标记影响时，通过 `TMPDIR` 或 pytest 的 `--basetemp` 选择新的外部测试目录，不移除标记或关闭安全 guard。`--basetemp` 会清理指定目录，因此不能指向已有数据、源码或生产目录。
 
 PR 和 `main` 推送会运行 `check_all.py --scope all --strict-tools`，并构建 Python 包、检查公开边界。完整质量结果由 GitHub Actions 提供；本地可运行同一门禁提前验证。
 
@@ -43,16 +43,16 @@ PR 和 `main` 推送会运行 `check_all.py --scope all --strict-tools`，并构
 
 ```bash
 uv run python project_tools/cleanup_merged_branches.py \
-  --repo runchengxie/market-intel \
+  --repo runchengxie/quant-intel-platform \
   --branch fix/example \
   --dry-run
 uv run python project_tools/cleanup_merged_branches.py \
-  --repo runchengxie/market-intel \
+  --repo runchengxie/quant-intel-platform \
   --branch fix/example \
   --yes
 ```
 
-GitHub Actions 在 PR 和 `main` 推送时运行完整代码质量门禁，不访问真实市场数据、不调用飞书或券商。生产数据访问和部署验证仍须按对应手册单独执行。纯数据工作流不受该策略影响。
+GitHub Actions 在 PR 和 `main` 推送时运行完整代码质量门禁，不访问真实市场数据、不调用飞书或券商。生产数据访问和部署验证仍须按对应手册单独执行。生产数据调度由 Deploy 管理，不属于本仓质量门禁。
 
 ## 负责方边界测试
 
@@ -64,44 +64,15 @@ GitHub Actions 在 PR 和 `main` 推送时运行完整代码质量门禁，不�
 - 报告渲染、图表、看板与受众隔离
 - 飞书幂等、投递回执和失败恢复
 - 调度与恢复逻辑不会安装或修复研究侧定时器
-- `refresh_daily_watch20.sh` 只通过 `strategy-pipeline` 公开 CLI 恢复正式 artifact。
+- Deploy 的 `refresh_daily_watch20.sh` 只通过已安装的 `daily-watch20-owner` CLI 恢复正式 artifact，其脚本测试由 Deploy 维护。
 
 分钟因子研究、Hermite、滚动训练、OOS、消融、AI 排名和影子运行等算法测试归 `quant-research` 负责，market-intel 不保留重复测试。
 
-## Linux/Hermes 运维测试
+## 部署与调度验证
 
-Gateway 守护与 systemd 模板使用 fake `systemctl` 或静态 shell 校验，禁止为了测试主动停止生产 Gateway：
+Hermes、systemd 和 Windows Task Scheduler 的脚本、模板及主机 smoke 流程由私有 `quant-intel-deploy` 维护。`ensure_hermes_gateway.sh`、`setup_cron.sh` 和 `scripts/windows/test_scheduled_tasks.ps1` 不在本仓，不能作为本仓测试命令执行。
 
-```bash
-uv run pytest tests/test_hermes_gateway_preflight.py
-bash -n scripts/ensure_hermes_gateway.sh scripts/setup_cron.sh
-```
-
-部署后只做只读检查：
-
-```bash
-systemctl --user status hermes-gateway.service
-systemctl --user status hermes-gateway-preflight.timer
-systemctl --user list-timers --all
-journalctl --user -u hermes-gateway-preflight.service --since today
-```
-
-生产调度器、主机安装和历史研究专用单元清理属于私有 deploy 仓库。本仓测试只验证公开 CLI、契约和离线测试样例。
-
-## Windows 调度冒烟
-
-不要通过修改主机系统时间测试 Task Scheduler。使用隔离的一次性任务：
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\windows\test_scheduled_tasks.ps1 `
-  -Kind morning `
-  -DelayMinutes 2 `
-  -Delivery none `
-  -SkipAiNews `
-  -SkipPremiumRefresh
-```
-
-默认不发送真实消息，产物写入隔离目录。测试真实投递必须显式启用发送并使用临时专用目标。
+本仓只验证公开 CLI、artifact 契约和离线样例。主机状态检查、一次性调度任务和真实投递验证按 Deploy 的 runbook 与独立授权执行，不改变主机时钟，不停止生产服务作为测试手段。
 
 ## 核心测试分类
 
