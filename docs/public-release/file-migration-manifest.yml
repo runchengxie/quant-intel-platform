@@ -20,6 +20,10 @@ files:
     classification: public
     action: retain
     reason: framework runtime, contracts, rendering, validation, and generic delivery code
+  - path: skills/quant-market-brief/
+    classification: public
+    action: retain
+    reason: distributable read-only Agent instructions for verified public daily reports
   - path: schemas/public/
     classification: public
     action: retain
