@@ -41,3 +41,10 @@ uv run a-share-daily --help
 ```
 
 This summary does not replace CLI help. Keep optional dependency boundaries intact: XGBoost, TuShare, DolphinDB, and Optuna should report a clear missing-extra error rather than silently changing behavior.
+
+## Read-only Agent brief
+
+`quant-market-brief --input <daily_report.json> --manifest <publication.json>
+--expected-date <YYYY-MM-DD>` emits verified public report evidence as JSON.
+For news revisions also pass `--previous-report <immutable-parent.json>`.
+See [Agent report access](agent-market-brief.md) for validation and limits.

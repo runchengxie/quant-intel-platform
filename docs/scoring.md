@@ -10,11 +10,13 @@
 
 | 维度 | 权重（默认） | 数据来源 | 计算方法 |
 |------|-------------|----------|----------|
-| fundamental（基本面） | 0.30 | 主题行情表现 | `_scale(perf, midpoint=1.0, sensitivity=40)` |
+| fundamental（主题表现） | 0.30 | 主题行情表现 | `_scale(perf, midpoint=1.0, sensitivity=40)` |
 | valuation（估值） | 0.25 | 平均市盈率（PE） | `_inverse_ratio_score(pe, baseline=35, sensitivity=90)` |
 | sentiment（情绪） | 0.20 | Cboe Put/Call + AAII | Z-score → tanh 压缩 → 0–100 映射 |
-| liquidity（资金） | 0.15 | 平均 PS | `_inverse_ratio_score(ps, baseline=8, sensitivity=70)` |
-| event（事件） | 0.10 | 宏观事件/财报 | 固定值或事件强度映射 |
+| liquidity（市销率估值） | 0.15 | 平均 PS | `_inverse_ratio_score(ps, baseline=8, sensitivity=70)` |
+| event（配置常数） | 0.10 | 配置 | AI 固定 70，七巨头固定 68，BTC 固定 65 |
+
+这些字段名是兼容键。AI 的 `fundamental` 使用行情表现，七巨头使用总市值；两者的 `liquidity` 均使用 P/S，不能解释成财务质量或交易流动性。BTC 资金项为 ETF 净流入。各项真实指标、显示名称和局限随 `breakdown_detail` 输出。所有分数均为描述性启发式评分，未经样本外预测验证。详见 [Agent 入口与评分语义](agent-market-brief.md)。
 
 ## 评分函数
 

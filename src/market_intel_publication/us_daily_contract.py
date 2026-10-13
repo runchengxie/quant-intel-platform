@@ -522,10 +522,21 @@ def _valid_sourced_fact_date(  # noqa: PLR0911 - preserve audited validation bra
     return _valid_rate_and_asset_pairs(facts_by_id)
 
 
-def _read(path: Path) -> dict[str, Any]:
-    payload = json.loads(path.read_text(encoding="utf-8"))
+def _validate_report_shapes(payload: dict[str, Any]) -> None:
+    for key in ("quality_summary", "source_status"):
+        if not isinstance(payload.get(key, {}), dict):
+            raise ValueError(f"daily report {key} must be an object")
+    for key in ("facts", "events", "claims", "sections"):
+        rows = payload.get(key, [])
+        if not isinstance(rows, list) or any(not isinstance(row, dict) for row in rows):
+            raise ValueError(f"daily report {key} must contain objects")
+
+
+def _read(path: Path, *, content: bytes | None = None) -> dict[str, Any]:
+    payload = json.loads(content if content is not None else path.read_bytes())
     if not isinstance(payload, dict):
         raise ValueError("daily report must be an object")
+    _validate_report_shapes(payload)
     missing = sorted(REQUIRED_FIELDS.difference(payload))
     if missing:
         raise ValueError(f"daily report missing fields: {', '.join(missing)}")
@@ -571,15 +582,18 @@ def _validate_schema_evidence(payload: dict[str, Any]) -> None:
         raise ValueError("publication/revision metadata requires schema 1.1")
 
 
-def _public_manifest(source: Path, manifest_path: Path) -> dict[str, Any]:
+def _public_manifest(
+    source: Path, manifest_path: Path, *, report_bytes: bytes | None = None
+) -> dict[str, Any]:
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    payload = json.loads(source.read_text(encoding="utf-8"))
+    content = report_bytes if report_bytes is not None else source.read_bytes()
+    payload = json.loads(content)
     if (
         not isinstance(manifest, dict)
         or manifest.get("schema_version") != "1.0"
         or manifest.get("publication") != "public"
         or manifest.get("report_file") != "daily_report.json"
-        or manifest.get("report_sha256") != hashlib.sha256(source.read_bytes()).hexdigest()
+        or manifest.get("report_sha256") != hashlib.sha256(content).hexdigest()
         or manifest.get("run_id") != payload.get("run_id")
         or manifest.get("content_hash") != payload.get("content_hash")
     ):

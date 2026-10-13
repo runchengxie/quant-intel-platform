@@ -20,6 +20,7 @@ import yaml
 from daily_messenger.common import run_meta
 from daily_messenger.common.logging import log, setup_logger
 from daily_messenger.scoring.adaptors import sentiment as sentiment_adaptor
+from daily_messenger.scoring.semantics import metric_semantics
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
 OUT_DIR = PROJECT_ROOT / "out"
@@ -62,7 +63,7 @@ class ThemeScore:
         for key, detail in self.breakdown_detail.items():
             if not isinstance(detail, dict):
                 continue
-            item = {**detail}
+            item = {**detail, **metric_semantics(self.name, key)}
             value = item.get("value")
             if isinstance(value, (int, float)):
                 item["value"] = round(float(value), 2)

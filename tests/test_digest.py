@@ -256,3 +256,13 @@ def test_run_writes_market_news_from_ai_updates(
     assert "AI 市场资讯（GLM）" in html_report
     assert "美股 · 2024-04-05" in html_report
     assert "A 股要点" in html_report
+
+
+def test_equity_summary_uses_metric_label_for_legacy_scores():
+    lines = digest._build_summary_lines(
+        [{"name": "ai", "label": "AI", "total": 50, "breakdown": {"fundamental": 60}}],
+        [],
+        False,
+    )
+    assert "主题表现 60" in lines[0]
+    assert "基本面" not in lines[0]

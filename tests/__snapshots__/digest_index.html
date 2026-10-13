@@ -43,10 +43,10 @@
         <tr>
           <th>主题</th>
           <th>总分</th>
-          <th>基本面</th>
+          <th>表现 / 规模 / 常数</th>
           <th>估值</th>
           <th>情绪</th>
-          <th>资金</th>
+          <th>市销率 / 资金流</th>
           <th>事件</th>
         </tr>
       </thead>
@@ -83,6 +83,7 @@
             
             <td>
               <div class="score-main">78.0</div>
+              <div class="source-note">主题表现</div>
               
               
             </td>
@@ -91,6 +92,7 @@
             
             <td>
               <div class="score-main">65.0</div>
+              <div class="source-note">市盈率估值</div>
               
               
             </td>
@@ -99,6 +101,7 @@
             
             <td>
               <div class="score-main">58.0</div>
+              <div class="source-note">市场情绪</div>
               
               
             </td>
@@ -107,6 +110,7 @@
             
             <td>
               <div class="score-main">62.0</div>
+              <div class="source-note">市销率估值</div>
               
               
             </td>
@@ -115,6 +119,7 @@
             
             <td>
               <div class="score-main">55.0</div>
+              <div class="source-note">配置常数</div>
               
               
             </td>
@@ -144,15 +149,15 @@
         
         <li><strong>AI</strong>：
           
-            基本面 30%，
+            主题表现 30%，
           
-            估值 15%，
+            市盈率估值 15%，
           
-            情绪 25%，
+            市场情绪 25%，
           
-            资金 20%，
+            市销率估值 20%，
           
-            事件 10%
+            配置常数 10%
           
         </li>
         
@@ -199,7 +204,7 @@
       <li>综合情绪：取两项压缩结果的平均值，范围约 [-1, 1]，最终换算到 0–100 区间。</li>
     </ul>
     <h3>主题评分</h3>
-    <p>每个主题包含基本面、估值、情绪、资金、事件五个一级因子，按配置权重求和：<code>total = Σ weight_k × breakdown_k</code>。Magnificent 7 使用市值、PE、ETF 流动等指标；BTC 主题额外纳入基差与资金流。</p>
+    <p>评分保留历史字段，展示各主题的实际指标含义，按配置权重求和：<code>total = Σ weight_k × breakdown_k</code>。AI 使用主题表现、PE 和 PS；Magnificent 7 使用总市值、PE 和 PS。PS 衡量估值，不衡量流动性。BTC 使用基差、资金费率和 ETF 净流入。事件项为配置常数。所有分数均为描述性启发式指标，尚未经样本外预测验证。</p>
     <h3>未来事件</h3>
     <p>事件列表汇总 Trading Economics 的 5 日宏观窗口，并结合 AI/RSS 与 arXiv 更新，帮助快速浏览即将发生的潜在催化。</p>
   </section>

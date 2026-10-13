@@ -38,3 +38,10 @@ Start with the [getting started guide](docs/getting-started.md). Global market r
 - [Documentation index](docs/index.md)
 
 Reports and analysis organize market information and do not constitute investment advice.
+
+### AI Agent report access
+
+Use `quant-market-brief` to read a verified public daily-report bundle as structured
+JSON with dates, hashes, sources and data gaps. The distributable Skill is
+[`skills/quant-market-brief`](skills/quant-market-brief/SKILL.md); see
+[usage and scoring semantics](docs/agent-market-brief.md) for inputs and limitations.
