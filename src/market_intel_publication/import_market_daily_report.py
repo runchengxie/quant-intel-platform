@@ -212,6 +212,8 @@ def _macro_table(facts: list[dict[str, Any]], include_references: bool = True) -
     )
     for fact in facts:
         label, unit = FACT_LABELS[fact["id"]]
+        if fact["id"].startswith("treasury.") and fact.get("quality") == "lagged":
+            label = label.replace("收益率日变动", "收益率最近交易日变动")
         lines.append(
             f"| {label} | {float(fact['value']):.2f}{unit} | {fact['observation_date']} |"
             + (f" {_markdown_source(fact)} |" if include_references else "")
@@ -269,6 +271,8 @@ def _source_status_lines(statuses: dict[str, Any], include_references: bool = Tr
             continue
         quality = SOURCE_QUALITY_LABELS.get(status.get("quality"), "未确认")
         reason = SOURCE_REASON_LABELS.get(status.get("reason"), "详见逐项观测日与来源")
+        if key == "rates" and status.get("reason") == "holiday_reference":
+            reason += f"；参考观测日 {status['expected_observation_date']}"
         lines.append(f"| {label} | {quality} | {reason} |")
     return (
         [*lines, "", "证据编号对应已审阅材料；公开报告不包含私有核验工作底稿。", ""]

@@ -318,3 +318,49 @@ def test_cli_accepts_recent_reviewed_revision_without_overriding_date(monkeypatc
     assert result == 0
     assert captured["cutoff"].astimezone(ZoneInfo("America/New_York")).date() == previous_ny
     assert captured["config"]["reviewed_draft"] == "/tmp/draft.json"
+
+
+def test_holiday_rates_query_last_session_and_retain_real_dates(monkeypatch):
+    calls = []
+
+    def official(day):
+        calls.append(day.isoformat())
+        return {
+            tenor: {"level_percent": 5.24, "previous_level_percent": 5.22, "change_bp": 2.0}
+            for tenor in ("2y", "5y", "10y", "30y")
+        }
+
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.macro.fetch_treasury_yield_observations", official
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.macro.fetch_observations",
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(FredFetchError("offline")),
+    )
+    facts, status = fetch_us_macro_facts(datetime(2026, 10, 13, 1, tzinfo=UTC))
+    assert calls == ["2026-10-09"]
+    assert status["rates"]["expected_observation_date"] == "2026-10-09"
+    assert status["rates"]["session"] == "closed"
+    assert all(
+        fact.observation_date == "2026-10-09" and fact.quality == "lagged"
+        for fact in facts
+        if fact.id.startswith("treasury.")
+    )
+    assert next(f for f in facts if f.id == "treasury.10y.change_bp").value == 2.0
+
+
+def test_holiday_fred_cannot_use_nonadjacent_sessions_as_daily_change(monkeypatch):
+    from daily_messenger.daily_report.macro import _rate_facts
+
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.macro.fetch_treasury_yield_observations", lambda _day: None
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.macro.fetch_observations",
+        lambda *_args, **_kwargs: [
+            FredObservation(date="2026-10-07", value=5.2),
+            FredObservation(date="2026-10-09", value=5.24),
+        ],
+    )
+    facts, _status = _rate_facts(datetime(2026, 10, 13, 1, tzinfo=UTC))
+    assert not facts

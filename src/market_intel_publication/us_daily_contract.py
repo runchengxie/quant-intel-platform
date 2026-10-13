@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from daily_messenger.daily_report.treasury_calendar import expected_observation_date
+
 from .us_news_contract import REVISION_FIELDS, validate_news_payload
 
 SCHEMA_PREFIX = "1."
@@ -132,8 +134,16 @@ SOURCE_STATUS_LABELS = {
     "btc_spot": "比特币现货",
     "equities": "美股个股行情",
 }
-SOURCE_QUALITY_LABELS = {"ok": "已核实", "reviewed": "已审阅", "degraded": "有缺项"}
+SOURCE_QUALITY_LABELS = {
+    "ok": "已核实",
+    "reviewed": "已审阅",
+    "degraded": "有缺项",
+    "lagged": "较早观测值",
+}
 SOURCE_REASON_LABELS = {
+    "holiday_reference": "美债休市，展示最近交易日参考值及该交易日变动",
+    "expected_observation_fresh": "应有观测日数据齐全",
+    "observation_stale": "尚未取得应有观测日数据",
     "all_indices_fresh": "目标交易日数据齐全",
     "all_contracts_fresh": "目标交易日合约数据齐全",
     "source_audited": "来源已逐条核查",
@@ -293,7 +303,15 @@ def _valid_market_fact(  # noqa: PLR0911 - preserve audited validation branches
         lagged = (
             isinstance(observed, str) and observed < report_date and fact.get("quality") == "lagged"
         )
-        source_valid = (bool(re.fullmatch(TREASURY_URL, source_url)) and fresh) or (
+        try:
+            reference = (
+                lagged
+                and observed
+                == expected_observation_date(date.fromisoformat(report_date)).isoformat()
+            )
+        except ValueError:
+            reference = False
+        source_valid = (bool(re.fullmatch(TREASURY_URL, source_url)) and (fresh or reference)) or (
             bool(re.fullmatch(FRED_URL, source_url)) and (fresh or lagged)
         )
         return source_valid and unit == expected_unit and fact.get("metric") == expected_metric
@@ -630,6 +648,16 @@ def _public_payload(payload: dict[str, Any], manifest: dict[str, Any]) -> dict[s
                 payload.get("source_status", {}).get(key, {}),
                 ("quality", "reason", "reviewed_movers")
                 if key == "equities"
+                else (
+                    "quality",
+                    "reason",
+                    "session",
+                    "expected_observation_date",
+                    "observation_date",
+                    "calendar_version",
+                    "calendar_source",
+                )
+                if key == "rates"
                 else ("quality", "reason"),
             )
             for key in (

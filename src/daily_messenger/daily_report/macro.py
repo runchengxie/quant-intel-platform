@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from daily_messenger.etl.fetchers.fred import FredFetchError, FredObservation, fetch_observations
@@ -10,6 +10,7 @@ from daily_messenger.etl.fetchers.fred import FredFetchError, FredObservation, f
 from .models import MarketFact
 from .treasury import fetch_treasury_yield_observations
 from .treasury import source_url as treasury_source_url
+from .treasury_calendar import CALENDAR_SOURCE, CALENDAR_VERSION, expected_observation_date
 
 NEW_YORK = ZoneInfo("America/New_York")
 YIELD_SERIES = {"2y": "DGS2", "5y": "DGS5", "10y": "DGS10", "30y": "DGS30"}
@@ -75,11 +76,28 @@ def _fact(
     )
 
 
+def _yield_observations(
+    series_id: str, as_of: datetime, observation_date: date
+) -> list[FredObservation]:
+    rows = _available_observations(series_id, as_of, days=14, max_age_days=4)
+    rows = [row for row in rows if row.date <= observation_date.isoformat()]
+    if (
+        len(rows) < 2
+        or rows[-2].date
+        != expected_observation_date(
+            datetime.fromisoformat(rows[-1].date).date() - timedelta(days=1)
+        ).isoformat()
+    ):
+        raise FredFetchError("adjacent Treasury observations unavailable")
+    return rows
+
+
 def _rate_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, dict[str, str]]]:
     facts: list[MarketFact] = []
     status: dict[str, dict[str, str]] = {}
     market_date = as_of.astimezone(NEW_YORK).date()
-    official_observations = fetch_treasury_yield_observations(market_date)
+    observation_date = expected_observation_date(market_date)
+    official_observations = fetch_treasury_yield_observations(observation_date)
     if official_observations is not None:
         read_time = datetime.now(UTC)
         facts = []
@@ -88,11 +106,11 @@ def _rate_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, dict[str, 
             common = {
                 "instrument": f"US_TREASURY_{tenor.upper()}",
                 "source": "US Treasury",
-                "source_url": treasury_source_url(market_date),
+                "source_url": treasury_source_url(observation_date),
                 "source_time": read_time,
                 "retrieved_at": read_time,
-                "quality": "ok",
-                "observation_date": market_date.isoformat(),
+                "quality": "ok" if observation_date == market_date else "lagged",
+                "observation_date": observation_date.isoformat(),
             }
             facts.extend(
                 (
@@ -119,7 +137,7 @@ def _rate_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, dict[str, 
         return facts, status
     for tenor, series_id in YIELD_SERIES.items():
         try:
-            rows = _available_observations(series_id, as_of, days=14, max_age_days=4)
+            rows = _yield_observations(series_id, as_of, observation_date)
             current, previous = rows[-1].value, rows[-2].value
             facts.append(
                 _fact(
@@ -156,6 +174,37 @@ def _rate_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, dict[str, 
     return facts, status
 
 
+def rates_status(facts: list[MarketFact], market_date: date) -> dict[str, str]:
+    rate_ids = {
+        f"treasury.{tenor}.{metric}"
+        for tenor in YIELD_SERIES
+        for metric in ("change_bp", "level_percent")
+    }
+    rate_quality = "degraded"
+    present = {fact.id: fact for fact in facts}
+    if rate_ids <= present.keys():
+        rate_quality = (
+            "lagged" if any(present[fact_id].quality == "lagged" for fact_id in rate_ids) else "ok"
+        )
+    expected = expected_observation_date(market_date).isoformat()
+    observed = min(
+        (fact.observation_date or "" for fact in facts if fact.id in rate_ids), default=""
+    )
+    return {
+        "quality": rate_quality,
+        "session": "open" if expected == market_date.isoformat() else "closed",
+        "expected_observation_date": expected,
+        "observation_date": observed,
+        "calendar_version": CALENDAR_VERSION,
+        "calendar_source": CALENDAR_SOURCE,
+        "reason": "holiday_reference"
+        if expected != market_date.isoformat() and observed == expected
+        else "expected_observation_fresh"
+        if observed == expected
+        else "observation_stale",
+    }
+
+
 def fetch_us_macro_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, dict[str, str]]]:
     """Return sourced facts and per-group status; unavailable series stay absent."""
     facts, status = _rate_facts(as_of)
@@ -190,17 +239,7 @@ def fetch_us_macro_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, d
         except (FredFetchError, ValueError):
             status[series_id] = {"quality": "degraded", "reason": "unavailable"}
     present = {fact.id: fact for fact in facts}
-    rate_ids = {
-        f"treasury.{tenor}.{metric}"
-        for tenor in YIELD_SERIES
-        for metric in ("change_bp", "level_percent")
-    }
-    rate_quality = "degraded"
-    if rate_ids <= present.keys():
-        rate_quality = (
-            "lagged" if any(present[fact_id].quality == "lagged" for fact_id in rate_ids) else "ok"
-        )
-    status["rates"] = {"quality": rate_quality}
+    status["rates"] = rates_status(facts, as_of.astimezone(NEW_YORK).date())
     status["macro"] = {
         "quality": "ok" if all(f"macro.{name}" in present for name in MACRO_SERIES) else "degraded"
     }

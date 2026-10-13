@@ -72,3 +72,11 @@ def test_official_csv_does_not_present_previous_day_as_current(monkeypatch):
         lambda *_args, **_kwargs: Response(CSV.replace("09/23/2026,4.85,4.99,5.11,5.40\n", "")),
     )
     assert fetch_treasury_yield_changes(date(2026, 9, 23)) is None
+
+
+def test_missing_previous_session_is_not_a_daily_move(monkeypatch):
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.treasury.requests.get",
+        lambda *_args, **_kwargs: Response(CSV.replace("09/22/2026", "09/21/2026")),
+    )
+    assert fetch_treasury_yield_observations(date(2026, 9, 23)) is None

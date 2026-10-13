@@ -140,7 +140,10 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
         missing.append("btc_spot")
     if any(symbol in CORE_SYMBOLS for symbol in missing_equities):
         missing.append("equities")
-    if source_status["rates"]["quality"] == "lagged":
+    if (
+        source_status["rates"]["quality"] == "lagged"
+        and source_status["rates"].get("reason") != "holiday_reference"
+    ):
         missing.append("rates_lag")
     if (
         source_status["macro"]["quality"] == "degraded"
