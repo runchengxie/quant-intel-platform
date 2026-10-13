@@ -34,7 +34,7 @@ uv run python project_tools/update_cli_help.py --check
 | `style_replica_bridge` | 31.34% | 25% |
 | `tushare_jobs` | 44.51% | 35% |
 
-Coverage data defaults to `.coverage`. Set `COVERAGE_FILE` to store it outside the repository; the collector and package gate read the same file. Synthetic test outputs should also use an external temporary directory. Publication-boundary tests reject directories beneath a `.git` marker, so select a clean directory with `TMPDIR` when necessary.
+Coverage data defaults to `.coverage`. Set `COVERAGE_FILE` to store it outside the repository; the collector and package gate read the same file. Synthetic test outputs should also use an external temporary directory. Publication-boundary tests reject outputs inside the owner checkout or another source repository. If another `.git` marker affects the default temporary root, choose a fresh external test directory with `TMPDIR` or pytest `--basetemp`; preserve the marker and safety guard. Pytest clears the selected `--basetemp` directory, so never point it at existing data, source, or production directories.
 
 Pull requests and pushes to `main` run `check_all.py --scope all --strict-tools`, build the Python package, and check the public boundary. GitHub Actions provides the complete quality result; the same gate can be run locally before submission.
 
@@ -42,16 +42,16 @@ Before deleting a merged branch, verify its pull-request state with the cleanup 
 
 ```bash
 uv run python project_tools/cleanup_merged_branches.py \
-  --repo runchengxie/market-intel \
+  --repo runchengxie/quant-intel-platform \
   --branch fix/example \
   --dry-run
 uv run python project_tools/cleanup_merged_branches.py \
-  --repo runchengxie/market-intel \
+  --repo runchengxie/quant-intel-platform \
   --branch fix/example \
   --yes
 ```
 
-GitHub Actions does not access live market data, Feishu, or brokerage services. Production data access and deployment checks must follow their separate runbooks. This policy does not apply to pure data workflows.
+GitHub Actions does not access live market data, Feishu, or brokerage services. Production data access and deployment checks must follow their separate runbooks. Production data scheduling belongs to Deploy and is outside this quality gate.
 
 ## Owner-boundary tests
 
@@ -63,44 +63,15 @@ Tests in this repository should focus on:
 - Report rendering, charts, dashboards, and audience isolation
 - Feishu idempotency, delivery receipts, and failure recovery
 - Scheduling and recovery logic that must not install or repair research-side timers
-- `refresh_daily_watch20.sh` restoring official artifacts only through the public `strategy-pipeline` CLI
+- Deploy's `refresh_daily_watch20.sh` restoring official artifacts only through the installed `daily-watch20-owner` CLI; Deploy owns those script tests
 
 Algorithm tests for minute factors, Hermite, rolling training, OOS, ablation, AI ranking, and shadow runs belong to `quant-research`; `market-intel` does not duplicate them.
 
-## Linux and Hermes operations tests
+## Deployment and scheduler validation
 
-Use a fake `systemctl` or static shell checks for the Gateway daemon and systemd templates. Tests must not stop the production Gateway:
+Hermes, systemd, and Windows Task Scheduler scripts, templates, and host smoke procedures belong to private `quant-intel-deploy`. `ensure_hermes_gateway.sh`, `setup_cron.sh`, and `scripts/windows/test_scheduled_tasks.ps1` are not supplied here and are not this repository's test commands.
 
-```bash
-uv run pytest tests/test_hermes_gateway_preflight.py
-bash -n scripts/ensure_hermes_gateway.sh scripts/setup_cron.sh
-```
-
-After deployment, use read-only checks:
-
-```bash
-systemctl --user status hermes-gateway.service
-systemctl --user status hermes-gateway-preflight.timer
-systemctl --user list-timers --all
-journalctl --user -u hermes-gateway-preflight.service --since today
-```
-
-Production schedulers, host installation, and cleanup of historical research-only units belong to the private `deploy` repository. Tests here cover only the public CLI, contracts, and offline fixtures.
-
-## Windows scheduling smoke test
-
-Do not change the host clock to test Task Scheduler. Use an isolated one-off task:
-
-```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts\windows\test_scheduled_tasks.ps1 `
-  -Kind morning `
-  -DelayMinutes 2 `
-  -Delivery none `
-  -SkipAiNews `
-  -SkipPremiumRefresh
-```
-
-The default does not send messages to real recipients and writes artifacts to an isolated directory. Testing real delivery requires explicitly enabling it and using a temporary dedicated destination.
+This repository validates public CLIs, artifact contracts, and offline fixtures. Host checks, one-off scheduled tasks, and real delivery validation follow Deploy's runbooks and separate authorization. Do not change the host clock or stop production services to test them.
 
 ## Core test categories
 
