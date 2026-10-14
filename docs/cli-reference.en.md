@@ -48,3 +48,6 @@ This summary does not replace CLI help. Keep optional dependency boundaries inta
 --expected-date <YYYY-MM-DD>` emits verified public report evidence as JSON.
 For news revisions also pass `--previous-report <immutable-parent.json>`.
 See [Agent report access](agent-market-brief.md) for validation and limits.
+
+`quant-research-review --help` describes the read-only two-report comparison
+interface. See [comparison semantics](agent-research-review.md).
