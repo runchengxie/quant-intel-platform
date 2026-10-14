@@ -40,3 +40,8 @@ uv run dm --help
 - [文档索引](docs/index.md)：按主题查找其他技术说明
 
 报告和分析用于市场信息整理，不构成投资建议。
+
+## AI Agent 报告工具
+
+- `quant-market-brief` 读取已验证的公开市场日报 bundle，并输出包含日期、哈希、来源和数据缺口的结构化 JSON。随仓库提供的 [Skill](skills/quant-market-brief/SKILL.md) 调用已安装的 CLI；工具不抓取数据、不重新生成报告、不写文件，也不发送消息。详见[使用与评分语义](docs/agent-market-brief.md)。
+- `quant-research-review` 比较两份已验证的美国市场日报快照，整理事实、报告陈述和数据质量缺口的变化。随仓库提供的 [Skill](skills/quant-research-review/SKILL.md) 调用已安装的 CLI；工具不抓取数据，也不生成策略收益结论。详见[比较语义](docs/agent-research-review.md)。
