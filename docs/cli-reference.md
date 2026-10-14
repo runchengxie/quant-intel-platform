@@ -134,3 +134,6 @@ options:
 `quant-market-brief --input <daily_report.json> --manifest <publication.json>
 --expected-date <YYYY-MM-DD>` 校验现有公开日报并输出 JSON。新闻修订还需
 `--previous-report <immutable-parent.json>`。详见 [使用说明](agent-market-brief.md)。
+
+`quant-research-review --help` 提供两份日报的只读比较入口。
+详见[比较规则](agent-research-review.md)。

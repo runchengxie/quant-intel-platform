@@ -45,3 +45,8 @@ Use `quant-market-brief` to read a verified public daily-report bundle as struct
 JSON with dates, hashes, sources and data gaps. The distributable Skill is
 [`skills/quant-market-brief`](skills/quant-market-brief/SKILL.md); see
 [usage and scoring semantics](docs/agent-market-brief.md) for inputs and limitations.
+
+Use `quant-research-review` to compare two verified U.S. daily-report snapshots,
+including their facts, report statements and data gaps. See
+[comparison semantics](docs/agent-research-review.md) and the distributable
+[Skill](skills/quant-research-review/SKILL.md).
