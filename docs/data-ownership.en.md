@@ -84,7 +84,7 @@ Observation dates come from the corresponding data partition or US close row, no
 
 ### Morning pipeline
 
-Entry point: `scripts/morning_pipeline.sh`.
+The production bridge entry point is `scripts/morning_pipeline.sh` in `quant-intel-deploy`. It invokes the installed public CLI and owner tools; the report framework and its tests are maintained in this repository.
 
 1. `daily_watch20_delivery.sh` validates and sends the `strategy-pipeline` DailyWatch20 artifact. Failure does not block later reports.
 2. `a_share_daily.d11_h5_shadow_delivery` consumes only owner-published research artifacts. The old AI-picks entry remains an explicit manual compatibility call and is not part of default scheduling.
@@ -96,7 +96,7 @@ Entry point: `scripts/morning_pipeline.sh`.
 
 ### Evening pipeline
 
-Entry point: `scripts/evening_pipeline.sh`.
+The production bridge entry point is `scripts/evening_pipeline.sh` in `quant-intel-deploy`. It invokes the installed public CLI; the report framework and its tests are maintained in this repository.
 
 The evening workflow reuses code-generated `a-share-daily evening/review` outputs. The summary report renderer consumes structured facts and `market_temperature`. The temperature calculation does not access the network or call a model; it uses same-day aggregates, the previous 20-session turnover baseline, and validation conditions from the preceding archive. The commentary workflow must not rewrite facts in `evening_review.md`.
 

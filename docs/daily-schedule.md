@@ -4,6 +4,8 @@
 
 本文记录 `market-intel` 当前负责的报告、投递、数据准备和恢复任务。研究算法、因子实验、消融和策略生产逻辑由 `quant-research`、`quant-platform` 和 `strategy-pipeline` 负责。本仓只在必要时通过公开 CLI 恢复正式 artifact。
 
+生产调度和桥接脚本由 `quant-intel-deploy` 维护。下表描述已部署的工作流；桥接脚本命令应在 `quant-intel-deploy` checkout 中运行，不能在本仓运行。
+
 ## 设计原则
 
 1. 报告发送优先消费已经发布并通过日期/hash/schema 门禁的 artifact。
@@ -45,7 +47,7 @@
 - `a-share-ai-stock-picker-freshness.timer`
 - 三个历史 owner submodule 中的任何定时任务
 
-`setup_cron.sh --layer2` 会主动 disable 并删除这些旧 user-unit 文件。研究需求应进入对应 owner，而不是恢复旧 timer。
+`quant-intel-deploy/scripts/setup_cron.sh --layer2` 会主动 disable 并删除这些旧 user-unit 文件。研究需求应进入对应 owner，而不是恢复旧 timer。
 
 ## DailyWatch20 生产边界
 
@@ -99,6 +101,8 @@ Hermes 重启可能折叠错过的 recurring run。晨报和晚报脚本因此�
 
 ## 手动恢复
 
+以下桥接命令应在 `quant-intel-deploy` checkout 中运行。它们属于部署运维脚本，不由本仓提供。
+
 报告数据异常时：
 
 ```bash
@@ -126,6 +130,8 @@ uv run python scripts/send_daily_watch20.py \
 不要再运行历史 `run_daily_watch20_ablation.sh`、`refresh_a_share_factor_observation.sh` 或旧的 AI 选股和热点生产入口。这些入口已退休。
 
 ## 部署
+
+以下命令应在 `quant-intel-deploy` checkout 中运行，用于安装或检查部署侧任务，并调用已安装的公开 CLI。
 
 ```bash
 export DATA_PLATFORM_ROOT=/path/to/data/market-data-platform

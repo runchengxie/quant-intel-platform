@@ -4,6 +4,8 @@
 
 This page covers reports, delivery, data preparation, and recovery owned by `market-intel`. Research algorithms, factor experiments, ablations, and strategy production belong to `quant-research`, `quant-platform`, and `strategy-pipeline`. This repository restores official artifacts only through public CLIs when needed.
 
+Production schedules and bridge scripts are maintained in `quant-intel-deploy`. The schedule below describes the deployed workflow; bridge-script commands must be run from a `quant-intel-deploy` checkout, not this repository.
+
 ## Operating principles
 
 1. Reports consume published artifacts that pass date, hash, and schema checks.
@@ -37,7 +39,7 @@ This page covers reports, delivery, data preparation, and recovery owned by `mar
 
 ## Retired tasks
 
-`market-intel` no longer installs, schedules, or automatically recovers `a-share-factor-observation-refresh.timer`, `daily-watch20-ablation.timer`, `hotsector-research-handoff.timer`, `a-share-ai-stock-picker-freshness.timer`, or scheduled jobs from the three historical owner submodules. `setup_cron.sh --layer2` disables and removes these old user-unit files. Research jobs belong in their owner repositories.
+`market-intel` no longer installs, schedules, or automatically recovers `a-share-factor-observation-refresh.timer`, `daily-watch20-ablation.timer`, `hotsector-research-handoff.timer`, `a-share-ai-stock-picker-freshness.timer`, or scheduled jobs from the three historical owner submodules. `quant-intel-deploy/scripts/setup_cron.sh --layer2` disables and removes these old user-unit files. Research jobs belong in their owner repositories.
 
 ## DailyWatch20 production boundary
 
@@ -71,6 +73,8 @@ For `report_datasets`, recovery verifies the owner's `a_share_evening_data_<YYYY
 
 ## Manual recovery
 
+Run the bridge commands below from a `quant-intel-deploy` checkout. They are deployment operations, not scripts shipped by this repository.
+
 ```bash
 bash scripts/refresh_tushare_daily.sh YYYYMMDD
 bash scripts/publish_a_share_current.sh YYYYMMDD
@@ -96,6 +100,8 @@ uv run python scripts/send_daily_watch20.py \
 Do not run retired `run_daily_watch20_ablation.sh`, `refresh_a_share_factor_observation.sh`, or legacy AI-picker/hot-sector production entry points.
 
 ## Deployment
+
+Run the deployment commands below from a `quant-intel-deploy` checkout. They install or inspect deployment-owned jobs and call the installed public CLI.
 
 ```bash
 export DATA_PLATFORM_ROOT=/path/to/data/market-data-platform
