@@ -1,5 +1,11 @@
 # Missing optional evening concept charts
 
+Evening return distributions keep all twelve buckets, including zero counts.
+The tail keys are `-inf~-9.9%` and `9.9~inf%`: IPO returns above 100% remain
+in the highest bucket. Interior buckets include their lower bound and exclude
+their upper bound. Missing or nonfinite returns are excluded and disclosed via
+`distribution_missing_count`; no return is clipped or invented.
+
 An evening review may have no available same-day concept-sector dataset. The
 loader returns `hot_sectors: {}` only for a missing partition or an empty dataset.
 Malformed/corrupt inputs and invalid columns raise an error rather than being

@@ -81,6 +81,9 @@ def _render_overview_section(overview: Mapping[str, Any]) -> list[str]:
     if dist:
         items = "  ".join(f"{k}:{v}" for k, v in dist.items())
         lines.append(f"涨跌分布: {items}")
+        missing = overview.get("distribution_missing_count", 0)
+        if missing:
+            lines.append(f"涨跌分布缺项: {missing} 家（涨跌幅缺失或非有限值）")
         lines.append("")
     return lines
 

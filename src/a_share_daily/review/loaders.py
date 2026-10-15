@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 from datetime import datetime
 from pathlib import Path
@@ -88,12 +89,23 @@ def load_index_overview(trade_date: str) -> dict[str, Any]:
     return indices
 
 
+def _return_distribution(values: pd.Series) -> dict[str, int]:
+    """Count every finite return once, including unrestricted IPO returns."""
+    values = values[values.map(math.isfinite)]
+    bounds = [-float("inf"), -9.9, -7, -5, -3, -1, 0, 1, 3, 5, 7, 9.9, float("inf")]
+    return {
+        f"{lo}~{hi}%": int(((values >= lo) & (values < hi)).sum())
+        for lo, hi in zip(bounds[:-1], bounds[1:], strict=True)
+    }
+
+
 def load_market_overview(trade_date: str) -> dict[str, Any]:
     """Market aggregates from individual stocks."""
     daily = D.read_daily(trade_date)
     stocks = daily[daily["ts_code"].apply(_is_stock)].copy()
 
     stocks["pct_chg"] = pd.to_numeric(stocks["pct_chg"], errors="coerce")
+    stocks.loc[~stocks["pct_chg"].map(math.isfinite), "pct_chg"] = float("nan")
     stocks["amount"] = pd.to_numeric(stocks["amount"], errors="coerce")
 
     up = int((stocks["pct_chg"] > 0).sum())
@@ -110,26 +122,7 @@ def load_market_overview(trade_date: str) -> dict[str, Any]:
         else 0.0
     )
 
-    # Distribution
-    bins = [
-        (-100, -9.9),
-        (-9.9, -7),
-        (-7, -5),
-        (-5, -3),
-        (-3, -1),
-        (-1, 0),
-        (0, 1),
-        (1, 3),
-        (3, 5),
-        (5, 7),
-        (7, 9.9),
-        (9.9, 100),
-    ]
-    dist = {}
-    for lo, hi in bins:
-        cnt = int(((stocks["pct_chg"] >= lo) & (stocks["pct_chg"] < hi)).sum())
-        if cnt > 0:
-            dist[f"{lo}~{hi}%"] = cnt
+    dist = _return_distribution(stocks["pct_chg"])
 
     # Top movers (exclude IPOs)
     stocks_clean = stocks[stocks["pct_chg"].between(-30, 30)]
@@ -171,6 +164,7 @@ def load_market_overview(trade_date: str) -> dict[str, Any]:
         },
         "turnover_total": total_amount,
         "distribution": dist,
+        "distribution_missing_count": int(stocks["pct_chg"].isna().sum()),
         "top_gainers": top_up,
         "top_losers": top_down,
         "vwap_above_ratio": vwap_ratio,
