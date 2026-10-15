@@ -95,6 +95,8 @@ uv run a-share-daily chart-candidate --manifest /external/reports/morning_manife
 
 晨报入口：
 
+生产桥接入口 `scripts/morning_pipeline.sh` 位于 `quant-intel-deploy`。它调用已安装的公开 CLI 和 owner 工具；报告框架及其测试由本仓维护。
+
 ```bash
 scripts/morning_pipeline.sh
 ```
@@ -110,6 +112,8 @@ scripts/morning_pipeline.sh
 7. Hermes 可读取同一份 Markdown/清单做点评，点评失败不影响事实材料送达。
 
 晚报入口：
+
+生产桥接入口 `scripts/evening_pipeline.sh` 位于 `quant-intel-deploy`。它调用已安装的公开 CLI；报告框架及其测试由本仓维护。
 
 ```bash
 scripts/evening_pipeline.sh
