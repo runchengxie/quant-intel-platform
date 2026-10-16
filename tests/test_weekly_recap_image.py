@@ -15,7 +15,12 @@ def test_highlights_keep_current_state_and_observation_without_historical_sectio
     assert report_highlights(text) == ["数据状态：完整。", "当前向上。", "观察趋势。", "大盘占优。"]
 
 
-def test_single_image_preserves_both_cards_and_rejects_empty_report(tmp_path: Path):
+def test_single_image_preserves_both_cards_and_rejects_empty_report(tmp_path: Path, monkeypatch):
+    from matplotlib.font_manager import findfont
+
+    monkeypatch.setattr(
+        "a_share_analysis.weekly_recap_image.cjk_font_path", lambda: findfont("DejaVu Sans")
+    )
     value = tmp_path / "value.png"
     size = tmp_path / "size.png"
     Image.new("RGB", (1200, 1500), "red").save(value)
