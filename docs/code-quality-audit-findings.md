@@ -2,19 +2,19 @@
 
 [English page](code-quality-audit-findings.en.md)
 
-本文档汇总 2026-07-31 对 `market-intel` 主项目及三个子模块（a-share-factor-core、ai-stock-picker、hot-sector-screener）的代码质量盘点结果。文档只列方案，不改动代码。
+本文档保留 2026-07-31 对 `market-intel` 主项目及三个当时子模块的代码质量审计证据，并记录后续处置。原 `a-share-factor-core`、`ai-stock-picker` 和 `hot-sector-screener` 子模块已退役并移除；当前仓库边界见 `AGENTS.md`。
 
 ## 当前状态说明
 
 本文中的整体评价和问题清单主要反映 2026-07-31 的历史状态，不能直接当作当前门禁结果。当前完整质量门禁由 `public-quality.yml` 在 PR 和 `main` 推送时运行，`pr-light.yml` 已移除；`.githooks/pre-push` 及其安装器已删除。`pytest.yml.disabled`、`cross-market.yml.disabled` 和 `tushare-daily.yml.disabled` 仍处于停用状态。`.gitignore` 已包含 `.coverage`、`.coverage.*` 和 `*.cover`。
 
-截至 2026-09-08，`scripts/dev/maintainability_metrics.py --json --ratchet` 报告 106 个超过 100 列的长行、9 个超过 100 行的函数、2 个超过 800 行的文件和 0 个行内 `C901` 忽略项。当前 ratchet 已通过，后续治理应以这组指标和实际 CI 配置为准。
+2026-09-08 的维护性数字是带日期的历史快照，不能当成当前基线。请以当前 PR 门禁和 ratchet 配置为准。
 
 本文是 [roadmap.md](roadmap.md) 的详细方案与证据附录：roadmap 记录待办项与完成状态，本文给出对应问题的具体方案与排查细节，两者配套阅读。
 
 ## 一、整体评价
 
-主项目代码质量明显高于一般脚本型仓库：ruff 全量检查零违规，模块边界清晰，文档化程度高。需要更正一处先前结论：`ty check` 当前仍有 15 个未解决诊断（unresolved-attribute / invalid-argument-type，分布在 `cli.py`、`news_heat.py`、`ai_selection_receipt.py`、`daily_watch20_delivery_receipt.py`、`tushare_jobs/cli.py`），类型门禁尚未真正达标。「返回类型覆盖率 99.7%」的乐观判断已不成立，应以 `ty check` 实际输出为准。主要问题集中在远程测试门禁缺失（pytest.yml 已停用为 .disabled）、`ty` 存量诊断、覆盖率阈值偏低（fail_under=1），以及少量过渡期兼容层长期沉淀。
+原审计曾记录 15 条 `ty check` 诊断，并指出当时没有完整远程测试门禁。两项都是历史状态：当前远程门禁见 `public-quality.yml`，旧诊断数量不能代替当前 `ty check` 输出。覆盖率阈值也应查看当前 `pyproject.toml`。
 
 ## 二、测试与门禁（高优先级）
 
@@ -65,10 +65,9 @@
 ## 三、兼容与过渡层（中优先级）
 
 ### 3.1 report_delivery 重导出壳
-`src/a_share_daily/delivery/report_delivery.py:141-198` 把 senders、state、targets、io_util 四个子模块约 50 个私有符号整包重导出，目的是让旧 `monkeypatch.setattr(report_delivery, ...)` 仍可用。这导致单文件膨胀到 869 行，且出现双命名空间（同一符号可从子模块或 report_delivery 两处 import）。
+历史审计发现 `report_delivery.py` 曾重导出 senders、state、targets、io_util 的私有符号。后续重构拆分了投递职责，但为兼容调用方和测试保留了部分导出；目前不应表述为重导出壳已经删除。
 
-方案：
-- 在测试里把 monkeypatch 目标改为真实子模块，删除 141-198 重导出块。
+原方案曾建议把测试 monkeypatch 目标改到真实子模块并删除重导出。后续重构选择保留兼容导出；是否继续收敛应先核对当前调用方和测试。
 
 ### 3.2 AI 新闻 gemini 兼容壳
 `src/daily_messenger/etl/fetchers/ai_news.py:293-299` 的 `_fetch_gemini_market_news` 是 backward compatible wrapper，仅做同名转发。
@@ -106,10 +105,7 @@
 - MDP 切换完成后删除。→ 已完成（PR #61）：脚本已删除，依赖的 `_compare` 过渡期一致性测试一并移除。
 
 ### 4.3 巨型文件兼任双职责
-`src/a_share_analysis/factor_tools/minute_factor_smoke.py`（1118 行，全仓最大）既是调试冒烟又是生产批下载器。
-
-方案：
-- 拆成 `smoke`（调试/一次性）与 `batch_download`（生产）两个清晰入口。
+原 `minute_factor_smoke.py` 后来在 PR #73 拆分为职责模块，PR #81 修正包边界，提交 `d6bb906` 又清退了重复的因子研究工具。原文件和“尚待拆分”的描述均已过期。
 
 ## 五、Lint 配置（低优先级）
 

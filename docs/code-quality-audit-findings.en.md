@@ -31,7 +31,7 @@ The same audit snapshot recorded 15 `ty check` diagnostics across `cli.py`, `new
 
 ## Compatibility layers and complexity
 
-- `report_delivery.py` had re-exported roughly 50 private symbols from `senders`, `state`, `targets`, and `io_util`, preserving monkeypatch paths while increasing file size and exposing duplicate namespaces. The audit proposed moving tests to patch the owning modules and then removing the compatibility exports. A later refactor split delivery responsibilities while retaining compatibility exports for callers and tests.
+- `report_delivery.py` had re-exported roughly 50 private symbols from `senders`, `state`, `targets`, and `io_util`, preserving monkeypatch paths while increasing file size and exposing duplicate namespaces. The audit proposed moving tests to patch the owning modules and then removing the compatibility exports. Later changes split delivery responsibilities but retained some compatibility exports for callers and tests. The original proposal to remove the re-export shell should not be described as completed; check current callers and tests before further cleanup.
 - `_fetch_gemini_market_news` in `daily_messenger/etl/fetchers/ai_news.py` was identified as a forwarding wrapper. The audit proposed removing it after callers migrated.
 - Thirteen validation/normalization helpers were re-exported from `daily_watch20.py`. Their exports were removed on 2026-08-01; tests import the validation subpackage directly.
 - `_legacy_chat_id()` in `a_share_daily/delivery/targets.py` was identified as an internal fallback. The original proposal was to remove it only after confirming no live configuration depended on it.

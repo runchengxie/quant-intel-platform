@@ -4,7 +4,9 @@
 
 本文汇总 2026-07-31 代码质量审计发现的待办项，与 `refactor-plan-etl-report.md`（已闭环的拆分记录）并列集中管理。本文只列计划，不改动代码。
 
-状态标注：✅ 已完成、⬜ 待做。已完成项附注合并 PR 与日期。
+状态标注：✅ 已完成、⬜ 待做。历史审计数字均保留原日期；当前代码和门禁状态以最新主线为准。
+
+2026-10-16 复核：自动化门禁、复杂度拆分和因子工具拆分已有后续实现。旧审计中的若干文件路径和整体结论已过期；下文保留仍能指向当前代码的兼容层与债务。
 
 优先级说明：高优先级项影响核心逻辑的回归保护，建议先推进。中优先级为过渡期兼容层与复杂度的清理。低优先级为配置微调。
 
@@ -53,13 +55,13 @@
 ## 中优先级
 
 ### 5. 清理兼容重导出层 ✅（主项）+ ⬜（子项）
-- `src/a_share_daily/delivery/report_delivery.py` 重导出壳已删除（PR #57）：47 个借来的子模块符号改回显式子模块调用，消除双命名空间。文件退出 800 行俱乐部。注意：删壳时 `tests/test_ai_stock_picker_delivery.py` 中有 5 个用例仍对旧壳打 `monkeypatch`，导致 `AttributeError`，已于后续补丁修正（monkeypatch 目标迁回 `senders` / `state` 真实子模块）。
+- `report_delivery.py` 的职责后来拆分，但仍保留部分兼容导出供调用方和测试使用；不应沿用旧审计中的“删壳已完成”结论。继续清理前先核对当前导出使用情况。
 - `src/daily_messenger/etl/fetchers/ai_news.py:293-299` 的 `_fetch_gemini_market_news` 是 backward compatible wrapper，仅做同名转发。gemini 调用方迁移完成后删除。（待独立 PR）
-- `src/a_share_daily/daily_watch20_validation/__init__.py` 是空文件，重导出实际写在 `daily_watch20.py:31-58`。方案：合并回 `daily_watch20.py`，或在 `__init__` 补上真实重导出兑现注释承诺。（待独立 PR）
+- `daily_watch20_validation` 的实现目前位于独立子模块；确认包入口是否需要公开符号后再决定是否增加导出，不把历史行号当作当前接口事实。
 - `src/a_share_daily/delivery/targets.py:107` 的 `_legacy_chat_id()` 命名带 legacy，仅作内部 fallback。确认无真实数据源走 legacy 分支后移除。（待独立 PR）
 
-### 6. 拆分高圈复杂度函数 ⬜
-23 个函数 mccabe 复杂度超过 15，最严重：
+### 6. 拆分高圈复杂度函数 ✅
+原始审计记录了 23 个函数的复杂度超过 15；该数量及下列路径是当时的快照。后续复杂度重构（例如提交 `9442993` 和 `66641f9`）拆分了剩余 C901 函数并移除逐文件豁免。当前以 PR 门禁及其复杂度预算为准，不沿用这份旧列表作为待办。
 
 | 位置 | 复杂度 |
 |------|--------|
@@ -70,11 +72,11 @@
 
 按现有拆分惯例（git 历史已有多次 C901 拆分）继续拆这些多分支渲染与多源抓取函数。
 
-### 7. 删除过渡期脚本，拆分双职责文件 ⬜（7A 已完成）
+### 7. 删除过渡期脚本，拆分双职责文件 ✅
 - `scripts/check_mdp_reference_consistency.py` 已删除（PR #61）：MDP 切换完成、TuShare fallback 已移除，遗留的一致性校验脚本失去意义。其依赖的 `tests/tushare_jobs/test_mdp_reference_consumption.py` 两个 `_compare` 过渡期一致性测试一并删除。
-- `src/a_share_analysis/factor_tools/minute_factor_smoke.py`（1118 行，全仓最大）既是调试冒烟又是生产批下载器。拆成 `smoke`（调试）与 `batch_download`（生产）两个清晰入口。（待独立 PR）
+- 原 `minute_factor_smoke.py` 已在 PR #73 拆分为职责模块；PR #81 修复包边界问题，后续提交 `d6bb906` 清退了重复因子研究工具。原文件已不存在，不再作为当前待办。
 
-### 8. 补运维脚本 smoke 测试 ⬜
+### 8. 补运维脚本 smoke 测试 ✅
 `scripts/check_index_daily_freshness.py`、`scripts/check_mdp_reference_consistency.py`、`scripts/evening_review_pipeline.py`、`scripts/refresh_a_share_index_daily.py` 没有对应的 `*_script.py` smoke 测试，与现有 `refresh_daily_watch20.sh` 测试不对称。补 `bash -n` 加关键逻辑断言的 smoke 测试。
 
 进度（PR #51，2026-07-31）：已补 `refresh_a_share_index_daily.py` 的 smoke 测试（语法校验 + 纯函数与 `_self_check_index_daily` 断言），共 7 个用例。
@@ -96,7 +98,7 @@
 ### 10. 收敛裸 except 豁免 ⬜（低风险子集已完成）
 全仓 73 处 `# noqa` 中 57 处是 `BLE001`（裸 except Exception），集中在抓取层。逐步改为捕获具体异常并加日志，降低掩盖真实错误的风险。
 - 低风险子集已完成（PR #59）：纯本地 JSON/文件 IO 的 9 处（factor_observation×2、pipeline×3、deploy_check×2、minute_factor_smoke×1、stock_st×1）已收窄为 `(json.JSONDecodeError, OSError)` / `OSError`，消除 BLE001，控制流不变。
-- 其余约 46 处为 ETL 抓取层有意宽捕获（注释标明 hide provider token / network edge case / 多 provider 容错），收窄会泄漏密钥或破坏多上游容错，需按调用点逐个领域判断，留待后续独立处理。
+- 审计时估计约 46 处仍位于 ETL 抓取层，多为有意的多源容错；此数量是历史估算，不代表当前计数。是否收窄应按当前调用点逐一判断，避免泄漏密钥或破坏降级行为。
 
 ### 11. 忽略覆盖率产物 ✅
 核实结果：`.gitignore` 已有 `.coverage`、`.coverage.*`、`coverage.xml`（第 39 至 43 行），无需改动。本项实际已完成，无代码动作。
@@ -109,10 +111,10 @@
 | 2 | 覆盖率盲区 | 已完成 | #47 |
 | 3 | 跨仓契约检查不跳过 | 已完成（随 #54 子模块 checkout 解决） | #54 |
 | 4 | value_regime 单元测试 | 已完成 | #48 |
-| 5 | 兼容重导出层清理 | 主项完成（删壳 PR #57），3 个子项待独立 PR | #57 |
-| 6 | 高复杂度函数拆分 | 待做 | |
-| 7 | 过渡期脚本和双职责拆分 | 待做 | |
-| 8 | 运维脚本 smoke 测试 | 已完成（3/4 测试 + 1/4 走删除） | #51 #52 #53 |
+| 5 | 兼容重导出层清理 | 仍保留部分兼容导出；核对当前调用方后再定是否清理 | |
+| 6 | 高复杂度函数拆分 | 后续重构移除 C901 逐文件豁免；旧计数只作历史记录 | `9442993`, `66641f9` |
+| 7 | 过渡期脚本和双职责拆分 | 因子工具已拆分；旧实现后续清退 | #61 #73 #81 |
+| 8 | 运维脚本 smoke 测试 | 已完成（3/4 测试 + 1/4 走删除） | #51 #52 #53 #61 |
 | 9 | 脚本区 lint 豁免收敛 | 已完成 | #50 |
 | 10 | 裸 except 豁免收敛 | 低风险子集完成（9 处 PR #59），剩余 46 处待独立处理 | #59 |
 | 11 | 覆盖率产物忽略 | 已完成（无需改动） | |
@@ -131,4 +133,4 @@
 
 ## 整体结论
 
-主项目 ruff 全量零违规，模块边界清晰，文档化程度高。需注意：`ty check` 当前仍有 15 个未解决诊断（见 `code-quality-audit-findings.md`「整体评价」），类型门禁尚未真正达标。当前主要短板是覆盖率阈值偏低、完整测试未纳入远程门禁、`ty` 仍有存量诊断，以及少量过渡期兼容层长期沉淀。下一步建议优先补齐 `ty` 诊断，评估是否恢复完整远程测试，并继续拆分高复杂度函数。
+本文主体源自 2026-07-31 审计，诊断数量、覆盖率和文件清单是历史快照。当前 PR 与 main 质量门禁由 `public-quality.yml` 执行；历史上提出的缺失远程测试门禁已由该工作流覆盖。后续工作应从 CI 当前结果和仍存在的兼容包装、target fallback 及裸 except 个案出发，不能沿用旧审计总体结论。

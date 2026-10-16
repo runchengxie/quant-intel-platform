@@ -4,7 +4,9 @@
 
 This roadmap consolidates follow-up items from the 2026-07-31 code-quality audit and sits alongside `refactor-plan-etl-report.md`, which records completed file splits. It tracks plans and does not itself change code.
 
-Status: ✅ complete, ⬜ pending. Completed items include the merge PR and date where recorded. High-priority work protects core behavior from regressions. Medium-priority work removes transitional compatibility layers and complexity. Low-priority work adjusts configuration.
+Status: ✅ complete, ⬜ pending. Historical audit counts retain their original dates; current code and gates are authoritative.
+
+Reviewed 2026-10-16: later changes completed the complexity and factor-tool splits. Several paths and the overall assessment in the original audit are stale. The items below retain only follow-up work that still maps to current code.
 
 ## High priority
 
@@ -30,16 +32,16 @@ PR #48 added offline tests for `src/a_share_analysis/value_regime_weekly.py`, co
 
 ## Medium priority
 
-### 5. Compatibility re-export layers — main item ✅, three sub-items ⬜
+### 5. Compatibility re-export layers — some sub-items still need review
 
-- PR #57 removed the `src/a_share_daily/delivery/report_delivery.py` re-export shell. Forty-seven borrowed symbols now use explicit submodule calls. Five tests still patched the old shell and were subsequently fixed to patch `senders` or `state`.
+- Later changes split `report_delivery.py` responsibilities but retained some compatibility exports for callers and tests. Do not use the old “shell removed” conclusion; check current export usage before further cleanup.
 - Remove `_fetch_gemini_market_news` from `src/daily_messenger/etl/fetchers/ai_news.py` after Gemini callers migrate. It currently forwards to the same-named implementation for backward compatibility.
 - `src/a_share_daily/daily_watch20_validation/__init__.py` is empty while re-exports remain in `daily_watch20.py:31-58`. Either move the symbols back or add real package-level exports.
 - Remove `_legacy_chat_id()` from `src/a_share_daily/delivery/targets.py:107` only after confirming no real data source uses that fallback.
 
-### 6. Split high-complexity functions — ⬜
+### 6. Split high-complexity functions — ✅
 
-Twenty-three functions exceed McCabe complexity 15. The highest recorded values are:
+The original audit recorded 23 functions over McCabe complexity 15. Those counts and paths are a dated snapshot. Later complexity refactors, including commits `9442993` and `66641f9`, split the remaining C901 functions and removed per-file exemptions. Use the current PR gate and complexity budget; do not treat the list below as active work.
 
 | Function | Complexity |
 | --- | ---: |
@@ -50,10 +52,10 @@ Twenty-three functions exceed McCabe complexity 15. The highest recorded values 
 
 Continue splitting multi-branch rendering and multi-source fetch functions using the repository's existing C901 refactoring patterns.
 
-### 7. Remove transitional scripts and split dual-purpose files — ⬜ (7A complete)
+### 7. Remove transitional scripts and split dual-purpose files — ✅
 
 - PR #61 removed `scripts/check_mdp_reference_consistency.py` after the MDP migration and TuShare fallback removal made it obsolete. Its two transitional `_compare` tests were removed as well.
-- `src/a_share_analysis/factor_tools/minute_factor_smoke.py` (1,118 lines) still combines a debugging smoke tool and production batch downloader. Split it into distinct `smoke` and `batch_download` entry points in a separate change.
+- The former `minute_factor_smoke.py` was split into responsibility-focused modules in PR #73; PR #81 fixed the package boundary, and commit `d6bb906` later retired duplicate factor research tools. The original file no longer exists.
 
 ### 8. Smoke tests for operational scripts — ✅
 
@@ -91,12 +93,12 @@ The maintainability ratchet found 10 functions over 100 lines against a budget o
 | Coverage scope | Complete | #47 |
 | Cross-repository contract check | Complete via recursive submodule checkout | #54 |
 | `value_regime_weekly` unit tests | Complete | #48 |
-| Compatibility re-export cleanup | Main item complete; three sub-items pending | #57 |
-| High-complexity function splits | Pending | |
-| Transitional scripts and dual-purpose split | Pending | |
+| Compatibility re-export cleanup | Some compatibility exports remain; review callers before deciding whether to remove them | |
+| High-complexity function splits | Later refactors removed per-file C901 exemptions; old counts are historical | `9442993`, `66641f9` |
+| Transitional scripts and dual-purpose split | Factor tools split; duplicate legacy tools later retired | #61, #73, #81 |
 | Operational-script smoke tests | Complete: three tests, one obsolete script removed | #51, #52, #53, #61 |
 | Script lint exemptions | Complete | #50 |
-| Broad `except` cleanup | Nine low-risk cases complete; about 46 remain for domain review | #59 |
+| Broad `except` cleanup | Nine low-risk cases complete; the audit estimated about 46 for domain review; this is not a current count | #59 |
 | Coverage artifact ignores | Complete; no code change needed | |
 | Pre-existing test failures | Complete | #55 |
 | Complexity-rule exemptions | Ratchet in place; further reductions pending | |
@@ -107,4 +109,4 @@ The three submodules (`a-share-factor-core`, `ai-stock-picker`, and `hot-sector-
 
 ## Overall assessment
 
-The main project had zero Ruff violations and clear module boundaries at the time of this assessment. `ty check` still reported 15 unresolved diagnostics in `cli.py`, `news_heat.py`, `ai_selection_receipt.py`, `daily_watch20_delivery_receipt.py`, and `tushare_jobs/cli.py`; the type gate had not yet passed. The next priorities were resolving those diagnostics, reviewing the coverage threshold, and continuing complexity and compatibility cleanup. Check current CI output before treating these historical counts as current.
+This audit describes the repository as of 2026-07-31, with selected updates through 2026-09-08. Its diagnostic counts, coverage discussion, and module inventory are historical. The current `public-quality.yml` runs the repository quality gate on pull requests and pushes to `main`. Use current CI output and the remaining compatibility wrappers, delivery fallback, and broad exception sites to choose follow-up work; do not use the old overall assessment as the current project status.
