@@ -9,6 +9,8 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw, ImageFont
 
+from a_share_analysis.weekly_visual_facts import parse_weekly_facts
+from a_share_analysis.weekly_visual_panels import market_panel, visual_panels
 from a_share_daily.data import cjk_font_path
 
 WIDTH = 1200
@@ -68,16 +70,26 @@ def render_weekly_recap(
     cards = [_load_card(value_card)]
     if size_card is not None:
         cards.append(_load_card(size_card))
-    lines = [
-        wrapped
-        for item in report_highlights(report.read_text(encoding="utf-8"))
-        for wrapped in _wrap(item, font, WIDTH - 120)
-    ]
-    if not lines:
+    markdown = report.read_text(encoding="utf-8")
+    if not report_highlights(markdown):
         raise ValueError("weekly report has no current state or observation highlights")
-    footer = "历史统计区间有重叠，独立样本少于周数；研究观察，不构成交易建议。"
-    lines.extend(["", *_wrap(footer, font, WIDTH - 120)])
-    height = 160 + sum(card.height for card in cards) + 130 + len(lines) * 42
+    facts = parse_weekly_facts(markdown)
+    context = market_panel(facts, cjk_font_path())
+    panels = ([context] if context is not None else []) + cards
+    panels.extend(visual_panels(facts, cjk_font_path()))
+    if not facts.outcomes and not facts.methods and not facts.observations:
+        # Older minimal reports retain their qualitative state as a short label.
+        from a_share_analysis.weekly_visual_facts import WeeklyFacts
+        from a_share_analysis.weekly_visual_panels import observation_panel
+
+        fallback = observation_panel(
+            WeeklyFacts(observations=tuple(report_highlights(markdown))), cjk_font_path()
+        )
+        if fallback is not None:
+            panels.append(fallback)
+    footer = "历史区间有重叠，独立样本少于周数；研究观察，不构成交易建议。"
+    lines = _wrap(footer, font, WIDTH - 120)
+    height = 160 + sum(panel.height for panel in panels) + 45 + len(lines) * 36
     if height > MAX_HEIGHT:
         raise ValueError("weekly image exceeds readable delivery height")
     image = Image.new("RGB", (WIDTH, height), PAPER)
@@ -86,13 +98,12 @@ def render_weekly_recap(
     topics = "价值因子 / 大小盘风格" if size_card is not None else "价值因子"
     draw.text((60, 98), f"数据截至 {through} · {topics}", fill=INK, font=font)
     y = 160
-    for card in cards:
-        image.paste(card, (0, y))
-        y += card.height
-    draw.text((60, y + 25), "本期背景、状态与观察", fill=INK, font=title_font)
+    for panel in panels:
+        image.paste(panel, (0, y))
+        y += panel.height
     for line in lines:
-        y += 42
-        draw.text((60, y + 70), line, fill=INK, font=font)
+        draw.text((60, y + 15), line, fill=INK, font=font)
+        y += 36
     out.parent.mkdir(parents=True, exist_ok=True)
     image.save(out, format="PNG", optimize=True)
     if out.stat().st_size > MAX_BYTES:
