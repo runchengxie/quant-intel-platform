@@ -44,7 +44,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
-include = ["daily_messenger*", "tushare_jobs*", "ops_common*", "a_share_daily*", "a_share_analysis*", "market_intel_config*", "market_intel_commentary*", "market_intel_publication*", "research_contracts*"]
+include = ["daily_messenger*", "tushare_jobs*", "ops_common*", "a_share_daily*", "a_share_analysis*", "market_intel_config*", "market_intel_commentary*", "market_intel_publication*", "research_contracts*", "style_replica_bridge*"]
 
 [tool.setuptools.package-dir]
 "" = "src"
