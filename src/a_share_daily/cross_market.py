@@ -497,7 +497,38 @@ def _annotate_freshness(data: dict[str, Any], trade_date: str) -> dict[str, Any]
 
     if warnings:
         data["_freshness_warnings"] = sorted({str(item) for item in warnings})
+    _annotate_equity_errors(data, trade_date)
     return data
+
+
+def _annotate_equity_errors(data: dict[str, Any], trade_date: str) -> None:
+    """Expose per-symbol failures and dates independently of HTTP request success."""
+    import exchange_calendars as xcals
+
+    from .asia_session import MARKETS, _day
+
+    errors = list(data.get("errors") or [])
+    warnings = list(data.get("_freshness_warnings") or [])
+    equities = data.get("us_stocks") or {}
+    for symbol, row in equities.items():
+        if isinstance(row, dict) and row.get("error"):
+            errors.append(f"{symbol}: {row['error']}")
+    for calendar_name, symbol, _ in MARKETS.values():
+        row = equities.get(symbol)
+        if not isinstance(row, dict) or row.get("error"):
+            continue
+        calendar = xcals.get_calendar(calendar_name)
+        target = _day(trade_date)
+        expected = calendar.date_to_session(target, direction="previous")
+        as_of = str(row.get("as_of_date") or "")
+        if as_of != expected.strftime("%Y-%m-%d"):
+            warnings.append(
+                f"{symbol}: stale or missing observation date {as_of or 'unknown'}; "
+                f"expected {expected.strftime('%Y-%m-%d')}"
+            )
+    data["errors"] = sorted(set(errors))
+    if warnings:
+        data["_freshness_warnings"] = sorted(set(warnings))
 
 
 def _load_snapshot(trade_date: str) -> dict[str, Any] | None:
