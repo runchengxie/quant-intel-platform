@@ -63,7 +63,7 @@ Tests in this repository should focus on:
 - Report rendering, charts, dashboards, and audience isolation
 - Feishu idempotency, delivery receipts, and failure recovery
 - Scheduling and recovery logic that must not install or repair research-side timers
-- Deploy's `refresh_daily_watch20.sh` restoring official artifacts only through the installed `daily-watch20-owner` CLI; Deploy owns those script tests
+- Deploy's legacy bounded rollback bridge `refresh_daily_watch20.sh` restores official artifacts only through the installed `daily-watch20-owner` CLI. Deploy also owns the tests for the scheduled producer `refresh_daily_watch20_quant_research.sh`.
 
 Algorithm tests for minute factors, Hermite, rolling training, OOS, ablation, AI ranking, and shadow runs belong to `quant-research`; `market-intel` does not duplicate them.
 

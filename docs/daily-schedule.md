@@ -21,7 +21,7 @@
 
 | 时间 | 入口 | Owner 类型 | 作用 |
 | --- | --- | --- | --- |
-| 05:20 工作日 | `daily-watch20-producer.timer` → `refresh_daily_watch20_quant_research.sh` | Deploy 桥接 → quant-research | 检查输入和分钟级新鲜度，必要时补分钟数据，再调用已安装的 `daily-watch20-runtime` 发布产物，并用 `daily-watch20-owner freshness` 校验 |
+| 05:20 工作日 | `daily-watch20-producer.timer` → `refresh_daily_watch20_quant_research.sh` | Deploy 桥接 → quant-research | 先用 `daily-watch20-owner freshness` 预检指定日期的 all-market 产物；若已通过则直接结束，否则调用 `daily-watch20-runtime`，使用配置的数据根目录和分钟 overlay 运行并发布 |
 | 06:00 / 06:45 | `local-fetch-cross-market.timer` | market-intel | 刷新跨市场快照，第二次为较晚更新的数据源补抓 |
 | 06:40 工作日 | `a-share-morning-product-supervisor-preflight.timer` | market-intel | 检查正式 DailyWatch20/D11-H5 artifact 与同日恢复条件 |
 | 06:50 工作日 | `hermes-gateway-preflight.timer` | market-intel | Gateway inactive 时启动并复检，健康时 noop |
@@ -58,14 +58,14 @@ quant-market-data-platform data / report inputs
         ↓
 quant-intel-deploy: refresh_daily_watch20_quant_research.sh
         ↓
-quant-research: daily-watch20-runtime 生产 / daily-watch20-owner freshness 校验
+quant-research: daily-watch20-owner freshness 预检 → 不通过时运行 daily-watch20-runtime 发布
         ↓
 versioned DailyWatch20 artifact + selection_receipt
         ↓
 quant-intel-deploy bridge + quant-intel-platform: validate → render → delivery_receipt → Feishu
 ```
 
-`refresh_daily_watch20_quant_research.sh` 同时承担本机 minute quota、scheduler recovery 和部署环境桥接。它不得实现候选池算法、模型训练、Hermite 研究或 ablation。
+`refresh_daily_watch20_quant_research.sh` 接收 Deploy 配置的分钟配额和数据路径。systemd service 控制 producer 的有界重试，06:40 晨报 supervisor 检查同日恢复条件。该桥接本身不补分钟数据，也不实现候选池算法、模型训练、Hermite 研究或 ablation。
 
 news heat 是可选研究输入。owner runtime 在该日期的 artifact 已发布时消费它；Deploy 桥接不会生成该文件，也不会启动已退役的 `hot-sector-screener` 生产流程。
 

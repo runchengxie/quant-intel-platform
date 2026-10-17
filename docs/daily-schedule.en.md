@@ -21,7 +21,7 @@ Production schedules and bridge scripts are maintained in `quant-intel-deploy`. 
 
 | Time | Entry point | Owner | Purpose |
 | --- | --- | --- | --- |
-| Weekdays 05:20 | `daily-watch20-producer.timer` → `refresh_daily_watch20_quant_research.sh` | Deploy bridge → quant-research | Check inputs and minute-data freshness, backfill if needed, then call installed `daily-watch20-runtime` to publish the artifact and `daily-watch20-owner freshness` to validate it |
+| Weekdays 05:20 | `daily-watch20-producer.timer` → `refresh_daily_watch20_quant_research.sh` | Deploy bridge → quant-research | Preflight the exact-date all-market artifact with `daily-watch20-owner freshness` and exit if it already passes; otherwise run `daily-watch20-runtime` with the configured data root and minute overlays to publish |
 | 06:00 / 06:45 | `local-fetch-cross-market.timer` | market-intel | Refresh cross-market snapshots; the second run retries later-updating sources |
 | Weekdays 06:40 | `a-share-morning-product-supervisor-preflight.timer` | market-intel | Check official DailyWatch20/D11-H5 artifacts and same-day recovery conditions |
 | Weekdays 06:50 | `hermes-gateway-preflight.timer` | market-intel | Start and recheck an inactive Gateway; no-op when healthy |
@@ -48,14 +48,14 @@ market-data-platform data / report inputs
         ↓
 quant-intel-deploy: refresh_daily_watch20_quant_research.sh
         ↓
-quant-research: daily-watch20-runtime producer / daily-watch20-owner freshness
+quant-research: daily-watch20-owner freshness preflight → run daily-watch20-runtime only when needed
         ↓
 versioned DailyWatch20 artifact + selection_receipt
         ↓
 quant-intel-deploy bridge + quant-intel-platform: validate → render → delivery_receipt → Feishu
 ```
 
-`refresh_daily_watch20_quant_research.sh` bridges local minute-data quotas, scheduler recovery, and deployment environments. It must not implement candidate-pool algorithms, model training, Hermite research, or ablation. News heat is optional: the owner runtime consumes the requested-date artifact when available; this bridge does not build it or launch the retired `hot-sector-screener` producer.
+`refresh_daily_watch20_quant_research.sh` receives its minute-quota settings and data paths from Deploy. The systemd service controls bounded retries, and the 06:40 morning supervisor checks same-day recovery conditions. This bridge does not backfill minute data or implement candidate-pool algorithms, model training, Hermite research, or ablation. News heat is optional: the owner runtime consumes the requested-date artifact when available; this bridge does not build it or launch the retired `hot-sector-screener` producer.
 
 ## Delivery windows and recovery
 

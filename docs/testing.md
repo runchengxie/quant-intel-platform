@@ -64,7 +64,7 @@ GitHub Actions 在 PR 和 `main` 推送时运行完整代码质量门禁，不�
 - 报告渲染、图表、看板与受众隔离
 - 飞书幂等、投递回执和失败恢复
 - 调度与恢复逻辑不会安装或修复研究侧定时器
-- Deploy 的 `refresh_daily_watch20.sh` 只通过已安装的 `daily-watch20-owner` CLI 恢复正式 artifact，其脚本测试由 Deploy 维护。
+- Deploy 的旧版有界回滚桥接 `refresh_daily_watch20.sh` 只通过已安装的 `daily-watch20-owner` CLI 恢复正式 artifact，其脚本测试由 Deploy 维护；当前调度 producer `refresh_daily_watch20_quant_research.sh` 的测试也由 Deploy 维护。
 
 分钟因子研究、Hermite、滚动训练、OOS、消融、AI 排名和影子运行等算法测试归 `quant-research` 负责，market-intel 不保留重复测试。
 
