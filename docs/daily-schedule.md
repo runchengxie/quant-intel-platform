@@ -2,15 +2,15 @@
 
 # Market Intel 日内调度时间表
 
-本文记录 `market-intel` 当前负责的报告、投递、数据准备和恢复任务。研究算法、因子实验、消融和策略生产逻辑由 `quant-research`、`quant-platform` 和 `strategy-pipeline` 负责。本仓只在必要时通过公开 CLI 恢复正式 artifact。
+本文记录 `market-intel` 当前负责的报告、投递、数据准备和恢复任务。研究算法、因子实验、消融和策略生产逻辑由 `quant-research` 和 `quant-platform` 负责。本仓只在必要时通过公开 CLI 恢复正式 artifact。
 
-生产调度和桥接脚本由 `quant-intel-deploy` 维护。下表描述已部署的工作流；桥接脚本命令应在 `quant-intel-deploy` checkout 中运行，不能在本仓运行。
+生产调度和桥接脚本由 `quant-intel-deploy` 维护。下表记录仓库中的 timer 定义和预期工作流，不能据此判断某台主机是否已启用 timer。桥接脚本命令应在 `quant-intel-deploy` checkout 中运行，不能在本仓运行。
 
 ## 设计原则
 
 1. 报告发送优先消费已经发布并通过日期/hash/schema 门禁的 artifact。
 2. `market-intel` 不复制研究模型，也不通过旧 submodule 生成候选池或 AI 排名。
-3. DailyWatch20 的策略由 `strategy-pipeline` / `strategy-app` 负责。本仓 05:20 的 producer 只负责调用公开 CLI。
+3. DailyWatch20 策略由 `quant-research`（`strategy_app.daily_watch20`）负责。生产桥接调用已安装的 owner CLI，不实现策略逻辑。
 4. 19:00 晚报前完成当日报告所需的数据刷新。19:00 后只做回填、次日早报和数据质量修复。
 5. Gateway 自愈由 Gateway 外部的 systemd timer 执行。
 6. freshness 以业务日期和 artifact receipt 为准，不以进程退出码代替。
@@ -21,7 +21,7 @@
 
 | 时间 | 入口 | Owner 类型 | 作用 |
 | --- | --- | --- | --- |
-| 05:20 工作日 | `daily-watch20-producer.timer` → `refresh_daily_watch20.sh` | 运维桥 → strategy-pipeline | 检查 DailyWatch20 输入和分钟级新鲜度，必要时补分钟数据，再调用 `strategy watchlist20 run/freshness` 发布正式 artifact |
+| 05:20 工作日 | `daily-watch20-producer.timer` → `refresh_daily_watch20_quant_research.sh` | Deploy 桥接 → quant-research | 检查输入和分钟级新鲜度，必要时补分钟数据，再调用已安装的 `daily-watch20-runtime` 发布产物，并用 `daily-watch20-owner freshness` 校验 |
 | 06:00 / 06:45 | `local-fetch-cross-market.timer` | market-intel | 刷新跨市场快照，第二次为较晚更新的数据源补抓 |
 | 06:40 工作日 | `a-share-morning-product-supervisor-preflight.timer` | market-intel | 检查正式 DailyWatch20/D11-H5 artifact 与同日恢复条件 |
 | 06:50 工作日 | `hermes-gateway-preflight.timer` | market-intel | Gateway inactive 时启动并复检，健康时 noop |
@@ -56,16 +56,18 @@
 ```text
 quant-market-data-platform data / report inputs
         ↓
-strategy-pipeline: strategy watchlist20 freshness/run
+quant-intel-deploy: refresh_daily_watch20_quant_research.sh
+        ↓
+quant-research: daily-watch20-runtime 生产 / daily-watch20-owner freshness 校验
         ↓
 versioned DailyWatch20 artifact + selection_receipt
         ↓
-market-intel: validate → render → delivery_receipt → Feishu
+quant-intel-deploy bridge + quant-intel-platform: validate → render → delivery_receipt → Feishu
 ```
 
-`refresh_daily_watch20.sh` 仍位于本仓，是因为它同时承担本机 minute quota、scheduler recovery 和部署环境桥接。它不得实现候选池算法、模型训练、Hermite 研究或 ablation。
+`refresh_daily_watch20_quant_research.sh` 同时承担本机 minute quota、scheduler recovery 和部署环境桥接。它不得实现候选池算法、模型训练、Hermite 研究或 ablation。
 
-news heat 是可选研究输入。若指定日期的 artifact 已存在就直接消费。缺失时，market-intel 按 strategy-pipeline 的可选输入规则继续运行，不启动 `hot-sector-screener` 重建。
+news heat 是可选研究输入。owner runtime 在该日期的 artifact 已发布时消费它；Deploy 桥接不会生成该文件，也不会启动已退役的 `hot-sector-screener` 生产流程。
 
 ## 晨报发送窗口
 
@@ -115,8 +117,10 @@ DailyWatch20 正式 artifact 需要恢复时：
 
 ```bash
 WATCHLIST20_SOURCE_DATE=YYYYMMDD WATCHLIST20_SIGNAL_DATE=YYYYMMDD \
-  bash scripts/refresh_daily_watch20.sh
+  bash scripts/refresh_daily_watch20_quant_research.sh
 ```
+
+该桥接可能发布正式 production artifact。仅在明确授权的恢复操作中运行；安装 owner CLI 本身不代表可以恢复已暂停的策略。
 
 只校验/投递已经发布的正式 DailyWatch20：
 
