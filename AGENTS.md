@@ -137,7 +137,8 @@ Platform Pages workflow 只构建 MkDocs 文档与根路径日报重定向。日
 
 ## Worktree-first 目录规范
 
-开发和实验使用 `/home/richard/code/.worktrees/` 下的独立 worktree。日报、周报、投递和恢复
+`CODE_ROOT` 按工作区已明确配置的环境变量或机器配置解析，不假定开发者的 home 目录。
+开发和实验使用 `CODE_ROOT/.worktrees/` 下的独立 worktree。日报、周报、投递和恢复
 任务必须使用稳定的生产检出路径，不得依赖会被清理的开发 worktree。当前生产路径由部署环境
 通过 `MARKET_INTEL_ROOT`、`DATA_PLATFORM_ROOT`、`MDP_DIR` 和 `QUANT_RESEARCH_ROOT`
 显式提供。运行数据、报告产物、receipt、缓存和日志放在仓库外。路径迁移后必须 reload
@@ -151,7 +152,7 @@ worktree 和任务分支，明确文件与仓库责任范围，不得共用检�
 另一份独立实现，也不擅自更新其他工作区或父仓库的 gitlink。
 
 1. 先运行 `git fetch origin`，再从本次获取的 `origin/main` 创建任务分支和独立
-   worktree。worktree 放在仓库外的 `/home/richard/code/.worktrees/`，名称应包含
+   worktree。worktree 放在仓库外的 `CODE_ROOT/.worktrees/`，名称应包含
    仓库、任务和 agent 标识。分支遵守本仓现有命名限制，例如 `fix/<task-agent>`。
    不复用其他任务或 agent 的分支、worktree，不在主检出目录或 `main` 上编辑、提交。
 2. 只在任务 worktree 中修改授权范围内的文件，保留既有指令和他人的修改。提交前检查
