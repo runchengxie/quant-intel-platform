@@ -53,7 +53,7 @@ def test_holiday_receipt_with_stale_open_quote_is_rejected(tmp_path):
 
 def holiday_payload():
     return {
-        "schema_version": "market_intel.asia_evening.v1",
+        "schema_version": "market_intel.asia_evening.v2",
         "date": "20261005",
         "generated_at": "2026-10-05T10:00:00+00:00",
         "markets": {
@@ -64,7 +64,10 @@ def holiday_payload():
                 "status": "open",
                 "observation_date": "2026-10-05",
                 "close": 25000.0,
-                "change_pct": 1.0,
+                "change_pct": 0.0,
+                "previous_session": "2026-10-02",
+                "previous_close": 25000.0,
+                "retrieved_at": "2026-10-05T09:00:00+00:00",
                 "source_url": "https://finance.yahoo.com/quote/^HSI/history/",
                 "source_time": "2026-10-05T08:00:00+00:00",
                 "evidence_id": "asia.close." + "a" * 64,
@@ -77,4 +80,17 @@ def test_missing_session_calendar_cannot_fall_back_to_a_share_review(tmp_path):
     data, calendar, snapshots, owner = inputs(tmp_path)
     calendar.unlink()
     with pytest.raises(ValueError, match="calendar"):
+        refresh_reports(RefreshRequest(owner, data, snapshots, tmp_path / "out", "2026-10-05"))
+
+
+def test_legacy_receipt_cannot_claim_close_before_generation(tmp_path):
+    data, _calendar, snapshots, owner = inputs(tmp_path)
+    payload = holiday_payload()
+    payload["schema_version"] = "market_intel.asia_evening.v1"
+    payload["markets"]["HK"].pop("retrieved_at")
+    payload["generated_at"] = "2026-10-05T07:00:00+00:00"
+    receipt = data / "reports/market-intel/asia_evening/20261005.json"
+    receipt.parent.mkdir(parents=True)
+    receipt.write_text(json.dumps(payload))
+    with pytest.raises(ValueError, match="legacy.*provenance"):
         refresh_reports(RefreshRequest(owner, data, snapshots, tmp_path / "out", "2026-10-05"))

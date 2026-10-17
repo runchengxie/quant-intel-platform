@@ -41,13 +41,14 @@ GLOBAL_LEAD_LAG_INSTRUMENTS: tuple[LeadLagInstrument, ...] = (
     ),
 )
 
-BENCHMARK_SYMBOLS: tuple[str, ...] = ("SPY", "QQQ", "SMH", "^N225", "^KS11")
+BENCHMARK_SYMBOLS: tuple[str, ...] = ("SPY", "QQQ", "SMH", "^HSI", "^N225", "^KS11")
 
 # Index label mapping for display
 INDEX_LABELS: dict[str, str] = {
     "SPY": "标普500 ETF",
     "QQQ": "纳斯达克100 ETF",
     "SMH": "费城半导体 ETF",
+    "^HSI": "恒生指数",
     "^N225": "日经225",
     "^KS11": "韩国KOSPI",
 }

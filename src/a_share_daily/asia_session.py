@@ -72,12 +72,43 @@ def session_status(calendar_path: Path, date: str) -> dict[str, bool]:
     return session_rows(calendar_path, date, date)[0]["markets"]
 
 
+class QuoteUnavailable(ValueError):
+    """Safe diagnostic metadata without provider exception text."""
+
+    def __init__(self, code: str, observed: str = "unknown", expected: str = "unknown"):
+        super().__init__(code)
+        self.code = code
+        self.observed = observed
+        self.expected = expected
+
+
+def _diagnostic_date(value: object) -> str:
+    try:
+        return _day(str(value)).strftime("%Y-%m-%d")
+    except ValueError:
+        return "unknown"
+
+
+def _quote_error(quote: dict, code: str, day: pd.Timestamp) -> QuoteUnavailable:
+    return QuoteUnavailable(
+        code,
+        _diagnostic_date(quote.get("observed_date", quote.get("date", "unknown"))),
+        _diagnostic_date(quote.get("expected_date", day.strftime("%Y-%m-%d"))),
+    )
+
+
 def _fetch_quotes(day: pd.Timestamp, markets: dict[str, bool]) -> dict:
     import yfinance as yf
 
     quotes = {}
-    for key, (_, symbol, _) in MARKETS.items():
+    for key, (calendar_name, symbol, _) in MARKETS.items():
         if not markets[key]:
+            continue
+        # A daily bar fetched before close can still be intraday even if
+        # other requests finish after close. Never issue that request early.
+        started = datetime.now(UTC)
+        if started < xcals.get_calendar(calendar_name).session_close(day):
+            quotes[key] = {"error": "not_closed_at_request", "reason_code": "not_closed_at_request"}
             continue
         try:
             frame = yf.Ticker(symbol).history(
@@ -85,16 +116,39 @@ def _fetch_quotes(day: pd.Timestamp, markets: dict[str, bool]) -> dict:
                 end=(day.to_pydatetime() + timedelta(days=1)).strftime("%Y-%m-%d"),
                 auto_adjust=False,
             )
-            expected_previous = xcals.get_calendar(MARKETS[key][0]).previous_session(day)
-            if len(frame) >= 2 and _day(frame.index[-2].strftime("%Y%m%d")) == expected_previous:
-                quotes[key] = {
-                    "date": frame.index[-1].strftime("%Y%m%d"),
-                    "close": float(frame.Close.iloc[-1]),
-                    "previous_close": float(frame.Close.iloc[-2]),
-                }
-        except Exception:  # noqa: BLE001, S112 - preserve observations from other markets
-            continue
+            # Daily-bar timestamps label local session opens, not publication times.
+            dates = _validated_bar_dates(frame, calendar_name, day)
+            quotes[key] = {
+                "date": dates[-1].strftime("%Y%m%d"),
+                "previous_date": dates[-2].strftime("%Y%m%d"),
+                "close": float(frame.Close.iloc[-1]),
+                "previous_close": float(frame.Close.iloc[-2]),
+                "retrieved_at": datetime.now(UTC).isoformat(),
+            }
+        except Exception as exc:  # noqa: BLE001 - isolate each independent source
+            code = exc.code if isinstance(exc, QuoteUnavailable) else "source_request_failed"
+            quotes[key] = {"error": code, "reason_code": code}
+            if isinstance(exc, QuoteUnavailable):
+                quotes[key].update(observed_date=exc.observed, expected_date=exc.expected)
     return quotes
+
+
+def _validated_bar_dates(frame: pd.DataFrame, calendar_name: str, day: pd.Timestamp) -> list:
+    calendar = xcals.get_calendar(calendar_name)
+    if len(frame) < 2 or not isinstance(frame.index, pd.DatetimeIndex) or frame.index.tz is None:
+        raise QuoteUnavailable("incomplete_bars_or_timezone", expected=day.strftime("%Y-%m-%d"))
+    dates = [_day(value.tz_convert(calendar.tz).strftime("%Y%m%d")) for value in frame.index]
+    if dates[-1] != day:
+        raise QuoteUnavailable(
+            "stale_session", dates[-1].strftime("%Y-%m-%d"), day.strftime("%Y-%m-%d")
+        )
+    if dates[-2] != calendar.previous_session(day) or len(set(dates)) != len(dates):
+        raise QuoteUnavailable(
+            "preceding_session_missing_or_duplicate",
+            dates[-2].strftime("%Y-%m-%d"),
+            calendar.previous_session(day).strftime("%Y-%m-%d"),
+        )
+    return dates
 
 
 def _valid_price(value: object) -> bool:
@@ -114,6 +168,9 @@ def _observation(key: str, day: pd.Timestamp, quote: dict) -> dict:
     close, previous = float(quote["close"]), float(quote["previous_close"])
     if not all(math.isfinite(value) and value > 0 for value in (close, previous)):
         raise ValueError("quote prices invalid")
+    change_pct = (close / previous - 1) * 100
+    if not math.isfinite(change_pct):
+        raise ValueError("quote return invalid")
     calendar_name, symbol, _ = MARKETS[key]
     calendar = xcals.get_calendar(calendar_name)
     source_time = calendar.session_close(day).isoformat()
@@ -126,12 +183,186 @@ def _observation(key: str, day: pd.Timestamp, quote: dict) -> dict:
     return {
         "status": "open",
         "observation_date": day.strftime("%Y-%m-%d"),
+        "source_time_kind": "exchange_session_close",
         "close": close,
-        "change_pct": (close / previous - 1) * 100,
+        "change_pct": change_pct,
         "source_url": source_url,
         "source_time": source_time,
         "evidence_id": f"asia.close.{evidence}",
     }
+
+
+INDEX_NAMES = {"HK": "恒生指数", "JP": "日经225", "KR": "KOSPI"}
+
+
+def _validate_quote_session(
+    quote: dict, calendar_name: str, day: pd.Timestamp, current: datetime
+) -> None:
+    if "error" in quote:
+        raise _quote_error(quote, str(quote.get("reason_code", "source_request_failed")), day)
+    if _day(str(quote.get("date", ""))) != day:
+        raise _quote_error(quote, "stale_session", day)
+    previous_date = str(quote.get("previous_date", ""))
+    calendar = xcals.get_calendar(calendar_name)
+    if _day(previous_date) != calendar.previous_session(day):
+        raise _quote_error(quote, "preceding_session_missing", day)
+    retrieved = datetime.fromisoformat(quote.get("retrieved_at", ""))
+    if retrieved.tzinfo is None or retrieved < calendar.session_close(day) or retrieved > current:
+        raise _quote_error(quote, "retrieval_before_close_or_invalid", day)
+
+
+def _missing_diagnostic(row: dict, symbol: str, issue: QuoteUnavailable) -> str:
+    row.update(reason_code=issue.code, observed_date=issue.observed, expected_date=issue.expected)
+    return f"{symbol}: {issue.code}; observed={issue.observed}; expected={issue.expected}"
+
+
+def build_asia_report(
+    calendar_path: Path, date: str, *, quotes: dict | None = None, now: datetime | None = None
+) -> dict:
+    """Build the same independently dated facts for ordinary and CN-holiday reports."""
+    day = _day(date)
+    current = now or datetime.now(UTC)
+    if current.tzinfo is None:
+        raise ValueError("observation clock must include timezone")
+    markets = session_status(calendar_path, date)
+    supplied = _fetch_quotes(day, markets) if quotes is None else quotes
+    current = now or datetime.now(UTC)
+    observations: dict[str, Any] = {
+        "CN": {"status": "open" if markets["CN"] else "closed", "observation_date": None}
+    }
+    errors = []
+    for key, (calendar_name, symbol, _) in MARKETS.items():
+        row: dict[str, Any] = {"status": "closed", "observation_date": None}
+        if markets[key]:
+            close_time = xcals.get_calendar(calendar_name).session_close(day)
+            row["status"] = "pending" if current < close_time else "missing"
+            if row["status"] == "missing":
+                quote = supplied.get(key, {})
+                try:
+                    _validate_quote_session(quote, calendar_name, day, current)
+                    row = _observation(key, day, quote)
+                    row["previous_session"] = _day(quote["previous_date"]).strftime("%Y-%m-%d")
+                    row["previous_close"] = quote["previous_close"]
+                    row["retrieved_at"] = quote["retrieved_at"]
+                except QuoteUnavailable as exc:
+                    errors.append(_missing_diagnostic(row, symbol, exc))
+                except (ValueError, KeyError, TypeError):
+                    errors.append(
+                        _missing_diagnostic(
+                            row, symbol, _quote_error(quote, "incomplete_quote", day)
+                        )
+                    )
+        observations[key] = row
+    return {
+        "schema_version": "market_intel.asia_evening.v2",
+        "date": day.strftime("%Y%m%d"),
+        "generated_at": current.isoformat(),
+        "markets": observations,
+        "errors": errors,
+    }
+
+
+def validate_asia_report(payload: dict, date: str, markets: dict[str, bool]) -> None:
+    if (
+        payload.get("schema_version") != "market_intel.asia_evening.v2"
+        or payload.get("date") != _day(date).strftime("%Y%m%d")
+        or set(payload.get("markets", {})) != set(markets)
+    ):
+        raise ValueError("Asia report identity or coverage invalid")
+    generated = datetime.fromisoformat(payload["generated_at"])
+    if generated.tzinfo is None or generated > datetime.now(UTC):
+        raise ValueError("Asia report timestamp invalid")
+    for key in MARKETS:
+        row = payload["markets"][key]
+        status = row.get("status")
+        if status == "open" and markets[key]:
+            _validate_observation(row, date, key)
+            _validate_previous_observation(row, date, key)
+            retrieved = datetime.fromisoformat(row["retrieved_at"])
+            if (
+                retrieved.tzinfo is None
+                or retrieved < datetime.fromisoformat(row["source_time"])
+                or retrieved > generated
+            ):
+                raise ValueError("observation retrieval before close or invalid")
+            if datetime.fromisoformat(row["source_time"]) > generated:
+                raise ValueError("observation precedes actual close")
+        elif status in (("missing", "pending") if markets[key] else ("closed",)):
+            if row.get("observation_date") is not None or any(
+                field in row for field in ("close", "change_pct")
+            ):
+                raise ValueError("unavailable market contains stale quotes")
+            if status == "pending" and generated >= xcals.get_calendar(
+                MARKETS[key][0]
+            ).session_close(_day(date)):
+                raise ValueError("pending market already closed")
+        else:
+            raise ValueError("market status invalid")
+
+
+def _validate_previous_observation(row: dict, date: str, key: str) -> None:
+    previous = xcals.get_calendar(MARKETS[key][0]).previous_session(_day(date))
+    if row.get("previous_session") != previous.strftime("%Y-%m-%d") or not _valid_price(
+        row.get("previous_close")
+    ):
+        raise ValueError("preceding observation invalid")
+    expected = (row["close"] / row["previous_close"] - 1) * 100
+    if not math.isfinite(expected) or not math.isclose(row["change_pct"], expected):
+        raise ValueError("observation return differs from preceding close")
+
+
+def expire_pending_observations(payload: dict, *, now: datetime | None = None) -> None:
+    """An earlier pending receipt cannot describe an already closed market as pending."""
+    current = now or datetime.now(UTC)
+    for key, (calendar_name, symbol, _) in MARKETS.items():
+        row = payload["markets"][key]
+        if row["status"] == "pending" and current >= xcals.get_calendar(
+            calendar_name
+        ).session_close(_day(payload["date"])):
+            row["status"] = "missing"
+            diagnostic = _missing_diagnostic(
+                row,
+                symbol,
+                QuoteUnavailable(
+                    "expired_pending", expected=_day(payload["date"]).strftime("%Y-%m-%d")
+                ),
+            )
+            payload.setdefault("errors", []).append(diagnostic)
+
+
+def render_asia_overview(payload: dict) -> str:
+    """Six-column public module; unavailable markets never borrow stale values."""
+    lines = [
+        "### 亚洲市场概览",
+        "",
+        "| 市场 | 指数 | 数据日期 | 收盘 | 涨跌幅 | 状态 |",
+        "| --- | --- | --- | --- | --- | --- |",
+    ]
+    for key, (_, _, label) in MARKETS.items():
+        row = payload["markets"][key]
+        if row["status"] == "open":
+            _validate_observation(row, payload["date"], key)
+            lines.append(
+                f"| {label} | {INDEX_NAMES[key]} | {row['observation_date']} | "
+                f"{row['close']:.2f} | {row['change_pct']:+.2f}% | 已收盘 |"
+            )
+        else:
+            status = {"closed": "休市", "missing": "当日数据缺失", "pending": "未收盘"}[
+                row["status"]
+            ]
+            lines.append(f"| {label} | {INDEX_NAMES[key]} | — | — | — | {status} |")
+    lines.append("")
+    for key, (_, _, label) in MARKETS.items():
+        row = payload["markets"][key]
+        if row["status"] == "open":
+            lines.append(
+                f"- [{label}收盘数据]({row['source_url']})；{row['source_time']}；"
+                f"证据：`{row['evidence_id']}`"
+            )
+    lines.extend(["", "来源时间为交易所日历规定的实际收盘时间；日线时间戳仅标识当地交易日。"])
+    if payload.get("errors"):
+        lines.append("数据警告：" + "；".join(payload["errors"]))
+    return "\n".join(lines) + "\n"
 
 
 def build_holiday_report(calendar_path: Path, date: str, *, quotes: dict | None = None) -> dict:
@@ -222,33 +453,9 @@ def _validate_observation(row: dict, date: str, key: str) -> None:
 
 
 def render_holiday_report(payload: dict) -> str:
-    lines = [
-        f"# 亚洲市场收盘复盘（{payload['date']}）",
-        "",
-        "A 股今日休市。",
-        "",
-        "| 市场 | 状态 | 收盘 | 涨跌幅 |",
-        "| --- | --- | --- | --- |",
-    ]
-    for key, row in payload["markets"].items():
-        label = "A 股" if key == "CN" else MARKETS[key][2]
-        if row["status"] == "open":
-            lines.append(
-                f"| {label} | {row['observation_date']} | {row['close']:.2f} "
-                f"| {row['change_pct']:+.2f}% |"
-            )
-        else:
-            lines.append(
-                f"| {label} | {'休市' if row['status'] == 'closed' else '当日数据缺失'} | — | — |"
-            )
-    lines.extend(["", "## 数据来源", ""])
-    for key, row in payload["markets"].items():
-        if row["status"] == "open":
-            lines.append(
-                f"- [{MARKETS[key][2]}收盘数据]({row['source_url']})；{row['source_time']}；"
-                f"证据：`{row['evidence_id']}`"
-            )
-    return "\n".join(lines) + "\n"
+    return f"# 亚洲市场收盘复盘（{payload['date']}）\n\nA 股今日休市。\n\n" + render_asia_overview(
+        payload
+    )
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -269,11 +476,17 @@ def main(argv: list[str] | None = None) -> int:
             print(json.dumps(markets))
             return 20
         if args.report_output:
-            payload = build_holiday_report(args.calendar, args.date)
+            payload = build_asia_report(args.calendar, args.date)
             args.report_output.mkdir(parents=True, exist_ok=True)
             for suffix, content in (
                 ("json", json.dumps(payload, ensure_ascii=False, indent=2) + "\n"),
-                ("md", render_holiday_report(payload)),
+                (
+                    "md",
+                    render_holiday_report(payload)
+                    if not markets["CN"]
+                    else f"# 亚洲市场收盘复盘（{payload['date']}）\n\n"
+                    + render_asia_overview(payload),
+                ),
             ):
                 target = args.report_output / f"{payload['date']}.{suffix}"
                 staging = target.with_suffix(f".{suffix}.tmp")

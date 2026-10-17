@@ -133,7 +133,7 @@ def test_fetch_quotes_refuses_multisession_return(monkeypatch):
     quotes = asia_session._fetch_quotes(
         pd.Timestamp("2026-10-05"), {"CN": False, "HK": True, "JP": False, "KR": False}
     )
-    assert quotes == {}
+    assert "error" in quotes["HK"]
 
 
 @pytest.mark.parametrize("price", [True, "27000", float("inf"), float("nan")])

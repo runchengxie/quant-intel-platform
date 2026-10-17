@@ -169,24 +169,41 @@ def is_a_share_session(run: OwnerRun) -> bool:
 
 
 def evening_markdown(run: OwnerRun) -> str:
-    if not is_a_share_session(run):
-        from .asia_session import render_holiday_report, session_status, validate_holiday_report
+    from .asia_session import (
+        build_asia_report,
+        expire_pending_observations,
+        render_asia_overview,
+        render_holiday_report,
+        session_status,
+        validate_asia_report,
+        validate_holiday_report,
+    )
 
-        data_root = Path(run.env["DATA_PLATFORM_ROOT"])
-        calendar = data_root / "assets/tushare/a_share/trade_cal/a_share_trade_cal_latest.parquet"
-        markets = session_status(calendar, run.date)
-        path = data_root / "reports/market-intel/asia_evening" / f"{run.date}.json"
+    opened = is_a_share_session(run)
+    data_root = Path(run.env["DATA_PLATFORM_ROOT"])
+    calendar = data_root / "assets/tushare/a_share/trade_cal/a_share_trade_cal_latest.parquet"
+    markets = session_status(calendar, run.date)
+    path = data_root / "reports/market-intel/asia_evening" / f"{run.date}.json"
+    if path.is_file():
         payload = read_object(path, "dated Asia evening facts")
-        validate_holiday_report(payload, run.date, markets)
-        (run.stage / "asia_evening.json").write_text(
-            json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-        )
+        if payload.get("schema_version") == "market_intel.asia_evening.v1":
+            validate_holiday_report(payload, run.date, markets)
+            raise ValueError("legacy Asia facts lack verified close provenance; rebuild v2")
+        validate_asia_report(payload, run.date, markets)
+    else:
+        payload = build_asia_report(calendar, run.date)
+    expire_pending_observations(payload)
+    (run.stage / "asia_evening.json").write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    if not opened:
         return render_holiday_report(payload)
     facts = run.call("evening", ["--date", run.date, "--json"], "evening_review.json")
     validate_evening(read_object(facts, "evening JSON"), run.date)
-    return run.call("evening", ["--date", run.date], "evening_review.md").read_text(
+    review = run.call("evening", ["--date", run.date], "evening_review.md").read_text(
         encoding="utf-8"
     )
+    return review.rstrip() + "\n\n" + render_asia_overview(payload)
 
 
 def validate_morning(payload: dict, date: str) -> None:
