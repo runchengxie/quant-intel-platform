@@ -20,7 +20,7 @@ The daily-report framework is a code contract: Python and shell pipelines define
 | --- | --- | --- | --- |
 | Full A-share daily data, money flow, concepts, margin data, indices, and historical backtest inputs | `market-data-platform` | Read-only access under `DATA_PLATFORM_ROOT/assets/tushare/a_share/` | No full-dataset retrieval during report generation |
 | ETF rotation/hot-sector raw inputs | `market-data-platform` | Subprojects read from `DATA_PLATFORM_ROOT` | Must not write back to the data lake |
-| DailyWatch20 candidate pool, strategy calculations, and formal artifacts | `quant-research` / `strategy-pipeline` | Read and validate through `WATCHLIST20_ROOT` | Owner publishes; `market-intel` does not recompute |
+| DailyWatch20 candidate pool, strategy calculations, and formal artifacts | `quant-research` (`strategy_app.daily_watch20`) | Read and validate through `WATCHLIST20_ROOT`; Deploy owns the production bridge and scheduling | Owner publishes; `market-intel` does not recompute |
 | Cross-market snapshots for US/Japan/Korea, commodities, macro, and sentiment | `market-intel` | `data-snapshots/cross-market/` and `latest/` | Fallback is allowed when a snapshot is missing, and the snapshot is refreshed |
 | Lightweight TuShare snapshots | `market-intel` | `data-snapshots/tushare/` for backups and portable environments | Scheduled lightweight retrieval from GitHub Actions is allowed |
 | GLM/Aliyun/Gemini market news | `market-intel` | Consume structured `items[]` with `title/source/url/published_at/summary` | Online search is allowed; invalid items are skipped |
@@ -86,7 +86,7 @@ Observation dates come from the corresponding data partition or US close row, no
 
 The production bridge entry point is `scripts/morning_pipeline.sh` in `quant-intel-deploy`. It invokes the installed public CLI and owner tools; the report framework and its tests are maintained in this repository.
 
-1. `daily_watch20_delivery.sh` validates and sends the `strategy-pipeline` DailyWatch20 artifact. Failure does not block later reports.
+1. Deploy's `daily_watch20_delivery.sh` calls the installed `daily-watch20-owner freshness --mode delivery` command to validate the formal `quant-research` artifact, then Platform renders and delivers it. Failure does not block later reports.
 2. `a_share_daily.d11_h5_shadow_delivery` consumes only owner-published research artifacts. The old AI-picks entry remains an explicit manual compatibility call and is not part of default scheduling.
 3. News JSON is empty by default. `fetch_ai_market_news.py` runs only when `MORNING_ENABLE_AI_NEWS=1`.
 4. `a-share-daily morning` builds the deterministic manifest.

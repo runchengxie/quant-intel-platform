@@ -2,15 +2,15 @@
 
 # Market Intel daily schedule
 
-This page covers reports, delivery, data preparation, and recovery owned by `market-intel`. Research algorithms, factor experiments, ablations, and strategy production belong to `quant-research`, `quant-platform`, and `strategy-pipeline`. This repository restores official artifacts only through public CLIs when needed.
+This page covers reports, delivery, data preparation, and recovery owned by `market-intel`. Research algorithms, factor experiments, ablations, and strategy production belong to `quant-research` and `quant-platform`. This repository restores official artifacts only through public CLIs when needed.
 
-Production schedules and bridge scripts are maintained in `quant-intel-deploy`. The schedule below describes the deployed workflow; bridge-script commands must be run from a `quant-intel-deploy` checkout, not this repository.
+Production schedules and bridge scripts are maintained in `quant-intel-deploy`. The table describes tracked timer definitions and intended workflow; it does not establish which timers are enabled on a host. Bridge-script commands must be run from a `quant-intel-deploy` checkout, not this repository.
 
 ## Operating principles
 
 1. Reports consume published artifacts that pass date, hash, and schema checks.
 2. `market-intel` does not duplicate research models or use retired submodules to produce candidate pools or AI rankings.
-3. DailyWatch20 strategy logic belongs to `strategy-pipeline` / `strategy-app`. The 05:20 producer here only calls the public CLI.
+3. DailyWatch20 strategy logic belongs to `quant-research` (`strategy_app.daily_watch20`). The producer bridge calls its installed owner CLI and does not implement strategy logic.
 4. Refresh data required by the day's evening report before 19:00. Later jobs are for backfills, the next morning report, or freshness repair.
 5. A systemd timer outside the Gateway handles Gateway recovery.
 6. Freshness is based on business dates and artifact receipts, not process exit codes alone.
@@ -21,7 +21,7 @@ Production schedules and bridge scripts are maintained in `quant-intel-deploy`. 
 
 | Time | Entry point | Owner | Purpose |
 | --- | --- | --- | --- |
-| Weekdays 05:20 | `daily-watch20-producer.timer` → `refresh_daily_watch20.sh` | Operations bridge → strategy-pipeline | Check inputs and minute-data freshness, backfill if needed, then call `strategy watchlist20 run/freshness` to publish the official artifact |
+| Weekdays 05:20 | `daily-watch20-producer.timer` → `refresh_daily_watch20_quant_research.sh` | Deploy bridge → quant-research | Check inputs and minute-data freshness, backfill if needed, then call installed `daily-watch20-runtime` to publish the artifact and `daily-watch20-owner freshness` to validate it |
 | 06:00 / 06:45 | `local-fetch-cross-market.timer` | market-intel | Refresh cross-market snapshots; the second run retries later-updating sources |
 | Weekdays 06:40 | `a-share-morning-product-supervisor-preflight.timer` | market-intel | Check official DailyWatch20/D11-H5 artifacts and same-day recovery conditions |
 | Weekdays 06:50 | `hermes-gateway-preflight.timer` | market-intel | Start and recheck an inactive Gateway; no-op when healthy |
@@ -46,14 +46,16 @@ Production schedules and bridge scripts are maintained in `quant-intel-deploy`. 
 ```text
 market-data-platform data / report inputs
         ↓
-strategy-pipeline: strategy watchlist20 freshness/run
+quant-intel-deploy: refresh_daily_watch20_quant_research.sh
+        ↓
+quant-research: daily-watch20-runtime producer / daily-watch20-owner freshness
         ↓
 versioned DailyWatch20 artifact + selection_receipt
         ↓
-market-intel: validate → render → delivery_receipt → Feishu
+quant-intel-deploy bridge + quant-intel-platform: validate → render → delivery_receipt → Feishu
 ```
 
-`refresh_daily_watch20.sh` bridges local minute-data quotas, scheduler recovery, and deployment environments. It must not implement candidate-pool algorithms, model training, Hermite research, or ablation. News heat is optional: consume the requested-date artifact when present, otherwise follow `strategy-pipeline`'s optional-input rules. Do not launch `hot-sector-screener` to rebuild it.
+`refresh_daily_watch20_quant_research.sh` bridges local minute-data quotas, scheduler recovery, and deployment environments. It must not implement candidate-pool algorithms, model training, Hermite research, or ablation. News heat is optional: the owner runtime consumes the requested-date artifact when available; this bridge does not build it or launch the retired `hot-sector-screener` producer.
 
 ## Delivery windows and recovery
 
@@ -85,8 +87,10 @@ Restore an official DailyWatch20 artifact:
 
 ```bash
 WATCHLIST20_SOURCE_DATE=YYYYMMDD WATCHLIST20_SIGNAL_DATE=YYYYMMDD \
-  bash scripts/refresh_daily_watch20.sh
+  bash scripts/refresh_daily_watch20_quant_research.sh
 ```
+
+This bridge can publish a production artifact. Run it only for an explicitly authorized recovery; installation of the owner CLI alone does not authorize resuming a paused strategy.
 
 Validate or deliver an already published artifact:
 
