@@ -127,10 +127,14 @@ ETL 写出的事件流原始产物。无授权新闻只保存可审计元数据�
 
 飞书互动卡片 JSON。必需结构：`header`（含 `title`）、`elements[]`（含 `div` 文本块和 `action` 按钮）。降级时 title 追加数据延迟标注。
 
-## DailyWatch20 正式产物
+## 旧版 hot-sector signals（历史兼容产物）
 
-`strategy-pipeline` 发布、由 `scripts/daily_watch20_delivery.sh` 消费的 DailyWatch20 正式 artifact。
-该产物遵循 owner 的公开 schema，用于表达已准入的关注清单，不表达执行目标。
+本节记录旧版 hot-sector 候选信号和来源门禁字段，供历史产物识别与研究回溯使用；这些字段不是当前
+DailyWatch20 正式选股产物的 schema。当前正式 schema 见下文“DailyWatch20 正式选股产物”。当前 owner 是 `quant-research`
+（`strategy_app.daily_watch20`），部署桥接和生产调度由 `quant-intel-deploy` 维护；本仓只校验、消费和展示 owner 发布的文件产物。
+
+旧文档曾把该格式称为 `strategy-pipeline` 发布的 DailyWatch20 正式 artifact，并把它与
+`scripts/daily_watch20_delivery.sh` 直接关联。该 owner 名称和生产入口描述已过时。
 
 最小字段：
 
@@ -153,10 +157,10 @@ ETL 写出的事件流原始产物。无授权新闻只保存可审计元数据�
 和 `confidence_label`。这些列只增强候选信号解释与后续评估，不改变最小
 `alpha_research.signals` 契约。
 
-生产调度会同时生成 `signals.meta.json`，并通过 `hotsector validate-output` 检查来源能力、
-候选数量和非空信号文件。若后续需要组合持仓，由 `quant-research` / `quant-platform` 的
-`hotsector_overlay` 显式消费该文件，若需要执行目标，再由 `strategy export-targets`
-显式导出 `targets.json`。
+旧版 `hotsector` 流程可生成 `signals.meta.json`，并以来源能力、候选数量和信号文件完整性做门禁。
+相关 `hotsector validate-output`、`hotsector_overlay` 和 `strategy export-targets` 描述属于旧版
+hot-sector 信号链路，不是当前 DailyWatch20 的公开 owner CLI 或正式投递接口。当前安装的 owner
+入口为 `daily-watch20-owner`；生产入口与调度由 Deploy 仓库维护。
 
 `candidate_universe.json` 的来源门禁字段如下：
 
@@ -166,12 +170,12 @@ ETL 写出的事件流原始产物。无授权新闻只保存可审计元数据�
 | `fallback_reason` | `normal` 时为 `null`，其余模式记录稳定原因码 |
 | `source_gate` | `hotsector_source_gate.v1` 审计对象，记录观测日、映射完整性、精确日事件确认源和逐源行数/日期/完整性 |
 
-四态生产规则：
+旧版候选产物的四态来源规则：
 
 - `normal`：目标日 KPL 题材成分未触及接口行数上限（或有显式完整性 receipt），每行 `name/con_code/con_name` 映射键完整，且至少两个目标日事件确认源可用。
 - `dc_fallback`：KPL 不满足完整映射，但目标日 DC 题材与成分可用，且 `manifest.completeness.trade_dates[目标日].complete=true`、行数/页数/终止页/题材覆盖率均与分区一致，同时至少两个事件确认源可用。
 - `event_fallback`：无完整成员映射，但至少两个目标日事件确认源可用，客户展示必须明确标记事件型降级版。
-- `blocked`：目标日事件确认源不足两个，停止 AI 选股与投递。
+- `blocked`：目标日事件确认源不足两个，旧版候选产物不可用。此状态不定义当前 DailyWatch20 的发布或投递状态。
 
 事件确认源固定为 `limit_list_ths`、`limit_step`、`limit_cpt_list`、`ths_hot`。
 每项的每一行都必须包含合法且等于 `observation_date` 的日期，空值、非法日期和旧日数据均不得替代目标日。旧版候选若没有
@@ -459,9 +463,11 @@ ETL 写出的事件流原始产物。无授权新闻只保存可审计元数据�
 
 ## DailyWatch20 逐股热点热度输入
 
-`strategy watchlist20 news-heat-export`（由 `strategy-pipeline` 提供）将当日
-hot-sector 候选发布为严格日期化的可选模型输入。`market-intel` 不再提供该生产命令或生产实现，
-只在日报链路中消费已发布 artifact。
+逐股新闻热度是 `quant-research` DailyWatch20 pipeline 的可选输入。Platform 只消费已发布的版本化文件，
+不生成候选池或新闻热度。旧文档中的 `strategy watchlist20 news-heat-export` 命令已不属于当前公开 CLI：
+`quant-research` 的 `strategy` 入口目前不注册 `watchlist20` 子命令；当前 owner 入口是
+`daily-watch20-owner`。该 owner 的 `run` 命令可读取已发布的热度目录，但本指南只约定输入 artifact，
+不提供一个当前并不存在的导出命令。
 默认根目录为
 `$DATA_PLATFORM_ROOT/strategy_inputs/watchlist20/news_heat/`，可用
 `WATCHLIST20_NEWS_HEAT_ROOT` 覆盖。该变量始终表示发布父目录，不能直接指向
@@ -490,24 +496,20 @@ upstream_confidence_score
 `candidate_universe.json` 可能同时包含 `quality_report` / `outcome_report`，导出器只读取
 候选白名单字段并明确禁止消费这些未来评估字段。
 
-`strategy-pipeline` 生产者准入时必须调用等价于
+`quant-research` 的生产者准入必须调用等价于
 `validate_news_heat_artifact(..., expected_source_date=...)` 的检查：receipt 和质量状态均为
 `passed`、`source_date == data_as_of == expected_source_date`、市场范围仅 `sh-sz`、行数达到
 约定下限、CSV 校验和和列顺序一致、股票唯一、分数有限且位于 `[0,1]`、排名连续。
 `unavailable` artifact 包含带表头的空 CSV 和明确原因，它不得影响 B 袖资格，生产者
 该可选增强项应禁用，不要补零或沿用旧日分数。
 
-示例：
-
-```bash
-DATA_PLATFORM_ROOT=~/data/quant/quant-market-data-platform \
-  uv run --project "$QUANT_RESEARCH_ROOT" strategy watchlist20 news-heat-export \
-    --source-date 20260710
-```
+当前 `quant-research` 的 `strategy` CLI 不注册旧版 `watchlist20 news-heat-export` 子命令；请勿将旧命令示例
+当作可执行的生产入口。`daily-watch20-owner run` 是当前正式策略 owner 入口，会读取已经发布的可选热度输入。
+热度文件的生成与发布需使用 owner 实际提供的实现和授权工作流。
 
 ## DailyWatch20 正式选股产物
 
-`market-intel` 只消费该 artifact 并负责展示，不复制模型打分或选股逻辑。默认目录为
+`quant-research` 是该 artifact 的 owner；`market-intel` 只消费并展示，不复制模型打分或选股逻辑。默认目录为
 `~/data/quant/quant-market-data-platform/strategy_outputs/watchlist20/latest/`，可用
 `WATCHLIST20_ROOT` 覆盖。目录内必须同时存在：
 
@@ -580,7 +582,7 @@ A 袖 4 只、B 袖 16 只、袖内排名为连续的 `1..N`、分数字段均�
 
 ## DailyWatch20 主题摘要产物
 
-`strategy-pipeline` 从最终发布的 `watchlist_20.json` 生成同一 run 目录下的
+`quant-research` 从最终发布的 `watchlist_20.json` 生成同一 run 目录下的
 `topic_summary.json`，`market-intel` 只消费该文件生成晨报热点主题分布图，不再读取旧的
 `hotsector/candidate_universe.json`。当前契约为 `daily_watch20.topic_summary.v1`，其中
 `topics[]` 含 `topic`、`count`、`weight`、`rank`，`aggregation` 固定为
