@@ -36,7 +36,7 @@
 
 ### 脚本和调度器
 
-生产桥接脚本、Windows 入口和调度模板由 `quant-intel-deploy` 维护，不在本仓提供。Deploy 的 `scripts/refresh_daily_watch20.sh` 通过显式配置的 `QUANT_RESEARCH_ROOT` 调用已安装的 `daily-watch20-owner run/freshness`。市场数据恢复通过 `MDP_DIR` 下已安装的 `marketdata` CLI 执行。`installed_owner` 在启动命令前清除 `PYTHONPATH` 和 `PYTHONHOME`。报告生成和投递消费 owner 产物，不导入相邻源码。
+生产桥接脚本、Windows 入口和调度模板由 `quant-intel-deploy` 维护，不在本仓提供。当前 `daily-watch20-producer.timer` 调用 Deploy 的 `scripts/refresh_daily_watch20_quant_research.sh`，由已安装的 `daily-watch20-runtime` 发布产物，再由 `daily-watch20-owner freshness` 校验。`scripts/refresh_daily_watch20.sh` 保留为旧版有界回滚入口，不是该 timer 的 producer。两条路径都通过显式配置的 `QUANT_RESEARCH_ROOT` 调用已安装的 owner 命令。市场数据恢复通过 `MDP_DIR` 下已安装的 `marketdata` CLI 执行。`installed_owner` 在启动命令前清除 `PYTHONPATH` 和 `PYTHONHOME`。报告生成和投递消费 owner 产物，不导入相邻源码。
 
 Deploy 的 provider 任务通过 `marketdata config run --config "$DATA_PLATFORM_CONFIG" -- COMMAND ARGS...` 加载 owner 管理的供应商凭据，不 source JSON，也不把 provider `.env.local` 作为权威凭据库。其他凭据 owner 保留各自配置。
 
