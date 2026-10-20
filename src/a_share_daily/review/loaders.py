@@ -124,12 +124,21 @@ def load_market_overview(trade_date: str) -> dict[str, Any]:
 
     dist = _return_distribution(stocks["pct_chg"])
 
+    names = D.read_stock_names(trade_date)
+    existing_names = stocks.get("name", pd.Series("", index=stocks.index)).fillna("")
+    stocks["name"] = [
+        " ".join(str(name).split()) or names.get(code, "")
+        for code, name in zip(stocks["ts_code"], existing_names, strict=False)
+    ]
+
     # Top movers (exclude IPOs)
     stocks_clean = stocks[stocks["pct_chg"].between(-30, 30)]
-    top_up = stocks_clean.nlargest(5, "pct_chg")[["ts_code", "pct_chg", "close"]].to_dict("records")
-    top_down = stocks_clean.nsmallest(5, "pct_chg")[["ts_code", "pct_chg", "close"]].to_dict(
+    top_up = stocks_clean.nlargest(5, "pct_chg")[["ts_code", "name", "pct_chg", "close"]].to_dict(
         "records"
     )
+    top_down = stocks_clean.nsmallest(5, "pct_chg")[
+        ["ts_code", "name", "pct_chg", "close"]
+    ].to_dict("records")
 
     # VWAP
     vwap_ratio = D.vwap_above_ratio(stocks)

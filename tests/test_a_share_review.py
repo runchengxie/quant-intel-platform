@@ -101,3 +101,64 @@ def test_limit_analysis_keeps_missing_limit_up_as_missing(
 
     assert result["limit_up"]["count"] is None
     assert result["limit_down"]["count"] == 2
+
+
+def test_mover_names_do_not_change_ranking(monkeypatch, daily_frame):
+    monkeypatch.setattr(review.D, "read_daily", lambda _: daily_frame)
+    monkeypatch.setattr(
+        review.D,
+        "read_stock_names",
+        lambda _: {
+            "600001.SH": "A & B",
+            "300001.SZ": "Very long company name" * 4,
+        },
+    )
+    result = review.load_market_overview("20261020")
+    assert [r["ts_code"] for r in result["top_gainers"]] == [
+        "600001.SH",
+        "920001.BJ",
+        "300001.SZ",
+    ]
+    assert [r["ts_code"] for r in result["top_losers"]] == [
+        "300001.SZ",
+        "920001.BJ",
+        "600001.SH",
+    ]
+    assert result["top_gainers"][0]["name"] == "A & B"
+    assert result["top_gainers"][1]["name"] == ""
+
+
+def test_mover_markdown_escapes_names_and_keeps_missing():
+    from a_share_daily.review.renderers import _render_extreme_section
+
+    lines = _render_extreme_section(
+        {
+            "top_gainers": [
+                {"ts_code": "600001.SH", "name": "A & <B>*" + chr(0x3001) + "C", "pct_chg": 2},
+                {"ts_code": "920001.BJ", "name": None, "pct_chg": 1},
+            ]
+        }
+    )
+    text = "\n".join(lines)
+    assert "600001.SH A &amp; &lt;B&gt;&#42;&#12289;C(+2.00%)" in text
+    assert "920001.BJ(+1.00%)" in text
+    assert "None" not in text
+
+
+def test_mover_names_prefer_existing_nonempty_names(monkeypatch, daily_frame):
+    daily_frame["name"] = ["Existing", "  ", None]
+    monkeypatch.setattr(review.D, "read_daily", lambda _: daily_frame)
+    monkeypatch.setattr(
+        review.D,
+        "read_stock_names",
+        lambda _: {
+            "600001.SH": "Reference",
+            "300001.SZ": "Mapped",
+        },
+    )
+    result = review.load_market_overview("20261020")
+    assert [(r["ts_code"], r["name"]) for r in result["top_gainers"]] == [
+        ("600001.SH", "Existing"),
+        ("920001.BJ", ""),
+        ("300001.SZ", "Mapped"),
+    ]
