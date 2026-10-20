@@ -6,6 +6,9 @@ Supports both partitioned (trade_date=YYYYMMDD/) and flat parquet layouts.
 
 from __future__ import annotations
 
+import hashlib
+import io
+import json
 from datetime import date
 from pathlib import Path
 
@@ -325,3 +328,34 @@ def cjk_font_available() -> bool:
 
 def cjk_font_path() -> str:
     return _CJK_FONT
+
+
+def read_stock_names(trade_date: str) -> dict[str, str]:
+    """Read names only from the owner's complete, hash-bound instrument master."""
+    try:
+        path = _data_root() / "instruments" / "a_share_all_instruments_latest.parquet"
+    except RuntimeError:
+        return {}
+    try:
+        receipt = json.loads(path.with_suffix(".receipt.json").read_text())
+        content = path.read_bytes()
+        if (
+            not isinstance(receipt, dict)
+            or receipt.get("schema_version") != "market-data-platform.tushare-reference.v1"
+            or receipt.get("dataset") != "instruments"
+            or receipt.get("quality_status") != "complete"
+            or not isinstance(receipt.get("target_date"), str)
+            or receipt["target_date"] > trade_date
+            or receipt.get("sha256") != hashlib.sha256(content).hexdigest()
+        ):
+            return {}
+        frame = pd.read_parquet(io.BytesIO(content), columns=["ts_code", "name"])
+    except (OSError, ValueError, KeyError):
+        return {}
+    frame = frame.dropna(subset=["ts_code", "name"]).copy()
+    frame["name"] = frame["name"].map(lambda value: " ".join(str(value).split()))
+    frame = frame[frame["name"].ne("")]
+    # Ambiguous codes remain unnamed; never pick an arbitrary duplicate.
+    counts = frame.groupby("ts_code")["name"].nunique()
+    frame = frame[frame["ts_code"].isin(counts[counts == 1].index)]
+    return dict(zip(frame["ts_code"], frame["name"], strict=False))

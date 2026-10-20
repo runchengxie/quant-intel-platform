@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import html
 import json
 import sys
 from collections.abc import Mapping
@@ -209,17 +210,29 @@ def _render_hot_sectors_section(sectors: Mapping[str, Any]) -> list[str]:
     return lines
 
 
+def _mover_label(row: Mapping[str, Any]) -> str:
+    name = row.get("name")
+    name = " ".join(name.split()) if isinstance(name, str) else ""
+    if not name:
+        return str(row["ts_code"])
+    # Keep delimiter and Markdown syntax inert while preserving the full name.
+    name = html.escape(name, quote=True)
+    for char in "、*[]_`|":
+        name = name.replace(char, f"&#{ord(char)};")
+    return f"{row['ts_code']} {name}"
+
+
 def _render_extreme_section(overview: Mapping[str, Any]) -> list[str]:
     """十、极端异动（涨幅/跌幅前五）。"""
     lines = ["### 十、极端异动", ""]
     top_up = overview.get("top_gainers", [])[:5]
     top_down = overview.get("top_losers", [])[:5]
     if top_up:
-        items = "、".join(f"{r['ts_code']}({_pct(r['pct_chg'])})" for r in top_up)
+        items = "、".join(f"{_mover_label(r)}({_pct(r['pct_chg'])})" for r in top_up)
         lines.append(f"涨幅前五: {items}")
         lines.append("")
     if top_down:
-        items = "、".join(f"{r['ts_code']}({_pct(r['pct_chg'])})" for r in top_down)
+        items = "、".join(f"{_mover_label(r)}({_pct(r['pct_chg'])})" for r in top_down)
         lines.append(f"跌幅前五: {items}")
         lines.append("")
     return lines
