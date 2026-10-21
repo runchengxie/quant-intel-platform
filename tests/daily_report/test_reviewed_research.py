@@ -372,6 +372,17 @@ def test_live_pipeline_includes_only_reviewed_facts_and_claims(monkeypatch, tmp_
         "daily_messenger.daily_report.pipeline.fetch_us_macro_facts",
         lambda _as_of: ([], {"rates": {"quality": "degraded"}, "macro": {"quality": "degraded"}}),
     )
+    # This test validates reviewed research integration, not live providers.
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_equity_facts", lambda *_args: ([], ())
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_cross_asset_facts", lambda _day: ([], {})
+    )
+    monkeypatch.setattr(
+        "daily_messenger.daily_report.pipeline.fetch_btc_spot_facts",
+        lambda _day: ([], "fixture_unavailable"),
+    )
     report = run_daily_report(
         datetime(2026, 9, 23, 23, 0, tzinfo=UTC),
         tmp_path / "out",
