@@ -14,7 +14,7 @@ def install_live(monkeypatch, layer, equities):
     calls = []
     monkeypatch.delenv("CROSS_MARKET_FORCE_LIVE", raising=False)
 
-    def fetch():
+    def fetch(_trade_date=None):
         calls.append("live")
         return equities
 

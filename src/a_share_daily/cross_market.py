@@ -26,7 +26,12 @@ import requests
 
 from .cross_market_fetcher import Fetcher, FredAdapter
 from .cross_market_summary import generate_summary as _generate_summary
-from .global_leadlag import US_TO_A_MAPPING, aggregate_concept_signals, fetch_symbols
+from .global_leadlag import (
+    GLOBAL_LEAD_LAG_INSTRUMENTS,
+    US_TO_A_MAPPING,
+    aggregate_concept_signals,
+    fetch_symbols,
+)
 from .korea_market import (
     KOREA_INDEX_SYMBOL,
     KOREA_SYMBOLS,
@@ -166,43 +171,88 @@ def _cboe_history_csv(filename: str, value_column: str) -> tuple[float, float, s
     return latest_val, prev_val, latest_date
 
 
-def _equity_quote(data: Any, symbol: str) -> dict[str, Any]:
-    """Preserve the provider's actual close date when reading one equity."""
+def _equity_sessions(symbol: str, trade_date: str) -> tuple[Any, date, date]:
+    """Resolve the requested and preceding sessions in the symbol's market."""
+    import exchange_calendars as xcals
+
+    from .asia_session import MARKETS, _day
+
+    market = next(
+        (item.market for item in GLOBAL_LEAD_LAG_INSTRUMENTS if item.symbol == symbol), "US"
+    )
+    market = next((key for key, (_, index, _) in MARKETS.items() if index == symbol), market)
+    calendar = xcals.get_calendar("XNYS" if market == "US" else MARKETS[market][0])
+    target = calendar.date_to_session(_day(trade_date), direction="previous")
+    return calendar, target.date(), calendar.previous_session(target).date()
+
+
+def _equity_quote(data: Any, symbol: str, trade_date: str | None = None) -> dict[str, Any]:
+    """Select real session bars; undated compatibility callers retain latest mode."""
     try:
         closes = data["Close"][symbol].dropna()
         if len(closes) < 2:
             return {"error": "insufficient data"}
-        latest, previous = float(closes.iloc[-1]), float(closes.iloc[-2])
+        if trade_date is None:
+            latest, previous = float(closes.iloc[-1]), float(closes.iloc[-2])
+            as_of = closes.index[-1].date()
+        else:
+            calendar, target, preceding = _equity_sessions(symbol, trade_date)
+            index = closes.index
+            if index.tz is not None:
+                index = index.tz_convert(calendar.tz)
+            sessions = [value.date() for value in index]
+            if len(set(sessions)) != len(sessions):
+                return {"error": "duplicate session data"}
+            rows = {
+                day: value for day, value in zip(sessions, closes, strict=True) if day <= target
+            }
+            if target not in rows:
+                return {"error": "missing target session"}
+            if preceding not in rows:
+                return {"error": "missing preceding session"}
+            latest, previous = float(rows[target]), float(rows[preceding])
+            as_of = sessions[sessions.index(target)]
         pct = (latest - previous) / previous * 100 if previous != 0 else 0.0
         return {
             "close": round(latest, 2),
             "pct_chg": round(pct, 2),
-            "as_of_date": closes.index[-1].date().isoformat(),
+            "as_of_date": as_of.isoformat(),
             "source_url": f"https://finance.yahoo.com/quote/{symbol}/history/",
         }
     except Exception:
         return {"error": "no data"}
 
 
-def _fetch_us_stocks() -> dict[str, Any]:
-    """Fetch equity closes, retrying at most six missing symbols once serially."""
+def _fetch_us_stocks(trade_date: str | None = None) -> dict[str, Any]:
+    """Fetch dated equity closes, retrying at most six missing symbols serially."""
     try:
         import yfinance as yf
 
-        data = yf.download(US_SYMBOLS, period="5d", progress=False, auto_adjust=False)
-        result = {symbol: _equity_quote(data, symbol) for symbol in US_SYMBOLS}
+        window: dict[str, Any] = {"period": "5d"}
+        if trade_date is not None:
+            preceding = [_equity_sessions(symbol, trade_date)[2] for symbol in US_SYMBOLS]
+            end = datetime.strptime(trade_date.replace("-", ""), "%Y%m%d").date() + timedelta(
+                days=1
+            )
+            window = {
+                "start": min(preceding).isoformat(),
+                "end": end.isoformat(),
+                "ignore_tz": True,
+            }
+        data = yf.download(US_SYMBOLS, **window, progress=False, auto_adjust=False)
+        result = {symbol: _equity_quote(data, symbol, trade_date) for symbol in US_SYMBOLS}
         missing = [symbol for symbol in US_SYMBOLS if "error" in result[symbol]]
         for symbol in missing[:6]:
             try:
                 retry = yf.download(
                     [symbol],
-                    period="5d",
+                    **window,
                     progress=False,
                     auto_adjust=False,
                     threads=False,
                     timeout=10,
                 )
-                quote = _equity_quote(retry, symbol)
+                quote = _equity_quote(retry, symbol, trade_date)
             except Exception:
                 quote = result[symbol]
             if "error" not in quote:
@@ -527,9 +577,13 @@ def _annotate_equity_errors(data: dict[str, Any], trade_date: str) -> None:
     errors = list(data.get("errors") or [])
     warnings = list(data.get("_freshness_warnings") or [])
     equities = data.get("us_stocks") or {}
-    for symbol, row in equities.items():
-        if isinstance(row, dict) and row.get("error"):
-            errors.append(f"{symbol}: {row['error']}")
+    for section in ("us_stocks", "commodities"):
+        rows = data.get(section) or {}
+        if isinstance(rows.get("error"), str):
+            errors.append(f"{section}: {rows['error']}")
+        for symbol, row in rows.items():
+            if isinstance(row, dict) and row.get("error"):
+                errors.append(f"{symbol}: {row['error']}")
     for calendar_name, symbol, _ in MARKETS.values():
         row = equities.get(symbol)
         if not isinstance(row, dict) or row.get("error"):
@@ -649,7 +703,7 @@ def run(trade_date: str | None = None) -> dict[str, Any]:
 
     # US stocks (yfinance)
     try:
-        result.us_stocks = _fetch_us_stocks()
+        result.us_stocks = _fetch_us_stocks(trade_date)
     except Exception as e:
         result.errors.append(f"us_stocks: {e}")
 

@@ -103,7 +103,7 @@ def test_render_korea_signal_is_optional_and_honest_about_proxy() -> None:
 
 def test_run_includes_korea_signal_fields_without_api_key(monkeypatch) -> None:
     monkeypatch.setattr(cross_market, "_load_snapshot", lambda _date: None)
-    monkeypatch.setattr(cross_market, "_fetch_us_stocks", lambda: {})
+    monkeypatch.setattr(cross_market, "_fetch_us_stocks", lambda _date=None: {})
     monkeypatch.setattr(cross_market, "_fetch_aaii", lambda: None)
     monkeypatch.setattr(cross_market, "_fetch_cboe", lambda: None)
     monkeypatch.setattr(cross_market, "_fetch_commodities", lambda: {})
