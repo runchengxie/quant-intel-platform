@@ -109,7 +109,7 @@ def run(trade_date: str, force_live: bool = False) -> dict:
     if not force_live:
         snapshot = _load_snapshot(trade_date)
         if snapshot is not None and snapshot.get("date") == trade_date:
-            if not snapshot.get("_freshness_warnings"):
+            if not snapshot.get("errors") and not snapshot.get("_freshness_warnings"):
                 print(f"[snapshot] {_summary(snapshot)}", file=sys.stderr)
                 return snapshot
             print(f"[snapshot-stale] {_summary(snapshot)}; trying live fetch", file=sys.stderr)

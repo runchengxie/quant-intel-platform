@@ -637,7 +637,11 @@ def run(trade_date: str | None = None) -> dict[str, Any]:
     snapshot: dict[str, Any] | None = None
     if not os.environ.get("CROSS_MARKET_FORCE_LIVE"):
         snapshot = _load_snapshot(trade_date)
-        if snapshot is not None and not snapshot.get("_freshness_warnings"):
+        if (
+            snapshot is not None
+            and not snapshot.get("errors")
+            and not snapshot.get("_freshness_warnings")
+        ):
             return snapshot
 
     # ── Live fetch (fallback) ──────────────────────────────────
