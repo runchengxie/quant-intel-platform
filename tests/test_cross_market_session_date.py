@@ -30,9 +30,9 @@ def install_run(monkeypatch, symbols, downloads, commodities=None):
     monkeypatch.setattr(cross_market, "_fetch_cboe_into", lambda _result: None)
     monkeypatch.setattr(cross_market, "_map_us_into", lambda _result: None)
     monkeypatch.setattr(cross_market, "_map_commodities_into", lambda _result: None)
-    monkeypatch.setattr(cross_market, "_fetch_commodities", lambda: commodities or {})
+    monkeypatch.setattr(cross_market, "_fetch_commodities", lambda _date=None: commodities or {})
     monkeypatch.setattr(cross_market, "_fetch_korea_signals", lambda _date: ({}, {}, {}))
-    monkeypatch.setattr(cross_market, "_fetch_macros", lambda: {})
+    monkeypatch.setattr(cross_market, "_fetch_macros", lambda _date=None: {})
     return calls
 
 
@@ -160,3 +160,13 @@ def test_only_actual_commodity_failures_reach_partial_status(monkeypatch, commod
     monkeypatch.setattr(fallback_fetch, "run", lambda *_args, **_kwargs: data)
     monkeypatch.setattr(sys, "argv", ["fallback_fetch", "--date", "20261020"])
     assert fallback_fetch.main() == (1 if expected else 0)
+
+
+def test_commodity_quotes_include_actual_observation_date(monkeypatch):
+    data = pd.concat(
+        [frame(symbol, ["2026-10-19", "2026-10-20"]) for symbol in cross_market.COMMODITY_SYMBOLS],
+        axis=1,
+    )
+    monkeypatch.setitem(sys.modules, "yfinance", SimpleNamespace(download=lambda *_a, **_kw: data))
+    quotes = cross_market._fetch_commodities()
+    assert {row["as_of_date"] for row in quotes.values()} == {"2026-10-20"}

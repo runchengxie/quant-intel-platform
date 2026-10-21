@@ -35,8 +35,8 @@ def install_live(monkeypatch, layer, equities):
         monkeypatch.setattr(cross_market, "_fetch_cboe_into", lambda _result: None)
         monkeypatch.setattr(cross_market, "_map_us_into", lambda _result: None)
         monkeypatch.setattr(cross_market, "_map_commodities_into", lambda _result: None)
-        monkeypatch.setattr(cross_market, "_fetch_commodities", lambda: {})
-        monkeypatch.setattr(cross_market, "_fetch_macros", lambda: {})
+        monkeypatch.setattr(cross_market, "_fetch_commodities", lambda _date=None: {})
+        monkeypatch.setattr(cross_market, "_fetch_macros", lambda _date=None: {})
         monkeypatch.setattr(cross_market, "_fetch_korea_signals", lambda _date: ({}, {}, {}))
         run = cross_market.run
     return run, calls
@@ -74,5 +74,12 @@ def test_failed_live_recovery_keeps_errors_and_partial_exit(monkeypatch, layer):
     assert result["errors"] == ["QQQ: insufficient data"]
     assert "as_of_date" not in result["us_stocks"]["QQQ"]
     monkeypatch.setattr(fallback_fetch, "run", lambda *_args, **_kwargs: result)
+    monkeypatch.setattr(sys, "argv", ["fallback_fetch", "--date", TRADE_DATE])
+    assert fallback_fetch.main() == 1
+
+
+def test_freshness_only_failure_reaches_partial_exit(monkeypatch):
+    data = {"date": TRADE_DATE, "errors": [], "_freshness_warnings": ["stale macro"]}
+    monkeypatch.setattr(fallback_fetch, "run", lambda *_args, **_kwargs: data)
     monkeypatch.setattr(sys, "argv", ["fallback_fetch", "--date", TRADE_DATE])
     assert fallback_fetch.main() == 1

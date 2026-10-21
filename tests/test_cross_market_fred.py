@@ -108,7 +108,10 @@ def test_fetch_macros_contains_fred_source(patched_fred: None, monkeypatch) -> N
     def fake_download(symbols, **kwargs):
         assert symbols == cross_market._DXY_SYMBOLS
         assert kwargs == {"period": "5d", "progress": False, "auto_adjust": False}
-        return pd.DataFrame({("Close", "DX-Y.NYB"): [100.0, 102.0]})
+        return pd.DataFrame(
+            {("Close", "DX-Y.NYB"): [100.0, 102.0]},
+            index=pd.DatetimeIndex(["2026-06-29", "2026-06-30"]),
+        )
 
     monkeypatch.setattr(cross_market.requests, "get", fake_get)
     monkeypatch.setitem(sys.modules, "yfinance", SimpleNamespace(download=fake_download))
@@ -121,6 +124,7 @@ def test_fetch_macros_contains_fred_source(patched_fred: None, monkeypatch) -> N
     assert macros["^VVIX"]["close"] == 18.2
     assert macros["DX-Y.NYB"]["close"] == 102.0
     assert macros["DX-Y.NYB"]["pct_chg"] == 2.0
+    assert macros["DX-Y.NYB"]["as_of_date"] == "2026-06-30"
     # 整体结构应完整返回（FRED/CBOE/yfinance 各分支均不崩）
     for sym in ("^VIX", "^VVIX", "^TNX", "DX-Y.NYB"):
         assert sym in macros
