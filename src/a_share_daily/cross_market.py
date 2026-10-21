@@ -166,30 +166,47 @@ def _cboe_history_csv(filename: str, value_column: str) -> tuple[float, float, s
     return latest_val, prev_val, latest_date
 
 
+def _equity_quote(data: Any, symbol: str) -> dict[str, Any]:
+    """Preserve the provider's actual close date when reading one equity."""
+    try:
+        closes = data["Close"][symbol].dropna()
+        if len(closes) < 2:
+            return {"error": "insufficient data"}
+        latest, previous = float(closes.iloc[-1]), float(closes.iloc[-2])
+        pct = (latest - previous) / previous * 100 if previous != 0 else 0.0
+        return {
+            "close": round(latest, 2),
+            "pct_chg": round(pct, 2),
+            "as_of_date": closes.index[-1].date().isoformat(),
+            "source_url": f"https://finance.yahoo.com/quote/{symbol}/history/",
+        }
+    except Exception:
+        return {"error": "no data"}
+
+
 def _fetch_us_stocks() -> dict[str, Any]:
-    """Fetch external equity closing prices and % change via yfinance."""
+    """Fetch equity closes, retrying at most six missing symbols once serially."""
     try:
         import yfinance as yf
 
         data = yf.download(US_SYMBOLS, period="5d", progress=False, auto_adjust=False)
-        result: dict[str, dict] = {}
-        for sym in US_SYMBOLS:
+        result = {symbol: _equity_quote(data, symbol) for symbol in US_SYMBOLS}
+        missing = [symbol for symbol in US_SYMBOLS if "error" in result[symbol]]
+        for symbol in missing[:6]:
             try:
-                cs = data["Close"][sym].dropna()
-                if len(cs) >= 2:
-                    latest = float(cs.iloc[-1])
-                    prev = float(cs.iloc[-2])
-                    pct = (latest - prev) / prev * 100 if prev != 0 else 0.0
-                    result[sym] = {
-                        "close": round(latest, 2),
-                        "pct_chg": round(pct, 2),
-                        "as_of_date": cs.index[-1].date().isoformat(),
-                        "source_url": f"https://finance.yahoo.com/quote/{sym}/history/",
-                    }
-                else:
-                    result[sym] = {"error": "insufficient data"}
+                retry = yf.download(
+                    [symbol],
+                    period="5d",
+                    progress=False,
+                    auto_adjust=False,
+                    threads=False,
+                    timeout=10,
+                )
+                quote = _equity_quote(retry, symbol)
             except Exception:
-                result[sym] = {"error": "no data"}
+                quote = result[symbol]
+            if "error" not in quote:
+                result[symbol] = quote
         return result
     except Exception as e:
         return {"error": f"yfinance failed: {e}"}
