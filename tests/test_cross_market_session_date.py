@@ -30,9 +30,9 @@ def install_run(monkeypatch, symbols, downloads, commodities=None):
     monkeypatch.setattr(cross_market, "_fetch_cboe_into", lambda _result: None)
     monkeypatch.setattr(cross_market, "_map_us_into", lambda _result: None)
     monkeypatch.setattr(cross_market, "_map_commodities_into", lambda _result: None)
-    monkeypatch.setattr(cross_market, "_fetch_commodities", lambda: commodities or {})
+    monkeypatch.setattr(cross_market, "_fetch_commodities", lambda _date=None: commodities or {})
     monkeypatch.setattr(cross_market, "_fetch_korea_signals", lambda _date: ({}, {}, {}))
-    monkeypatch.setattr(cross_market, "_fetch_macros", lambda: {})
+    monkeypatch.setattr(cross_market, "_fetch_macros", lambda _date=None: {})
     return calls
 
 

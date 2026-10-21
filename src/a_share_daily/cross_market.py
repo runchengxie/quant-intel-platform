@@ -25,6 +25,7 @@ from typing import Any
 import requests
 
 from .cross_market_fetcher import Fetcher, FredAdapter
+from .cross_market_freshness import _parse_iso_date, _quote_date_warnings
 from .cross_market_summary import generate_summary as _generate_summary
 from .global_leadlag import (
     GLOBAL_LEAD_LAG_INSTRUMENTS,
@@ -316,30 +317,50 @@ def _compute_concept_mapping(
     return aggregate_concept_signals(us_stocks, mapping_table=mapping_table)
 
 
-def _fetch_commodities() -> dict[str, Any]:
-    """Fetch commodity prices via yfinance (GC=F gold futures, SLV silver, GLD gold ETF)."""
+def _quote_window(trade_date: str | None) -> dict[str, Any]:
+    """Bound historical daily requests while retaining undated compatibility."""
+    if trade_date is None:
+        return {"period": "5d"}
+    target = datetime.strptime(trade_date.replace("-", ""), "%Y%m%d").date()
+    return {
+        "start": (target - timedelta(days=10)).isoformat(),
+        "end": (target + timedelta(days=1)).isoformat(),
+        "ignore_tz": True,
+    }
+
+
+def _bounded_daily_quote(data: Any, symbol: str, trade_date: str | None) -> dict[str, Any]:
+    """Use real dated bars up to the requested day without inventing a calendar."""
+    if trade_date is None:
+        return _equity_quote(data, symbol)
+    try:
+        target = datetime.strptime(trade_date.replace("-", ""), "%Y%m%d").date()
+        closes = data["Close"][symbol].dropna()
+        days = list(closes.index.date)
+        if len(set(days)) != len(days):
+            return {"error": "duplicate session data"}
+        bounded = data.loc[data.index.date <= target].sort_index()
+        return _equity_quote(bounded, symbol)
+    except Exception:
+        return {"error": "no dated data"}
+
+
+def _fetch_commodities(trade_date: str | None = None) -> dict[str, Any]:
+    """Select ETF sessions and bounded futures bars without a synthetic calendar."""
     try:
         import yfinance as yf
 
-        data = yf.download(COMMODITY_SYMBOLS, period="5d", progress=False, auto_adjust=False)
-        result: dict[str, dict] = {}
-        for sym in COMMODITY_SYMBOLS:
-            try:
-                cs = data["Close"][sym].dropna()
-                if len(cs) >= 2:
-                    latest = float(cs.iloc[-1])
-                    prev = float(cs.iloc[-2])
-                    pct = (latest - prev) / prev * 100 if prev != 0 else 0.0
-                    result[sym] = {
-                        "close": round(latest, 2),
-                        "pct_chg": round(pct, 2),
-                        "as_of_date": cs.index[-1].date().isoformat(),
-                    }
-                else:
-                    result[sym] = {"error": "insufficient data"}
-            except Exception:
-                result[sym] = {"error": "no data"}
-        return result
+        data = yf.download(
+            COMMODITY_SYMBOLS, **_quote_window(trade_date), progress=False, auto_adjust=False
+        )
+        return {
+            sym: (
+                _bounded_daily_quote(data, sym, trade_date)
+                if sym == "GC=F"
+                else _equity_quote(data, sym, trade_date)
+            )
+            for sym in COMMODITY_SYMBOLS
+        }
     except Exception as e:
         return {"error": f"yfinance commodities failed: {e}"}
 
@@ -399,7 +420,7 @@ def _compute_commodity_mapping(
     return ranked
 
 
-def _fetch_macros() -> dict[str, dict]:
+def _fetch_macros(trade_date: str | None = None) -> dict[str, dict]:
     """Fetch macro indicators: VIX/VVIX from Cboe, 10Y from FRED, DXY from yfinance."""
     result: dict[str, dict] = {}
 
@@ -441,21 +462,12 @@ def _fetch_macros() -> dict[str, dict]:
     try:
         import yfinance as yf
 
-        data = yf.download(_DXY_SYMBOLS, period="5d", progress=False, auto_adjust=False)
-        cs = data["Close"]["DX-Y.NYB"].dropna()
-        if len(cs) >= 2:
-            latest = float(cs.iloc[-1])
-            prev = float(cs.iloc[-2])
-            pct = (latest - prev) / prev * 100 if prev != 0 else 0.0
-            result["DX-Y.NYB"] = {
-                "label": "DXY 美元指数",
-                "close": round(latest, 2),
-                "pct_chg": round(pct, 2),
-                "source": "yfinance",
-                "as_of_date": cs.index[-1].date().isoformat(),
-            }
-        else:
-            result["DX-Y.NYB"] = {"error": "insufficient data"}
+        data = yf.download(
+            _DXY_SYMBOLS, **_quote_window(trade_date), progress=False, auto_adjust=False
+        )
+        result["DX-Y.NYB"] = _bounded_daily_quote(data, "DX-Y.NYB", trade_date)
+        if "error" not in result["DX-Y.NYB"]:
+            result["DX-Y.NYB"].update(label="DXY 美元指数", source="yfinance")
     except Exception as e:
         result["DX-Y.NYB"] = {"error": f"yfinance:{e}"}
 
@@ -477,15 +489,6 @@ def _parse_yyyymmdd(value: str) -> date | None:
     try:
         return datetime.strptime(value, "%Y%m%d").date()
     except (TypeError, ValueError):
-        return None
-
-
-def _parse_iso_date(value: Any) -> date | None:
-    if not isinstance(value, str) or not value:
-        return None
-    try:
-        return datetime.strptime(value[:10], "%Y-%m-%d").date()
-    except ValueError:
         return None
 
 
@@ -539,6 +542,7 @@ def _annotate_freshness(data: dict[str, Any], trade_date: str) -> dict[str, Any]
     """Attach freshness warnings for fields that can lag silently."""
     target_dt = _parse_yyyymmdd(trade_date) or date.today()
     warnings = list(data.get("_freshness_warnings") or [])
+    warnings.extend(_quote_date_warnings(data, target_dt))
 
     if str(data.get("date") or "") != trade_date:
         warnings.append(f"cross-market snapshot date is {data.get('date')}, requested {trade_date}")
@@ -582,7 +586,7 @@ def _annotate_equity_errors(data: dict[str, Any], trade_date: str) -> None:
     errors = list(data.get("errors") or [])
     warnings = list(data.get("_freshness_warnings") or [])
     equities = data.get("us_stocks") or {}
-    for section in ("us_stocks", "commodities"):
+    for section in ("us_stocks", "commodities", "macros"):
         rows = data.get(section) or {}
         if isinstance(rows.get("error"), str):
             errors.append(f"{section}: {rows['error']}")
@@ -726,7 +730,7 @@ def run(trade_date: str | None = None) -> dict[str, Any]:
 
     # Commodities (yfinance)
     try:
-        result.commodities = _fetch_commodities()
+        result.commodities = _fetch_commodities(trade_date)
     except Exception as e:
         result.errors.append(f"commodities: {e}")
 
@@ -746,7 +750,7 @@ def run(trade_date: str | None = None) -> dict[str, Any]:
 
     # Macro indicators (FRED + yfinance)
     try:
-        result.macros = _fetch_macros()
+        result.macros = _fetch_macros(trade_date)
     except Exception as e:
         result.errors.append(f"macros: {e}")
 
