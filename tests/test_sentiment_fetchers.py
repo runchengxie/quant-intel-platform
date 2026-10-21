@@ -117,13 +117,14 @@ def test_aaii_fetch_parses_latest_row(monkeypatch: pytest.MonkeyPatch) -> None:
     </html>
     """
 
-    rss = """<?xml version='1.0'?><rss><channel><item><title>October 10, 2024 AAII Sentiment Survey</title><link>https://insights.aaii.com/p/october-10-2024-aaii-sentiment</link></item></channel></rss>"""
+    rss = """<?xml version='1.0'?><rss><channel><item><title>October 10, 2024 AAII Sentiment Survey</title><link>https://insights.aaii.com/p/october-10-2024-aaii-sentiment</link><pubDate>Thu, 10 Oct 2024 08:00:00 -0400</pubDate></item></channel></rss>"""
     html = """
     <html>
       <body>
         <h1>October 10, 2024 AAII Sentiment Survey</h1>
-        <p>Bullish sentiment registered 42.5% while Neutral investors were 25.0%.</p>
-        <p>Bearish responses fell to 32.5%.</p>
+        <p>Week ending October 9, 2024</p>
+        <p>This week's Sentiment Survey results:</p>
+        <p>Bullish: 42.5% Neutral: 25.0% Bearish: 32.5%</p>
       </body>
     </html>
     """
@@ -138,7 +139,8 @@ def test_aaii_fetch_parses_latest_row(monkeypatch: pytest.MonkeyPatch) -> None:
     payload, status = aaii_sentiment.fetch()
 
     assert status.ok
-    assert payload["aaii"]["week"] == "2024-10-10"
+    assert payload["aaii"]["week"] == "2024-10-09"
+    assert payload["aaii"]["publication_date"] == "2024-10-10"
     assert payload["aaii"]["bullish_pct"] == 42.5
     assert payload["aaii"]["bull_bear_spread"] == pytest.approx(10.0)
 
