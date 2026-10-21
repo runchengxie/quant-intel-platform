@@ -330,7 +330,11 @@ def _fetch_commodities() -> dict[str, Any]:
                     latest = float(cs.iloc[-1])
                     prev = float(cs.iloc[-2])
                     pct = (latest - prev) / prev * 100 if prev != 0 else 0.0
-                    result[sym] = {"close": round(latest, 2), "pct_chg": round(pct, 2)}
+                    result[sym] = {
+                        "close": round(latest, 2),
+                        "pct_chg": round(pct, 2),
+                        "as_of_date": cs.index[-1].date().isoformat(),
+                    }
                 else:
                     result[sym] = {"error": "insufficient data"}
             except Exception:
@@ -448,6 +452,7 @@ def _fetch_macros() -> dict[str, dict]:
                 "close": round(latest, 2),
                 "pct_chg": round(pct, 2),
                 "source": "yfinance",
+                "as_of_date": cs.index[-1].date().isoformat(),
             }
         else:
             result["DX-Y.NYB"] = {"error": "insufficient data"}

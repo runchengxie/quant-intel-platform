@@ -76,3 +76,10 @@ def test_failed_live_recovery_keeps_errors_and_partial_exit(monkeypatch, layer):
     monkeypatch.setattr(fallback_fetch, "run", lambda *_args, **_kwargs: result)
     monkeypatch.setattr(sys, "argv", ["fallback_fetch", "--date", TRADE_DATE])
     assert fallback_fetch.main() == 1
+
+
+def test_freshness_only_failure_reaches_partial_exit(monkeypatch):
+    data = {"date": TRADE_DATE, "errors": [], "_freshness_warnings": ["stale macro"]}
+    monkeypatch.setattr(fallback_fetch, "run", lambda *_args, **_kwargs: data)
+    monkeypatch.setattr(sys, "argv", ["fallback_fetch", "--date", TRADE_DATE])
+    assert fallback_fetch.main() == 1

@@ -12,7 +12,7 @@ Usage:
     uv run python src/a_share_daily/fallback_fetch.py --json       # JSON output
     CROSS_MARKET_FORCE_LIVE=1 ...                                  # force live fetch
 
-Exit codes: 0=OK, 1=partial data (some fetchers failed), 2=total failure
+Exit codes: 0=OK, 1=partial or stale data, 2=total failure
 """
 
 from __future__ import annotations
@@ -159,8 +159,8 @@ def main() -> int:
 
     # Exit code based on data quality
     errors = data.get("errors", [])
-    if errors:
-        return 1  # Partial data
+    if errors or data.get("_freshness_warnings"):
+        return 1  # Partial or stale data
     return 0
 
 

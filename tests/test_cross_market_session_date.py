@@ -160,3 +160,13 @@ def test_only_actual_commodity_failures_reach_partial_status(monkeypatch, commod
     monkeypatch.setattr(fallback_fetch, "run", lambda *_args, **_kwargs: data)
     monkeypatch.setattr(sys, "argv", ["fallback_fetch", "--date", "20261020"])
     assert fallback_fetch.main() == (1 if expected else 0)
+
+
+def test_commodity_quotes_include_actual_observation_date(monkeypatch):
+    data = pd.concat(
+        [frame(symbol, ["2026-10-19", "2026-10-20"]) for symbol in cross_market.COMMODITY_SYMBOLS],
+        axis=1,
+    )
+    monkeypatch.setitem(sys.modules, "yfinance", SimpleNamespace(download=lambda *_a, **_kw: data))
+    quotes = cross_market._fetch_commodities()
+    assert {row["as_of_date"] for row in quotes.values()} == {"2026-10-20"}
