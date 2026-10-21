@@ -51,6 +51,17 @@ _WRITING_GUIDANCE = (
     "写完后检查措辞、标点和时效说明，删去重复的免责式表达，保留有依据的事实和必要限制。"
     "这些要求只适用于面向读者的文字，JSON字段、标识符、数字和来源原文保持原样。"
 )
+_PUBLICATION_GUIDANCE = (
+    "Set publication_precision to timestamp for a verified timezone-aware published_at, "
+    "with source_date and source_timezone null. If only a date is given, set publication_precision "
+    "to date, published_at null, source_date to its original ISO date, and source_timezone to an "
+    "independently verified IANA zone or unknown. Date-only evidence is limited to macro/company_news "
+    "background with phase event and usage background; omit it if its whole possible publication "
+    "interval exceeds the cutoff. Do not guess midnight or the issuer headquarters timezone. "
+    "Set time_role to publication or filing_acceptance according to the actual source label. "
+    "Filing acceptance does not establish original publication and is limited to macro/company_news. "
+    "Set usage to background or context; never use date-only evidence for close/mover attribution. "
+)
 _SECRET_ASSIGNMENT = re.compile(
     r"(?i)\b(token|api[_-]?key|password|secret|authorization)\s*[:=]\s*\S+"
 )
@@ -253,16 +264,8 @@ def _prompt(market_date: date, cutoff: datetime) -> str:
         "For each candidate, supply the original HTTP(S) source_url, source article title, "
         "explicit observation_date, a short original paraphrase "
         "in summary, and supporting_passage of at most 160 characters. "
-        "Set publication_precision to timestamp for a verified timezone-aware published_at, "
-        "with source_date and source_timezone null. If only a date is given, set publication_precision "
-        "to date, published_at null, source_date to its original ISO date, and source_timezone to an "
-        "independently verified IANA zone or unknown. Date-only evidence is limited to macro/company_news "
-        "background with phase event and usage background; omit it if its whole possible publication "
-        "interval exceeds the cutoff. Do not guess midnight or the issuer headquarters timezone. "
-        "Set time_role to publication or filing_acceptance according to the actual source label. "
-        "Filing acceptance does not establish original publication and is limited to macro/company_news. "
-        "Set usage to background or context; never use date-only evidence for close/mover attribution. "
-        "Set phase to close, intraday, or event. A close item needs an article published after "
+        + _PUBLICATION_GUIDANCE
+        + "Set phase to close, intraday, or event. A close item needs an article published after "
         "the 4 p.m. New York cash close for that observation date; never label a midday item as close. "
         "Do not infer a market date from the publication date. Do not invent timestamps, numbers, "
         "URLs, ratings, or causes. Attribute interpretations to their source. If provenance is "
@@ -305,6 +308,7 @@ def _section_prompt(market_date: date, cutoff: datetime, section: str) -> str:
         "Separate facts from attributed interpretation. Set phase to close, intraday or event; "
         "close requires publication after 16:00 America/New_York on the observation date. "
         "Do not infer observation date from publication date or give investment advice. "
+        + _PUBLICATION_GUIDANCE
         + _WRITING_GUIDANCE
     )
 
