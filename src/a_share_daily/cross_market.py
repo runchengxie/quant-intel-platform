@@ -274,13 +274,7 @@ def _fetch_aaii() -> dict | None:
         aaii_data = result.get("aaii", {})
         if not aaii_data:
             return None
-        return {
-            "week": aaii_data.get("week"),
-            "bullish_pct": aaii_data.get("bullish_pct"),
-            "neutral_pct": aaii_data.get("neutral_pct"),
-            "bearish_pct": aaii_data.get("bearish_pct"),
-            "bull_bear_spread": aaii_data.get("bull_bear_spread"),
-        }
+        return dict(aaii_data)
     except Exception:
         return None
 

@@ -2,15 +2,14 @@
 
 from __future__ import annotations
 
-import datetime as dt
 import logging
-import re
 import xml.etree.ElementTree as ET
 from dataclasses import dataclass
 from typing import Any
 
 import requests
 
+from .aaii_parser import parse_metrics, publication_date, survey_week
 from .cboe_putcall import fetch as _cboe_putcall_fetch
 
 logger = logging.getLogger(__name__)
@@ -36,7 +35,7 @@ def _init_session() -> requests.Session:
     return session
 
 
-def _resolve_latest_story(session: requests.Session) -> str | None:
+def _resolve_latest_story(session: requests.Session) -> tuple[str, str | None] | None:
     try:
         response = session.get(RSS_URL, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
@@ -56,49 +55,25 @@ def _resolve_latest_story(session: requests.Session) -> str | None:
         if not title or not link:
             continue
         if "Sentiment Survey" in title:
-            return link
+            return link, item.findtext("pubDate")
     return None
 
 
 def _parse_article(html: str) -> dict[str, float] | None:
-    pattern = re.compile(
-        r"(?is)Bullish[^0-9]*([0-9]+(?:\.[0-9]+)?)%.*?Neutral[^0-9]*([0-9]+(?:\.[0-9]+)?)%.*?Bearish[^0-9]*([0-9]+(?:\.[0-9]+)?)%"
-    )
-    match = pattern.search(html)
-    if not match:
-        return None
-    try:
-        bull, neutral, bear = (float(match.group(i)) for i in range(1, 4))
-    except ValueError:
-        return None
-    return {
-        "bullish_pct": round(bull, 2),
-        "neutral_pct": round(neutral, 2),
-        "bearish_pct": round(bear, 2),
-        "bull_bear_spread": round(bull - bear, 2),
-    }
+    return parse_metrics(html)
 
 
 def _parse_week(html: str) -> str | None:
-    date_pattern = re.compile(
-        r"(?i)(January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}"
-    )
-    match = date_pattern.search(html)
-    if not match:
-        return None
-    try:
-        parsed = dt.datetime.strptime(match.group(0), "%B %d, %Y")
-    except ValueError:
-        return None
-    return parsed.date().isoformat()
+    return survey_week(html)
 
 
 def fetch() -> tuple[dict[str, dict[str, object]], FetchStatus]:
     session = _init_session()
-    link = _resolve_latest_story(session)
-    if not link:
+    story = _resolve_latest_story(session)
+    if not story:
         return {}, FetchStatus(name="aaii_sentiment", ok=False, message="未能定位最新情绪文章")
 
+    link, feed_date = story
     try:
         response = session.get(link, timeout=REQUEST_TIMEOUT)
         response.raise_for_status()
@@ -110,11 +85,18 @@ def fetch() -> tuple[dict[str, dict[str, object]], FetchStatus]:
     if metrics is None:
         return {}, FetchStatus(name="aaii_sentiment", ok=False, message="AAII 页面缺少情绪百分比")
 
-    week = _parse_week(response.text) or dt.date.today().isoformat()
+    published = publication_date(response.text, feed_date)
+    if published is None:
+        return {}, FetchStatus(name="aaii_sentiment", ok=False, message="AAII 缺少可验证的发布日期")
+    week = _parse_week(response.text)
+    if week is not None and week > published:
+        return {}, FetchStatus(name="aaii_sentiment", ok=False, message="AAII 调查周晚于发布日期")
 
     payload: dict[str, dict[str, object]] = {
         "aaii": {
             "week": week,
+            "survey_week_ending": week,
+            "publication_date": published,
             **metrics,
             "source": "aaii_insights_substack",
             "link": link,
