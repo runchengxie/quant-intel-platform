@@ -94,3 +94,44 @@ def test_legacy_receipt_cannot_claim_close_before_generation(tmp_path):
     receipt.write_text(json.dumps(payload))
     with pytest.raises(ValueError, match="legacy.*provenance"):
         refresh_reports(RefreshRequest(owner, data, snapshots, tmp_path / "out", "2026-10-05"))
+
+
+def test_installed_refresh_ignores_empty_ancestor_git_marker(tmp_path, monkeypatch):
+    from a_share_daily import public_report_refresh as refresh
+
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    (workspace / ".git").mkdir()
+    data, _calendar, snapshots, owner = inputs(workspace)
+    monkeypatch.setattr(
+        refresh,
+        "__file__",
+        str(tmp_path / "installed/site-packages/a_share_daily/public_report_refresh.py"),
+    )
+    refresh.validate_paths(owner, data, snapshots, workspace / "output")
+
+
+@pytest.mark.parametrize("marker_kind", ["repository", "worktree", "symlink"])
+def test_installed_refresh_rejects_foreign_repository_markers(tmp_path, monkeypatch, marker_kind):
+    from a_share_daily import public_report_refresh as refresh
+
+    workspace = tmp_path / "workspace"
+    workspace.mkdir()
+    marker = workspace / ".git"
+    if marker_kind == "repository":
+        marker.mkdir()
+        (marker / "HEAD").write_text("ref: refs/heads/main\n")
+    elif marker_kind == "worktree":
+        marker.write_text("gitdir: /external/worktree\n")
+    else:
+        target = tmp_path / "empty-marker"
+        target.mkdir()
+        marker.symlink_to(target, target_is_directory=True)
+    data, _calendar, snapshots, owner = inputs(workspace)
+    monkeypatch.setattr(
+        refresh,
+        "__file__",
+        str(tmp_path / "installed/site-packages/a_share_daily/public_report_refresh.py"),
+    )
+    with pytest.raises(ValueError, match="outside Git"):
+        refresh.validate_paths(owner, data, snapshots, workspace / "output")
