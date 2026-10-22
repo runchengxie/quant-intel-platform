@@ -99,6 +99,16 @@ def validate_output_subdirectories(output_dir: Path) -> None:
             )
 
 
+def repository_marker(path: Path) -> bool:
+    """Ignore empty placeholders while retaining conservative checkout protection."""
+    marker = path / ".git"
+    if marker.is_symlink():
+        return True
+    if marker.is_dir():
+        return next(marker.iterdir(), None) is not None
+    return marker.exists()
+
+
 def validate_paths(owner_cli: Path, data_root: Path, snapshot_root: Path, output_dir: Path) -> None:
     if not owner_cli.is_absolute() or not owner_cli.is_file() or not os.access(owner_cli, os.X_OK):
         raise ValueError("owner CLI must be an absolute executable path")
@@ -108,7 +118,7 @@ def validate_paths(owner_cli: Path, data_root: Path, snapshot_root: Path, output
     output = output_dir.resolve()
     # A workspace may itself be a Git repository containing both the project and its external data roots.
     foreign_checkout = any(
-        (parent / ".git").exists() and not repo.is_relative_to(parent)
+        repository_marker(parent) and not repo.is_relative_to(parent)
         for parent in (output, *output.parents)
     )
     if output.is_relative_to(repo) or repo.is_relative_to(output) or foreign_checkout:
