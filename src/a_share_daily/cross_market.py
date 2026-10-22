@@ -26,6 +26,7 @@ import requests
 
 from .cross_market_fetcher import Fetcher, FredAdapter
 from .cross_market_freshness import _parse_iso_date, _quote_date_warnings
+from .cross_market_rate_limit import cooldown_active, is_rate_limited, limited_quote, serial_quote
 from .cross_market_summary import generate_summary as _generate_summary
 from .global_leadlag import (
     GLOBAL_LEAD_LAG_INSTRUMENTS,
@@ -226,6 +227,8 @@ def _equity_quote(data: Any, symbol: str, trade_date: str | None = None) -> dict
 
 def _fetch_us_stocks(trade_date: str | None = None) -> dict[str, Any]:
     """Fetch dated equity closes, retrying at most six missing symbols serially."""
+    if cooldown_active():
+        return {symbol: {"error": "yahoo cooldown"} for symbol in US_SYMBOLS}
     try:
         import yfinance as yf
 
@@ -245,21 +248,19 @@ def _fetch_us_stocks(trade_date: str | None = None) -> dict[str, Any]:
         missing = [symbol for symbol in US_SYMBOLS if "error" in result[symbol]]
         for symbol in missing[:6]:
             try:
-                retry = yf.download(
-                    [symbol],
-                    **window,
-                    progress=False,
-                    auto_adjust=False,
-                    threads=False,
-                    timeout=10,
-                )
+                retry = serial_quote(yf, symbol, window)
                 quote = _equity_quote(retry, symbol, trade_date)
-            except Exception:
+            except Exception as exc:
+                if is_rate_limited(exc):
+                    result[symbol] = limited_quote()
+                    break
                 quote = result[symbol]
             if "error" not in quote:
                 result[symbol] = quote
         return result
     except Exception as e:
+        if is_rate_limited(e):
+            return {symbol: limited_quote() for symbol in US_SYMBOLS}
         return {"error": f"yfinance failed: {e}"}
 
 
@@ -341,6 +342,8 @@ def _bounded_daily_quote(data: Any, symbol: str, trade_date: str | None) -> dict
 
 def _fetch_commodities(trade_date: str | None = None) -> dict[str, Any]:
     """Select ETF sessions and bounded futures bars without a synthetic calendar."""
+    if cooldown_active():
+        return {"error": "yahoo cooldown"}
     try:
         import yfinance as yf
 
@@ -366,6 +369,8 @@ def _fetch_korea_signals(trade_date: str) -> tuple[dict[str, dict], dict, dict]:
     marked as ``daily-proxy``. A future intraday provider can feed the same
     ``compute_korea_signal`` contract without changing report consumers.
     """
+    if cooldown_active():
+        raise RuntimeError("yahoo cooldown")
     target = _parse_yyyymmdd(trade_date) or date.today()
     start = (target - timedelta(days=7)).isoformat()
     end = target.isoformat()
@@ -453,6 +458,9 @@ def _fetch_macros(trade_date: str | None = None) -> dict[str, dict]:
                 result[sym]["cboe_error"] = str(e)
 
     # ── DXY from yfinance (no free FRED ICE DXY) ───────────
+    if cooldown_active():
+        result["DX-Y.NYB"] = {"error": "yahoo cooldown"}
+        return result
     try:
         import yfinance as yf
 
