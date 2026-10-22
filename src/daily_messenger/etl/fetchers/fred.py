@@ -81,6 +81,25 @@ def _authenticated_observations(
     return observations
 
 
+def _public_csv_rows(text: str, series_id: str) -> csv.DictReader[str]:
+    """Validate the body, since HTTP 200 may carry an upstream error page."""
+    body = text.lstrip().lower()
+    if body.startswith("<"):
+        if (
+            "<html" in body[:512]
+            and "site maintenance" in body
+            and "currently undergoing proactive maintenance" in body
+        ):
+            raise FredFetchError(
+                f"FRED public endpoint returned a maintenance page for {series_id}"
+            )
+        raise FredFetchError(f"FRED public response was not CSV for {series_id}")
+    rows = csv.DictReader(io.StringIO(text))
+    if not {"observation_date", series_id}.issubset(rows.fieldnames or []):
+        raise FredFetchError(f"FRED public response had missing CSV columns for {series_id}")
+    return rows
+
+
 def _public_csv_observations(
     series_id: str,
     *,
@@ -94,7 +113,7 @@ def _public_csv_observations(
     try:
         response = requests.get(FRED_GRAPH_URL, params=params, timeout=timeout)
         response.raise_for_status()
-        rows = csv.DictReader(io.StringIO(response.text))
+        rows = _public_csv_rows(response.text, series_id)
         observations = [
             observation
             for row in rows

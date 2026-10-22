@@ -125,3 +125,46 @@ def test_authenticated_failure_falls_back_without_disclosing_key(
 
     assert observations == [fred.FredObservation(date="2026-07-15", value=4.2)]
     assert calls == [fred.FRED_OBSERVATIONS_URL, fred.FRED_GRAPH_URL]
+
+
+@pytest.mark.parametrize(
+    ("body", "message"),
+    [
+        (
+            "<!doctype html><html><title>Site Maintenance | St. Louis Fed</title>"
+            "<p>This web site is currently undergoing proactive maintenance.</p></html>",
+            "FRED public endpoint returned a maintenance page for DGS10",
+        ),
+        ("<html><title>Unavailable</title></html>", "FRED public response was not CSV for DGS10"),
+        ("", "FRED public response had missing CSV columns for DGS10"),
+        ("date,DGS10\n2026-07-15,4.2\n", "FRED public response had missing CSV columns for DGS10"),
+        (
+            "observation_date,OTHER\n2026-07-15,4.2\n",
+            "FRED public response had missing CSV columns for DGS10",
+        ),
+        ("observation_date,DGS10\n", "FRED public response was empty for DGS10"),
+        ("observation_date,DGS10\n2026-07-15,.\n", "FRED public response was empty for DGS10"),
+    ],
+)
+def test_public_response_diagnostics(monkeypatch, body, message):
+    response = requests.Response()
+    response.status_code = 200
+    response._content = body.encode()
+    response.headers["Content-Type"] = "text/html"
+    monkeypatch.setattr(fred.requests, "get", lambda *args, **kwargs: response)
+
+    with pytest.raises(fred.FredFetchError, match=message):
+        fred._public_csv_observations("DGS10", start=None, limit=None, timeout=1)
+
+
+@pytest.mark.parametrize("content_type", ["text/csv", "text/plain", "text/html", ""])
+def test_public_valid_csv_is_accepted_independently_of_content_type(monkeypatch, content_type):
+    response = requests.Response()
+    response.status_code = 200
+    response._content = b"observation_date,DGS10\n2026-07-15,4.2\n"
+    response.headers["Content-Type"] = content_type
+    monkeypatch.setattr(fred.requests, "get", lambda *args, **kwargs: response)
+
+    assert fred._public_csv_observations("DGS10", start=None, limit=None, timeout=1) == [
+        fred.FredObservation(date="2026-07-15", value=4.2)
+    ]
