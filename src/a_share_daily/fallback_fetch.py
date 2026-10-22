@@ -21,7 +21,7 @@ import argparse
 import json
 import os
 import sys
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 
 from ops_common.paths import resolve_owner_path
@@ -137,17 +137,47 @@ def run(trade_date: str, force_live: bool = False) -> dict:
     return data
 
 
+def _recover(args, trade_date: str) -> dict:
+    from a_share_daily.cross_market_index_receipt import recover_indices
+
+    if args.input_snapshot is None or args.receipt_root is None:
+        raise ValueError("recovery requires input snapshot and receipt root")
+    raw = args.input_snapshot.read_bytes()
+    data = json.loads(raw)
+    if data.get("date") != trade_date:
+        raise ValueError("input snapshot date mismatch")
+    observed = datetime.fromisoformat(args.observed_at) if args.observed_at else datetime.now(UTC)
+    if observed.tzinfo is None or observed > datetime.now(UTC):
+        raise ValueError("invalid recovery observation time")
+    recovered = recover_indices(
+        data, args.recover_receipt, root=args.receipt_root, observed_at=observed
+    )
+    if args.input_snapshot.read_bytes() != raw:
+        raise ValueError("snapshot changed during recovery")
+    if recovered["_index_recovery"]["recovered"]:
+        _write_snapshot(recovered, trade_date)
+    return recovered
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Cross-market data fallback fetcher")
     parser.add_argument("--date", help="Trade date YYYYMMDD (default: today)")
     parser.add_argument("--json", action="store_true", help="Output full JSON")
     parser.add_argument("--force", action="store_true", help="Force live fetch, skip snapshot")
+    parser.add_argument("--recover-receipt", type=Path)
+    parser.add_argument("--receipt-root", type=Path)
+    parser.add_argument("--input-snapshot", type=Path)
+    parser.add_argument("--observed-at", help="Aware replay cutoff, default current UTC")
     args = parser.parse_args()
 
     trade_date = args.date or datetime.now().strftime("%Y%m%d")
 
     try:
-        data = run(trade_date, force_live=args.force)
+        data = (
+            _recover(args, trade_date)
+            if args.recover_receipt
+            else run(trade_date, force_live=args.force)
+        )
     except Exception as e:
         print(f"[FAIL] {e}", file=sys.stderr)
         return 2
