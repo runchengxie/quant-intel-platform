@@ -36,7 +36,9 @@ def test_daily_watch_receipt_accepts_candidate_failure_after_exact_minute_valida
     )
     validations: list[tuple[Path, str, str]] = []
 
-    def validate_overlay(root: Path, *, trade_date: str, exchange: str) -> dict[str, object]:
+    def validate_overlay(
+        root: Path, *, trade_date: str, exchange: str, marketdata_cli: Path | None = None
+    ) -> dict[str, object]:
         validations.append((root, trade_date, exchange))
         return {
             "trade_date": trade_date,

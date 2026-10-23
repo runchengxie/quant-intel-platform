@@ -15,3 +15,19 @@ Cross-repository consumers use versioned files and public CLI contracts. They mu
 The legacy hot-sector signal fields (`raw_pred`, `signal_eval`, `signal_backtest`, and `candidate_universe.json` source-gate states) are retained only to identify historical research artifacts. They are not the current DailyWatch20 selection schema. The historical `strategy watchlist20 news-heat-export` command is also absent from the current `strategy` CLI; the installed owner interface is `daily-watch20-owner`. That owner's `run` command consumes a previously published optional news-heat artifact. The older `hotsector validate-output` and `strategy export-targets` flow does not define the current DailyWatch20 handoff.
 
 The optional topic chart consumes the versioned `topic_summary.json` artifact published with the selection run. It does not treat legacy `hotsector/candidate_universe.json` as a topic summary.
+
+## Installed minute-validation owner
+
+DailyWatch20 raw-minute completion calls the installed data owner CLI:
+`marketdata tushare validate-minute-partition`. Configure its absolute path with
+`MARKETDATA_CLI`; deployment passes the owner release's
+`.venv/bin/marketdata` explicitly. No provider Python import or sibling-source
+fallback is supported. The child environment excludes `PYTHONPATH` and
+`PYTHONHOME`, runs outside the source checkout and has a 180-second timeout.
+
+The consumer requires `marketdata.minute_exchange_overlay.v1` alongside the
+existing partition-promotion schema, the exact requested date and exchange,
+matching paths, valid hashes and consistent nonempty exchange row counts.
+Failure emits no completion marker. The stored fourteen partition receipt fields
+are unchanged. Both owner and consumer revisions must be recorded when verifying
+the integration; source presence does not establish deployed adoption.

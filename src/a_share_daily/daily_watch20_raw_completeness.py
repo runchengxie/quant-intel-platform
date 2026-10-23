@@ -71,46 +71,9 @@ def _write_atomic_json(path: Path, payload: dict[str, Any]) -> None:
 
 
 def _validate_exchange_overlay(root: Path, *, trade_date: str, exchange: str) -> dict[str, Any]:
-    from quant_market_data_platform.providers.tushare_a_share_mins import (
-        UNIVERSE_RULE,
-        validate_complete_minute_partition,
-    )
+    from a_share_daily.minute_owner_validation import validate_exchange_overlay
 
-    receipt = validate_complete_minute_partition(
-        root / f"trade_date={trade_date}",
-        trade_date=trade_date,
-        require_full_universe=False,
-    )
-    expected_rule = f"{UNIVERSE_RULE}:exchange={exchange}"
-    if receipt.get("universe_rule") != expected_rule:
-        raise ValueError(
-            f"{exchange} minute overlay uses unexpected universe rule: "
-            f"{receipt.get('universe_rule')!r}"
-        )
-    counts = receipt.get("market_symbol_counts")
-    if not isinstance(counts, dict) or int(counts.get(exchange, 0)) <= 0:
-        raise ValueError(f"{exchange} minute overlay contains no {exchange} symbols")
-    if any(int(counts.get(market, 0)) != 0 for market in {"SH", "SZ", "BJ"} - {exchange}):
-        raise ValueError(f"{exchange} minute overlay contains out-of-scope symbols")
-    return {
-        key: receipt[key]
-        for key in (
-            "schema_version",
-            "trade_date",
-            "partition_path",
-            "sidecar_path",
-            "partition_sha256",
-            "sidecar_sha256",
-            "rows",
-            "symbols",
-            "market_symbol_counts",
-            "expected_bars_per_symbol",
-            "universe_hash",
-            "universe_rule",
-            "universe_source",
-            "mirror_generated_at",
-        )
-    }
+    return validate_exchange_overlay(root, trade_date=trade_date, exchange=exchange)
 
 
 def publish_daily_watch_receipt(
@@ -144,7 +107,9 @@ def publish_daily_watch_receipt(
             raise ValueError(f"DailyWatch overlay roots are missing: {missing}")
         partition_receipts = {
             exchange: _validate_exchange_overlay(
-                roots[exchange], trade_date=resolved_date, exchange=exchange
+                roots[exchange],
+                trade_date=resolved_date,
+                exchange=exchange,
             )
             for exchange in ("SH", "SZ")
         }
@@ -191,6 +156,7 @@ def publish_daily_watch_receipt(
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--marker-root", required=True)
+
     parser.add_argument("--freshness-json", required=True)
     parser.add_argument("--trade-date", required=True)
     parser.add_argument("--minute-overlay-sh-root")
