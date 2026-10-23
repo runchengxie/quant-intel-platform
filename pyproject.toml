@@ -143,9 +143,6 @@ exclude = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 
-[tool.ty.analysis]
-allowed-unresolved-imports = ["quant_market_data_platform.**"]
-
 [tool.coverage.run]
 branch = true
 source = ["src"]

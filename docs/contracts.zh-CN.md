@@ -651,3 +651,15 @@ message id，消息内容 hash 必须等于对应 presentation，源 selection r
 ## Evidence-linked market daily report
 
 `daily_report.json` is the public report artifact. It contains `schema_version`, `as_of`, `generated_at`, `run_id`, deterministic `facts`, source-backed `events`, research `claims`, `source_status` and `quality_summary`. Each claim must reference `evidence_ids` and `sources`. The report cutoff is authoritative, and sources after that cutoff are excluded. FRED macro facts additionally include optional `observation_date` (the series observation date); `source_time` records when the source was read. A `fixture` quality status must never be published as live data.
+
+## 已安装的分钟校验 owner
+
+DailyWatch20 原始分钟完成标记调用数据 owner 已安装的
+`marketdata tushare validate-minute-partition`。通过 `MARKETDATA_CLI` 指定绝对路径。部署显式传入 owner release 的
+`.venv/bin/marketdata`，不再 import provider 或回退到相邻源码。
+子进程清除 `PYTHONPATH` 和 `PYTHONHOME`，在源码目录外运行，超时为 180 秒。
+
+消费者要求 `marketdata.minute_exchange_overlay.v1`、原有分区晋升 schema、
+准确的日期和交易所、匹配的路径、有效哈希以及一致且非空的交易所行数。
+失败时不写完成标记，持久化的十四个分区回执字段保持不变。
+集成验收记录 owner 与消费者的版本，不能以源码存在推断部署已采用。
