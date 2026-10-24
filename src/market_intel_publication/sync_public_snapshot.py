@@ -214,7 +214,7 @@ def _publish_snapshot(  # noqa: PLR0913 - private helper keeps the snapshot publ
     if reports_dir.exists():
         for markdown in reports_dir.glob("*.md"):
             relative = markdown.relative_to(public_root).as_posix()
-            if relative not in referenced:
+            if relative not in referenced and not markdown.name.endswith("-weekly.md"):
                 markdown.unlink()
 
 

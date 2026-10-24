@@ -198,6 +198,9 @@ def _build(root: Path, output: Path, summaries_path: Path | None) -> None:
     shutil.copy2(public_root / "data/reports.json", output / "data/reports.json")
     _copy_charts(public_root, output, {str(report["id"]) for report in reports})
     _copy_us_daily(public_root, output)
+    from market_intel_publication.weekly_recap_bundle import copy_weekly
+
+    copy_weekly(public_root, output)
     summary_data["summaries"] = current_summaries(reports, summaries)
     (output / "data/daily_summaries.json").write_text(
         json.dumps(summary_data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
