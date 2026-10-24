@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 SCHEMA_VERSION = "research.weekly_analysis.v1"
 VALUE_ARTIFACT = "value_regime_weekly"
@@ -35,8 +35,18 @@ def load_weekly_analysis_artifact(
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise ValueError(f"cannot read weekly analysis artifact: {path}") from exc
+    return validate_weekly_analysis_artifact(
+        payload, artifact_type=artifact_type, expected_as_of=expected_as_of
+    )
+
+
+def validate_weekly_analysis_artifact(
+    payload: object, *, artifact_type: str, expected_as_of: str | None = None
+) -> dict[str, Any]:
+    """Validate one already-admitted owner payload without reopening mutable input."""
     if not isinstance(payload, dict):
         raise ValueError("weekly analysis artifact must be an object")
+    payload = cast(dict[str, Any], payload)
     if payload.get("schema_version") != SCHEMA_VERSION:
         raise ValueError("unsupported weekly analysis schema")
     if payload.get("artifact_type") != artifact_type:
@@ -58,4 +68,4 @@ def load_weekly_analysis_artifact(
     return {**payload, "as_of": as_of}
 
 
-__all__ = ["load_weekly_analysis_artifact"]
+__all__ = ["load_weekly_analysis_artifact", "validate_weekly_analysis_artifact"]

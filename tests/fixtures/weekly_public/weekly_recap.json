@@ -1,0 +1,53 @@
+{
+  "schema_version": "market_intel_pages.weekly_recap.v1",
+  "publication": "public",
+  "report_id": "2026-10-23-weekly",
+  "date": "2026-10-23",
+  "generated_at": "2026-10-24T03:17:05.382864+00:00",
+  "markdown": "# Public weekly facts\n\nSynthetic market/style report.\n",
+  "source_url": "reports/2026-10-23-weekly.md",
+  "image": {
+    "source_url": "reports/2026-10-23-weekly.png",
+    "width": 8,
+    "height": 6,
+    "sha256": "6f5b9de097b5e83d2f5e3923112ac9390f98b6369add29c6a8b3fa190da8dfef"
+  },
+  "summary": {
+    "value_regime": "NEUTRAL",
+    "value_streak_weeks": 2,
+    "value_return_12w_percent": 3.0,
+    "small_crowding": 0.2,
+    "large_crowding": 0.4,
+    "size_signal": "small_cap"
+  },
+  "series": {
+    "value": [
+      {
+        "date": "2026-10-23",
+        "return_12w_percent": 3.0,
+        "wealth_index": 1.2
+      }
+    ],
+    "size": [
+      {
+        "date": "2026-10-23",
+        "relative_strength": 1.1,
+        "small_crowding": 0.2,
+        "large_crowding": 0.4
+      }
+    ]
+  },
+  "sources": {
+    "value": {
+      "schema_version": "research.weekly_analysis.v1",
+      "as_of": "2026-10-23",
+      "sha256": "7cad4d1d0c87d3db35dbbf639803bcda967a0832541c64eae1ce882840b7b51b"
+    },
+    "size": {
+      "schema_version": "research.weekly_analysis.v1",
+      "as_of": "2026-10-23",
+      "sha256": "72c3223b5e684784070ade1b12f776b9b49f68199d744645914872d7319db60b"
+    }
+  },
+  "content_hash": "605277c1995edf5fbca346957eb6b52cf9fdcdd006b056abde0eed104158ac54"
+}
