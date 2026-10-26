@@ -169,10 +169,10 @@ def _deliver_weekly_basket(args, paths, rendered, markdown):
         return deliveries, True
 
     delivery_dir = Path(args.output_root).expanduser().resolve() / args.as_of_date / "delivery"
-    for target_kind, target_id in (
-        ("personal", args.personal_chat_id),
-        ("group", args.group_chat_id),
-    ):
+    targets = [("personal", args.personal_chat_id)]
+    if not args.personal_only:
+        targets.append(("group", args.group_chat_id))
+    for target_kind, target_id in targets:
         deliveries.append(
             send_basket_report(
                 markdown,
@@ -223,7 +223,7 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
                 report_date=args.as_of_date,
                 allow_legacy=args.dry_run,
             ).to_payload()
-        if args.send and not args.group_chat_id:
+        if args.send and not args.personal_only and not args.group_chat_id:
             print("[FAIL] weekly basket: --group-chat-id is required for --send", file=sys.stderr)
             return 1
 

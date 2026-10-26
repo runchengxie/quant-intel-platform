@@ -226,3 +226,75 @@ def test_weekly_basket_send_rejects_invalid_performance_before_delivery(
     assert exc_info.value.code == 1
     assert "unsupported performance artifact schema" in capsys.readouterr().err
     assert not (tmp_path / "output" / "20260914" / "report.png").exists()
+
+
+@pytest.mark.parametrize("personal_only", [False, True])
+def test_weekly_basket_personal_only_excludes_configured_group(
+    tmp_path: Path, monkeypatch, personal_only: bool
+) -> None:
+    from types import SimpleNamespace
+
+    from a_share_daily.weekly_basket_command import _deliver_weekly_basket
+
+    args = SimpleNamespace(
+        send=True,
+        personal_only=personal_only,
+        output_root=tmp_path,
+        as_of_date="20260914",
+        personal_chat_id="ou_owner",
+        group_chat_id="oc_group",
+        lark_cli="unused",
+    )
+    receipt = _write(tmp_path / "receipt.json", {})
+    sent = []
+
+    def send_report(*args, **kwargs):
+        sent.append(kwargs)
+        return SimpleNamespace(status="sent", image_status="sent")
+
+    monkeypatch.setattr(
+        "a_share_daily.weekly_client_basket_delivery.send_basket_report", send_report
+    )
+    _, okay = _deliver_weekly_basket(args, {"receipt": receipt}, {}, "report")
+    assert okay
+    assert [row["target_kind"] for row in sent] == (
+        ["personal"] if personal_only else ["personal", "group"]
+    )
+    assert sent[0]["receipt_path"] == tmp_path / "20260914/delivery/personal.json"
+    assert sent[0]["target_id"] == "ou_owner"
+
+
+def test_weekly_basket_parser_accepts_personal_only_without_group(tmp_path: Path) -> None:
+    args = cli._build_parser().parse_args(
+        _weekly_args(tmp_path, mode="--send")[1:] + ["--personal-only"]
+    )
+    assert args.personal_only
+
+
+@pytest.mark.parametrize("personal_only", [False, True])
+def test_weekly_basket_missing_group_requires_explicit_personal_only(
+    tmp_path: Path, monkeypatch, capsys, personal_only: bool
+) -> None:
+    from types import SimpleNamespace
+
+    from a_share_daily import weekly_basket_command
+
+    args = cli._build_parser().parse_args(_weekly_args(tmp_path, mode="--send")[1:])
+    args.performance = "performance.json"
+    args.group_chat_id = None
+    args.personal_only = personal_only
+    monkeypatch.setattr(
+        "a_share_daily.reporting.performance.load_performance",
+        lambda *args, **kwargs: SimpleNamespace(to_payload=lambda: {}),
+    )
+
+    def admitted(args):
+        raise RuntimeError("admitted without group")
+
+    monkeypatch.setattr(weekly_basket_command, "_prepare_weekly_basket", admitted)
+    if personal_only:
+        with pytest.raises(RuntimeError, match="admitted without group"):
+            weekly_basket_command._cmd_weekly_basket(args)
+    else:
+        assert weekly_basket_command._cmd_weekly_basket(args) == 1
+        assert "--group-chat-id is required" in capsys.readouterr().err
