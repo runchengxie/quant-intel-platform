@@ -240,12 +240,17 @@ def _add_weekly_basket_command(sub: argparse._SubParsersAction) -> None:
     )
     basket.add_argument("--dry-run", action="store_true", help="Build artifacts without sending")
     basket.add_argument(
+        "--personal-only",
+        action="store_true",
+        help="Send only to the personal target, ignoring any configured group",
+    )
+    basket.add_argument(
         "--personal-chat-id", required=True, help="Explicit personal Feishu user ID"
     )
     basket.add_argument(
         "--group-chat-id",
         default=os.environ.get("WEEKLY_BASKET_GROUP_CHAT_ID"),
-        help="Explicit Feishu group chat ID (oc_...) required for --send",
+        help="Explicit Feishu group chat ID (oc_...) required for --send unless --personal-only",
     )
     basket.add_argument(
         "--lark-cli",

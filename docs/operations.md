@@ -23,3 +23,11 @@ uv run python project_tools/check_all.py --scope all
 ```
 
 It covers tests, lint, type checks, CLI help synchronization, package coverage, and scripts. CI runs public-boundary checks separately. CI does not fetch real market data, call Feishu, or use broker credentials.
+
+### Weekly basket personal delivery
+
+Pass `--personal-only` with `a-share-daily weekly-basket --send` to deliver only
+to the explicit `--personal-chat-id`. This ignores any configured group target
+and does not require `--group-chat-id`. Without this flag, sending continues to
+require and deliver to both personal and group targets. Personal receipts and
+idempotency keys remain the same when switching between these modes.
