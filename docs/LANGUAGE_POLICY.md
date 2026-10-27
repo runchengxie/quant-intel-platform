@@ -27,7 +27,9 @@ News statements, titles, source names, evidence URLs, concept names and unknown
 producer notes retain their source text. English reports state this explicitly;
 English selection does not translate arbitrary source content. Locale selection
 never rewrites the assembled report or its source statements, and does not modify
-input payloads, calculations, artifact schemas or receipt identities.
+input payloads, calculations, artifact schemas or receipt identities. The morning
+publication/import path retains warning classification and prior-close numeric
+baselines in both locales.
 
 The public documentation has paired English and Chinese navigation; Pages has
 its own route and fallback behavior.

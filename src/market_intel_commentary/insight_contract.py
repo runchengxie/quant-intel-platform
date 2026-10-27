@@ -72,6 +72,16 @@ def extract_metrics(report: dict) -> dict:
     return result
 
 
+def _is_quality_warning(text: str) -> bool:
+    """Recognize stable warning tags and retained legacy degradation wording."""
+    marked = re.match(r"^(?:[-*]\s+)?\[WARN\](?:\s|$)", text.strip())
+    legacy = re.search(r"缺失|暂缺|不可用|未取得|降级|不匹配|未回测", text)
+    # Optional freshness rows keep [fetch]. Match their positive degradation
+    # sentence, never generic words such as 'missing' in zero-count summaries.
+    optional_degraded = text.endswith("Report is degraded; delivery is not blocked.")
+    return bool(marked or legacy or optional_degraded)
+
+
 def build_context(reports: list[dict], morning: dict, evening: dict) -> dict:
     """Build a verified context for a current session and prior Asia close.
 
@@ -114,8 +124,7 @@ def build_context(reports: list[dict], morning: dict, evening: dict) -> dict:
         dict.fromkeys(
             e["text"]
             for e in evidence
-            if e["report_id"] in (morning["id"], evening["id"])
-            and re.search(r"缺失|暂缺|不可用|未取得|降级|不匹配|未回测", e["text"])
+            if e["report_id"] in (morning["id"], evening["id"]) and _is_quality_warning(e["text"])
         )
     )
     return {
