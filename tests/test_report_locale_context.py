@@ -17,10 +17,11 @@ class PublicationClock(datetime):
         return cls(2026, 6, 30, 7, 5, tzinfo=tz)
 
 
-def prior_close() -> dict:
+def prior_close(warnings: tuple[str, ...] = ()) -> dict:
     return parse_markdown(
         "# Prior close\n生成时间: 2026-06-29 18:00\n\n"
-        "## Metrics\n上涨率55.0%\n成交额/历史中位1.2x\n站上VWAP比例60.0%\n",
+        "## Metrics\n上涨率55.0%\n成交额/历史中位1.2x\n站上VWAP比例60.0%\n"
+        + ("\n## Quality\n" + "\n".join(warnings) if warnings else ""),
         "2026-06-29",
         "evening",
     )
@@ -125,3 +126,75 @@ def test_context_preserves_legacy_unmarked_chinese_quality_notes() -> None:
     evening = prior_close()
     context = build_context([morning, evening], morning, evening)
     assert context["quality_warnings"] == ["原始数据暂缺。"]
+
+
+@pytest.mark.parametrize("morning_locale", ["en-US", "zh-CN"])
+@pytest.mark.parametrize("prior_locale", ["en-US", "zh-CN"])
+def test_dated_warning_identity_does_not_depend_on_translated_or_duplicate_text(
+    monkeypatch,
+    morning_locale: str,
+    prior_locale: str,
+) -> None:
+    monkeypatch.setattr(public_report_refresh, "datetime", PublicationClock)
+    warning = {
+        "en-US": "- [WARN] Macro snapshot missing.",
+        "zh-CN": "- [WARN] 宏观快照缺失。",
+    }[prior_locale]
+    # Two separate prior paragraphs and the current date are distinct evidence,
+    # even when their prose is identical in a selected locale.
+    evening = prior_close((warning, warning))
+    rendered = render_morning_report(
+        {"date_dash": "2026-06-30"},
+        {},
+        generated_at=datetime(2026, 6, 30, 7),
+        locale=morning_locale,
+    )
+    morning = parse_markdown(
+        public_report_refresh.public_markdown(
+            rendered,
+            "20260630",
+            "morning",
+            "scheduled",
+        ),
+        "2026-06-30",
+        "morning",
+    )
+    context = build_context([morning, evening], morning, evening)
+    assert len(context["quality_warnings"]) == 8
+    selected = warning_evidence(context)
+    assert len(selected) == 8
+    assert len({identity for identity, _ in selected}) == 8
+    assert selected[:2] == [
+        ("2026-06-29-evening:s2:p0", "[WARN]"),
+        ("2026-06-29-evening:s2:p1", "[WARN]"),
+    ]
+    assert all(identity.startswith("2026-06-30-morning:") for identity, _ in selected[2:])
+    assert context["quality_warnings"][:2] == [warning, warning]
+    assert {key: value["value"] for key, value in context["metrics"].items()} == {
+        "advancing_pct": 55.0,
+        "volume_ratio": 1.2,
+        "above_vwap_pct": 60.0,
+    }
+
+
+def test_quality_warning_cap_and_source_order_remain_unchanged(monkeypatch) -> None:
+    monkeypatch.setattr(public_report_refresh, "datetime", PublicationClock)
+    source_warnings = tuple(f"- [WARN] Source datum {index} unavailable." for index in range(14))
+    evening = prior_close(source_warnings)
+    morning = parse_markdown(
+        public_report_refresh.public_markdown(
+            render_morning_report(
+                {"date_dash": "2026-06-30"}, {}, generated_at=datetime(2026, 6, 30, 7)
+            ),
+            "20260630",
+            "morning",
+            "scheduled",
+        ),
+        "2026-06-30",
+        "morning",
+    )
+    context = build_context([morning, evening], morning, evening)
+    assert context["quality_warnings"] == list(source_warnings[:12])
+    assert [identity for identity, _ in warning_evidence(context)] == [
+        f"2026-06-29-evening:s2:p{index}" for index in range(12)
+    ]

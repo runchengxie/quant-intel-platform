@@ -29,7 +29,9 @@ English selection does not translate arbitrary source content. Locale selection
 never rewrites the assembled report or its source statements, and does not modify
 input payloads, calculations, artifact schemas or receipt identities. The morning
 publication/import path retains warning classification and prior-close numeric
-baselines in both locales.
+baselines in both locales. Warnings remain a list of source strings, capped at
+12 entries. Distinct evidence paragraphs retain their warnings even when the
+wording repeats across dates or paragraphs.
 
 The public documentation has paired English and Chinese navigation; Pages has
 its own route and fallback behavior.

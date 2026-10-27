@@ -120,12 +120,14 @@ def build_context(reports: list[dict], morning: dict, evening: dict) -> dict:
             [row for row in eligible if row["date"] in dates], key=lambda row: row["id"]
         )
     evidence = evidence_for(selected)
+    # Separate report dates/paragraphs remain separate evidence even when their
+    # localized warning text matches. Keep source order and the existing cap.
     warnings = list(
-        dict.fromkeys(
-            e["text"]
+        {
+            e["id"]: e["text"]
             for e in evidence
             if e["report_id"] in (morning["id"], evening["id"]) and _is_quality_warning(e["text"])
-        )
+        }.values()
     )
     return {
         "as_of": cutoff.isoformat(),
