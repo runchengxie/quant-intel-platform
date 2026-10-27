@@ -22,10 +22,10 @@
 
 初次使用，先从快速开始进入；需要核对报告或维护系统时，直接看对应路径。
 
-1. **阅读日报**，打开[公开日报网站](https://runchengxie.github.io/quant-intel-pages/)。
-2. **运行框架**，从[五分钟开始](getting-started.zh-CN.md)和[运行市场日报](how-to/run-daily-report.md)进入。
-3. **理解与核对**，阅读[核心概念](concepts.zh-CN.md)、[数据契约](contracts.zh-CN.md)和[来源说明](public-release/data-provenance.md)。
-4. **维护平台**，查看[系统架构](architecture.zh-CN.md)、[运维说明](operations.zh-CN.md)和[测试](testing.md)。
+1. 阅读日报，打开[公开日报网站](https://runchengxie.github.io/quant-intel-pages/)。
+2. 运行框架，从[五分钟开始](getting-started.zh-CN.md)和[运行市场日报](how-to/run-daily-report.md)进入。
+3. 理解与核对，阅读[核心概念](concepts.zh-CN.md)、[数据契约](contracts.zh-CN.md)和[来源说明](public-release/data-provenance.md)。
+4. 维护平台，查看[系统架构](architecture.zh-CN.md)、[运维说明](operations.zh-CN.md)和[测试](testing.md)。
 
 ## 文档范围
 
