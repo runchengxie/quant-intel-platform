@@ -2,10 +2,15 @@
 
 from __future__ import annotations
 
-from copy import copy
+from copy import copy, deepcopy
 from pathlib import Path
 
 from mkdocs.structure.nav import Navigation
+
+MESSAGES = {
+    "en": {"theme.dark": "Switch to dark mode", "theme.light": "Switch to light mode"},
+    "zh": {"theme.dark": "切换至深色模式", "theme.light": "切换至浅色模式"},
+}
 
 LINK_TITLES = {"Market reports": "市场日报"}
 
@@ -53,11 +58,23 @@ def on_page_context(context, page, config, nav):
             flattened.append(item)
     pages = [item for item in nav.pages if _is_chinese(item) == chinese]
     context["nav"] = Navigation(flattened, pages)
+    localized_config = copy(config)
+    localized_theme = copy(config.theme)
+    language = "zh" if chinese else "en"
+    localized_theme.language = language
+    palette = deepcopy(config.theme.get("palette") or [])
+    for item in palette:
+        key = {"default": "theme.dark", "slate": "theme.light"}.get(item.get("scheme"))
+        if key and item.get("toggle"):
+            item["toggle"]["name"] = MESSAGES[language][key]
+    localized_theme.palette = palette
+    localized_config.theme = localized_theme
+    context["config"] = localized_config
     return context
 
 
 def on_post_page(output, page, config):
     """Set the HTML language to match the rendered documentation page."""
     if _is_chinese(page):
-        return output.replace('<html lang="en"', '<html lang="zh-CN"', 1)
+        return output.replace('<html lang="zh"', '<html lang="zh-CN"', 1)
     return output

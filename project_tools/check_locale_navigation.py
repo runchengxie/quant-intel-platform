@@ -24,6 +24,12 @@ def main() -> None:
     assert document_language(site, "configuration/index.html") == "en"
     assert document_language(site, "configuration.zh-CN/index.html") == "zh-CN"
 
+    for path in ("index.zh-CN/index.html", "configuration.zh-CN/index.html", "scoring/index.html"):
+        html = (site / path).read_text(encoding="utf-8")
+        assert 'aria-label="切换至深色模式"' in html
+        assert 'aria-label="Switch to dark mode"' not in html
+        assert 'title="编辑此页"' in html
+
     english = primary_navigation(site, "index.html")
     chinese = primary_navigation(site, "index.zh-CN/index.html")
     english_article = primary_navigation(site, "configuration/index.html")
