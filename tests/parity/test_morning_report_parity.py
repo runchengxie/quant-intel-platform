@@ -33,6 +33,7 @@ def test_morning_report_marks_missing_optional_data_as_degraded() -> None:
         {"date_dash": "2026-09-08", "cross_market": {}},
         {},
         generated_at=datetime(2026, 9, 9, 7, 0),
+        locale="zh-CN",
     )
 
     assert "[WARN] 未取得通过结构化校验的新闻条目" in report

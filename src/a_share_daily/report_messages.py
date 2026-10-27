@@ -372,7 +372,7 @@ KNOWN_LABELS: dict[str, str] = {
     "深色终端": "Dark terminal",
     "流动性": "Liquidity",
     "广度": "Breadth",
-    "赚钱效应": "Profit effect",
+    "赚钱效应": "Profitability",
     "亏钱风险": "Loss risk",
     "趋势确认": "Trend confirmation",
     "轮动质量": "Rotation quality",

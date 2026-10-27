@@ -23,6 +23,8 @@ def test_english_empty_report_templates_are_fully_localized() -> None:
     assert not re.search(r"[\u4e00-\u9fff]", morning)
     assert not re.search(r"[\u4e00-\u9fff]", evening)
     assert "Missing SPY/QQQ/SMH benchmark quotes" in morning
+    assert "No validated structured news items" in morning
+    assert "Missing hot-sector manifest" in morning
     assert "Market temperature data is insufficient" in evening
 
 
