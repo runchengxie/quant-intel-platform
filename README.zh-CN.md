@@ -21,7 +21,7 @@ uv sync --locked --no-dev
 uv run dm --help
 ```
 
-从[入门指南](docs/getting-started.md)了解本地报告流程。全球市场报告可以独立试用。需要 A 股正式研究产物、数据湖或生产调度时，还需配置对应的 owner 项目和权限，详见[跨项目边界](docs/boundary-contract.md)。
+从[入门指南](docs/getting-started.zh-CN.md)了解本地报告流程。全球市场报告可以独立试用。需要 A 股正式研究产物、数据湖或生产调度时，还需配置对应的 owner 项目和权限，详见[跨项目边界](docs/boundary-contract.md)。
 
 ## 你可以在这里做什么
 
@@ -32,12 +32,12 @@ uv run dm --help
 
 ## 文档
 
-- [入门指南](docs/getting-started.md)：准备环境并运行报告
+- [入门指南](docs/getting-started.zh-CN.md)：准备环境并运行报告
 - [新机器配置](docs/new-machine-setup.md)：了解本地环境和配置
-- [系统架构](docs/architecture.md)：查看报告生成和投递流程
+- [系统架构](docs/architecture.zh-CN.md)：查看报告生成和投递流程
 - [市场日报网站](docs/how-to/market-site.md)：预览网站、了解公开数据与发布边界
-- [运维手册](docs/operations.md)：查看运行、恢复与排障
-- [文档索引](docs/index.md)：按主题查找其他技术说明
+- [运维手册](docs/operations.zh-CN.md)：查看运行、恢复与排障
+- [文档索引](docs/index.zh-CN.md)：按主题查找其他技术说明
 
 报告和分析用于市场信息整理，不构成投资建议。
 
