@@ -12,7 +12,7 @@
 
 <p class="mi-home__links" markdown="1">
 
-[五分钟开始](getting-started.md){ .md-button .md-button--primary }
+[五分钟开始](getting-started.zh-CN.md){ .md-button .md-button--primary }
 [阅读最新日报](https://runchengxie.github.io/quant-intel-pages/){ .md-button }
 
 </p>
@@ -22,9 +22,10 @@
 
 初次使用，先从快速开始进入；需要核对报告或维护系统时，直接看对应路径。
 
-1. **运行日报**：从[五分钟开始](getting-started.md)和[运行市场日报](how-to/run-daily-report.md)进入。
-2. **理解与核对**：阅读[核心概念](concepts.md)、[数据契约](contracts.md)和[来源说明](public-release/data-provenance.md)。
-3. **维护平台**：查看[系统架构](architecture.md)、[运维说明](operations.md)和[测试](testing.md)。
+1. **阅读日报**，打开[公开日报网站](https://runchengxie.github.io/quant-intel-pages/)。
+2. **运行框架**，从[五分钟开始](getting-started.zh-CN.md)和[运行市场日报](how-to/run-daily-report.md)进入。
+3. **理解与核对**，阅读[核心概念](concepts.zh-CN.md)、[数据契约](contracts.zh-CN.md)和[来源说明](public-release/data-provenance.md)。
+4. **维护平台**，查看[系统架构](architecture.zh-CN.md)、[运维说明](operations.zh-CN.md)和[测试](testing.md)。
 
 ## 文档范围
 
@@ -34,6 +35,8 @@
 | A 股分析 | 组装市场事实，生成晨报、晚报和图表 |
 | 研究产物消费 | 校验 owner 发布的版本化产物 |
 | 数据契约 | 约束跨模块、跨仓库的数据格式和回执 |
+
+先按快速开始运行离线检查。生成和投递实时报告还需要按操作文档配置数据源和投递目标。
 
 ## 快速开始
 
