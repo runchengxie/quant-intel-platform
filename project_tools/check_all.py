@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Run market-intel's repository-local quality checks.
 
-Research repositories own their own gates inside research-workspace. This script
-therefore checks market-intel only; it no longer reaches into adjacent owner
+Research repositories own their own gates. This script checks quant-intel-platform
+only; it no longer reaches into adjacent owner
 repositories or git submodules.
 """
 
