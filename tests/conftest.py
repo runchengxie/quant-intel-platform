@@ -23,6 +23,13 @@ from daily_messenger.etl import run_fetch  # noqa: E402
 from daily_messenger.scoring import run_scores  # noqa: E402
 
 
+@pytest.fixture(autouse=True)
+def isolate_daily_cli_runtime_config(tmp_path: Path, monkeypatch: pytest.MonkeyPatch):
+    # CLI tests must not load machine-local .env files or leak their delivery
+    # settings into later tests. Explicit loader tests can select a fixture root.
+    monkeypatch.setattr(cli, "PROJECT_ROOT", tmp_path / "runtime-env")
+
+
 def _write_json(path: Path, payload: dict[str, object]) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")

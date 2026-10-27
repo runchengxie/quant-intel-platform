@@ -45,3 +45,23 @@ def test_load_local_env_reads_all_candidate_files_without_overriding(
     assert env.os.environ["EXPORTED"] == "yes"
     assert env.os.environ["LOCAL_ONLY"] == "two"
     assert env.os.environ["PLATFORM_ONLY"] == "three"
+
+
+def test_daily_cli_loads_only_its_isolated_runtime_config(tmp_path: Path, monkeypatch) -> None:
+    from daily_messenger import cli
+
+    # Guard the fixture before writing: never create or replace a checkout .env.
+    assert cli.PROJECT_ROOT.is_relative_to(tmp_path)
+    cli.PROJECT_ROOT.mkdir()
+    (cli.PROJECT_ROOT / ".env").write_text("SHARED=base\nBASE_ONLY=one\n")
+    (cli.PROJECT_ROOT / ".env.local").write_text("SHARED=local\nexport LOCAL_ONLY=two\n")
+    monkeypatch.setattr(cli.os, "environ", {"SHARED": "inherited", "UNRELATED": "kept"})
+
+    cli._load_runtime_env_files()
+
+    assert dict(cli.os.environ) == {
+        "SHARED": "local",
+        "BASE_ONLY": "one",
+        "LOCAL_ONLY": "two",
+        "UNRELATED": "kept",
+    }
