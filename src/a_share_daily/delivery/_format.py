@@ -1,8 +1,4 @@
-"""交付层的纯格式化与 IO 工具。
-
-这些函数无副作用、不依赖任何业务常量，被 report_delivery 的渲染与
-投递逻辑复用。单独成模块后，report_delivery 通过 re-export 保持兼容。
-"""
+"""Shared formatting and file helpers for report rendering and delivery."""
 
 from __future__ import annotations
 
@@ -10,6 +6,8 @@ import json
 from collections.abc import Mapping, Sequence
 from pathlib import Path
 from typing import Any
+
+from a_share_daily.report_messages import message
 
 
 def _read_text(path: str | Path) -> str:
@@ -54,7 +52,7 @@ def _fmt_close(value: Any) -> str:
     return f"{number:.2f}"
 
 
-def _fmt_yuan(value: Any) -> str:
+def _fmt_yuan(value: Any, *, locale: str = "zh-CN") -> str:
     try:
         number = float(value)
     except (TypeError, ValueError):
@@ -62,12 +60,12 @@ def _fmt_yuan(value: Any) -> str:
     abs_number = abs(number)
     sign = "-" if number < 0 else ""
     if abs_number >= 1e12:
-        return f"{sign}{abs_number / 1e12:.2f}万亿"
+        return message(locale, "currency.trillion", value=f"{sign}{abs_number / 1e12:.2f}")
     if abs_number >= 1e8:
-        return f"{sign}{abs_number / 1e8:.2f}亿"
+        return message(locale, "currency.hundred_million", value=f"{sign}{abs_number / 1e8:.2f}")
     if abs_number >= 1e4:
-        return f"{sign}{abs_number / 1e4:.2f}万"
-    return f"{number:.0f}"
+        return message(locale, "currency.ten_thousand", value=f"{sign}{abs_number / 1e4:.2f}")
+    return message(locale, "currency.yuan", value=f"{number:.0f}")
 
 
 def _date_dash(trade_date: str) -> str:

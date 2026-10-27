@@ -17,21 +17,29 @@ codes remain English or language-neutral. Do not put translated labels into
 machine-readable artifacts. A renderer should accept a locale and translate
 presentation labels only.
 
-Current A-share morning and evening renderers localize report titles, major
-section headings and selected metadata. Body templates, source labels and source
-news may still be Chinese in `en-US` output. English selection is not a guarantee
-of a fully translated report. The public documentation has paired English and
-Chinese navigation; Pages has its own route and fallback behavior.
+A-share morning and evening renderers select catalog templates before inserting
+source fields. Titles, body templates, freshness summaries, known producer labels
+and currency units support both locales. Labels are translated only when recognized
+for their producer field. Missing catalog translations fall back
+to English. An unknown locale is rejected.
 
-The remaining migration order is:
+News statements, titles, source names, evidence URLs, concept names and unknown
+producer notes retain their source text. English reports state this explicitly;
+English selection does not translate arbitrary source content. Locale selection
+never rewrites the assembled report or its source statements, and does not modify
+input payloads, calculations, artifact schemas or receipt identities. The morning
+publication/import path retains warning classification and prior-close numeric
+baselines in both locales. Warnings remain a list of source strings, capped at
+12 entries. Distinct evidence paragraphs retain their warnings even when the
+wording repeats across dates or paragraphs.
 
-1. stabilize the locale contract and report-model boundary;
-2. localize one deterministic renderer with snapshot coverage;
-3. add locale selection to CLI and publication surfaces;
-4. migrate web and delivery adapters;
-5. keep English as the canonical documentation language, provide Chinese
-   companions for active public pages, and translate historical archives
-   selectively.
+The public documentation has paired English and Chinese navigation; Pages has
+its own route and fallback behavior.
+
+When adding a localized surface, establish the structured report-model boundary
+first, then cover deterministic rendering and CLI selection with tests. Keep
+English as the canonical documentation language, maintain Chinese companions for
+active public pages, and translate historical archives selectively.
 
 There must be one report builder and multiple locale renderers, not one
 independently maintained report pipeline per language.

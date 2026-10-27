@@ -68,3 +68,12 @@ MARKET_INTEL_ROOT=/path/to/quant-intel-platform
 ```
 
 The repository path is only a process entry point, not a Python import boundary. Validate the resulting artifact and receipt after the owner CLI completes. Production-specific configuration is maintained in `quant-intel-deploy`.
+
+## Report language
+
+`a-share-daily morning-report --locale en-US` and
+`python -m a_share_daily.delivery.report_delivery evening --locale en-US` select human-facing report copy. Both CLIs use
+`MARKET_INTEL_LOCALE` when the flag is omitted, defaulting to `en-US`; `zh-CN`
+is also supported. Source statements and unknown source labels keep their original
+text. See the [language policy](LANGUAGE_POLICY.md) for catalog fallback and the
+language-neutral artifact boundary.

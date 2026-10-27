@@ -10,6 +10,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Literal
 
+from a_share_daily.report_messages import known_label, message
+
 FreshnessStatus = Literal[
     "fresh",
     "expected_delay",
@@ -344,14 +346,14 @@ def _list(value: Any) -> Sequence[Any]:
     return value if isinstance(value, list) else []
 
 
-def _attempt_summary(item: Mapping[str, Any]) -> str:
+def _attempt_summary(item: Mapping[str, Any], locale: str = "zh-CN") -> str:
     labels = [
-        str(attempt.get("label") or attempt.get("name"))
+        known_label(locale, attempt.get("label") or attempt.get("name"), domain="attempt")
         for attempt in _list(item.get("attempts"))
         if isinstance(attempt, Mapping)
     ]
     if not labels:
-        return "当前生成流程"
+        return message(locale, "attempt.current")
     return " + ".join(labels)
 
 
@@ -369,17 +371,80 @@ def _market_dates(news_payload: Mapping[str, Any] | None) -> dict[str, str]:
     return result
 
 
+def _render_contract_details(
+    issue_items: Sequence[Mapping[str, Any]],
+    optional_items: Sequence[Mapping[str, Any]],
+    expected_items: Sequence[Mapping[str, Any]],
+    target_date: str,
+    locale: str,
+) -> list[str]:
+    """Format classified contract rows using their existing status and dates."""
+    lines: list[str] = []
+    for item in issue_items[:6]:
+        attempts = _attempt_summary(item, locale=locale)
+        latest = str(item.get("latest") or "MISSING")
+        expected = str(item.get("expected") or target_date or "n/a")
+        detail = str(
+            item.get("detail")
+            or message(locale, "freshness.status", status=f"{item.get('status')}")
+        )
+        lines.append(
+            message(
+                locale,
+                "freshness.issue",
+                label=known_label(locale, item.get("label"), domain="dataset"),
+                dataset=f"{item.get('dataset')}",
+                latest=f"{latest}",
+                expected=f"{expected}",
+                attempts=f"{attempts}",
+                detail=known_label(locale, detail, domain="detail"),
+            )
+        )
+
+    for item in optional_items[:6]:
+        latest = str(item.get("latest") or "MISSING")
+        expected = str(item.get("expected") or target_date or "n/a")
+        detail = str(item.get("detail") or message(locale, "freshness.optional.detail"))
+        lines.append(
+            message(
+                locale,
+                "freshness.optional",
+                label=known_label(locale, item.get("label"), domain="dataset"),
+                dataset=f"{item.get('dataset')}",
+                latest=f"{latest}",
+                expected=f"{expected}",
+                detail=known_label(locale, detail, domain="detail"),
+            )
+        )
+
+    for item in expected_items[:4]:
+        lines.append(
+            message(
+                locale,
+                "freshness.delay",
+                label=known_label(locale, item.get("label"), domain="dataset"),
+                dataset=f"{item.get('dataset')}",
+                latest=f"{item.get('latest')}",
+                detail=known_label(locale, item.get("detail"), domain="detail"),
+            )
+        )
+
+    return lines
+
+
 def render_freshness_section(
     manifest_payload: Mapping[str, Any],
     news_payload: Mapping[str, Any] | None = None,
     *,
-    title: str = "数据质量",
+    title: str | None = None,
+    locale: str = "zh-CN",
 ) -> list[str]:
     """Render a compact freshness section for morning/evening markdown reports."""
-    lines = [f"## {title}"]
+    selected_title = message(locale, "freshness.section.title") if title is None else title
+    lines = [f"## {selected_title}"]
     freshness = _dict(manifest_payload.get("freshness"))
     if not freshness:
-        lines.append("- [WARN] 缺少结构化数据新鲜度 manifest。")
+        lines.append(message(locale, "freshness.missing"))
         return lines
 
     contracts = [item for item in _list(freshness.get("contracts")) if isinstance(item, Mapping)]
@@ -392,11 +457,16 @@ def render_freshness_section(
         item for item in contracts if item.get("status") in {"optional_stale", "optional_missing"}
     ]
     lines.append(
-        "- [fetch] "
-        f"目标交易日 {_date_dash(target_date)}；"
-        f"fresh {fresh_count} 项，expected_delay {expected_count} 项，"
-        f"skipped {len(skipped_items)} 项，stale/missing {len(issue_items)} 项，"
-        f"optional_degraded {len(optional_items)} 项。"
+        message(
+            locale,
+            "freshness.counts",
+            date=f"{_date_dash(target_date)}",
+            fresh=f"{fresh_count}",
+            expected_delay=f"{expected_count}",
+            skipped=f"{len(skipped_items)}",
+            issues=f"{len(issue_items)}",
+            optional=f"{len(optional_items)}",
+        )
     )
 
     market_dates = _market_dates(news_payload)
@@ -406,46 +476,42 @@ def render_freshness_section(
         ]
         us_date = market_dates.get("us")
         if asia_dates:
-            lines.append("- [fetch] 亚洲市场新闻口径: " + "，".join(sorted(set(asia_dates))) + "。")
+            lines.append(
+                message(locale, "freshness.asia")
+                + message(locale, "separator.list").join(sorted(set(asia_dates)))
+                + message(locale, "punctuation.stop")
+            )
         if us_date:
-            lines.append(f"- [fetch] 美股新闻/盘前口径: {us_date}（上一可用美股交易日）。")
+            lines.append(message(locale, "freshness.us", date=f"{us_date}"))
 
-    for item in issue_items[:6]:
-        attempts = _attempt_summary(item)
-        latest = str(item.get("latest") or "MISSING")
-        expected = str(item.get("expected") or target_date or "n/a")
-        detail = str(item.get("detail") or f"状态 {item.get('status')}")
-        lines.append(
-            "- [WARN] "
-            f"{item.get('label')}({item.get('dataset')}) 最新 {latest}，目标 {expected}；"
-            f"{attempts} 后仍未更新，{detail}。"
-        )
-
-    for item in optional_items[:6]:
-        latest = str(item.get("latest") or "MISSING")
-        expected = str(item.get("expected") or target_date or "n/a")
-        detail = str(item.get("detail") or "可选增强数据未对齐")
-        lines.append(
-            "- [fetch] "
-            f"可选增强数据 {item.get('label')}({item.get('dataset')}) 最新 {latest}，"
-            f"目标 {expected}；{detail}，报告已降级，不阻断发送。"
-        )
-
-    for item in [entry for entry in contracts if entry.get("status") == "expected_delay"][:4]:
-        lines.append(
-            "- [fetch] "
-            f"{item.get('label')}({item.get('dataset')}) 最新 {item.get('latest')}；"
-            f"{item.get('detail')}。"
-        )
+    expected_items = [entry for entry in contracts if entry.get("status") == "expected_delay"]
+    lines.extend(
+        _render_contract_details(issue_items, optional_items, expected_items, target_date, locale)
+    )
 
     if skipped_items:
         skipped_labels = []
         for item in skipped_items[:8]:
-            detail = str(item.get("detail") or "已跳过")
-            skipped_labels.append(f"{item.get('label')}({item.get('dataset')})：{detail}")
-        suffix = " 等" if len(skipped_items) > len(skipped_labels) else ""
-        lines.append("- [fetch] 已跳过 " + "，".join(skipped_labels) + suffix + "。")
+            detail = str(item.get("detail") or message(locale, "freshness.skipped.detail"))
+            skipped_labels.append(
+                message(
+                    locale,
+                    "freshness.skipped.item",
+                    label=known_label(locale, item.get("label"), domain="dataset"),
+                    dataset=item.get("dataset"),
+                    detail=known_label(locale, detail, domain="detail"),
+                )
+            )
+        suffix = (
+            message(locale, "freshness.more") if len(skipped_items) > len(skipped_labels) else ""
+        )
+        lines.append(
+            message(locale, "freshness.skipped")
+            + message(locale, "separator.list").join(skipped_labels)
+            + suffix
+            + message(locale, "punctuation.stop")
+        )
 
     if not issue_items and not expected_count and not skipped_items and not optional_items:
-        lines.append("- [OK] 所有启用数据源均已对齐目标交易日或 flat 可用。")
+        lines.append(message(locale, "freshness.aligned"))
     return lines

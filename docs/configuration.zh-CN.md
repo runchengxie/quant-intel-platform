@@ -68,3 +68,7 @@ MARKET_INTEL_ROOT=/path/to/quant-intel-platform
 
 仓库路径只用于启动进程，不是 Python 导入边界。owner CLI 执行后应校验产物与回执。
 生产专用配置由 `quant-intel-deploy` 维护。
+
+## 报告语言
+
+`a-share-daily morning-report --locale en-US` 和 `python -m a_share_daily.delivery.report_delivery evening --locale en-US`控制报告展示文案。未指定参数时，两个 CLI 读取 `MARKET_INTEL_LOCALE`，默认使用 `en-US`，也支持 `zh-CN`。来源陈述和未知来源标签保留原文。文案回退与语言无关的产物边界见[语言规范](LANGUAGE_POLICY.zh-CN.md)。

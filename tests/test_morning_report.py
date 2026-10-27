@@ -135,6 +135,7 @@ def test_morning_report_marks_empty_hotsector_and_stale_macro() -> None:
         manifest,
         {},
         generated_at=datetime(2026, 7, 1, 7, 0),
+        locale="zh-CN",
     )
 
     assert "热点候选池为空（hotsector 产出 0 只候选，概念数据暂缺）" in text
@@ -168,6 +169,7 @@ def test_morning_report_omits_hotsector_warning_when_premium_skipped() -> None:
         manifest,
         {},
         generated_at=datetime(2026, 7, 1, 7, 0),
+        locale="zh-CN",
     )
 
     assert "热点候选池为空" not in text
@@ -198,6 +200,7 @@ def test_morning_report_includes_korea_preopen_and_overnight_signals() -> None:
         },
         {},
         generated_at=datetime(2026, 9, 14, 7, 0),
+        locale="zh-CN",
     )
 
     assert "韩国早盘 → A股开盘" in text
@@ -230,6 +233,7 @@ def test_morning_report_keeps_normal_korea_signal_compact() -> None:
             },
         },
         {},
+        locale="zh-CN",
     )
 
     assert "韩国早盘：neutral，行业残差 +0.3%" in text
