@@ -8,7 +8,9 @@
 
 当前仓库统一称为 `quant-intel-platform`。`market-intel` 仅在历史记录或兼容接口中保留，包括 Python 分发包名、发布清单消费者标识、模块名及已有配置和环境变量标识。文档名称更新不授权修改这些接口。
 
-`quant-intel-platform` 是市场情报、报告、投递和运行保障系统。A 股策略研究、因子计算、模型训练、回测、消融与策略 artifact 生产由 `quant-research`、`quant-platform` 和 `strategy-pipeline` 按职责维护。
+`quant-intel-platform` 是市场情报、报告、投递和运行保障系统。A 股策略研究、专有因子计算、模型训练、消融、策略专属编排与产物发布由 `quant-research` 维护。通用回测与编排机制由 `quant-platform` 提供，通用回测任务 worker 与结果发布由 `quant-backtest-runtime` 维护。
+
+`strategy-pipeline` 是 `quant-platform` 提供的 CLI，`strategy_pipeline` 是其 Python 命名空间，不是独立的 owner 仓库。保留这些接口名称；策略专属编排与通用编排机制的职责按上面的仓库边界区分。
 
 跨仓协作只允许两类接口：
 
