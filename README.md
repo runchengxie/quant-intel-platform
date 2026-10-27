@@ -19,7 +19,7 @@ uv sync --locked --no-dev
 uv run dm --help
 ```
 
-Start with the [getting started guide](docs/getting-started.md). Global market reports can be tried independently. A-share production research artifacts, data-lake access, and production scheduling require the relevant owner projects and permissions. See the [cross-project boundary](docs/boundary-contract.md).
+Start with the [getting started guide](docs/getting-started.md). Global market reports can be tried independently. A-share production research artifacts, data-lake access, and production scheduling require the relevant owner projects and permissions. See the [cross-project boundary](docs/boundary-contract.en.md).
 
 ## What this project provides
 
@@ -31,9 +31,9 @@ Start with the [getting started guide](docs/getting-started.md). Global market r
 ## Documentation
 
 - [Getting started](docs/getting-started.md)
-- [New-machine setup](docs/new-machine-setup.md)
+- [New-machine setup](docs/new-machine-setup.en.md)
 - [System architecture](docs/architecture.md)
-- [Market site](docs/how-to/market-site.md)
+- [Market site](docs/how-to/market-site.en.md)
 - [Operations](docs/operations.md)
 - [Documentation index](docs/index.md)
 
