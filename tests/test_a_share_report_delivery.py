@@ -157,6 +157,7 @@ def test_build_evening_summary_renders_ai_news_errors(
         },
         manifest_payload={},
         generated_at=datetime(2026, 6, 30, 18, 0),
+        locale="zh-CN",
     )
 
     assert "未取得含 source/url/published_at 的结构化新闻条目" in text

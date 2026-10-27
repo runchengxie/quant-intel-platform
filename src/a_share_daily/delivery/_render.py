@@ -1,8 +1,4 @@
-"""晚间播报的 markdown 渲染层。
-
-接收结构化 payload（review/news/manifest），产出确定性 markdown 段落，
-无副作用、不调用任何外部投递通道。纯格式化逻辑依赖 _format 子模块。
-"""
+"""Render deterministic evening Markdown without network or delivery side effects."""
 
 from __future__ import annotations
 
@@ -20,16 +16,16 @@ from a_share_daily.delivery._format import (
     _list,
 )
 from a_share_daily.freshness import render_freshness_section
+from a_share_daily.report_messages import (
+    _MARKET_TEMPERATURE_DIMENSIONS,
+    CATEGORY_LABELS,
+    NEWS_MARKET_LABELS,
+    known_label,
+    message,
+)
 from ops_common.locale import normalize_locale
 
 NEWS_MARKET_ORDER = ("cn", "jp", "kr", "us")
-NEWS_MARKET_LABELS = {"cn": "A股", "jp": "日股", "kr": "韩股", "us": "美股"}
-CATEGORY_LABELS = {
-    "policy": "政策",
-    "company": "公司",
-    "macro": "宏观",
-    "sector": "行业",
-}
 
 
 def _news_items(news: Mapping[str, Any], market: str, limit: int = 2) -> list[Mapping[str, Any]]:
@@ -49,9 +45,9 @@ def _news_items(news: Mapping[str, Any], market: str, limit: int = 2) -> list[Ma
     return items
 
 
-def _news_error_lines(news: Mapping[str, Any], limit: int = 4) -> list[str]:
+def _news_error_lines(news: Mapping[str, Any], limit: int = 4, locale: str = "zh-CN") -> list[str]:
     if news.get("disabled") is True:
-        return ["AI 新闻抓取已关闭。"]
+        return [message(locale, "news.disabled")]
     errors: list[str] = []
     top_error = str(news.get("error") or "").strip()
     if top_error:
@@ -71,7 +67,7 @@ def _news_error_lines(news: Mapping[str, Any], limit: int = 4) -> list[str]:
             if attempts:
                 error = str(attempts[-1].get("error") or "").strip()
         if error:
-            label = NEWS_MARKET_LABELS.get(market, market.upper())
+            label = known_label(locale, NEWS_MARKET_LABELS.get(market, market.upper()))
             errors.append(f"{label}: {error}")
         if len(errors) >= limit:
             break
@@ -85,34 +81,49 @@ def _news_error_lines(news: Mapping[str, Any], limit: int = 4) -> list[str]:
     return result[:limit]
 
 
-def _render_evening_news(news: Mapping[str, Any]) -> list[str]:
-    lines = ["## 2. 今日要闻"]
+def _render_evening_news(news: Mapping[str, Any], locale: str = "zh-CN") -> list[str]:
+    lines = [message(locale, "evening.news.title")]
     added = 0
     for market in NEWS_MARKET_ORDER:
         if market == "us":
             continue
-        label = NEWS_MARKET_LABELS.get(market, market.upper())
+        label = known_label(locale, NEWS_MARKET_LABELS.get(market, market.upper()))
         for item in _news_items(news, market, limit=2):
-            category = CATEGORY_LABELS.get(str(item.get("category", "")), "新闻")
+            category = known_label(
+                locale,
+                CATEGORY_LABELS.get(
+                    str(item.get("category", "")), message(locale, "news.category")
+                ),
+            )
             summary = str(item.get("summary", "")).strip()
             source = str(item.get("source", "")).strip()
             title = str(item.get("title") or summary).strip()
             url = str(item.get("url", "")).strip()
             published_at = str(item.get("published_at", "")).strip()
             lines.append(
-                f"- [fetch] {label}｜{category}: {summary}（{published_at}，{source}: [{title}]({url})）"
+                message(
+                    locale,
+                    "news.item",
+                    market=label,
+                    category=category,
+                    summary=summary,
+                    date=published_at + message(locale, "separator.list"),
+                    source=source,
+                    title=title,
+                    url=url,
+                )
             )
             added += 1
     if added == 0:
-        lines.append("- [WARN] 未取得含 source/url/published_at 的结构化新闻条目。")
-        for error in _news_error_lines(news):
+        lines.append(message(locale, "evening.news.missing"))
+        for error in _news_error_lines(news, locale=locale):
             lines.append(f"- [WARN] AI news: {error}")
     return lines
 
 
-def _render_evening_asia(review: Mapping[str, Any]) -> list[str]:
+def _render_evening_asia(review: Mapping[str, Any], locale: str = "zh-CN") -> list[str]:
     """Render the legacy Asian post-market fact summary."""
-    lines = ["## 3. 亚洲市场盘后复盘"]
+    lines = [message(locale, "evening.asia.title")]
     indices = _dict(review.get("indices"))
     if indices:
         parts = []
@@ -120,25 +131,39 @@ def _render_evening_asia(review: Mapping[str, Any]) -> list[str]:
             if not isinstance(info, Mapping):
                 continue
             parts.append(
-                f"{info.get('name', '指数')} {_fmt_pct(info.get('pct_chg'))}，收 {_fmt_close(info.get('close'))}"
+                message(
+                    locale,
+                    "index.quote",
+                    name=f"{info.get('name', message(locale, 'index'))}",
+                    change=f"{_fmt_pct(info.get('pct_chg'))}",
+                    close=f"{_fmt_close(info.get('close'))}",
+                )
             )
         if parts:
-            lines.append("- [fetch] " + "；".join(parts[:5]))
+            lines.append("- [fetch] " + message(locale, "separator.clause").join(parts[:5]))
 
     overview = _dict(review.get("overview"))
     breadth = _dict(overview.get("breadth"))
     if overview:
-        turnover = _fmt_yuan(float(overview.get("turnover_total", 0) or 0) * 1000)
+        turnover = _fmt_yuan(float(overview.get("turnover_total", 0) or 0) * 1000, locale=locale)
         lines.append(
-            "- [fetch] "
-            f"A股中位数 {_fmt_pct(overview.get('median_pct_chg'))}，"
-            f"加权 {_fmt_pct(overview.get('wavg_pct_chg'))}，"
-            f"成交 {turnover}，上涨率 {breadth.get('up_ratio', 'n/a')}%。"
+            message(
+                locale,
+                "evening.overview",
+                median=f"{_fmt_pct(overview.get('median_pct_chg'))}",
+                weighted=f"{_fmt_pct(overview.get('wavg_pct_chg'))}",
+                turnover=f"{turnover}",
+                advancing=f"{breadth.get('up_ratio', 'n/a')}",
+            )
         )
         lines.append(
-            "- [fetch] "
-            f"上涨 {breadth.get('up', 'n/a')} 家，下跌 {breadth.get('down', 'n/a')} 家，"
-            f"站上 VWAP 比例 {overview.get('vwap_above_ratio', 'n/a')}%。"
+            message(
+                locale,
+                "evening.breadth",
+                up=f"{breadth.get('up', 'n/a')}",
+                down=f"{breadth.get('down', 'n/a')}",
+                above_vwap=f"{overview.get('vwap_above_ratio', 'n/a')}",
+            )
         )
 
     limits = _dict(review.get("limits"))
@@ -151,41 +176,45 @@ def _render_evening_asia(review: Mapping[str, Any]) -> list[str]:
         down_limit_count = overview.get(
             "down_limit_count" if down_limit_is_exact else "down_limit_approx", 0
         )
-    down_limit_label = "跌停" if down_limit_is_exact else "跌停（近似）"
+    down_limit_label = (
+        message(locale, "limit.down")
+        if down_limit_is_exact
+        else message(locale, "limit.down.approx")
+    )
     limit_up_count = limit_up.get("count")
     limit_up_display = limit_up_count if limit_up_count is not None else "n/a"
     lines.append(
-        "- [fetch] "
-        f"涨停 {limit_up_display} 家，"
-        f"{down_limit_label} {down_limit_count} 家，"
-        f"最高连板 {limits.get('max_board', 0)} 板。"
+        message(
+            locale,
+            "evening.limits",
+            up=f"{limit_up_display}",
+            down_label=f"{down_limit_label}",
+            down=f"{down_limit_count}",
+            streak=f"{limits.get('max_board', 0)}",
+        )
     )
 
     moneyflow = _dict(review.get("moneyflow"))
     northbound = _dict(moneyflow.get("northbound"))
     if northbound:
-        lines.append(f"- [fetch] 北向净流入 {_fmt_yuan(northbound.get('north_net'))}。")
+        lines.append(
+            message(
+                locale,
+                "evening.northbound",
+                amount=f"{_fmt_yuan(northbound.get('north_net'), locale=locale)}",
+            )
+        )
 
     sectors = _dict(review.get("hot_sectors"))
     top_sectors = [
         item for item in _list(sectors.get("top_by_change")) if isinstance(item, Mapping)
     ]
     if top_sectors:
-        rendered = "，".join(
+        rendered = message(locale, "separator.list").join(
             f"{item.get('name')}({_fmt_pct(item.get('pct_change'))})" for item in top_sectors[:5]
         )
-        lines.append(f"- [fetch] 热门概念: {rendered}。")
+        lines.append(message(locale, "evening.sectors", sectors=f"{rendered}"))
     return lines
-
-
-_MARKET_TEMPERATURE_DIMENSIONS = (
-    ("liquidity", "流动性"),
-    ("breadth", "广度"),
-    ("profit_effect", "赚钱效应"),
-    ("loss_risk", "亏钱风险"),
-    ("trend_confirmation", "趋势确认"),
-    ("rotation_quality", "轮动质量"),
-)
 
 
 def _fmt_score(value: Any) -> str:
@@ -196,29 +225,41 @@ def _fmt_score(value: Any) -> str:
     return f"{number:.1f}" if math.isfinite(number) else "n/a"
 
 
-def _render_evening_market_temperature(review: Mapping[str, Any]) -> list[str]:
+def _render_evening_market_temperature(
+    review: Mapping[str, Any], locale: str = "zh-CN"
+) -> list[str]:
     temperature = _dict(review.get("market_temperature"))
     if not temperature:
         return [
-            "## 1. 市场温度",
-            "- [WARN] 市场温度数据不足；第 3 节仍保留原始市场事实。",
+            message(locale, "evening.temperature.title"),
+            message(locale, "evening.temperature.missing"),
         ]
 
-    lines = ["## 1. 市场温度"]
-    status = str(temperature.get("status_label") or "数据不足").strip()
+    lines = [message(locale, "evening.temperature.title")]
+    status = known_label(
+        locale, temperature.get("status_label") or message(locale, "data.insufficient")
+    ).strip()
     lines.append(
-        "- [fetch] "
-        f"状态: {status}；热度 {_fmt_score(temperature.get('heat_score'))}/100，"
-        f"脆弱度 {_fmt_score(temperature.get('fragility_score'))}/100。"
+        message(
+            locale,
+            "evening.temperature",
+            status=f"{status}",
+            heat=f"{_fmt_score(temperature.get('heat_score'))}",
+            fragility=f"{_fmt_score(temperature.get('fragility_score'))}",
+        )
     )
 
     dimensions = _dict(temperature.get("dimensions"))
     rendered_dimensions: list[str] = []
     for key, fallback_label in _MARKET_TEMPERATURE_DIMENSIONS:
         dimension = _dict(dimensions.get(key))
-        label = str(dimension.get("label") or fallback_label).strip()
+        label = known_label(locale, dimension.get("label") or fallback_label).strip()
         rendered_dimensions.append(f"{label} {_fmt_score(dimension.get('score'))}")
-    lines.append("- [fetch] 六维: " + "｜".join(rendered_dimensions) + "。")
+    lines.append(
+        message(locale, "temperature.dimensions")
+        + message(locale, "separator.dimensions").join(rendered_dimensions)
+        + message(locale, "punctuation.stop")
+    )
 
     tensions = [
         str(item.get("summary", "")).strip()
@@ -226,13 +267,17 @@ def _render_evening_market_temperature(review: Mapping[str, Any]) -> list[str]:
         if isinstance(item, Mapping) and str(item.get("summary", "")).strip()
     ]
     if tensions:
-        lines.append("- [WARN] 核心矛盾: " + "；".join(tensions[:2]) + "。")
-    lines.append("- [fetch] 口径: 仅作市场状态观察，当前刻度不直接映射仓位。")
+        lines.append(
+            message(locale, "temperature.tensions")
+            + message(locale, "separator.clause").join(tensions[:2])
+            + message(locale, "punctuation.stop")
+        )
+    lines.append(message(locale, "temperature.scope"))
     return lines
 
 
-def _render_evening_transmission(manifest: Mapping[str, Any]) -> list[str]:
-    lines = ["## 4. 跨市场传导"]
+def _render_evening_transmission(manifest: Mapping[str, Any], locale: str = "zh-CN") -> list[str]:
+    lines = [message(locale, "evening.mapping.title")]
     cross = _dict(manifest.get("cross_market"))
     mappings = _list(cross.get("global_lead_lag") or cross.get("concept_mapping"))
     significant = [
@@ -241,62 +286,97 @@ def _render_evening_transmission(manifest: Mapping[str, Any]) -> list[str]:
         if isinstance(item, Mapping) and abs(float(item.get("avg_pct_chg", 0) or 0)) >= 1
     ]
     if not significant:
-        lines.append("- [fetch] 全球领先资产映射波动低于 1% 或暂缺，未给出强传导信号。")
+        lines.append(message(locale, "evening.mapping.missing"))
     else:
         for item in significant[:5]:
             signal = str(item.get("signal", "neutral"))
             tag = "[OK]" if signal == "bullish" else "[WARN]" if signal == "bearish" else "[fetch]"
-            drivers = "，".join(str(driver) for driver in _list(item.get("drivers"))[:3])
+            drivers = message(locale, "separator.list").join(
+                str(driver) for driver in _list(item.get("drivers"))[:3]
+            )
             lines.append(
-                f"- {tag} {item.get('concept')}: {_fmt_pct(item.get('avg_pct_chg'))}，驱动 {drivers or 'n/a'}。"
+                message(
+                    locale,
+                    "evening.mapping.row",
+                    tag=f"{tag}",
+                    concept=f"{item.get('concept')}",
+                    change=f"{_fmt_pct(item.get('avg_pct_chg'))}",
+                    drivers=f"{drivers or 'n/a'}",
+                )
             )
 
     commodity_mappings = _list(cross.get("commodity_concept_mapping"))
     for item in commodity_mappings[:3]:
         if not isinstance(item, Mapping):
             continue
-        drivers = "，".join(str(driver) for driver in _list(item.get("drivers"))[:2])
+        drivers = message(locale, "separator.list").join(
+            str(driver) for driver in _list(item.get("drivers"))[:2]
+        )
         lines.append(
-            f"- [fetch] 商品映射 {item.get('concept')}: {_fmt_pct(item.get('avg_pct_chg'))}，{drivers or 'n/a'}。"
+            message(
+                locale,
+                "evening.commodity.row",
+                concept=f"{item.get('concept')}",
+                change=f"{_fmt_pct(item.get('avg_pct_chg'))}",
+                drivers=f"{drivers or 'n/a'}",
+            )
         )
     return lines
 
 
-def _render_evening_macro(manifest: Mapping[str, Any]) -> list[str]:
-    lines = ["## 5. 宏观环境"]
+def _render_evening_macro(manifest: Mapping[str, Any], locale: str = "zh-CN") -> list[str]:
+    lines = [message(locale, "evening.macro.title")]
     cross = _dict(manifest.get("cross_market"))
     macros = _dict(cross.get("macros"))
     freshness_warnings = _list(cross.get("_freshness_warnings"))
     for warning in freshness_warnings:
-        lines.append(f"- [WARN] {warning}。")
+        lines.append(message(locale, "warning.source", warning=warning))
     for symbol in ("^VIX", "DX-Y.NYB", "^TNX"):
         raw = _dict(macros.get(symbol))
         if not raw:
             continue
-        label = str(raw.get("label") or symbol)
+        label = known_label(locale, raw.get("label") or symbol)
         stale_days = raw.get("stale_days")
         stale_part = (
-            f"，滞后 {stale_days} 天" if isinstance(stale_days, int) and stale_days > 3 else ""
+            message(locale, "lag.days", days=f"{stale_days}")
+            if isinstance(stale_days, int) and stale_days > 3
+            else ""
         )
         tag = "[WARN]" if stale_part else "[fetch]"
-        as_of = f"，截至 {raw.get('as_of_date')}{stale_part}" if raw.get("as_of_date") else ""
+        as_of = (
+            message(locale, "asof", date=f"{raw.get('as_of_date')}", lag=f"{stale_part}")
+            if raw.get("as_of_date")
+            else ""
+        )
         lines.append(
-            f"- {tag} {label}: {_fmt_close(raw.get('close'))} ({_fmt_pct(raw.get('pct_chg'))}){as_of}。"
+            message(
+                locale,
+                "macro.row",
+                tag=tag,
+                label=label,
+                close=_fmt_close(raw.get("close")),
+                change=_fmt_pct(raw.get("pct_chg")),
+                asof=as_of,
+            )
         )
     aaii = _dict(cross.get("aaii_sentiment"))
     if aaii:
         lines.append(
-            "- [fetch] AAII: "
-            f"看多 {aaii.get('bullish_pct', 'n/a')} / 看空 {aaii.get('bearish_pct', 'n/a')}，"
-            f"多空差 {_fmt_pct(aaii.get('bull_bear_spread'))}。"
+            message(
+                locale,
+                "evening.aaii",
+                bullish=f"{aaii.get('bullish_pct', 'n/a')}",
+                bearish=f"{aaii.get('bearish_pct', 'n/a')}",
+                spread=f"{_fmt_pct(aaii.get('bull_bear_spread'))}",
+            )
         )
     if len(lines) == 1:
-        lines.append("- [WARN] 宏观快照暂缺。")
+        lines.append(message(locale, "evening.macro.missing"))
     return lines
 
 
-def _render_evening_next_watch(review: Mapping[str, Any]) -> list[str]:
-    lines = ["## 6. 次日验证"]
+def _render_evening_next_watch(review: Mapping[str, Any], locale: str = "zh-CN") -> list[str]:
+    lines = [message(locale, "evening.watch.title")]
     temperature = _dict(review.get("market_temperature"))
     validation_descriptions = [
         str(item.get("description", "")).strip()
@@ -305,15 +385,28 @@ def _render_evening_next_watch(review: Mapping[str, Any]) -> list[str]:
     ]
     if validation_descriptions:
         for description in validation_descriptions[:3]:
-            punctuation = "" if description.endswith(("。", "！", "？")) else "。"
-            lines.append(f"- [fetch] 次日验证: {description}{punctuation}")
+            punctuation = (
+                ""
+                if description.endswith((".", "!", "?", "。", "！", "？"))
+                else message(locale, "punctuation.stop")
+            )
+            lines.append(
+                message(
+                    locale,
+                    "evening.watch.row",
+                    description=f"{description}",
+                    punctuation=f"{punctuation}",
+                )
+            )
     else:
         overview = _dict(review.get("overview"))
         median = float(overview.get("median_pct_chg", 0) or 0)
-        direction = "风险偏好修复延续性" if median >= 0 else "弱势扩散是否收敛"
-        lines.append(f"- [fetch] A股内部结构: 关注{direction}，以及成交额能否维持。")
+        direction = (
+            message(locale, "watch.recovery") if median >= 0 else message(locale, "watch.weakness")
+        )
+        lines.append(message(locale, "evening.watch.structure", direction=f"{direction}"))
 
-    lines.append("- [fetch] 次日开盘前复核: 美股收盘、美元/美债/VIX、日韩半导体链表现。")
+    lines.append(message(locale, "evening.watch.global"))
     return lines
 
 
@@ -329,50 +422,37 @@ def build_evening_summary(  # noqa: PLR0913 - locale is an explicit presentation
     """Build the deterministic evening summary message."""
     selected_locale = normalize_locale(locale)
     generated = generated_at or datetime.now()
-    freshness_title = "7. Data quality" if selected_locale == "en-US" else "7. 数据质量"
-    title = (
-        f"# Asia market close review ({_date_dash(trade_date)})"
-        if selected_locale == "en-US"
-        else f"# 亚洲市场收盘复盘（{_date_dash(trade_date)}）"
-    )
-    generated_label = "Generated at" if selected_locale == "en-US" else "生成时间"
-    method_text = (
-        "Structured market-intel facts + rule templates; no free-form writing."
-        if selected_locale == "en-US"
-        else "market-intel 结构化事实 + 规则模板；未使用自由写作流程。"
-    )
+    freshness_title = message(selected_locale, "freshness.title")
+    title = message(selected_locale, "evening.title", date=_date_dash(trade_date))
+    generated_label = message(selected_locale, "report.generated")
+    method_text = message(selected_locale, "report.method")
+
     sections = [
         [
             title,
             "",
             f"{generated_label}: {generated.strftime('%Y-%m-%d %H:%M')}",
-            f"Generation method: {method_text}"
-            if selected_locale == "en-US"
-            else f"生成方式: {method_text}",
+            f"{message(selected_locale, 'report.method.label')}: {method_text}",
         ],
-        _render_evening_market_temperature(review_payload),
-        _render_evening_news(news_payload),
-        _render_evening_asia(review_payload),
-        _render_evening_transmission(manifest_payload),
-        _render_evening_macro(manifest_payload),
-        _render_evening_next_watch(review_payload),
+        _render_evening_market_temperature(review_payload, locale=selected_locale),
+        _render_evening_news(news_payload, locale=selected_locale),
+        _render_evening_asia(review_payload, locale=selected_locale),
+        _render_evening_transmission(manifest_payload, locale=selected_locale),
+        _render_evening_macro(manifest_payload, locale=selected_locale),
+        _render_evening_next_watch(review_payload, locale=selected_locale),
     ]
-    sections.append(render_freshness_section(manifest_payload, news_payload, title=freshness_title))
+    sections.append(
+        render_freshness_section(
+            manifest_payload, news_payload, title=freshness_title, locale=selected_locale
+        )
+    )
+
+    if selected_locale == "en-US":
+        sections[0].append(message(selected_locale, "report.source_language"))
 
     lines: list[str] = []
     for section in sections:
         if lines:
             lines.append("")
         lines.extend(section)
-    output = "\n".join(lines).rstrip() + "\n"
-    if selected_locale == "en-US":
-        for source, translated in {
-            "## 1. 市场温度": "## 1. Market temperature",
-            "## 2. 今日要闻": "## 2. Today’s headlines",
-            "## 3. 亚洲市场盘后复盘": "## 3. Asia market close review",
-            "## 4. 跨市场传导": "## 4. Cross-market transmission",
-            "## 5. 宏观环境": "## 5. Macro environment",
-            "## 6. 次日验证": "## 6. Next-session checks",
-        }.items():
-            output = output.replace(source, translated)
-    return output
+    return "\n".join(lines).rstrip() + "\n"

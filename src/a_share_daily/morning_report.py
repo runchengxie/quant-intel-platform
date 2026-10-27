@@ -1,8 +1,4 @@
-"""确定性的晨报渲染器。
-
-报告由结构化事实拼装。LLM/search 只提供候选新闻，本渲染器只消费
-带来源和 URL 的已校验 ``items``。
-"""
+"""Render deterministic morning reports from validated structured facts and news."""
 
 from __future__ import annotations
 
@@ -14,17 +10,11 @@ from typing import Any
 
 from a_share_daily.freshness import render_freshness_section
 from a_share_daily.global_leadlag import GLOBAL_LEAD_LAG_INSTRUMENTS, INDEX_LABELS
+from a_share_daily.report_messages import CATEGORY_LABELS, NEWS_MARKET_LABELS, known_label, message
 from a_share_daily.report_theme import get_report_theme
 from ops_common.locale import normalize_locale
 
 NEWS_MARKET_ORDER = ("cn", "jp", "kr", "us")
-NEWS_MARKET_LABELS = {"cn": "A股", "jp": "日股", "kr": "韩股", "us": "美股"}
-CATEGORY_LABELS = {
-    "policy": "政策",
-    "company": "公司",
-    "macro": "宏观",
-    "sector": "行业",
-}
 
 
 def load_json(path: str | Path) -> dict[str, Any]:
@@ -70,12 +60,21 @@ def _days_since(as_of_date: Any, generated: datetime) -> int | None:
     return (generated.date() - parsed).days
 
 
-def _quote_line(symbol: str, quotes: Mapping[str, Any], label: str | None = None) -> str | None:
+def _quote_line(
+    symbol: str, quotes: Mapping[str, Any], label: str | None = None, locale: str = "zh-CN"
+) -> str | None:
     raw = quotes.get(symbol)
     if not isinstance(raw, Mapping) or "pct_chg" not in raw:
         return None
-    name = label or INDEX_LABELS.get(symbol, symbol)
-    return f"{name} {symbol} {_fmt_pct(raw.get('pct_chg'))}，收 {_fmt_close(raw.get('close'))}"
+    name = known_label(locale, label or INDEX_LABELS.get(symbol, symbol))
+    return message(
+        locale,
+        "quote",
+        name=f"{name}",
+        symbol=f"{symbol}",
+        change=f"{_fmt_pct(raw.get('pct_chg'))}",
+        close=f"{_fmt_close(raw.get('close'))}",
+    )
 
 
 def _top_movers(
@@ -127,47 +126,64 @@ def _news_items(news: Mapping[str, Any], market: str, limit: int = 2) -> list[Ma
     return items
 
 
-def _render_news_section(news: Mapping[str, Any]) -> list[str]:
-    lines = ["## 1. 隔夜要闻"]
+def _render_news_section(news: Mapping[str, Any], locale: str = "zh-CN") -> list[str]:
+    lines = [message(locale, "morning.news.title")]
     added = 0
     for market in NEWS_MARKET_ORDER:
-        label = NEWS_MARKET_LABELS.get(market, market.upper())
+        label = known_label(locale, NEWS_MARKET_LABELS.get(market, market.upper()))
         for item in _news_items(news, market):
-            category = CATEGORY_LABELS.get(str(item.get("category", "")), "新闻")
+            category = known_label(
+                locale,
+                CATEGORY_LABELS.get(
+                    str(item.get("category", "")), message(locale, "news.category")
+                ),
+            )
             summary = str(item.get("summary", "")).strip()
             source = str(item.get("source", "")).strip()
             title = str(item.get("title") or summary).strip()
             url = str(item.get("url", "")).strip()
             published_at = str(item.get("published_at", "")).strip()
-            date_part = f"{published_at}，" if published_at else ""
+            date_part = published_at + message(locale, "separator.list") if published_at else ""
             lines.append(
-                f"- [fetch] {label}｜{category}: {summary}（{date_part}{source}: [{title}]({url})）"
+                message(
+                    locale,
+                    "news.item",
+                    market=label,
+                    category=category,
+                    summary=summary,
+                    date=date_part,
+                    source=source,
+                    title=title,
+                    url=url,
+                )
             )
             added += 1
     if added == 0:
-        lines.append("- [WARN] 未取得通过结构化校验的新闻条目；跳过自由文本新闻。")
+        lines.append(message(locale, "morning.news.missing"))
     return lines
 
 
-def _render_us_section(cross: Mapping[str, Any]) -> list[str]:
+def _render_us_section(cross: Mapping[str, Any], locale: str = "zh-CN") -> list[str]:
     quotes = cross.get("us_stocks") if isinstance(cross.get("us_stocks"), Mapping) else {}
     assert isinstance(quotes, Mapping)
-    lines = ["## 2. 美股隔夜回顾"]
+    lines = [message(locale, "morning.us.title")]
     benchmark_parts = [
-        line for symbol in ("SPY", "QQQ", "SMH") if (line := _quote_line(symbol, quotes))
+        line
+        for symbol in ("SPY", "QQQ", "SMH")
+        if (line := _quote_line(symbol, quotes, locale=locale))
     ]
     if benchmark_parts:
-        lines.append("- [fetch] " + "；".join(benchmark_parts))
+        lines.append("- [fetch] " + message(locale, "separator.clause").join(benchmark_parts))
     else:
-        lines.append("- [WARN] 缺少 SPY/QQQ/SMH 基准行情。")
+        lines.append(message(locale, "morning.us.missing"))
 
     core_symbols = ["NVDA", "AMD", "AVGO", "TSLA", "AAPL", "MSFT", "GOOGL", "AMZN", "META"]
     winners = _top_movers(quotes, core_symbols, reverse=True)
     losers = _top_movers(quotes, core_symbols, reverse=False)
     if winners:
-        lines.append("- 领涨: " + "，".join(winners))
+        lines.append(message(locale, "leaders") + message(locale, "separator.list").join(winners))
     if losers:
-        lines.append("- 领跌: " + "，".join(losers))
+        lines.append(message(locale, "laggards") + message(locale, "separator.list").join(losers))
 
     smh = quotes.get("SMH") if isinstance(quotes.get("SMH"), Mapping) else {}
     qqq = quotes.get("QQQ") if isinstance(quotes.get("QQQ"), Mapping) else {}
@@ -177,39 +193,64 @@ def _render_us_section(cross: Mapping[str, Any]) -> list[str]:
         except (TypeError, ValueError):
             spread = 0.0
         if abs(spread) >= 1:
-            direction = "半导体相对强" if spread > 0 else "半导体相对弱"
-            lines.append(f"- 关键矛盾: SMH 相对 QQQ {spread:+.2f}pp，{direction}。")
+            direction = (
+                message(locale, "semiconductor.strong")
+                if spread > 0
+                else message(locale, "semiconductor.weak")
+            )
+            lines.append(
+                message(
+                    locale, "morning.us.spread", spread=f"{spread:+.2f}", direction=f"{direction}"
+                )
+            )
     return lines
 
 
-def _render_asia_section(cross: Mapping[str, Any]) -> list[str]:
+def _render_asia_section(cross: Mapping[str, Any], locale: str = "zh-CN") -> list[str]:
     quotes = cross.get("us_stocks") if isinstance(cross.get("us_stocks"), Mapping) else {}
     assert isinstance(quotes, Mapping)
-    lines = ["## 3. 亚洲市场速览"]
-    index_parts = [line for symbol in ("^N225", "^KS11") if (line := _quote_line(symbol, quotes))]
+    lines = [message(locale, "morning.asia.title")]
+    index_parts = [
+        line
+        for symbol in ("^N225", "^KS11")
+        if (line := _quote_line(symbol, quotes, locale=locale))
+    ]
     if index_parts:
-        lines.append("- [fetch] " + "；".join(index_parts))
+        lines.append("- [fetch] " + message(locale, "separator.clause").join(index_parts))
     else:
-        lines.append("- [WARN] 缺少日经/KOSPI 指数快照。")
+        lines.append(message(locale, "morning.asia.missing"))
 
     jp_symbols = [item.symbol for item in GLOBAL_LEAD_LAG_INSTRUMENTS if item.market == "JP"]
     kr_symbols = [item.symbol for item in GLOBAL_LEAD_LAG_INSTRUMENTS if item.market == "KR"]
     jp_movers = _top_movers(quotes, jp_symbols, reverse=True, limit=3)
     kr_movers = _top_movers(quotes, kr_symbols, reverse=True, limit=3)
     if jp_movers:
-        lines.append("- 日本半导体: " + "，".join(jp_movers))
+        lines.append(
+            message(locale, "japan.semiconductors")
+            + message(locale, "separator.list").join(jp_movers)
+        )
     if kr_movers:
-        lines.append("- 韩国半导体: " + "，".join(kr_movers))
+        lines.append(
+            message(locale, "korea.semiconductors")
+            + message(locale, "separator.list").join(kr_movers)
+        )
 
+    lines.extend(_render_korea_signals(cross, locale))
+    return lines
+
+
+def _render_korea_signals(cross: Mapping[str, Any], locale: str) -> list[str]:
+    """Format the optional Korean-session signals without changing their facts."""
+    lines: list[str] = []
     preopen = cross.get("korea_preopen")
     if isinstance(preopen, Mapping) and preopen.get("source") != "unavailable":
         signal = str(preopen.get("signal", "neutral"))
         tag = "[OK]" if signal == "bullish" else "[WARN]" if signal == "bearish" else "[fetch]"
-        concepts = (
-            "、".join(str(item) for item in preopen.get("concepts", [])[:5]) or "韩国核心资产"
-        )
+        concepts = message(locale, "separator.enumeration").join(
+            str(item) for item in preopen.get("concepts", [])[:5]
+        ) or message(locale, "korea.assets")
         source = (
-            "日线代理"
+            message(locale, "daily.proxy")
             if preopen.get("source") == "daily-proxy"
             else str(preopen.get("source", "unknown"))
         )
@@ -217,12 +258,26 @@ def _render_asia_section(cross: Mapping[str, Any]) -> list[str]:
         alert = preopen.get("risk_level") == "high" or abs(residual) >= 2
         if alert:
             lines.append(
-                f"- {tag} 韩国早盘 → A股开盘: {signal}，行业残差 {residual:+.1f}%，"
-                f"映射 {concepts}，数据源 {source}。"
+                message(
+                    locale,
+                    "korea.preopen.alert",
+                    tag=f"{tag}",
+                    signal=f"{signal}",
+                    residual=f"{residual:+.1f}",
+                    concepts=f"{concepts}",
+                    source=f"{source}",
+                )
             )
         else:
             lines.append(
-                f"- {tag} 韩国早盘：{signal}，行业残差 {residual:+.1f}%，数据源 {source}。"
+                message(
+                    locale,
+                    "korea.preopen",
+                    tag=f"{tag}",
+                    signal=f"{signal}",
+                    residual=f"{residual:+.1f}",
+                    source=f"{source}",
+                )
             )
 
     overnight = cross.get("korea_overnight")
@@ -230,27 +285,43 @@ def _render_asia_section(cross: Mapping[str, Any]) -> list[str]:
         signal = str(overnight.get("signal", "neutral"))
         tag = "[WARN]" if signal == "bearish" else "[OK]" if signal == "bullish" else "[fetch]"
         level = str(overnight.get("risk_level", "unknown"))
-        drivers = "，".join(str(item) for item in overnight.get("drivers", [])[:3]) or "暂无"
+        drivers = message(locale, "separator.list").join(
+            str(item) for item in overnight.get("drivers", [])[:3]
+        ) or message(locale, "unavailable")
         source = (
-            "日线代理"
+            message(locale, "daily.proxy")
             if overnight.get("source") == "daily-proxy"
             else str(overnight.get("source", "unknown"))
         )
         alert = level == "high"
         if alert:
             lines.append(
-                f"- {tag} 韩国盘后/夜盘 → 次日A股预警: 风险等级 {level}，方向 {signal}，"
-                f"驱动 {drivers}，数据源 {source}。"
+                message(
+                    locale,
+                    "korea.overnight.alert",
+                    tag=f"{tag}",
+                    level=f"{level}",
+                    signal=f"{signal}",
+                    drivers=f"{drivers}",
+                    source=f"{source}",
+                )
             )
         else:
             lines.append(
-                f"- {tag} 韩国盘后/夜盘：风险等级 {level}，方向 {signal}，数据源 {source}。"
+                message(
+                    locale,
+                    "korea.overnight",
+                    tag=f"{tag}",
+                    level=f"{level}",
+                    signal=f"{signal}",
+                    source=f"{source}",
+                )
             )
     return lines
 
 
-def _render_mapping_section(cross: Mapping[str, Any]) -> list[str]:
-    lines = ["## 4. 跨市场传导信号"]
+def _render_mapping_section(cross: Mapping[str, Any], locale: str = "zh-CN") -> list[str]:
+    lines = [message(locale, "morning.mapping.title")]
     raw_mapping = cross.get("global_lead_lag") or cross.get("concept_mapping") or []
     mapping = (
         [item for item in raw_mapping if isinstance(item, Mapping)]
@@ -259,16 +330,26 @@ def _render_mapping_section(cross: Mapping[str, Any]) -> list[str]:
     )
     significant = [item for item in mapping if abs(float(item.get("avg_pct_chg", 0) or 0)) >= 1]
     if not significant:
-        lines.append("- [fetch] 全球领先资产映射波动均低于 1%，无显著传导。")
+        lines.append(message(locale, "morning.mapping.missing"))
     else:
         for item in significant[:6]:
             signal = str(item.get("signal", "neutral"))
             tag = "[OK]" if signal == "bullish" else "[WARN]" if signal == "bearish" else "[fetch]"
-            drivers = "，".join(str(driver) for driver in item.get("drivers", [])[:3])
+            drivers = message(locale, "separator.list").join(
+                str(driver) for driver in item.get("drivers", [])[:3]
+            )
             markets = "/".join(str(market) for market in item.get("markets", []))
-            suffix = f"，市场 {markets}" if markets else ""
+            suffix = message(locale, "mapping.markets", markets=f"{markets}") if markets else ""
             lines.append(
-                f"- {tag} {item.get('concept')}: {_fmt_pct(item.get('avg_pct_chg'))}{suffix}，驱动 {drivers or 'n/a'}"
+                message(
+                    locale,
+                    "morning.mapping.row",
+                    tag=f"{tag}",
+                    concept=f"{item.get('concept')}",
+                    change=f"{_fmt_pct(item.get('avg_pct_chg'))}",
+                    suffix=f"{suffix}",
+                    drivers=f"{drivers or 'n/a'}",
+                )
             )
 
     raw_commodities = cross.get("commodity_concept_mapping") or []
@@ -278,15 +359,25 @@ def _render_mapping_section(cross: Mapping[str, Any]) -> list[str]:
         else []
     )
     for item in commodities[:3]:
-        drivers = "，".join(str(driver) for driver in item.get("drivers", [])[:2])
+        drivers = message(locale, "separator.list").join(
+            str(driver) for driver in item.get("drivers", [])[:2]
+        )
         lines.append(
-            f"- [fetch] 商品映射 {item.get('concept')}: {_fmt_pct(item.get('avg_pct_chg'))}，{drivers}"
+            message(
+                locale,
+                "morning.commodity.row",
+                concept=f"{item.get('concept')}",
+                change=f"{_fmt_pct(item.get('avg_pct_chg'))}",
+                drivers=f"{drivers}",
+            )
         )
     return lines
 
 
-def _render_a_share_section(manifest: Mapping[str, Any], cross: Mapping[str, Any]) -> list[str]:
-    lines = ["## 5. A股盘前热点预判"]
+def _render_a_share_section(
+    manifest: Mapping[str, Any], cross: Mapping[str, Any], locale: str = "zh-CN"
+) -> list[str]:
+    lines = [message(locale, "morning.ashare.title")]
     topic_summary = (
         manifest.get("topic_summary") if isinstance(manifest.get("topic_summary"), Mapping) else {}
     )
@@ -294,12 +385,10 @@ def _render_a_share_section(manifest: Mapping[str, Any], cross: Mapping[str, Any
         topic_count = topic_summary.get("topic_count")
         skipped = bool(topic_summary.get("skipped"))
         if isinstance(topic_count, int) and topic_count > 0:
-            lines.append(
-                f"- [fetch] DailyWatch20 热点主题 {topic_count} 个，来源正式 topic_summary artifact。"
-            )
+            lines.append(message(locale, "morning.topics", count=f"{topic_count}"))
         elif not skipped:
-            reason = str(topic_summary.get("reason") or "topic_summary.json 不可用")
-            lines.append(f"- [WARN] DailyWatch20 热点主题不可用（{reason}）。")
+            reason = str(topic_summary.get("reason") or message(locale, "topics.unavailable"))
+            lines.append(message(locale, "morning.topics.missing", reason=f"{reason}"))
     if not topic_summary:
         hotsector = (
             manifest.get("hotsector") if isinstance(manifest.get("hotsector"), Mapping) else {}
@@ -309,14 +398,12 @@ def _render_a_share_section(manifest: Mapping[str, Any], cross: Mapping[str, Any
             bool(hotsector.get("skipped")) if isinstance(hotsector, Mapping) else False
         )
         if isinstance(candidates, int) and candidates > 0:
-            lines.append(
-                f"- [fetch] 热点候选池 {candidates} 只，来源 quant-research owner artifact。"
-            )
+            lines.append(message(locale, "morning.candidates", count=f"{candidates}"))
         elif isinstance(hotsector, Mapping) and hotsector and not hotsector_skipped:
-            reason = str(hotsector.get("reason") or "hotsector 产出 0 只候选")
-            lines.append(f"- [WARN] 热点候选池为空（{reason}）。")
+            reason = str(hotsector.get("reason") or message(locale, "candidates.empty"))
+            lines.append(message(locale, "morning.candidates.empty", reason=f"{reason}"))
         else:
-            lines.append("- [WARN] 未取得 hot-sector manifest。")
+            lines.append(message(locale, "morning.manifest.missing"))
 
     raw_mapping = cross.get("global_lead_lag") or cross.get("concept_mapping") or []
     mapping = (
@@ -328,42 +415,50 @@ def _render_a_share_section(manifest: Mapping[str, Any], cross: Mapping[str, Any
     bearish = [item for item in mapping if str(item.get("signal")) == "bearish"][-5:]
     if bullish:
         lines.append(
-            "- 关注映射: "
-            + "，".join(
+            message(locale, "mapping.watch")
+            + message(locale, "separator.list").join(
                 f"{item.get('concept')}({_fmt_pct(item.get('avg_pct_chg'))})" for item in bullish
             )
         )
     if bearish:
         lines.append(
-            "- 风险映射: "
-            + "，".join(
+            message(locale, "mapping.risk")
+            + message(locale, "separator.list").join(
                 f"{item.get('concept')}({_fmt_pct(item.get('avg_pct_chg'))})" for item in bearish
             )
         )
     return lines
 
 
-def _render_macro_section(cross: Mapping[str, Any], generated: datetime) -> list[str]:
-    lines = ["## 6. 宏观环境"]
+def _render_macro_section(
+    cross: Mapping[str, Any], generated: datetime, locale: str = "zh-CN"
+) -> list[str]:
+    lines = [message(locale, "morning.macro.title")]
     macros = cross.get("macros") if isinstance(cross.get("macros"), Mapping) else {}
     assert isinstance(macros, Mapping)
     freshness_warnings = cross.get("_freshness_warnings")
     if isinstance(freshness_warnings, list):
         for warning in freshness_warnings:
-            lines.append(f"- [WARN] {warning}。")
+            lines.append(message(locale, "warning.source", warning=warning))
     for symbol in ("^VIX", "DX-Y.NYB", "^TNX"):
         raw = macros.get(symbol)
         if not isinstance(raw, Mapping) or "close" not in raw:
             continue
-        label = str(raw.get("label") or INDEX_LABELS.get(symbol, symbol))
+        label = known_label(locale, raw.get("label") or INDEX_LABELS.get(symbol, symbol))
         stale_days = raw.get("stale_days")
         if not isinstance(stale_days, int):
             stale_days = _days_since(raw.get("as_of_date"), generated)
         stale_part = (
-            f"，滞后 {stale_days} 天" if isinstance(stale_days, int) and stale_days > 3 else ""
+            message(locale, "lag.days", days=f"{stale_days}")
+            if isinstance(stale_days, int) and stale_days > 3
+            else ""
         )
         tag = "[WARN]" if stale_part else "[fetch]"
-        as_of = f"，截至 {raw.get('as_of_date')}{stale_part}" if raw.get("as_of_date") else ""
+        as_of = (
+            message(locale, "asof", date=f"{raw.get('as_of_date')}", lag=f"{stale_part}")
+            if raw.get("as_of_date")
+            else ""
+        )
         lines.append(
             f"- {tag} {label}: {_fmt_close(raw.get('close'))} ({_fmt_pct(raw.get('pct_chg'))}){as_of}"
         )
@@ -371,12 +466,16 @@ def _render_macro_section(cross: Mapping[str, Any], generated: datetime) -> list
     aaii = cross.get("aaii_sentiment")
     if isinstance(aaii, Mapping) and "bull_bear_spread" in aaii:
         lines.append(
-            "- [fetch] AAII: "
-            f"看多 {aaii.get('bullish_pct', 'n/a')} / 看空 {aaii.get('bearish_pct', 'n/a')}，"
-            f"多空差 {_fmt_pct(aaii.get('bull_bear_spread'))}"
+            message(
+                locale,
+                "morning.aaii",
+                bullish=f"{aaii.get('bullish_pct', 'n/a')}",
+                bearish=f"{aaii.get('bearish_pct', 'n/a')}",
+                spread=f"{_fmt_pct(aaii.get('bull_bear_spread'))}",
+            )
         )
     if len(lines) == 1:
-        lines.append("- [WARN] 宏观快照缺失。")
+        lines.append(message(locale, "morning.macro.missing"))
     return lines
 
 
@@ -399,52 +498,38 @@ def render_morning_report(
     assert isinstance(cross, Mapping)
     news = news or {}
     selected_theme = get_report_theme(theme)
-    freshness_title = "7. Data quality" if selected_locale == "en-US" else "7. 数据质量"
-    title = (
-        f"# Asia pre-open / U.S. post-close ({date_text})"
-        if selected_locale == "en-US"
-        else f"# 亚洲市场盘前 / 美股市场盘后（{date_text}）"
-    )
-    generated_label = "Generated at" if selected_locale == "en-US" else "生成时间"
-    theme_label = "Report theme" if selected_locale == "en-US" else "报告主题"
-    method_label = "Generation method" if selected_locale == "en-US" else "生成方式"
-    method_text = (
-        "Structured market-intel facts + rule templates; no free-form writing."
-        if selected_locale == "en-US"
-        else "market-intel 结构化事实 + 规则模板；未使用自由写作流程。"
-    )
+    freshness_title = message(selected_locale, "freshness.title")
+    title = message(selected_locale, "morning.title", date=date_text)
+    generated_label = message(selected_locale, "report.generated")
+    theme_label = message(selected_locale, "report.theme")
+    method_label = message(selected_locale, "report.method.label")
+    method_text = message(selected_locale, "report.method")
 
     sections: list[list[str]] = [
         [
             title,
             "",
             f"{generated_label}: {generated.strftime('%Y-%m-%d %H:%M')}",
-            f"{theme_label}: {selected_theme.label}",
+            f"{theme_label}: {known_label(selected_locale, selected_theme.label)}",
             f"{method_label}: {method_text}",
         ],
-        _render_news_section(news),
-        _render_us_section(cross),
-        _render_asia_section(cross),
-        _render_mapping_section(cross),
-        _render_a_share_section(manifest, cross),
-        _render_macro_section(cross, generated),
+        _render_news_section(news, locale=selected_locale),
+        _render_us_section(cross, locale=selected_locale),
+        _render_asia_section(cross, locale=selected_locale),
+        _render_mapping_section(cross, locale=selected_locale),
+        _render_a_share_section(manifest, cross, locale=selected_locale),
+        _render_macro_section(cross, generated, locale=selected_locale),
     ]
-    sections.append(render_freshness_section(manifest, news, title=freshness_title))
+    sections.append(
+        render_freshness_section(manifest, news, title=freshness_title, locale=selected_locale)
+    )
+
+    if selected_locale == "en-US":
+        sections[0].append(message(selected_locale, "report.source_language"))
 
     lines: list[str] = []
     for section in sections:
         if lines:
             lines.append("")
         lines.extend(section)
-    output = "\n".join(lines).rstrip() + "\n"
-    if selected_locale == "en-US":
-        for source, translated in {
-            "## 1. 隔夜要闻": "## 1. Overnight headlines",
-            "## 2. 美股隔夜回顾": "## 2. U.S. overnight review",
-            "## 3. 亚洲市场速览": "## 3. Asia market snapshot",
-            "## 4. 跨市场传导信号": "## 4. Cross-market transmission",
-            "## 5. A股盘前热点预判": "## 5. A-share pre-open themes",
-            "## 6. 宏观环境": "## 6. Macro environment",
-        }.items():
-            output = output.replace(source, translated)
-    return output
+    return "\n".join(lines).rstrip() + "\n"
