@@ -17,7 +17,13 @@ codes remain English or language-neutral. Do not put translated labels into
 machine-readable artifacts. A renderer should accept a locale and translate
 presentation labels only.
 
-The migration order is:
+Current A-share morning and evening renderers localize report titles, major
+section headings and selected metadata. Body templates, source labels and source
+news may still be Chinese in `en-US` output. English selection is not a guarantee
+of a fully translated report. The public documentation has paired English and
+Chinese navigation; Pages has its own route and fallback behavior.
+
+The remaining migration order is:
 
 1. stabilize the locale contract and report-model boundary;
 2. localize one deterministic renderer with snapshot coverage;

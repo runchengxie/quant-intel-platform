@@ -1,4 +1,7 @@
+from copy import deepcopy
 from datetime import datetime
+
+import pytest
 
 from a_share_daily.morning_report import render_morning_report
 
@@ -233,3 +236,39 @@ def test_morning_report_keeps_normal_korea_signal_compact() -> None:
     assert "韩国盘后/夜盘：风险等级 low，方向 neutral" in text
     assert "映射 HBM、存储芯片" not in text
     assert "驱动 000660.KS +0.2%" not in text
+
+
+@pytest.mark.parametrize("locale", ["en-US", "zh-CN"])
+def test_report_locale_preserves_input_facts_and_source_identity(locale: str) -> None:
+    manifest = {
+        "date_dash": "2026-06-30",
+        "cross_market": {"us_stocks": {"SPY": {"close": 520.0, "pct_chg": 0.4}}},
+    }
+    news = {
+        "markets": {
+            "cn": {
+                "items": [
+                    {
+                        "category": "policy",
+                        "title": "Source headline",
+                        "summary": "Source statement",
+                        "source": "Fixture",
+                        "url": "https://example.test/evidence-17",
+                        "published_at": "2026-06-30",
+                    }
+                ]
+            }
+        }
+    }
+    original = deepcopy((manifest, news))
+    text = render_morning_report(
+        manifest,
+        news,
+        generated_at=datetime(2026, 6, 30, 7, 0),
+        locale=locale,
+    )
+    assert (manifest, news) == original
+    assert "SPY +0.40%" in text
+    assert "https://example.test/evidence-17" in text
+    assert "Source statement" in text
+    assert "2026-06-30" in text
