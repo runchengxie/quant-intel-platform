@@ -348,7 +348,7 @@ def _list(value: Any) -> Sequence[Any]:
 
 def _attempt_summary(item: Mapping[str, Any], locale: str = "zh-CN") -> str:
     labels = [
-        known_label(locale, attempt.get("label") or attempt.get("name"))
+        known_label(locale, attempt.get("label") or attempt.get("name"), domain="attempt")
         for attempt in _list(item.get("attempts"))
         if isinstance(attempt, Mapping)
     ]
@@ -392,12 +392,12 @@ def _render_contract_details(
             message(
                 locale,
                 "freshness.issue",
-                label=known_label(locale, item.get("label")),
+                label=known_label(locale, item.get("label"), domain="dataset"),
                 dataset=f"{item.get('dataset')}",
                 latest=f"{latest}",
                 expected=f"{expected}",
                 attempts=f"{attempts}",
-                detail=known_label(locale, detail),
+                detail=known_label(locale, detail, domain="detail"),
             )
         )
 
@@ -409,11 +409,11 @@ def _render_contract_details(
             message(
                 locale,
                 "freshness.optional",
-                label=known_label(locale, item.get("label")),
+                label=known_label(locale, item.get("label"), domain="dataset"),
                 dataset=f"{item.get('dataset')}",
                 latest=f"{latest}",
                 expected=f"{expected}",
-                detail=known_label(locale, detail),
+                detail=known_label(locale, detail, domain="detail"),
             )
         )
 
@@ -422,10 +422,10 @@ def _render_contract_details(
             message(
                 locale,
                 "freshness.delay",
-                label=known_label(locale, item.get("label")),
+                label=known_label(locale, item.get("label"), domain="dataset"),
                 dataset=f"{item.get('dataset')}",
                 latest=f"{item.get('latest')}",
-                detail=known_label(locale, item.get("detail")),
+                detail=known_label(locale, item.get("detail"), domain="detail"),
             )
         )
 
@@ -497,9 +497,9 @@ def render_freshness_section(
                 message(
                     locale,
                     "freshness.skipped.item",
-                    label=known_label(locale, item.get("label")),
+                    label=known_label(locale, item.get("label"), domain="dataset"),
                     dataset=item.get("dataset"),
-                    detail=known_label(locale, detail),
+                    detail=known_label(locale, detail, domain="detail"),
                 )
             )
         suffix = (

@@ -19,7 +19,8 @@ presentation labels only.
 
 A-share morning and evening renderers select catalog templates before inserting
 source fields. Titles, body templates, freshness summaries, known producer labels
-and currency units support both locales. Missing catalog translations fall back
+and currency units support both locales. Labels are translated only when recognized
+for their producer field. Missing catalog translations fall back
 to English. An unknown locale is rejected.
 
 News statements, titles, source names, evidence URLs, concept names and unknown

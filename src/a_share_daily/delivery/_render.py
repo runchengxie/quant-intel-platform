@@ -67,7 +67,9 @@ def _news_error_lines(news: Mapping[str, Any], limit: int = 4, locale: str = "zh
             if attempts:
                 error = str(attempts[-1].get("error") or "").strip()
         if error:
-            label = known_label(locale, NEWS_MARKET_LABELS.get(market, market.upper()))
+            label = known_label(
+                locale, NEWS_MARKET_LABELS.get(market, market.upper()), domain="market"
+            )
             errors.append(f"{label}: {error}")
         if len(errors) >= limit:
             break
@@ -87,13 +89,14 @@ def _render_evening_news(news: Mapping[str, Any], locale: str = "zh-CN") -> list
     for market in NEWS_MARKET_ORDER:
         if market == "us":
             continue
-        label = known_label(locale, NEWS_MARKET_LABELS.get(market, market.upper()))
+        label = known_label(locale, NEWS_MARKET_LABELS.get(market, market.upper()), domain="market")
         for item in _news_items(news, market, limit=2):
             category = known_label(
                 locale,
                 CATEGORY_LABELS.get(
                     str(item.get("category", "")), message(locale, "news.category")
                 ),
+                domain="category",
             )
             summary = str(item.get("summary", "")).strip()
             source = str(item.get("source", "")).strip()
@@ -237,7 +240,9 @@ def _render_evening_market_temperature(
 
     lines = [message(locale, "evening.temperature.title")]
     status = known_label(
-        locale, temperature.get("status_label") or message(locale, "data.insufficient")
+        locale,
+        temperature.get("status_label") or message(locale, "data.insufficient"),
+        domain="temperature_status",
     ).strip()
     lines.append(
         message(
@@ -253,7 +258,9 @@ def _render_evening_market_temperature(
     rendered_dimensions: list[str] = []
     for key, fallback_label in _MARKET_TEMPERATURE_DIMENSIONS:
         dimension = _dict(dimensions.get(key))
-        label = known_label(locale, dimension.get("label") or fallback_label).strip()
+        label = known_label(
+            locale, dimension.get("label") or fallback_label, domain="dimension"
+        ).strip()
         rendered_dimensions.append(f"{label} {_fmt_score(dimension.get('score'))}")
     lines.append(
         message(locale, "temperature.dimensions")
@@ -335,7 +342,7 @@ def _render_evening_macro(manifest: Mapping[str, Any], locale: str = "zh-CN") ->
         raw = _dict(macros.get(symbol))
         if not raw:
             continue
-        label = known_label(locale, raw.get("label") or symbol)
+        label = known_label(locale, raw.get("label") or symbol, domain="macro")
         stale_days = raw.get("stale_days")
         stale_part = (
             message(locale, "lag.days", days=f"{stale_days}")

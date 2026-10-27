@@ -66,7 +66,7 @@ def _quote_line(
     raw = quotes.get(symbol)
     if not isinstance(raw, Mapping) or "pct_chg" not in raw:
         return None
-    name = known_label(locale, label or INDEX_LABELS.get(symbol, symbol))
+    name = known_label(locale, label or INDEX_LABELS.get(symbol, symbol), domain="index")
     return message(
         locale,
         "quote",
@@ -130,13 +130,14 @@ def _render_news_section(news: Mapping[str, Any], locale: str = "zh-CN") -> list
     lines = [message(locale, "morning.news.title")]
     added = 0
     for market in NEWS_MARKET_ORDER:
-        label = known_label(locale, NEWS_MARKET_LABELS.get(market, market.upper()))
+        label = known_label(locale, NEWS_MARKET_LABELS.get(market, market.upper()), domain="market")
         for item in _news_items(news, market):
             category = known_label(
                 locale,
                 CATEGORY_LABELS.get(
                     str(item.get("category", "")), message(locale, "news.category")
                 ),
+                domain="category",
             )
             summary = str(item.get("summary", "")).strip()
             source = str(item.get("source", "")).strip()
@@ -444,7 +445,9 @@ def _render_macro_section(
         raw = macros.get(symbol)
         if not isinstance(raw, Mapping) or "close" not in raw:
             continue
-        label = known_label(locale, raw.get("label") or INDEX_LABELS.get(symbol, symbol))
+        label = known_label(
+            locale, raw.get("label") or INDEX_LABELS.get(symbol, symbol), domain="macro"
+        )
         stale_days = raw.get("stale_days")
         if not isinstance(stale_days, int):
             stale_days = _days_since(raw.get("as_of_date"), generated)
@@ -510,7 +513,7 @@ def render_morning_report(
             title,
             "",
             f"{generated_label}: {generated.strftime('%Y-%m-%d %H:%M')}",
-            f"{theme_label}: {known_label(selected_locale, selected_theme.label)}",
+            f"{theme_label}: {known_label(selected_locale, selected_theme.label, domain='theme')}",
             f"{method_label}: {method_text}",
         ],
         _render_news_section(news, locale=selected_locale),

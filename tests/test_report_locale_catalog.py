@@ -142,3 +142,85 @@ def test_standalone_freshness_heading_follows_explicit_locale() -> None:
     assert english.startswith("## Data quality\n")
     assert not re.search(r"[\u4e00-\u9fff]", english)
     assert chinese.startswith("## 数据质量\n")
+    custom = "\n".join(render_freshness_section({}, locale="en-US", title="政策 custom"))
+    assert custom.startswith("## 政策 custom\n")
+    with pytest.raises(ValueError, match="Unsupported locale"):
+        render_freshness_section({}, locale="fr-FR", title="政策 custom")
+
+
+def test_unknown_source_labels_are_not_translated_using_another_fields_catalog() -> None:
+    manifest = {
+        "cross_market": {"macros": {"^VIX": {"label": "政策", "close": 18.2, "pct_chg": -1}}},
+        "freshness": {
+            "target_date": "20260630",
+            "contracts": [
+                {
+                    "dataset": "provider.custom",
+                    "label": "公司",
+                    "status": "missing",
+                    "latest": "MISSING",
+                    "expected": "20260630",
+                    "detail": "宏观",
+                    "attempts": [{"label": "政策"}],
+                }
+            ],
+        },
+    }
+    news = {
+        "markets": {
+            "cn": {
+                "items": [
+                    {
+                        "category": "policy",
+                        "source": "政策",
+                        "summary": "公司",
+                        "title": "宏观",
+                        "url": "https://example.test/source-collision",
+                        "published_at": "2026-06-30",
+                    }
+                ]
+            }
+        }
+    }
+    morning = render_morning_report(manifest, news)
+    evening = build_evening_summary(
+        "20260630",
+        review_payload={
+            "market_temperature": {
+                "status_label": "宏观",
+                "dimensions": {"liquidity": {"label": "政策", "score": 2}},
+            }
+        },
+        news_payload=news,
+        manifest_payload=manifest,
+    )
+    for output in (morning, evening):
+        assert "政策: 18.20" in output
+        assert "政策: [宏观](https://example.test/source-collision)" in output
+        assert "Policy: 公司" in output
+        assert "公司(provider.custom)" in output
+        assert "after 政策, 宏观" in output
+    assert "Status: 宏观" in evening
+    assert "Six dimensions: 政策 2.0" in evening
+
+
+@pytest.mark.parametrize(
+    ("domain", "source"),
+    [
+        ("market", "公司"),
+        ("category", "研究编辑部"),
+        ("index", "宏观"),
+        ("macro", "恒生指数"),
+        ("theme", "偏热"),
+        ("dimension", "A股"),
+        ("temperature_status", "流动性"),
+        ("dataset", "政策"),
+        ("attempt", "融资融券余额"),
+        ("detail", "赚钱效应"),
+    ],
+)
+def test_labels_from_another_domain_remain_source_text(domain: str, source: str) -> None:
+    from a_share_daily.report_messages import known_label
+
+    assert known_label("en-US", source, domain=domain) == source
+    assert known_label("zh-CN", source, domain=domain) == source
