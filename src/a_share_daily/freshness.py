@@ -436,11 +436,12 @@ def render_freshness_section(
     manifest_payload: Mapping[str, Any],
     news_payload: Mapping[str, Any] | None = None,
     *,
-    title: str = "数据质量",
+    title: str | None = None,
     locale: str = "zh-CN",
 ) -> list[str]:
     """Render a compact freshness section for morning/evening markdown reports."""
-    lines = [f"## {title}"]
+    selected_title = message(locale, "freshness.section.title") if title is None else title
+    lines = [f"## {selected_title}"]
     freshness = _dict(manifest_payload.get("freshness"))
     if not freshness:
         lines.append(message(locale, "freshness.missing"))

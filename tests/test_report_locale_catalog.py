@@ -132,3 +132,13 @@ def test_currency_locale_preserves_magnitude_and_sign(value: float, prefix: str)
     assert _fmt_yuan(value, locale="en-US").startswith(prefix)
     assert "CNY" in _fmt_yuan(value, locale="en-US")
     assert not re.search(r"[\u4e00-\u9fff]", _fmt_yuan(value, locale="en-US"))
+
+
+def test_standalone_freshness_heading_follows_explicit_locale() -> None:
+    from a_share_daily.freshness import render_freshness_section
+
+    english = "\n".join(render_freshness_section({}, locale="en-US"))
+    chinese = "\n".join(render_freshness_section({}, locale="zh-CN"))
+    assert english.startswith("## Data quality\n")
+    assert not re.search(r"[\u4e00-\u9fff]", english)
+    assert chinese.startswith("## 数据质量\n")

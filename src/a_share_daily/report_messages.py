@@ -26,6 +26,7 @@ _MARKET_TEMPERATURE_DIMENSIONS = (
 
 
 MESSAGES: dict[str, dict[str, str]] = {
+    "freshness.section.title": {"en-US": "Data quality", "zh-CN": "数据质量"},
     "warning.source": {"en-US": "- [WARN] {warning}.", "zh-CN": "- [WARN] {warning}。"},
     "macro.row": {
         "en-US": "- {tag} {label}: {close} ({change}){asof}.",
