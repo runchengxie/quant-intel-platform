@@ -26,6 +26,41 @@ _MARKET_TEMPERATURE_DIMENSIONS = (
 
 
 MESSAGES: dict[str, dict[str, str]] = {
+    "mapping.method": {
+        "en-US": (
+            "- Descriptive observations: human-weighted overseas moves and "
+            "industry associations; A-share predictive ability is unverified. "
+            "No verified ETF holdings mapping is available."
+        ),
+        "zh-CN": "- 描述性观察：人工加权海外涨跌与产业关联，A 股预测能力未经验证；暂无经持仓核验的 ETF 映射。",
+    },
+    "mapping.provenance": {
+        "en-US": "- Mapping {version}; evidence {status}.",
+        "zh-CN": "- 映射版本 {version}；证据状态 {status}。",
+    },
+    "mapping.source": {
+        "en-US": "  - Evidence `{id}`: [{symbol}]({url}), session {date}, close time {time}.",
+        "zh-CN": "  - 证据 `{id}`：[{symbol}]({url})，行情日期 {date}，收盘时间 {time}。",
+    },
+    "mapping.unverified": {
+        "en-US": (
+            "- [WARN] Legacy mapping provenance is unverified; these values "
+            "are not current forecasts."
+        ),
+        "zh-CN": "- [WARN] 旧版映射来源未经核验；这些数值不作为当前预测。",
+    },
+    "report.context": {
+        "en-US": (
+            "A-share context: {stage}; session to observe {session}. Time "
+            "zone: Asia/Shanghai. Morning observations freeze at {cutoff}; the "
+            "next session may require further overseas updates."
+        ),
+        "zh-CN": "A 股状态：{stage}；观察交易日 {session}。时区：Asia/Shanghai。晨报观察截点 {cutoff}；下一交易日前仍需更新海外信息。",
+    },
+    "stage.preopen": {"en-US": "pre-open", "zh-CN": "盘前观察"},
+    "stage.intraday": {"en-US": "intraday verification", "zh-CN": "盘中验证"},
+    "stage.postclose": {"en-US": "post-close review", "zh-CN": "盘后复核"},
+    "stage.closed": {"en-US": "market closed", "zh-CN": "休市观察"},
     "freshness.section.title": {"en-US": "Data quality", "zh-CN": "数据质量"},
     "warning.source": {"en-US": "- [WARN] {warning}.", "zh-CN": "- [WARN] {warning}。"},
     "macro.row": {
@@ -93,13 +128,14 @@ MESSAGES: dict[str, dict[str, str]] = {
         "zh-CN": "- {tag} 韩国盘后/夜盘：风险等级 {level}，方向 {signal}，数据源 {source}。",
     },
     "morning.mapping.title": {
-        "en-US": "## 4. Cross-market transmission",
-        "zh-CN": "## 4. 跨市场传导信号",
+        "en-US": "## 4. Overseas theme observations",
+        "zh-CN": "## 4. 海外主题观察",
     },
     "morning.mapping.missing": {
-        "en-US": "- [fetch] Global leading-asset mappings are below 1%; no "
-        "significant transmission.",
-        "zh-CN": "- [fetch] 全球领先资产映射波动均低于 1%，无显著传导。",
+        "en-US": (
+            "- [fetch] No qualified overseas theme move reaches 1%; coverage may be incomplete."
+        ),
+        "zh-CN": "- [fetch] 没有达到 1% 的合格海外主题波动；行情覆盖可能不完整。",
     },
     "mapping.markets": {"en-US": ", markets {markets}", "zh-CN": "，市场 {markets}"},
     "morning.mapping.row": {
@@ -111,8 +147,8 @@ MESSAGES: dict[str, dict[str, str]] = {
         "zh-CN": "- [fetch] 商品映射 {concept}: {change}，{drivers}",
     },
     "morning.ashare.title": {
-        "en-US": "## 5. A-share pre-open themes",
-        "zh-CN": "## 5. A股盘前热点预判",
+        "en-US": "## 5. A-share themes to observe",
+        "zh-CN": "## 5. A股主题观察",
     },
     "morning.topics": {
         "en-US": "- [fetch] DailyWatch20: {count} themes from the official topic_summary artifact.",
@@ -143,8 +179,8 @@ MESSAGES: dict[str, dict[str, str]] = {
         "en-US": "- [WARN] Missing hot-sector manifest.",
         "zh-CN": "- [WARN] 未取得 hot-sector manifest。",
     },
-    "mapping.watch": {"en-US": "- Watch mappings: ", "zh-CN": "- 关注映射: "},
-    "mapping.risk": {"en-US": "- Risk mappings: ", "zh-CN": "- 风险映射: "},
+    "mapping.watch": {"en-US": "- Overseas gains: ", "zh-CN": "- 海外走强主题: "},
+    "mapping.risk": {"en-US": "- Overseas declines: ", "zh-CN": "- 海外走弱主题: "},
     "morning.macro.title": {"en-US": "## 6. Macro environment", "zh-CN": "## 6. 宏观环境"},
     "lag.days": {"en-US": ", lag {days} days", "zh-CN": "，滞后 {days} 天"},
     "asof": {"en-US": ", as of {date}{lag}", "zh-CN": "，截至 {date}{lag}"},
@@ -215,7 +251,7 @@ MESSAGES: dict[str, dict[str, str]] = {
         "zh-CN": "- [fetch] 口径: 仅作市场状态观察，当前刻度不直接映射仓位。",
     },
     "evening.mapping.title": {
-        "en-US": "## 4. Cross-market transmission",
+        "en-US": "## 4. Overseas theme observations",
         "zh-CN": "## 4. 跨市场传导",
     },
     "evening.mapping.missing": {
@@ -359,6 +395,7 @@ KNOWN_LABELS: dict[str, dict[str, str]] = {
         "标普500 ETF": "S&P 500 ETF",
         "纳斯达克100 ETF": "Nasdaq 100 ETF",
         "费城半导体 ETF": "Semiconductor ETF",
+        "VanEck 半导体 ETF": "VanEck Semiconductor ETF",
         "恒生指数": "Hang Seng Index",
         "日经225": "Nikkei 225",
         "韩国KOSPI": "KOSPI",

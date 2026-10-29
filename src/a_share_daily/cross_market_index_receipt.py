@@ -103,6 +103,7 @@ def recover_indices(data: dict, receipt_path: Path, *, root: Path, observed_at: 
     """Return a copy with verified missing quotes; all invalid inputs fail closed."""
     from .cross_market import _annotate_freshness, _equity_sessions
     from .global_leadlag import aggregate_concept_signals
+    from .overseas_context import local_time, observation_cutoff
 
     result = copy.deepcopy(data)
     diagnostic: dict[str, Any] = {"recovered": [], "rejections": {}, "attempts": {}}
@@ -147,6 +148,9 @@ def recover_indices(data: dict, receipt_path: Path, *, root: Path, observed_at: 
                 item for item in result.get(field, []) if not str(item).startswith(f"{symbol}:")
             ]
     if diagnostic["recovered"]:
-        result["global_lead_lag"] = aggregate_concept_signals(quotes)
+        result["global_lead_lag"] = aggregate_concept_signals(
+            quotes,
+            decision_at=observation_cutoff(local_time(observed_at).strftime("%Y%m%d"), observed_at),
+        )
         result["concept_mapping"] = result["global_lead_lag"]
     return _annotate_freshness(result, data["date"])

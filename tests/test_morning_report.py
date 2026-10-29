@@ -48,6 +48,9 @@ def test_morning_report_uses_structured_facts_only() -> None:
             },
         },
     }
+    for symbol, quote in manifest["cross_market"]["us_stocks"].items():
+        quote["as_of_date"] = "2026-06-29"
+        quote["source_url"] = f"https://example.com/{symbol}"
     news = {
         "markets": {
             "cn": {
@@ -82,7 +85,8 @@ def test_morning_report_uses_structured_facts_only() -> None:
     assert "监管部门发布新的市场制度安排" in text
     assert "无链接消息" not in text
     assert "SPY +0.40%" in text
-    assert "半导体设备" in text
+    assert "描述性观察" in text
+    assert "来源未经核验" not in text
     assert "热点候选池 42 只" in text
     assert "VIX 恐慌指数" in text
 
@@ -174,7 +178,9 @@ def test_morning_report_omits_hotsector_warning_when_premium_skipped() -> None:
 
     assert "热点候选池为空" not in text
     assert "高权限 TuShare" not in text
-    assert "关注映射: AI芯片" in text
+    assert "AI芯片" in text
+    assert "旧版映射来源未经核验" in text
+    assert "关注映射" not in text
 
 
 def test_morning_report_includes_korea_preopen_and_overnight_signals() -> None:

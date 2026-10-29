@@ -77,3 +77,13 @@ metadata and inherited credential status only. With JSON selected, legacy
 provider env files and provider entries in project env files are excluded;
 other credential owners retain their configuration. Use the pinned owner's
 `config check` for JSON validation and run doctor through `config run`.
+
+
+## Overseas theme research evidence
+
+`quant-market-research` owns public overseas theme models and historical evaluation. Reports consume
+retrospective evidence only through `overseas_theme_evidence.v1`, validating an explicit SHA-256,
+schema, clocks and source identity before display. Human-weighted overseas moves remain descriptive
+observations and do not establish prediction confidence. See the [consumer contract and morning
+entrypoint](overseas-theme-evidence.en.md). No research-source import or frozen forward-sample change
+is involved.

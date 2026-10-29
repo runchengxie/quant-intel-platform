@@ -8,7 +8,7 @@ import os
 import subprocess
 import sys
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
@@ -32,6 +32,7 @@ from .charts.theme import save_unavailable_chart
 from .cross_market import generate_summary as _gen_cross_summary
 from .daily_watch20_validation._common import resolve_watchlist20_root
 from .freshness import build_freshness_report, load_freshness_snapshot
+from .overseas_context import local_time, observation_cutoff
 from .topic_summary import TopicSummaryError, load_topic_summary
 from .topic_summary_fallback import build_composite_topic_summary
 from .weekly_context import write_weekly_context
@@ -792,8 +793,9 @@ def step_charts(
 def run_morning(trade_date: str | None = None) -> dict[str, Any]:
     """Full morning pipeline. Returns manifest dict."""
     _ensure_output_dir()
+    generated = local_time(datetime.now(UTC))
     if trade_date is None:
-        trade_date = datetime.now().strftime("%Y%m%d")
+        trade_date = generated.strftime("%Y%m%d")
 
     date_dash = f"{trade_date[:4]}-{trade_date[4:6]}-{trade_date[6:]}"
 
@@ -813,7 +815,7 @@ def run_morning(trade_date: str | None = None) -> dict[str, Any]:
         "report_kind": "morning",
         "date": trade_date,
         "date_dash": date_dash,
-        "generated_at": datetime.now().astimezone().isoformat(),
+        "generated_at": generated.isoformat(),
         "stray_cleaned": stray_cleaned,
         "freshness": step_data_freshness(trade_date),
         "hotsector": {},
@@ -840,7 +842,9 @@ def run_morning(trade_date: str | None = None) -> dict[str, Any]:
     # Step 3: Cross-market data + US overnight chart
     print("[cross_market] Fetching ...", file=sys.stderr)
     chart_path = str(OUTPUT_DIR / "daily_us_overnight.png")
-    manifest["cross_market"] = _cross_market.run_with_chart(trade_date, chart_path)
+    manifest["cross_market"] = _cross_market.run_with_chart(
+        trade_date, chart_path, decision_at=observation_cutoff(trade_date, generated)
+    )
     if manifest["cross_market"].get("us_overnight_chart"):
         manifest["charts"]["paths"]["us_overnight"] = chart_path
         manifest["charts"]["ok"].append("us_overnight")

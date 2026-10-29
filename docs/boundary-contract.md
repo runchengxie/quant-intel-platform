@@ -106,3 +106,11 @@ SHA-256 不匹配、行数不符或请求切片不存在时明确失败，不会
 供应商任务通过已合并、已安装的 owner CLI 启动：
 `marketdata config run --config "$DATA_PLATFORM_CONFIG" -- COMMAND ARGS...`。
 所选私有 JSON 按数据 owner 的版本化契约配置。版本 1 可以直接保存供应商凭据，版本 2 引用 owner 管理的凭据库和独立任务 JSON。消费者不导入 owner loader，也不解析供应商 JSON。doctor 只检查所选文件的元数据和继承的凭据状态。选择 JSON 后，排除旧 provider env 文件和项目 env 中的 provider 条目；其他凭据 owner 的配置仍保留。JSON 内容由固定版本 owner 的 `config check` 验证，doctor 应通过 `config run` 启动。
+
+
+## 海外主题研究证据
+
+公开的海外主题模型与历史检验由 `quant-market-research` 维护。日报只通过
+`overseas_theme_evidence.v1` 文件消费回溯证据，按显式 SHA-256、Schema、时点与来源校验后展示。
+人工加权海外涨跌保持描述性观察，不能据此升级为高置信度预测。详见
+[消费契约与晨报入口](overseas-theme-evidence.md)。不导入研究源码，也不改动前向封存样本。

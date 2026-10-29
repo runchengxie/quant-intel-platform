@@ -19,19 +19,21 @@ def _render_global_lead_lag_section(data: dict[str, Any]) -> list[str]:
     mapping = data.get("global_lead_lag") or data.get("concept_mapping", [])
     if not mapping:
         return []
-    lines = ["### 全球领先资产映射"]
+    lines = [
+        "### 全球领先资产映射（描述性观察）",
+        "- 人工加权海外涨跌与产业关联，不代表 A 股预测；ETF 持仓映射尚未核验。",
+    ]
     significant = [m for m in mapping if abs(m.get("avg_pct_chg", 0)) > 1]
     if significant:
         for m in significant[:6]:
             avg = m["avg_pct_chg"]
-            signal = m["signal"]
-            tag = "[OK]" if signal == "bullish" else "[WARN]"
+            tag = "[fetch]"
             drivers = ", ".join(m.get("drivers", [])[:3])
             markets = "/".join(m.get("markets", []))
             suffix = f" [{markets}]" if markets else ""
             lines.append(f"- {tag} {m['concept']}（{avg:+.1f}%）{suffix}，驱动 {drivers}")
     else:
-        lines.append("- 全球领先资产波动均<1%，无明显映射信号")
+        lines.append("- 暂无达到 1% 的合格海外主题波动，覆盖可能不完整")
     lines.append("")
     return lines
 

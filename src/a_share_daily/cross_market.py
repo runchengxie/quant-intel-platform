@@ -27,9 +27,9 @@ import requests
 from .cross_market_fetcher import Fetcher, FredAdapter
 from .cross_market_freshness import _parse_iso_date, _quote_date_warnings
 from .cross_market_rate_limit import cooldown_active, is_rate_limited, limited_quote, serial_quote
+from .cross_market_sessions import _completed_session_date, _equity_quote, _equity_sessions
 from .cross_market_summary import generate_summary as _generate_summary
 from .global_leadlag import (
-    GLOBAL_LEAD_LAG_INSTRUMENTS,
     US_TO_A_MAPPING,
     aggregate_concept_signals,
     fetch_symbols,
@@ -173,68 +173,26 @@ def _cboe_history_csv(filename: str, value_column: str) -> tuple[float, float, s
     return latest_val, prev_val, latest_date
 
 
-def _equity_sessions(symbol: str, trade_date: str) -> tuple[Any, date, date]:
-    """Resolve the requested and preceding sessions in the symbol's market."""
-    import exchange_calendars as xcals
-
-    from .asia_session import MARKETS, _day
-
-    market = next(
-        (item.market for item in GLOBAL_LEAD_LAG_INSTRUMENTS if item.symbol == symbol), "US"
-    )
-    market = next((key for key, (_, index, _) in MARKETS.items() if index == symbol), market)
-    calendar = xcals.get_calendar("XNYS" if market == "US" else MARKETS[market][0])
-    target = calendar.date_to_session(_day(trade_date), direction="previous")
-    return calendar, target.date(), calendar.previous_session(target).date()
-
-
-def _equity_quote(data: Any, symbol: str, trade_date: str | None = None) -> dict[str, Any]:
-    """Select real session bars; undated compatibility callers retain latest mode."""
-    try:
-        closes = data["Close"][symbol].dropna()
-        if len(closes) < 2:
-            return {"error": "insufficient data"}
-        if trade_date is None:
-            latest, previous = float(closes.iloc[-1]), float(closes.iloc[-2])
-            as_of = closes.index[-1].date()
-        else:
-            calendar, target, preceding = _equity_sessions(symbol, trade_date)
-            index = closes.index
-            if index.tz is not None:
-                index = index.tz_convert(calendar.tz)
-            sessions = [value.date() for value in index]
-            if len(set(sessions)) != len(sessions):
-                return {"error": "duplicate session data"}
-            rows = {
-                day: value for day, value in zip(sessions, closes, strict=True) if day <= target
-            }
-            if target not in rows:
-                return {"error": "missing target session"}
-            if preceding not in rows:
-                return {"error": "missing preceding session"}
-            latest, previous = float(rows[target]), float(rows[preceding])
-            as_of = sessions[sessions.index(target)]
-        pct = (latest - previous) / previous * 100 if previous != 0 else 0.0
-        return {
-            "close": round(latest, 2),
-            "pct_chg": round(pct, 2),
-            "as_of_date": as_of.isoformat(),
-            "source_url": f"https://finance.yahoo.com/quote/{symbol}/history/",
-        }
-    except Exception:
-        return {"error": "no data"}
-
-
-def _fetch_us_stocks(trade_date: str | None = None) -> dict[str, Any]:
+def _fetch_us_stocks(
+    trade_date: str | None = None, *, decision_at: datetime | None = None
+) -> dict[str, Any]:
     """Fetch dated equity closes, retrying at most six missing symbols serially."""
     if cooldown_active():
         return {symbol: {"error": "yahoo cooldown"} for symbol in US_SYMBOLS}
     try:
         import yfinance as yf
 
+        requested = dict.fromkeys(US_SYMBOLS, trade_date)
+        if decision_at is not None and trade_date is not None:
+            requested = {
+                symbol: _completed_session_date(symbol, trade_date, decision_at)
+                for symbol in US_SYMBOLS
+            }
         window: dict[str, Any] = {"period": "5d"}
         if trade_date is not None:
-            preceding = [_equity_sessions(symbol, trade_date)[2] for symbol in US_SYMBOLS]
+            preceding = [
+                _equity_sessions(symbol, str(requested[symbol]))[2] for symbol in US_SYMBOLS
+            ]
             end = datetime.strptime(trade_date.replace("-", ""), "%Y%m%d").date() + timedelta(
                 days=1
             )
@@ -244,12 +202,12 @@ def _fetch_us_stocks(trade_date: str | None = None) -> dict[str, Any]:
                 "ignore_tz": True,
             }
         data = yf.download(US_SYMBOLS, **window, progress=False, auto_adjust=False)
-        result = {symbol: _equity_quote(data, symbol, trade_date) for symbol in US_SYMBOLS}
+        result = {symbol: _equity_quote(data, symbol, requested[symbol]) for symbol in US_SYMBOLS}
         missing = [symbol for symbol in US_SYMBOLS if "error" in result[symbol]]
         for symbol in missing[:6]:
             try:
                 retry = serial_quote(yf, symbol, window)
-                quote = _equity_quote(retry, symbol, trade_date)
+                quote = _equity_quote(retry, symbol, requested[symbol])
             except Exception as exc:
                 if is_rate_limited(exc):
                     result[symbol] = limited_quote()
@@ -540,7 +498,9 @@ def _is_snapshot_fresh(snapshot: dict, trade_date: str) -> bool:
     return 0 <= age <= _max_snapshot_age_days(target_dt)
 
 
-def _annotate_freshness(data: dict[str, Any], trade_date: str) -> dict[str, Any]:
+def _annotate_freshness(
+    data: dict[str, Any], trade_date: str, decision_at: datetime | None = None
+) -> dict[str, Any]:
     """Attach freshness warnings for fields that can lag silently."""
     target_dt = _parse_yyyymmdd(trade_date) or date.today()
     warnings = list(data.get("_freshness_warnings") or [])
@@ -575,11 +535,13 @@ def _annotate_freshness(data: dict[str, Any], trade_date: str) -> dict[str, Any]
 
     if warnings:
         data["_freshness_warnings"] = sorted({str(item) for item in warnings})
-    _annotate_equity_errors(data, trade_date)
+    _annotate_equity_errors(data, trade_date, decision_at)
     return data
 
 
-def _annotate_equity_errors(data: dict[str, Any], trade_date: str) -> None:
+def _annotate_equity_errors(
+    data: dict[str, Any], trade_date: str, decision_at: datetime | None = None
+) -> None:
     """Expose per-symbol failures and dates independently of HTTP request success."""
     import exchange_calendars as xcals
 
@@ -600,7 +562,11 @@ def _annotate_equity_errors(data: dict[str, Any], trade_date: str) -> None:
         if not isinstance(row, dict) or row.get("error"):
             continue
         calendar = xcals.get_calendar(calendar_name)
-        target = _day(trade_date)
+        target = _day(
+            _completed_session_date(symbol, trade_date, decision_at)
+            if decision_at is not None
+            else trade_date
+        )
         expected = calendar.date_to_session(target, direction="previous")
         as_of = str(row.get("as_of_date") or "")
         if as_of != expected.strftime("%Y-%m-%d"):
@@ -613,7 +579,7 @@ def _annotate_equity_errors(data: dict[str, Any], trade_date: str) -> None:
         data["_freshness_warnings"] = sorted(set(warnings))
 
 
-def _load_snapshot(trade_date: str) -> dict[str, Any] | None:
+def _load_snapshot(trade_date: str, decision_at: datetime | None = None) -> dict[str, Any] | None:
     """Try to load cross-market data from GH Actions snapshot.
 
     Returns None if no usable snapshot is found.
@@ -634,12 +600,13 @@ def _load_snapshot(trade_date: str) -> dict[str, Any] | None:
     if not _is_snapshot_fresh(data, trade_date):
         return None
 
-    if "global_lead_lag" not in data and isinstance(data.get("us_stocks"), dict):
+    if isinstance(data.get("us_stocks"), dict):
         data["global_lead_lag"] = aggregate_concept_signals(data["us_stocks"])
+        data["concept_mapping"] = data["global_lead_lag"]
 
     # Inject source marker
     data["_source"] = "data-snapshots"
-    return _annotate_freshness(data, trade_date)
+    return _annotate_freshness(data, trade_date, decision_at)
 
 
 # ═══════════════════════════════════════════════════════════════
@@ -684,7 +651,7 @@ def _map_commodities_into(result: CrossMarketResult) -> None:
         result.errors.append(f"commodity_mapping: {e}")
 
 
-def run(trade_date: str | None = None) -> dict[str, Any]:
+def run(trade_date: str | None = None, *, decision_at: datetime | None = None) -> dict[str, Any]:
     """Run the full cross-market pipeline.
 
     Strategy:
@@ -701,20 +668,28 @@ def run(trade_date: str | None = None) -> dict[str, Any]:
     # ── Snapshot-first strategy ────────────────────────────────
     snapshot: dict[str, Any] | None = None
     if not os.environ.get("CROSS_MARKET_FORCE_LIVE"):
-        snapshot = _load_snapshot(trade_date)
+        snapshot = (
+            _load_snapshot(trade_date, decision_at)
+            if decision_at is not None
+            else _load_snapshot(trade_date)
+        )
         if (
             snapshot is not None
             and not snapshot.get("errors")
             and not snapshot.get("_freshness_warnings")
         ):
-            return snapshot
+            return _cutoff_mapping(snapshot, decision_at)
 
     # ── Live fetch (fallback) ──────────────────────────────────
     result = CrossMarketResult(date=trade_date)
 
     # US stocks (yfinance)
     try:
-        result.us_stocks = _fetch_us_stocks(trade_date)
+        result.us_stocks = (
+            _fetch_us_stocks(trade_date, decision_at=decision_at)
+            if decision_at is not None
+            else _fetch_us_stocks(trade_date)
+        )
     except Exception as e:
         result.errors.append(f"us_stocks: {e}")
 
@@ -756,7 +731,9 @@ def run(trade_date: str | None = None) -> dict[str, Any]:
     except Exception as e:
         result.errors.append(f"macros: {e}")
 
-    return _annotate_freshness(result.to_dict(), trade_date)
+    return _cutoff_mapping(
+        _annotate_freshness(result.to_dict(), trade_date, decision_at), decision_at
+    )
 
 
 def generate_summary(data: dict[str, Any]) -> str:
@@ -764,9 +741,11 @@ def generate_summary(data: dict[str, Any]) -> str:
     return _generate_summary(data)
 
 
-def run_with_chart(trade_date: str | None = None, chart_out: str = "") -> dict[str, Any]:
+def run_with_chart(
+    trade_date: str | None = None, chart_out: str = "", *, decision_at: datetime | None = None
+) -> dict[str, Any]:
     """Run cross-market pipeline and optionally generate US overnight chart."""
-    data = run(trade_date)
+    data = run(trade_date, decision_at=decision_at) if decision_at is not None else run(trade_date)
     if (
         chart_out
         and data.get("us_stocks")
@@ -780,3 +759,15 @@ def run_with_chart(trade_date: str | None = None, chart_out: str = "") -> dict[s
         except Exception as e:
             data["errors"].append(f"us_chart: {e}")
     return data
+
+
+def _cutoff_mapping(data: dict[str, Any], decision_at: datetime | None) -> dict[str, Any]:
+    if decision_at is None:
+        return data
+    result = dict(data)
+    result["global_lead_lag"] = aggregate_concept_signals(
+        data.get("us_stocks", {}), decision_at=decision_at
+    )
+    result["concept_mapping"] = result["global_lead_lag"]
+    result["observation_cutoff"] = decision_at.isoformat()
+    return result
