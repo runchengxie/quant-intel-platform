@@ -38,10 +38,10 @@ def warning_evidence(context: dict) -> list[tuple[str, str]]:
 @pytest.mark.parametrize(
     ("scenario", "expected_count"),
     [
-        ("empty", 6),
-        ("optional_degraded", 6),
-        ("all_fresh", 5),
-        ("stale_macro", 5),
+        ("empty", 7),
+        ("optional_degraded", 7),
+        ("all_fresh", 6),
+        ("stale_macro", 6),
     ],
 )
 def test_public_morning_context_keeps_quality_warnings_and_metrics_across_locales(
@@ -160,10 +160,10 @@ def test_dated_warning_identity_does_not_depend_on_translated_or_duplicate_text(
         "morning",
     )
     context = build_context([morning, evening], morning, evening)
-    assert len(context["quality_warnings"]) == 8
+    assert len(context["quality_warnings"]) == 9
     selected = warning_evidence(context)
-    assert len(selected) == 8
-    assert len({identity for identity, _ in selected}) == 8
+    assert len(selected) == 9
+    assert len({identity for identity, _ in selected}) == 9
     assert selected[:2] == [
         ("2026-06-29-evening:s2:p0", "[WARN]"),
         ("2026-06-29-evening:s2:p1", "[WARN]"),

@@ -102,6 +102,15 @@ def _add_morning_commands(sub: argparse._SubParsersAction) -> None:
         default="out/a_share_daily/morning_report.md",
         help="Output Markdown path",
     )
+    report.add_argument(
+        "--overseas-theme-evidence",
+        type=Path,
+        help="Versioned retrospective research JSON from quant-market-research",
+    )
+    report.add_argument(
+        "--overseas-theme-sha256",
+        help="Expected SHA-256 supplied by the reviewed evidence publication",
+    )
     report.add_argument("--send-feishu", action="store_true", help="Send report to Feishu")
     report.add_argument(
         "--feishu-chat-id",
@@ -350,7 +359,17 @@ def _cmd_morning_report(args: argparse.Namespace) -> int | None:
 
     manifest = load_json(args.manifest)
     news = load_json(args.news)
-    output = render_morning_report(manifest, news, theme=args.theme, locale=args.locale)
+    if args.overseas_theme_evidence is not None or args.overseas_theme_sha256 is not None:
+        manifest["overseas_theme_evidence"] = {
+            "path": args.overseas_theme_evidence,
+            "sha256": args.overseas_theme_sha256,
+        }
+    output = render_morning_report(
+        manifest,
+        news,
+        theme=args.theme,
+        locale=args.locale,
+    )
     write_report(args.out, output)
     print(output)
     return _maybe_send_feishu(output, args)

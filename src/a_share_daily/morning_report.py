@@ -4,15 +4,23 @@ from __future__ import annotations
 
 import json
 from collections.abc import Mapping, Sequence
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from a_share_daily.freshness import render_freshness_section
-from a_share_daily.global_leadlag import GLOBAL_LEAD_LAG_INSTRUMENTS, INDEX_LABELS
+from a_share_daily.global_leadlag import (
+    GLOBAL_LEAD_LAG_INSTRUMENTS,
+    INDEX_LABELS,
+    aggregate_concept_signals,
+    legacy_observations,
+)
+from a_share_daily.overseas_context import local_time, observation_cutoff, report_context
+from a_share_daily.overseas_theme_report import render_evidence
 from a_share_daily.report_messages import CATEGORY_LABELS, NEWS_MARKET_LABELS, known_label, message
 from a_share_daily.report_theme import get_report_theme
 from ops_common.locale import normalize_locale
+from research_contracts.overseas_theme import EvidenceError, load_evidence
 
 NEWS_MARKET_ORDER = ("cn", "jp", "kr", "us")
 
@@ -322,7 +330,7 @@ def _render_korea_signals(cross: Mapping[str, Any], locale: str) -> list[str]:
 
 
 def _render_mapping_section(cross: Mapping[str, Any], locale: str = "zh-CN") -> list[str]:
-    lines = [message(locale, "morning.mapping.title")]
+    lines = [message(locale, "morning.mapping.title"), message(locale, "mapping.method")]
     raw_mapping = cross.get("global_lead_lag") or cross.get("concept_mapping") or []
     mapping = (
         [item for item in raw_mapping if isinstance(item, Mapping)]
@@ -334,8 +342,7 @@ def _render_mapping_section(cross: Mapping[str, Any], locale: str = "zh-CN") -> 
         lines.append(message(locale, "morning.mapping.missing"))
     else:
         for item in significant[:6]:
-            signal = str(item.get("signal", "neutral"))
-            tag = "[OK]" if signal == "bullish" else "[WARN]" if signal == "bearish" else "[fetch]"
+            tag = "[fetch]"
             drivers = message(locale, "separator.list").join(
                 str(driver) for driver in item.get("drivers", [])[:3]
             )
@@ -352,6 +359,41 @@ def _render_mapping_section(cross: Mapping[str, Any], locale: str = "zh-CN") -> 
                     drivers=f"{drivers or 'n/a'}",
                 )
             )
+
+    if mapping:
+        versions = sorted(
+            {str(item.get("mapping_version", "legacy_unversioned")) for item in mapping}
+        )
+        statuses = sorted(
+            {str(item.get("evidence_status", "descriptive_unverified")) for item in mapping}
+        )
+        lines.append(
+            message(
+                locale,
+                "mapping.provenance",
+                version=", ".join(versions),
+                status=", ".join(statuses),
+            )
+        )
+        if any(item.get("evidence_status") != "descriptive_session_checked" for item in mapping):
+            lines.append(message(locale, "mapping.unverified"))
+        seen = set()
+        for item in significant[:6]:
+            for obs in item.get("observations", []):
+                if obs["evidence_id"] in seen or not obs.get("source_time_utc"):
+                    continue
+                seen.add(obs["evidence_id"])
+                lines.append(
+                    message(
+                        locale,
+                        "mapping.source",
+                        id=obs["evidence_id"],
+                        symbol=obs["symbol"],
+                        url=obs["source_url"],
+                        date=obs["as_of_date"],
+                        time=obs["source_time_utc"],
+                    )
+                )
 
     raw_commodities = cross.get("commodity_concept_mapping") or []
     commodities = (
@@ -412,8 +454,8 @@ def _render_a_share_section(
         if isinstance(raw_mapping, list)
         else []
     )
-    bullish = [item for item in mapping if str(item.get("signal")) == "bullish"][:5]
-    bearish = [item for item in mapping if str(item.get("signal")) == "bearish"][-5:]
+    bullish = [item for item in mapping if item.get("movement") == "up"][:5]
+    bearish = [item for item in mapping if item.get("movement") == "down"][-5:]
     if bullish:
         lines.append(
             message(locale, "mapping.watch")
@@ -491,7 +533,7 @@ def render_morning_report(
     locale: str = "en-US",
 ) -> str:
     selected_locale = normalize_locale(locale)
-    generated = generated_at or datetime.now()
+    generated = local_time(generated_at or datetime.now(UTC))
     date_text = str(
         manifest.get("date_dash") or manifest.get("date") or generated.strftime("%Y-%m-%d")
     )
@@ -499,6 +541,18 @@ def render_morning_report(
         manifest.get("cross_market") if isinstance(manifest.get("cross_market"), Mapping) else {}
     )
     assert isinstance(cross, Mapping)
+    cutoff = observation_cutoff(generated.strftime("%Y%m%d"), generated)
+    cross = dict(cross)
+    if isinstance(cross.get("us_stocks"), dict):
+        cross["global_lead_lag"] = aggregate_concept_signals(cross["us_stocks"], decision_at=cutoff)
+        cross["concept_mapping"] = cross["global_lead_lag"]
+    else:
+        cross["global_lead_lag"] = legacy_observations(
+            cross.get("global_lead_lag") or cross.get("concept_mapping")
+        )
+        cross["concept_mapping"] = cross["global_lead_lag"]
+    context = report_context(generated)
+    evidence, rejection = _research_evidence(manifest, cutoff)
     news = news or {}
     selected_theme = get_report_theme(theme)
     freshness_title = message(selected_locale, "freshness.title")
@@ -515,11 +569,20 @@ def render_morning_report(
             f"{generated_label}: {generated.strftime('%Y-%m-%d %H:%M')}",
             f"{theme_label}: {known_label(selected_locale, selected_theme.label, domain='theme')}",
             f"{method_label}: {method_text}",
+            message(
+                selected_locale,
+                "report.context",
+                stage=message(selected_locale, "stage." + context["stage"]),
+                session=context["next_session"],
+                cutoff=cutoff.isoformat(),
+            ),
         ],
         _render_news_section(news, locale=selected_locale),
         _render_us_section(cross, locale=selected_locale),
         _render_asia_section(cross, locale=selected_locale),
-        _render_mapping_section(cross, locale=selected_locale),
+        _render_mapping_section(cross, locale=selected_locale)
+        + [""]
+        + render_evidence(evidence, selected_locale, rejection=rejection),
         _render_a_share_section(manifest, cross, locale=selected_locale),
         _render_macro_section(cross, generated, locale=selected_locale),
     ]
@@ -536,3 +599,15 @@ def render_morning_report(
             lines.append("")
         lines.extend(section)
     return "\n".join(lines).rstrip() + "\n"
+
+
+def _research_evidence(manifest, cutoff):
+    request = manifest.get("overseas_theme_evidence")
+    if request is None:
+        return None, None
+    if not isinstance(request, Mapping) or not isinstance(request.get("path"), (str, Path)):
+        return None, "unreadable"
+    try:
+        return load_evidence(Path(request["path"]), request.get("sha256", ""), cutoff), None
+    except EvidenceError as exc:
+        return None, str(exc)
