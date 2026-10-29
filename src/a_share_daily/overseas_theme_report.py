@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
-from research_contracts.overseas_theme import REJECTION_CODES
+from datetime import UTC, datetime, time
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+from research_contracts.overseas_theme import REJECTION_CODES, EvidenceError, load_evidence
 
 MESSAGES = {
     "en-US": {
@@ -56,7 +60,7 @@ def render_evidence(
     if evidence is None:
         reason = (
             rejection
-            if rejection in REJECTION_CODES
+            if rejection in (*REJECTION_CODES, messages["absent"])
             else ("schema_invalid" if rejection else messages["absent"])
         )
         return [*lines, messages["missing"].format(reason=reason)]
@@ -95,3 +99,25 @@ def render_evidence(
     )
     lines.extend(messages["limit"].format(text=value) for value in evidence["limitations"])
     return lines
+
+
+def evening_evidence(trade_date: str, path: Path | None, sha256: str | None) -> dict:
+    """Bound evidence by both actual generation time and the dated report's end."""
+    day = datetime.strptime(trade_date, "%Y%m%d").date()
+    report_end = datetime.combine(day, time.max, ZoneInfo("Asia/Shanghai"))
+    cutoff = min(datetime.now(UTC), report_end.astimezone(UTC))
+    evidence, rejection = None, "not_supplied"
+    if path is None and sha256 is not None:
+        rejection = "unreadable"
+    elif path is not None:
+        try:
+            evidence = load_evidence(path, sha256 or "", cutoff)
+            rejection = None
+        except EvidenceError as exc:
+            rejection = str(exc)
+    return {
+        "status": "available" if evidence is not None else "unavailable",
+        "evidence_cutoff_utc": cutoff.isoformat(),
+        "rejection": rejection,
+        "evidence": evidence,
+    }

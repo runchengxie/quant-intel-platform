@@ -64,3 +64,21 @@ Schema provider: [quant-market-research f918f283](https://github.com/runchengxie
 The snapshot SHA-256 is `4282b0c855633a53096c2c9a7947cd27f761bac7498a2a0ba7e70144b85c883b`.
 The schema is embedded in the installed consumer module, with a parity test against the snapshot.
 The research and report implementations exchange files only; no research source is imported.
+
+## Active evening reports
+
+The active `a-share-daily evening` and `review` commands accept
+`--overseas-theme-evidence PATH --overseas-theme-sha256 SHA256`. Deployment can
+supply the defaults through `OVERSEAS_THEME_EVIDENCE_PATH` and
+`OVERSEAS_THEME_EVIDENCE_SHA256`; explicit command arguments take precedence.
+The public report refresh also uses this active CLI and inherits those defaults.
+
+Markdown appends the existing retrospective evidence section, preserving every
+comparison, source and limitation. JSON exposes `overseas_theme_research` with
+`status`, `evidence_cutoff_utc`, `rejection` and `evidence`. Missing or rejected input
+leaves the market facts intact and displays an explicit unavailable state. The
+cutoff is the earlier of actual generation time and the requested report date's
+end in Asia/Shanghai: historical backfills cannot consume later-generated
+research. This is a separate retrospective study, never a daily forecast or a
+strategy promotion. Report generation does not send messages unless the existing
+explicit delivery flag is supplied.

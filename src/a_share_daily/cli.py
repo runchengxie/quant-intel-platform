@@ -302,6 +302,17 @@ def _add_operational_commands(sub: argparse._SubParsersAction) -> None:
         command.add_argument("--date", help="Trade date YYYYMMDD")
         command.add_argument("--json", action="store_true", help="JSON output")
         command.add_argument(
+            "--overseas-theme-evidence",
+            type=Path,
+            default=os.environ.get("OVERSEAS_THEME_EVIDENCE_PATH"),
+            help="Optional reviewed retrospective evidence JSON",
+        )
+        command.add_argument(
+            "--overseas-theme-sha256",
+            default=os.environ.get("OVERSEAS_THEME_EVIDENCE_SHA256"),
+            help="Expected SHA-256 of the reviewed evidence",
+        )
+        command.add_argument(
             "--send-feishu",
             action="store_true",
             help="Send output to Feishu group after generation",
@@ -541,7 +552,17 @@ def _cmd_evening_review(args: argparse.Namespace) -> int | None:
             print("[FAIL] cannot determine latest trading date", file=sys.stderr)
             return 1
 
-    output = review_json(trade_date) if args.json else build_report(trade_date, theme=args.theme)
+    evidence_options = {}
+    if args.overseas_theme_evidence is not None or args.overseas_theme_sha256 is not None:
+        evidence_options = {
+            "evidence_path": args.overseas_theme_evidence,
+            "evidence_sha256": args.overseas_theme_sha256,
+        }
+    output = (
+        review_json(trade_date, **evidence_options)
+        if args.json
+        else build_report(trade_date, theme=args.theme, **evidence_options)
+    )
     print(output)
     return _maybe_send_feishu(output, args)
 
