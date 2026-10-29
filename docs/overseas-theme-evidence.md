@@ -51,3 +51,18 @@ uv run a-share-daily morning-report --manifest /external/morning_manifest.json \
 Schema 来源为 [quant-market-research f918f283](https://github.com/runchengxie/quant-market-research/blob/f918f2832938743bd743021a7dfd89590e6af002/docs/contracts/overseas_theme_evidence.v1.schema.json)，
 SHA-256 为 `4282b0c855633a53096c2c9a7947cd27f761bac7498a2a0ba7e70144b85c883b`。
 安装包内嵌 Schema，测试保证其与文档副本一致。跨仓只交换文件，不导入研究仓源码。
+
+## 活跃晚报入口
+
+`a-share-daily evening` 和 `review` 支持
+`--overseas-theme-evidence PATH --overseas-theme-sha256 SHA256`。
+部署默认值来自 `OVERSEAS_THEME_EVIDENCE_PATH` 和
+`OVERSEAS_THEME_EVIDENCE_SHA256`，命令行显式参数优先。公开报告刷新调用该活跃
+CLI，也会继承这些默认值。
+
+Markdown 追加现有回溯研究章节，保留全部比较、来源与局限。JSON 的
+`overseas_theme_research` 保存 `status`、`evidence_cutoff_utc`、`rejection` 和
+`evidence`。未提供或校验失败时保留市场事实，明确显示研究不可用。
+校验截止为实际生成时间与报告日期上海时区当日结束时间中的较早者，历史回填不能使用
+之后生成的研究。这一章节保持回溯探索状态，不构成当日预测或策略晋升。
+生成报告仍须显式提供既有投递参数才会发送消息。

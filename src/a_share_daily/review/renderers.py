@@ -8,12 +8,14 @@ import json
 import sys
 from collections.abc import Mapping
 from datetime import datetime
+from pathlib import Path
 from typing import Any
 
 import pandas as pd
 
 from .. import data as D
 from ..market_temperature_render import render_market_temperature_section
+from ..overseas_theme_report import evening_evidence, render_evidence
 from ..report_theme import get_report_theme
 from .formatters import _fmt_yuan, _pct, _sign
 from .loaders import build_review_payload
@@ -238,7 +240,13 @@ def _render_extreme_section(overview: Mapping[str, Any]) -> list[str]:
     return lines
 
 
-def build_report(trade_date: str, *, theme: str = "research_editorial") -> str:
+def build_report(
+    trade_date: str,
+    *,
+    theme: str = "research_editorial",
+    evidence_path: Path | None = None,
+    evidence_sha256: str | None = None,
+) -> str:
     """Build complete markdown report."""
     selected_theme = get_report_theme(theme)
     payload = build_review_payload(trade_date)
@@ -270,6 +278,9 @@ def build_report(trade_date: str, *, theme: str = "research_editorial") -> str:
     lines.extend(_render_hot_sectors_section(sectors))
     lines.extend(_render_extreme_section(overview))
 
+    research = evening_evidence(trade_date, evidence_path, evidence_sha256)
+    lines.extend(render_evidence(research["evidence"], "zh-CN", rejection=research["rejection"]))
+    lines.append("")
     lines.append("---")
     lines.append(
         f"*数据: Tushare / market-data-platform | 主题: {selected_theme.label} | "
@@ -279,9 +290,15 @@ def build_report(trade_date: str, *, theme: str = "research_editorial") -> str:
     return "\n".join(lines)
 
 
-def build_json(trade_date: str) -> str:
+def build_json(
+    trade_date: str, *, evidence_path: Path | None = None, evidence_sha256: str | None = None
+) -> str:
     """Build JSON report."""
-    return json.dumps(build_review_payload(trade_date), ensure_ascii=False, indent=2, default=str)
+    payload = build_review_payload(trade_date)
+    payload["overseas_theme_research"] = evening_evidence(
+        trade_date, evidence_path, evidence_sha256
+    )
+    return json.dumps(payload, ensure_ascii=False, indent=2, default=str)
 
 
 # ── CLI entry (for standalone use) ───────────────────────────
