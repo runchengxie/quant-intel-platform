@@ -44,7 +44,7 @@ def generate_moneyflow(
 
     # Inflow (left)
     ax1 = fig.add_axes((0.07, 0.10, 0.40, 0.68))
-    in_names = [f"{r['name']}\n{r['ts_code'][:6]}" for _, r in df_in.iterrows()]
+    in_names = [f"{r['name']}\n{r['ts_code']}" for _, r in df_in.iterrows()]
     in_vals = df_in["net_amount"].values / 1e4
     bars1 = ax1.barh(np.arange(len(in_names)), in_vals, height=0.65, color=IN_COLOR, alpha=0.85)
     ax1.set_yticks(np.arange(len(in_names)))
@@ -63,7 +63,7 @@ def generate_moneyflow(
         ax1.text(
             bar.get_width() + 0.5,
             bar.get_y() + bar.get_height() / 2,
-            f"{v:.1f}亿",
+            f"{v:.2f}亿",
             va="center",
             fontsize=8,
             color=MUTED,
@@ -75,7 +75,7 @@ def generate_moneyflow(
 
     # Outflow (right)
     ax2 = fig.add_axes((0.55, 0.10, 0.40, 0.68))
-    out_names = [f"{r['name']}\n{r['ts_code'][:6]}" for _, r in df_out.iterrows()]
+    out_names = [f"{r['name']}\n{r['ts_code']}" for _, r in df_out.iterrows()]
     out_vals = df_out["net_amount"].values / 1e4
     bars2 = ax2.barh(np.arange(len(out_names)), out_vals, height=0.65, color=OUT_COLOR, alpha=0.85)
     ax2.set_yticks(np.arange(len(out_names)))
@@ -94,7 +94,7 @@ def generate_moneyflow(
         ax2.text(
             bar.get_width() - 0.5,
             bar.get_y() + bar.get_height() / 2,
-            f"{abs(v):.1f}亿",
+            f"{abs(v):.2f}亿",
             va="center",
             ha="right",
             fontsize=8,

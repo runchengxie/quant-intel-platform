@@ -18,3 +18,20 @@ Markdown entries use `CODE Name(+1.00%)`; absent names retain the legacy
 both forms and escape decoded names when rendering HTML/SVG. Deploying the
 producer and Pages consumer is a separate action; local source changes do not
 change scheduled reports or replay a previous delivery.
+
+
+## Turnover and money flow display identity
+
+The turnover TOP10 Markdown table uses four columns in this order:
+`| 名称 | 代码 | 成交额(亿) | 涨跌 |`. Codes retain their full exchange suffix
+(for example `300308.SZ`). Names follow the same daily-row-first, validated
+instrument-reference fallback as movers; unavailable names display `N/A`.
+Ranking, amounts, percentage precision, dates, and public artifact identifiers
+are unchanged. Consumers must retain support for the earlier three-column table.
+
+Money-flow public chart labels use `Name CODE.market`, and the PNG puts that
+same name above the full code on two lines, with money amounts displayed to two
+decimal places. Source observations and units are
+unchanged. A current report must be regenerated from frozen owner inputs through
+`market-public-refresh`, then imported using the normal public snapshot flow;
+editing historical report bytes or fetching missing names is not a replay.
