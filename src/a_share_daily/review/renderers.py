@@ -187,10 +187,13 @@ def _render_top_amount_section(top_amt: pd.DataFrame) -> list[str]:
     """八、高成交核心票 TOP10。"""
     lines = ["### 八、高成交核心票 TOP10", ""]
     if not top_amt.empty:
-        lines.append("| 代码 | 成交额(亿) | 涨跌 |")
-        lines.append("|------|-----------|------|")
+        lines.append("| 名称 | 代码 | 成交额(亿) | 涨跌 |")
+        lines.append("|------|------|-----------|------|")
         for _, r in top_amt.head(10).iterrows():
-            lines.append(f"| {r['ts_code'][:6]} | {r['amount_yi']:.1f} | {_pct(r['pct_chg'])} |")
+            lines.append(
+                f"| {r.get('name', '') or 'N/A'} | {r['ts_code']} | "
+                f"{r['amount_yi']:.1f} | {_pct(r['pct_chg'])} |"
+            )
         lines.append("")
     return lines
 

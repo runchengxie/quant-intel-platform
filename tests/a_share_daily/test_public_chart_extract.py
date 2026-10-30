@@ -47,8 +47,8 @@ def test_moneyflow_uses_png_top_n_threshold_and_actual_partition_date():
     }
     points = extract_chart_points("moneyflow", inputs, "2026-09-18")
     assert [(p["label"], p["value"]) for p in points] == [
-        ("流入 000001", 1.1),
-        ("流出 000002", -2.1),
+        ("流入 000001.SZ", 1.1),
+        ("流出 000002.SZ", -2.1),
     ]
     assert all(p["observation_date"] == "2026-09-17" for p in points)
     assert all(p["unit"] == "亿元" for p in points)

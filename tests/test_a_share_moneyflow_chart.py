@@ -14,8 +14,8 @@ def test_moneyflow_chart_converts_source_wanyuan_to_yiyuan(
 ) -> None:
     frame = pd.DataFrame(
         [
-            {"name": "流入样本", "ts_code": "000001.SZ", "net_amount": 20_000.0},
-            {"name": "流出样本", "ts_code": "000002.SZ", "net_amount": -30_000.0},
+            {"name": "流入样本", "ts_code": "000001.SZ", "net_amount": 20_123.0},
+            {"name": "流出样本", "ts_code": "000002.SZ", "net_amount": -30_456.0},
         ]
     )
     figures: list[matplotlib.figure.Figure] = []
@@ -29,5 +29,14 @@ def test_moneyflow_chart_converts_source_wanyuan_to_yiyuan(
     inflow, outflow = figures[0].axes
     assert inflow.get_xlabel() == "净流入（亿元）"
     assert outflow.get_xlabel() == "净流出（亿元）"
-    assert "2.0亿" in {item.get_text() for item in inflow.texts}
-    assert "3.0亿" in {item.get_text() for item in outflow.texts}
+    assert "2.01亿" in {item.get_text() for item in inflow.texts}
+    assert "3.05亿" in {item.get_text() for item in outflow.texts}
+
+    assert [item.get_text() for item in inflow.get_yticklabels()] == [
+        "流入样本\n000001.SZ",
+        "流出样本\n000002.SZ",
+    ]
+    assert [item.get_text() for item in outflow.get_yticklabels()] == [
+        "流出样本\n000002.SZ",
+        "流入样本\n000001.SZ",
+    ]

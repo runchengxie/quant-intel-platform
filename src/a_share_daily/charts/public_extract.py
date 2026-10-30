@@ -203,7 +203,7 @@ def _moneyflow(inputs: Mapping[str, object], source: Mapping[str, str]) -> list[
     ).drop_duplicates(subset=["ts_code"])
     rows = []
     for _, row in ranked.iterrows():
-        label = f"{row['name']} {str(row['ts_code'])[:6]}"
+        label = f"{row['name']} {str(row['ts_code'])}"
         rows.append(_point(label, row["net_amount"] / 1e4, "亿元", source["date"], source))
     return rows
 

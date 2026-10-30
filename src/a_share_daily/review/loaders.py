@@ -361,7 +361,13 @@ def load_top_amount_stocks(trade_date: str, n: int = 20) -> pd.DataFrame:
     stocks = daily[daily["ts_code"].apply(_is_stock)].copy()
     stocks["amount"] = pd.to_numeric(stocks["amount"], errors="coerce")
     stocks["pct_chg"] = pd.to_numeric(stocks["pct_chg"], errors="coerce")
-    top = stocks.nlargest(n, "amount")[["ts_code", "amount", "pct_chg", "close"]]
+    names = D.read_stock_names(trade_date)
+    existing_names = stocks.get("name", pd.Series("", index=stocks.index)).fillna("")
+    stocks["name"] = [
+        " ".join(str(name).split()) or names.get(code, "")
+        for code, name in zip(stocks["ts_code"], existing_names, strict=False)
+    ]
+    top = stocks.nlargest(n, "amount")[["ts_code", "name", "amount", "pct_chg", "close"]]
     top["amount_yi"] = top["amount"] / 1e5  # 千元→亿
     return top
 
