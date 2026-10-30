@@ -351,7 +351,12 @@ def render_asia_overview(payload: dict) -> str:
                 row["status"]
             ]
             lines.append(f"| {label} | {INDEX_NAMES[key]} | — | — | — | {status} |")
-    lines.append("")
+    metadata = {
+        "date": _day(payload["date"]).strftime("%Y-%m-%d"),
+        "source_time_kind": "exchange_session_close",
+    }
+    encoded = json.dumps(metadata, sort_keys=True, separators=(",", ":"))
+    lines.extend(["", f"<!-- market_intel.asia_overview.v1 {encoded} -->", ""])
     for key, (_, _, label) in MARKETS.items():
         row = payload["markets"][key]
         if row["status"] == "open":
@@ -438,6 +443,8 @@ def _validate_observation(row: dict, date: str, key: str) -> None:
         or not math.isfinite(row["change_pct"])
     ):
         raise ValueError("observation prices invalid")
+    if row.get("source_time_kind", "exchange_session_close") != "exchange_session_close":
+        raise ValueError("observation time kind invalid")
     source_time = datetime.fromisoformat(row["source_time"])
     expected_close = xcals.get_calendar(MARKETS[key][0]).session_close(_day(date))
     if (

@@ -14,6 +14,14 @@ Each observed row has a following source note in the same section:
 - [香港收盘数据](https://finance.yahoo.com/quote/^HSI/history/)；2026-10-16T08:00:00+00:00；证据：`asia.close.<sha256>`
 ```
 
+Newly rendered modules also carry one section-local machine-readable line. The version prefix scopes the metadata to this overview. The compact JSON has exactly the two sorted keys shown below, binds to the report's ISO date, and transports the existing observation time kind.
+
+```markdown
+<!-- market_intel.asia_overview.v1 {"date":"2026-10-16","source_time_kind":"exchange_session_close"} -->
+```
+
+The source-note and explanatory prose formats remain available to historical consumers. The marker identifies calendar-close semantics, without claiming a measured quote-publication time. An explicitly conflicting observation kind is rejected. Legacy observations without the field still pass the existing comparison against the actual exchange-calendar close before rendering.
+
 `source_time` means the exchange calendar's actual session close, including timezone and special close schedules. It is not a claimed Yahoo publication timestamp. `source_time_kind=exchange_session_close` and separate `retrieved_at` make that distinction explicit. Yahoo daily bar timestamps label local opening/session dates.
 
 ## Inputs and validation
