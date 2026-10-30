@@ -309,3 +309,58 @@ def test_preceding_session_diagnostic_keeps_expected_date():
     )
     assert issue.observed == "2026-10-14"
     assert issue.expected == "2026-10-15"
+
+
+def test_overview_transports_scoped_time_kind_with_date(tmp_path):
+    import json
+    import re
+
+    payload = asia.build_asia_report(calendar(tmp_path), "20261016", quotes={})
+    text = asia.render_asia_overview(payload)
+    marker = re.search(r"^<!-- market_intel\.asia_overview\.v1 (.+) -->$", text, re.MULTILINE)
+    assert marker is not None
+    assert json.loads(marker.group(1)) == {
+        "date": "2026-10-16",
+        "source_time_kind": "exchange_session_close",
+    }
+    assert text.count("<!-- market_intel.asia_overview.") == 1
+    assert "来源时间为交易所日历规定的实际收盘时间" in text
+
+
+def test_overview_rejects_conflicting_time_kind(tmp_path):
+    payload = asia.build_asia_report(
+        calendar(tmp_path),
+        "20261016",
+        quotes={
+            "HK": {
+                "date": "20261016",
+                "previous_date": "20261015",
+                "close": 101,
+                "previous_close": 100,
+                "retrieved_at": "2026-10-16T08:00:00+00:00",
+            }
+        },
+    )
+    payload["markets"]["HK"]["source_time_kind"] = "provider_publication"
+    with pytest.raises(ValueError, match="time kind"):
+        asia.render_asia_overview(payload)
+
+
+def test_legacy_observation_without_kind_keeps_verified_calendar_semantics(tmp_path):
+    payload = asia.build_asia_report(
+        calendar(tmp_path),
+        "20261016",
+        quotes={
+            "HK": {
+                "date": "20261016",
+                "previous_date": "20261015",
+                "close": 101,
+                "previous_close": 100,
+                "retrieved_at": "2026-10-16T08:00:00+00:00",
+            }
+        },
+    )
+    del payload["markets"]["HK"]["source_time_kind"]
+    text = asia.render_asia_overview(payload)
+    assert '"source_time_kind":"exchange_session_close"' in text
+    assert "| 香港 | 恒生指数 | 2026-10-16 | 101.00 | +1.00% | 已收盘 |" in text
