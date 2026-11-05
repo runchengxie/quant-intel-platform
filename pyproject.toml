@@ -17,6 +17,8 @@ dependencies = [
   "pandas>=3.0.6,<4",
   "pyarrow>=18",
   "tushare>=1.4.0",
+  # Tushare imports six without declaring it; dateutil 4 no longer supplies it.
+  "six>=1.17,<2",
   "tzdata>=2023.3",
   "yfinance>=0.2.59",
   "matplotlib>=3.8,<4",
