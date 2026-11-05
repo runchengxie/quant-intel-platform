@@ -129,11 +129,11 @@ def generate_weekly_text(  # noqa: PLR0917 - preserve public positional compatib
     up_days = sum(1 for s in daily_stats if int(s["up"]) > int(s["down"]))
     avg_up_ratio = np.mean([s["up_ratio"] for s in daily_stats])
     avg_pct_all = np.mean([s["avg_pct"] for s in daily_stats])
-    total_amt = sum(s["amount"] for s in daily_stats)
+    total_amt = sum(float(s["amount"]) for s in daily_stats)
     avg_amt = total_amt / total_days
-    total_limit_up = sum(s["limit_up"] for s in daily_stats)
+    total_limit_up = sum(int(s["limit_up"]) for s in daily_stats)
     avg_limit_up = total_limit_up / total_days
-    total_net_flow = sum(s["net_flow"] for s in daily_stats)
+    total_net_flow = sum(float(s["net_flow"]) for s in daily_stats)
 
     trend = _classify_trend(up_days, total_days)
     lines = [

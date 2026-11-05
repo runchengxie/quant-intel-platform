@@ -15,7 +15,7 @@ import time
 from collections.abc import Callable, Iterable
 from datetime import UTC, date, datetime
 from datetime import time as daytime
-from typing import Any
+from typing import Any, cast
 from urllib.parse import quote
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -112,7 +112,7 @@ def _fetch_stooq_series(symbol: str) -> list[dict[str, Any]]:
 def _extract_latest_change(
     rows: list[dict[str, Any]], *, close_key: str = "close"
 ) -> tuple[str, float, float]:
-    ordered = sorted(rows, key=lambda item: item.get("date"))
+    ordered = sorted(rows, key=lambda item: cast(str, item.get("date")))
     latest, prev = ordered[-1], ordered[-2]
     latest_close = _safe_float(latest.get(close_key))
     prev_close = _safe_float(prev.get(close_key))
@@ -293,7 +293,7 @@ def _fetch_quote_from_fmp(symbol: str, api_key: str) -> _QuoteSnapshot:
         history = payload if isinstance(payload, list) else []
     if len(history) < 2:
         raise RuntimeError("FMP 未返回足够的历史数据")
-    ordered = sorted(history, key=lambda item: item.get("date"), reverse=True)
+    ordered = sorted(history, key=lambda item: cast(str, item.get("date")), reverse=True)
     latest, prev = ordered[0], ordered[1]
     day = latest.get("date")
     close = _safe_float(latest.get("close"))

@@ -490,7 +490,7 @@ def main() -> None:
         daily = _truncate_at_expected(load_daily_returns(), expected_through)
         status = FactorDataStatus(
             source_path=FACTOR_CSV,
-            as_of=daily.index.max().date(),
+            as_of=cast(pd.Timestamp, daily.index.max()).date(),
             expected_through=expected_through,
         )
         if not status.is_complete and not args.allow_incomplete:

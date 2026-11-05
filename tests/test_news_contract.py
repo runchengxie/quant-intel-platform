@@ -159,6 +159,7 @@ def test_ai_news_payload_falls_back_to_aliyun(monkeypatch) -> None:
         model,
         api_key,
         prompt,
+        *,
         enable_network,
         timeout,
         base_url,

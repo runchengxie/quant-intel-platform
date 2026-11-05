@@ -12,10 +12,17 @@ from ops_common.business_freshness import FreshnessContext
 
 
 class RecoverySpecLike(Protocol):
-    key: str
-    timer: str | None
-    service: str | None
-    optional: bool
+    @property
+    def key(self) -> str: ...
+
+    @property
+    def timer(self) -> str | None: ...
+
+    @property
+    def service(self) -> str | None: ...
+
+    @property
+    def optional(self) -> bool: ...
 
 
 CommandRunner = Callable[[Sequence[str]], subprocess.CompletedProcess[str]]

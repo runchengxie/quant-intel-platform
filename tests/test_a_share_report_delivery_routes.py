@@ -38,6 +38,7 @@ def test_deliver_evening_sends_files_and_absolute_media_via_hermes(
 
     def fake_run(
         cmd: list[str],
+        *,
         cwd: str | None = None,
         capture_output: bool = False,
         text: bool = False,
@@ -112,6 +113,7 @@ def test_deliver_evening_sends_each_payload_to_multiple_hermes_targets(
 
     def fake_run(
         cmd: list[str],
+        *,
         cwd: str | None = None,
         capture_output: bool = False,
         text: bool = False,
@@ -154,6 +156,7 @@ def test_lark_markdown_sends_to_multiple_chat_ids(monkeypatch: pytest.MonkeyPatc
 
     def fake_run(
         cmd: list[str],
+        *,
         cwd: str | None = None,
         capture_output: bool = False,
         text: bool = False,
@@ -185,6 +188,7 @@ def test_lark_preflight_rebinds_from_hermes_when_whoami_not_ready(
 
     def fake_run(
         cmd: list[str],
+        *,
         cwd: str | None = None,
         capture_output: bool = False,
         text: bool = False,
@@ -238,6 +242,7 @@ def test_deliver_morning_records_lark_preflight_failure(
 
     def fake_run(
         cmd: list[str],
+        *,
         cwd: str | None = None,
         capture_output: bool = False,
         text: bool = False,
@@ -291,6 +296,7 @@ def test_deliver_evening_blocks_fallback_when_lark_image_outcome_unknown(
 
     def fake_run(
         cmd: list[str],
+        *,
         cwd: str | None = None,
         capture_output: bool = False,
         text: bool = False,

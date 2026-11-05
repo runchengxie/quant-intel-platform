@@ -122,7 +122,7 @@ def test_build_market_facts_includes_curve_and_cross_market_metrics(sample_paylo
 def test_failed_source_is_marked_degraded_without_dropping_other_facts(sample_payloads):
     sample_payloads["fmp"] = FetchFailure("quota")
     facts = build_market_facts(sample_payloads, as_of=AS_OF)
-    assert fact_by_id(facts, "treasury.10y.change_bp") .quality == "degraded"
+    assert fact_by_id(facts, "treasury.10y.change_bp").quality == "degraded"
     assert fact_by_id(facts, "index.spx.change_percent").quality == "ok"
 ```
 

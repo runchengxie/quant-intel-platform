@@ -21,8 +21,11 @@ from ops_common.recovery_state import budget_attempts
 
 
 class RecoverySpecLike(Protocol):
-    key: str
-    report_kind: str | None
+    @property
+    def key(self) -> str: ...
+
+    @property
+    def report_kind(self) -> str | None: ...
 
 
 CommandRunner = Callable[[Sequence[str]], subprocess.CompletedProcess[str]]

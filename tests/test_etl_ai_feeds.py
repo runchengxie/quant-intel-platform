@@ -486,7 +486,7 @@ def test_fetch_ai_market_news_generates_updates_glm(monkeypatch, load_run_fetch)
     )
     module.THROTTLE_DISABLED = True
 
-    def fake_call(model, api_key, prompt, enable_network, timeout, thinking, direct_connection):
+    def fake_call(model, api_key, prompt, *, enable_network, timeout, thinking, direct_connection):
         assert model == "glm-4.6"
         assert api_key == "PRIMARY_TOKEN"
         assert thinking == "enabled"
@@ -554,7 +554,7 @@ def test_fetch_ai_market_news_rotates_keys_gemini(monkeypatch, load_run_fetch):
 
     call_counter = {"PRIMARY_TOKEN": 0, "BACKUP_TOKEN": 0}
 
-    def fake_call(model, api_key, prompt, enable_network, timeout, direct_connection):
+    def fake_call(model, api_key, prompt, *, enable_network, timeout, direct_connection):
         assert direct_connection is False
         call_counter[api_key] += 1
         if api_key == "PRIMARY_TOKEN":

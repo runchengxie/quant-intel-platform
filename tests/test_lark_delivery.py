@@ -18,6 +18,7 @@ def _fake_run(
 
     def fake_run(
         cmd: list[str],
+        *,
         cwd: str | None = None,
         capture_output: bool = False,
         text: bool = False,
@@ -228,6 +229,7 @@ def test_ensure_lark_ready_rebinds_from_hermes(monkeypatch: pytest.MonkeyPatch) 
 
     def fake_run(
         cmd: list[str],
+        *,
         cwd: str | None = None,
         capture_output: bool = False,
         text: bool = False,

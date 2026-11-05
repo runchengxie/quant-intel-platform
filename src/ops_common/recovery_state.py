@@ -16,9 +16,14 @@ from typing import Any, Protocol
 
 
 class RecoverySpecLike(Protocol):
-    key: str
-    dependencies: tuple[str, ...]
-    report_kind: str | None
+    @property
+    def key(self) -> str: ...
+
+    @property
+    def dependencies(self) -> tuple[str, ...]: ...
+
+    @property
+    def report_kind(self) -> str | None: ...
 
 
 def read_state(path: Path, date_key: str) -> dict[str, Any]:

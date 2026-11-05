@@ -43,8 +43,12 @@ import yaml
 
 def test_manifest_classifies_every_tracked_file():
     root = Path(__file__).parents[2]
-    manifest = yaml.safe_load((root / "docs/public-release/file-migration-manifest.yml").read_text())
-    tracked = set(__import__("subprocess").check_output(["git", "ls-files"], text=True).splitlines())
+    manifest = yaml.safe_load(
+        (root / "docs/public-release/file-migration-manifest.yml").read_text()
+    )
+    tracked = set(
+        __import__("subprocess").check_output(["git", "ls-files"], text=True).splitlines()
+    )
     classified = {entry["path"] for entry in manifest["files"]}
     assert tracked <= classified
     assert {entry["classification"] for entry in manifest["files"]} <= {
@@ -248,13 +252,21 @@ git commit -m "refactor: require explicit external data roots"
 def test_public_fixtures_contain_no_private_markers():
     root = Path(__file__).parents[2]
     text = "\n".join(path.read_text() for path in (root / "tests/fixtures/public").rglob("*"))
-    for marker in ("private.example.invalid", "messaging.example.invalid", "private customer", "private_customer_alias", "credential_label"):
+    for marker in (
+        "private.example.invalid",
+        "messaging.example.invalid",
+        "private customer",
+        "private_customer_alias",
+        "credential_label",
+    ):
         assert marker.lower() not in text.lower()
 
 
 def test_public_snapshot_files_are_small():
     root = Path(__file__).parents[2]
-    assert all(path.stat().st_size < 100_000 for path in (root / "tests/fixtures/public").rglob("*"))
+    assert all(
+        path.stat().st_size < 100_000 for path in (root / "tests/fixtures/public").rglob("*")
+    )
 ```
 
 - [ ] **Step 2: Run the test and verify it fails against missing public fixtures**
@@ -313,7 +325,12 @@ def test_public_docs_have_no_private_markers():
     root = Path(__file__).parents[2]
     files = [root / "README.md", *(root / "docs").glob("*.md")]
     text = "\n".join(path.read_text() for path in files if path.exists())
-    for marker in ("private customer", "private_customer_alias", "private.example.invalid", "messaging.example.invalid/docx/"):
+    for marker in (
+        "private customer",
+        "private_customer_alias",
+        "private.example.invalid",
+        "messaging.example.invalid/docx/",
+    ):
         assert marker.lower() not in text.lower()
 ```
 

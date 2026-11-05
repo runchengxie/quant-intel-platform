@@ -6,7 +6,7 @@ import logging
 import os
 import sys
 import uuid
-from collections.abc import Iterator
+from collections.abc import Generator
 from contextlib import contextmanager
 from datetime import UTC, date, datetime, time, timedelta
 from pathlib import Path
@@ -36,7 +36,7 @@ def _load_runtime_env_files() -> None:
 
 
 @contextmanager
-def _env_override(key: str, value: str | None) -> Iterator[None]:
+def _env_override(key: str, value: str | None) -> Generator[None, None, None]:
     original = os.environ.get(key)
     if value is None:
         yield

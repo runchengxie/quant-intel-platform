@@ -89,8 +89,9 @@ Interfaces:
 
   ```python
   def test_dst_day_uses_local_midnight_boundaries():
-      evidence = PublicationTime("date", None, "2026-11-01",
-                                 "America/New_York", "publication", "background")
+      evidence = PublicationTime(
+          "date", None, "2026-11-01", "America/New_York", "publication", "background"
+      )
       start, end = publication_interval(evidence)
       assert start.isoformat() == "2026-11-01T04:00:00+00:00"
       assert end.isoformat() == "2026-11-02T05:00:00+00:00"

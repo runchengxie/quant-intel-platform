@@ -91,6 +91,7 @@ def load_index_overview(trade_date: str) -> dict[str, Any]:
 
 def _return_distribution(values: pd.Series) -> dict[str, int]:
     """Count every finite return once, including unrestricted IPO returns."""
+    values = values.dropna()
     values = values[values.map(math.isfinite)]
     bounds = [-float("inf"), -9.9, -7, -5, -3, -1, 0, 1, 3, 5, 7, 9.9, float("inf")]
     return {

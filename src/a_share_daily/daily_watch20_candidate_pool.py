@@ -422,7 +422,7 @@ def _validate_selected_source_rows(
 ) -> None:
     pct = cast(pd.Series, pd.to_numeric(snapshot.frame["pct_change"], errors="coerce"))
     finite = pct.map(lambda value: math.isfinite(float(value)) if pd.notna(value) else False)
-    positive = cast(pd.Series, pct.gt(0) & finite)
+    positive = pct.gt(0) & finite
     if int(positive.sum()) != counts["pool_symbols"]:
         raise THSHotV2ValidationError("receipt.candidate_pool.pool_symbols mismatch source")
     if _integer(candidate_pool, "non_positive_rows_removed") != int((~positive).sum()):

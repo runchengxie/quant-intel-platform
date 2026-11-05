@@ -294,7 +294,9 @@ def _select_v1_fast_path(
             snapshot_rows=len(selected),
             snapshot_minute=latest_minute,
             latest_observed_minute=latest_observed,
-            skipped_incomplete_snapshots=int((counts.index > latest_minute).sum()),
+            skipped_incomplete_snapshots=int(
+                sum(bool(value) for value in counts.index > latest_minute)
+            ),
             component_times=_component_times(selected),
             duplicate_rows=0,
             out_of_scope_rows=out_of_scope_rows,
@@ -340,7 +342,9 @@ def _select_sparse_minute(
             snapshot_rows=len(selected),
             snapshot_minute=latest_minute,
             latest_observed_minute=latest_observed,
-            skipped_incomplete_snapshots=int((counts.index > latest_minute).sum()),
+            skipped_incomplete_snapshots=int(
+                sum(bool(value) for value in counts.index > latest_minute)
+            ),
             component_times=_component_times(selected),
             duplicate_rows=duplicates,
             out_of_scope_rows=out_of_scope,
@@ -407,8 +411,8 @@ def _select_batch_fallback(
             assembly_path="batch_fallback",
             raw_rows=len(work),
             snapshot_rows=len(selected),
-            snapshot_minute=selected_end.floor("min"),
-            latest_observed_minute=latest_observed.floor("min"),
+            snapshot_minute=cast(pd.Timestamp, selected_end.floor("min")),
+            latest_observed_minute=cast(pd.Timestamp, latest_observed.floor("min")),
             skipped_incomplete_snapshots=later_incomplete,
             component_times=component_times,
             duplicate_rows=duplicates,

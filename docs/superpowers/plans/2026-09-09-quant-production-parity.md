@@ -56,6 +56,7 @@ def test_compare_ignores_generated_at_and_message_id(tmp_path):
     actual.write_text('{"trade_date":"20260908","generated_at":"b","message_id":"y"}\n')
     assert compare_artifacts(expected, actual, ignored_fields={"generated_at", "message_id"}) == []
 
+
 def test_compare_reports_trade_date_difference(tmp_path):
     expected = tmp_path / "expected.json"
     actual = tmp_path / "actual.json"

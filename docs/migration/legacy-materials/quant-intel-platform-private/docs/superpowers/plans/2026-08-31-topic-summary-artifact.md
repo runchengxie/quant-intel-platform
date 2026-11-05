@@ -33,11 +33,13 @@
 
 ```python
 def test_build_topic_summary_aggregates_tracking_weights_and_ranks_topics():
-    frame = pd.DataFrame([
-        {"theme": "通信与计算", "tracking_weight": 0.25},
-        {"theme": "半导体与电子", "tracking_weight": 0.50},
-        {"theme": "通信与计算", "tracking_weight": 0.25},
-    ])
+    frame = pd.DataFrame(
+        [
+            {"theme": "通信与计算", "tracking_weight": 0.25},
+            {"theme": "半导体与电子", "tracking_weight": 0.50},
+            {"theme": "通信与计算", "tracking_weight": 0.25},
+        ]
+    )
 
     summary = build_topic_summary(frame, source_date="20260828", signal_date="20260831")
 
@@ -49,7 +51,9 @@ def test_build_topic_summary_aggregates_tracking_weights_and_ranks_topics():
     assert summary["quality"] == {"status": "passed", "selected_count": 3, "topic_count": 2}
 
 
-@pytest.mark.parametrize("frame", [pd.DataFrame(), pd.DataFrame([{"theme": "", "tracking_weight": 1.0}])])
+@pytest.mark.parametrize(
+    "frame", [pd.DataFrame(), pd.DataFrame([{"theme": "", "tracking_weight": 1.0}])]
+)
 def test_build_topic_summary_rejects_empty_selection_or_theme(frame):
     with pytest.raises(ValueError, match="theme|watchlist"):
         build_topic_summary(frame, source_date="20260828", signal_date="20260831")

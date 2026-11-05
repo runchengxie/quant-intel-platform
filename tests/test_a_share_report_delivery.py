@@ -209,6 +209,7 @@ def test_deliver_evening_sends_two_texts_and_six_images_via_lark(
 
     def fake_run(
         cmd: list[str],
+        *,
         cwd: str | None = None,
         capture_output: bool = False,
         text: bool = False,
@@ -281,6 +282,7 @@ def test_deliver_morning_segmented_targets_internal_group_only(
 
     def fake_run(
         cmd: list[str],
+        *,
         cwd: str | None = None,
         capture_output: bool = False,
         text: bool = False,
@@ -351,6 +353,7 @@ def test_deliver_evening_segmented_targets_split_content(
 
     def fake_run(
         cmd: list[str],
+        *,
         cwd: str | None = None,
         capture_output: bool = False,
         text: bool = False,
@@ -412,6 +415,7 @@ def test_deliver_evening_can_skip_internal_route_and_write_success_receipt(
 
     def fake_run(
         cmd: list[str],
+        *,
         cwd: str | None = None,
         capture_output: bool = False,
         text: bool = False,
@@ -498,6 +502,7 @@ def test_deliver_evening_uses_manifest_chart_paths_instead_of_stale_defaults(
 
     def fake_run(
         cmd: list[str],
+        *,
         cwd: str | None = None,
         capture_output: bool = False,
         text: bool = False,

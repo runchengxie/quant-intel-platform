@@ -45,8 +45,25 @@
 
 ```python
 def test_candidate_rejects_unverified_points():
-    cards = {key: {"key": key, "title": key, "status": "missing", "reason": "无当日数据", "points": []} for key in CHART_KEYS}
-    cards["moneyflow"] = {"key": "moneyflow", "title": "资金流向", "status": "ok", "points": [{"label": "样例", "value": float("inf"), "unit": "亿元", "observation_date": "2026-09-18", "source_label": "测试数据", "source_url": "https://example.test/source"}]}
+    cards = {
+        key: {"key": key, "title": key, "status": "missing", "reason": "无当日数据", "points": []}
+        for key in CHART_KEYS
+    }
+    cards["moneyflow"] = {
+        "key": "moneyflow",
+        "title": "资金流向",
+        "status": "ok",
+        "points": [
+            {
+                "label": "样例",
+                "value": float("inf"),
+                "unit": "亿元",
+                "observation_date": "2026-09-18",
+                "source_label": "测试数据",
+                "source_url": "https://example.test/source",
+            }
+        ],
+    }
     with pytest.raises(ValueError, match="finite"):
         build_candidate("2026-09-18", "morning", cards, "2026-09-19T07:00:00+08:00")
 ```
@@ -57,8 +74,18 @@ def test_candidate_rejects_unverified_points():
 ```python
 CHART_KEYS = ("dashboard", "moneyflow", "topic", "sentiment", "us_overnight", "weekly_chart")
 SCHEMA = "market_intel.a_share_charts.v1"
-payload = {"schema_version": SCHEMA, "publication": "candidate", "report_id": f"{date}-{kind}", "date": date, "kind": kind, "generated_at": generated_at, "charts": validated_cards}
-canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+payload = {
+    "schema_version": SCHEMA,
+    "publication": "candidate",
+    "report_id": f"{date}-{kind}",
+    "date": date,
+    "kind": kind,
+    "generated_at": generated_at,
+    "charts": validated_cards,
+}
+canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode(
+    "utf-8"
+)
 payload["content_sha256"] = hashlib.sha256(canonical).hexdigest()
 ```
 
@@ -80,7 +107,14 @@ payload["content_sha256"] = hashlib.sha256(canonical).hexdigest()
 
 ```python
 def test_moneyflow_uses_actual_observation_date():
-    inputs = {"moneyflow": pd.DataFrame([{"name": "样例公司", "ts_code": "000001.SZ", "net_amount": 11_000}]), "moneyflow_observation_date": "2026-09-17", "moneyflow_source_label": "测试数据", "moneyflow_source_url": "https://example.test/source"}
+    inputs = {
+        "moneyflow": pd.DataFrame(
+            [{"name": "样例公司", "ts_code": "000001.SZ", "net_amount": 11_000}]
+        ),
+        "moneyflow_observation_date": "2026-09-17",
+        "moneyflow_source_label": "测试数据",
+        "moneyflow_source_url": "https://example.test/source",
+    }
     points = extract_chart_points("moneyflow", inputs, "2026-09-18")
     assert points[0]["observation_date"] == "2026-09-17"
     assert points[0]["unit"] == "亿元"
@@ -91,8 +125,20 @@ def test_moneyflow_uses_actual_observation_date():
 
 ```python
 df = moneyflow[moneyflow["net_amount"].abs() > 1_000]
-selected = list(df.nlargest(8, "net_amount").itertuples()) + list(df.nsmallest(5, "net_amount").itertuples())
-points = [{"label": row.name, "value": float(row.net_amount) / 1e4, "unit": "亿元", "observation_date": actual_date, "source_label": source_label, "source_url": source_url} for row in selected]
+selected = list(df.nlargest(8, "net_amount").itertuples()) + list(
+    df.nsmallest(5, "net_amount").itertuples()
+)
+points = [
+    {
+        "label": row.name,
+        "value": float(row.net_amount) / 1e4,
+        "unit": "亿元",
+        "observation_date": actual_date,
+        "source_label": source_label,
+        "source_url": source_url,
+    }
+    for row in selected
+]
 ```
 
 - [ ] **Step 4: 运行新测试及现有 `tests/test_chart_layout.py`、`tests/test_a_share_moneyflow_chart.py`、`tests/test_us_overnight_chart.py`，确认 PNG 输出未回归。**
@@ -147,7 +193,16 @@ def export_candidate(manifest: Mapping[str, object], *, date: str, kind: str) ->
 - [ ] **Step 1: 加入端到端合成测试。** 通过 CLI 读取合成晨/晚 manifest，解析候选，只允许 schema 白名单字段，拒绝 `feishu_chat_id`、`/home/`、凭据样式文本及无限值；校验同输入重跑结果稳定（生成时间来自固定的 `manifest["generated_at"]`）：
 
 ```python
-assert set(candidate) == {"schema_version", "publication", "report_id", "date", "kind", "generated_at", "charts", "content_sha256"}
+assert set(candidate) == {
+    "schema_version",
+    "publication",
+    "report_id",
+    "date",
+    "kind",
+    "generated_at",
+    "charts",
+    "content_sha256",
+}
 assert "feishu_chat_id" not in json.dumps(candidate)
 assert "/home/" not in json.dumps(candidate)
 assert first_output.read_bytes() == second_output.read_bytes()
