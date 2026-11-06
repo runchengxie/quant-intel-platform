@@ -1,5 +1,7 @@
 # Capture a news source and preview six sections
 
+[Chinese version](news-source-preview.zh-CN.md)
+
 Capture the complete StreetAccount feed before preparing a local preview. This command produces unreviewed files only. It does not create a publication manifest, send messages, approve sources or install a schedule.
 
 ## Capture or replay
