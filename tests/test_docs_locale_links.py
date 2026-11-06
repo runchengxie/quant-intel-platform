@@ -57,11 +57,36 @@ def test_localized_public_pages_link_to_each_other() -> None:
         ("a-share-factor-signals.en.md", "a-share-factor-signals.md"),
     )
 
-    for english, chinese in pairs:
+    # Discover suffix-based translations as well as the legacy explicit pairs.
+    # Keep historical migration snapshots and planning records outside this contract.
+    discovered_pairs = []
+    for chinese_path in sorted((root / "docs").rglob("*.zh-CN.md")):
+        relative_path = chinese_path.relative_to(root / "docs")
+        if relative_path.parts[0] in {"migration", "superpowers"}:
+            continue
+        english_path = chinese_path.with_name(chinese_path.name.replace(".zh-CN.md", ".en.md"))
+        if not english_path.is_file():
+            english_path = chinese_path.with_name(chinese_path.name.replace(".zh-CN.md", ".md"))
+        discovered_pairs.append(
+            (
+                english_path.relative_to(root / "docs").as_posix(),
+                chinese_path.relative_to(root / "docs").as_posix(),
+            )
+        )
+
+    for english, chinese in sorted(set(pairs) | set(discovered_pairs)):
         english_page = (root / "docs" / english).read_text(encoding="utf-8")
         chinese_page = (root / "docs" / chinese).read_text(encoding="utf-8")
         assert f"[Chinese version]({Path(chinese).name})" in english_page
         assert f"[English page]({Path(english).name})" in chinese_page
+
+
+def test_root_readme_language_links_are_reciprocal() -> None:
+    root = Path(__file__).resolve().parents[1]
+    english = (root / "README.md").read_text(encoding="utf-8")
+    chinese = (root / "README.zh-CN.md").read_text(encoding="utf-8")
+    assert "[中文 README](README.zh-CN.md)" in english
+    assert "[English README](README.md)" in chinese
 
 
 def test_translated_navigation_entries_use_english_canonical_pages() -> None:
