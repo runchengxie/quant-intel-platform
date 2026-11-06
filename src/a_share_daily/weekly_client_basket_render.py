@@ -53,7 +53,7 @@ def _performance_lines(performance: dict[str, Any] | None) -> list[str]:
         else str(methodology.get("execution"))
     )
     return [
-        f"- 历史时点重建回测：累计 {change:+.2f}%；年化收益：{annualized:+.2f}%；"
+        f"- 历史信号代理回测：累计 {change:+.2f}%；年化收益：{annualized:+.2f}%；"
         f"最大回撤：{drawdown:+.2f}%；{observations} 期。",
         f"- 历史净值：{first:.3f} → {last:.3f}。",
         f"- 曲线区间：{series[0]['date']} 至 {series[-1]['date']}；"
@@ -65,7 +65,8 @@ def _performance_lines(performance: dict[str, Any] | None) -> list[str]:
         f"不可交易 {int(audit.get('untradable_count', 0))}；"
         f"平均现金权重 {float(audit.get('average_cash_weight', 0.0)):.2%}。",
         "- 缺价权重保留为现金，不向剩余股票重新归一；当前为区间回放，无逐笔 broker ledger。",
-        "- 口径说明：按各历史时点当时可得信息重建，属于研究代理，不代表实盘历史。",
+        "- 口径说明：历史信息可得性与完整可交易性未验证，属于研究代理，不代表实盘历史。",
+        "- 基准仅作日期对齐参考，不代表同一成交时点的超额收益。",
     ]
 
 

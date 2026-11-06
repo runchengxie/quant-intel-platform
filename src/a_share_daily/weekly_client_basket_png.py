@@ -68,7 +68,7 @@ def _render_header(ax, artifact: BasketArtifact, theme: ReportTheme) -> None:
     ax.text(
         0.98,
         0.94,
-        "历史时点重建",
+        "历史信号代理",
         transform=ax.transAxes,
         fontsize=9,
         fontproperties=cjk_heavy,
@@ -205,7 +205,7 @@ def _render_curve(curve_ax, performance: Mapping[str, object] | None, theme: Rep
             )
         curve_ax.fill_between(x_values, values, min(values), color=theme.accent, alpha=0.08)
         curve_ax.set_title(
-            f"历史时点重建回测 · 60/40 袖内等权 · 截止 {series[-1]['date']}",
+            f"历史信号代理回测 · 60/40 袖内等权 · 截止 {series[-1]['date']}",
             loc="left",
             color=theme.ink,
             fontsize=12,
@@ -288,9 +288,10 @@ def render_basket_png(
         _render_curve(curve_ax, performance, selected)
         methodology = cast(Mapping[str, Any], (performance or {}).get("methodology", {}))
         footer = (
-            "Research Observation · 历史时点重建回测 · "
+            "Research Observation · 历史信号代理回测 · "
             f"{float(methodology.get('cost_bps', 0.0)):.1f} bps · "
-            "不代表实盘历史 · 不构成投资建议"
+            "不代表实盘历史 · 不构成投资建议\n"
+            "历史信息可得性与完整可交易性未验证；基准仅作日期对齐参考"
         )
     else:
         footer = "Research Observation · 历史净值暂不可用 · 不代表实盘历史 · 不构成投资建议"
