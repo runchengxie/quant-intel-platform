@@ -169,13 +169,15 @@ def test_weekly_basket_dry_run_writes_report_and_does_not_send(
         cli.main()
 
     assert exc_info.value.code == 0
-    assert (output_root / "20260914" / "basket.json").exists()
-    assert (output_root / "20260914" / "report.md").exists()
-    assert (
-        json.loads((output_root / "20260914" / "receipt.json").read_text())["send_status"]
-        == "dry_run"
-    )
-    basket = json.loads((output_root / "20260914" / "basket.json").read_text())
+    output = json.loads(capsys.readouterr().out)
+    basket_path = Path(output["paths"]["basket"])
+    assert "previews" in basket_path.parts
+    assert not (output_root / "20260914").exists()
+    assert not (tmp_path / "state" / "2026-W38").exists()
+    preview_date = basket_path.parent
+    assert (preview_date / "report.md").exists()
+    assert json.loads((preview_date / "receipt.json").read_text())["send_status"] == "dry_run"
+    basket = json.loads(basket_path.read_text())
     assert basket["config"]["quotas"] == {
         "dailywatch_family": 0,
         "cashflow": 6,
@@ -183,7 +185,6 @@ def test_weekly_basket_dry_run_writes_report_and_does_not_send(
     }
     assert "monitoring" not in basket
     assert all(row["sleeve"] != "dailywatch_family" for row in basket["source_inputs"])
-    output = json.loads(capsys.readouterr().out)
     assert output["send_status"] == "dry_run"
 
 
@@ -244,13 +245,15 @@ def test_weekly_basket_personal_only_excludes_configured_group(
         personal_chat_id="ou_owner",
         group_chat_id="oc_group",
         lark_cli="unused",
+        state_root=tmp_path / "state",
+        sender_scope="app-test",
     )
     receipt = _write(tmp_path / "receipt.json", {})
     sent = []
 
     def send_report(*args, **kwargs):
         sent.append(kwargs)
-        return SimpleNamespace(status="sent", image_status="sent")
+        return SimpleNamespace(status="sent", image_status="not_requested")
 
     monkeypatch.setattr(
         "a_share_daily.weekly_client_basket_delivery.send_basket_report", send_report
@@ -280,6 +283,7 @@ def test_weekly_basket_missing_group_requires_explicit_personal_only(
     from a_share_daily import weekly_basket_command
 
     args = cli._build_parser().parse_args(_weekly_args(tmp_path, mode="--send")[1:])
+    args.sender_scope = "app-test"
     args.performance = "performance.json"
     args.group_chat_id = None
     args.personal_only = personal_only
@@ -298,3 +302,160 @@ def test_weekly_basket_missing_group_requires_explicit_personal_only(
     else:
         assert weekly_basket_command._cmd_weekly_basket(args) == 1
         assert "--group-chat-id is required" in capsys.readouterr().err
+
+
+def test_weekly_send_requires_declared_sender_before_preparation(tmp_path, monkeypatch, capsys):
+    from types import SimpleNamespace
+
+    from a_share_daily import weekly_basket_command
+
+    args = cli._build_parser().parse_args(_weekly_args(tmp_path, mode="--send")[1:])
+    args.performance = "unused.json"
+    args.personal_only = True
+    args.sender_scope = None
+    monkeypatch.setattr(
+        "a_share_daily.reporting.performance.load_performance",
+        lambda *a, **kw: SimpleNamespace(to_payload=lambda: {}),
+    )
+    monkeypatch.setattr(
+        weekly_basket_command,
+        "_prepare_weekly_basket",
+        lambda *a: pytest.fail("must not prepare live state without sender"),
+    )
+    assert weekly_basket_command._cmd_weekly_basket(args) == 1
+    assert "--sender-scope is required" in capsys.readouterr().err
+
+
+def test_weekly_failure_output_uses_redacted_projection(tmp_path, monkeypatch, capsys):
+    from types import SimpleNamespace
+
+    from a_share_daily.weekly_basket_command import _deliver_weekly_basket
+
+    args = SimpleNamespace(
+        send=True,
+        personal_only=True,
+        output_root=tmp_path,
+        state_root=tmp_path / "state",
+        sender_scope="app-test",
+        as_of_date="20260914",
+        personal_chat_id="ou_secret",
+        group_chat_id=None,
+        lark_cli="unused",
+    )
+    receipt = _write(tmp_path / "receipt.json", {})
+    result = SimpleNamespace(
+        status="failed",
+        image_status="not_requested",
+        chat_id="ou_secret",
+        stderr="secret transport output",
+        idempotency_key="private-key",
+        public_projection=lambda: {"status": "failed", "verification_level": "legacy_unverified"},
+    )
+    monkeypatch.setattr(
+        "a_share_daily.weekly_client_basket_delivery.send_basket_report", lambda *a, **kw: result
+    )
+    _, okay = _deliver_weekly_basket(args, {"receipt": receipt}, {}, "report")
+    assert not okay
+    output = capsys.readouterr().out
+    assert "legacy_unverified" in output
+    assert "ou_secret" not in output
+    assert "private-key" not in output
+    assert "secret transport output" not in output
+
+
+def test_weekly_preview_preserves_live_artifacts_and_freeze_state(tmp_path, monkeypatch, capsys):
+    live = tmp_path / "output" / "20260914"
+    live.mkdir(parents=True)
+    (live / "receipt.json").write_bytes(b"historical receipt")
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "live-marker").write_bytes(b"frozen state")
+    monkeypatch.setattr(sys, "argv", _weekly_args(tmp_path, mode="--dry-run"))
+    with pytest.raises(SystemExit) as result:
+        cli.main()
+    assert result.value.code == 0
+    assert (live / "receipt.json").read_bytes() == b"historical receipt"
+    assert (state / "live-marker").read_bytes() == b"frozen state"
+    assert {path.name for path in state.iterdir()} == {"live-marker", "previews"}
+    assert json.loads(capsys.readouterr().out)["send_status"] == "dry_run"
+
+
+@pytest.mark.parametrize(
+    "image_status,expected", [("not_requested", False), ("failed", False), ("sent", True)]
+)
+def test_weekly_aggregation_requires_requested_image_acceptance(
+    tmp_path, monkeypatch, capsys, image_status, expected
+):
+    from types import SimpleNamespace
+
+    from a_share_daily.weekly_basket_command import _deliver_weekly_basket
+
+    args = SimpleNamespace(
+        send=True,
+        personal_only=True,
+        output_root=tmp_path,
+        state_root=tmp_path / "state",
+        sender_scope="app-test",
+        as_of_date="20260914",
+        personal_chat_id="ou_owner",
+        lark_cli="unused",
+    )
+    receipt = _write(tmp_path / "receipt.json", {})
+    outcome = SimpleNamespace(
+        status="sent", image_status=image_status, public_projection=lambda: {"status": "failed"}
+    )
+    monkeypatch.setattr(
+        "a_share_daily.weekly_client_basket_delivery.send_basket_report", lambda *a, **kw: outcome
+    )
+    _, okay = _deliver_weekly_basket(
+        args, {"receipt": receipt}, {"png": tmp_path / "image.png"}, "text"
+    )
+    assert okay is expected
+    assert json.loads(receipt.read_text())["send_status"] == ("sent" if expected else "failed")
+    assert json.loads(receipt.read_text())["delivery_receipt"] == str(
+        tmp_path / "state" / "delivery"
+    )
+
+
+def test_weekly_preview_reads_history_and_current_freeze_without_writing_them(
+    tmp_path, monkeypatch, capsys
+):
+    from a_share_daily.weekly_basket_state import acquire_weekly_lock
+
+    argv = _weekly_args(tmp_path, mode="--dry-run")
+
+    def preview():
+        monkeypatch.setattr(sys, "argv", argv)
+        with pytest.raises(SystemExit) as result:
+            cli.main()
+        assert result.value.code == 0
+        output = json.loads(capsys.readouterr().out)
+        return json.loads(Path(output["paths"]["basket"]).read_text())
+
+    first = preview()
+    target_hash = hashlib.sha256(b"ou_owner").hexdigest()[:16]
+    previous = acquire_weekly_lock(
+        tmp_path / "state",
+        report_week="2026-W37",
+        target_hash=target_hash,
+        basket={**first, "report_date": "20260907"},
+        input_hashes={},
+    )
+    before = previous.path.read_bytes()
+    with_history = preview()
+    assert all(row["status"] == "KEEP" for row in with_history["positions"])
+    assert previous.path.read_bytes() == before
+
+    with_history["positions"][0]["name"] = "FROZEN NAME"
+    frozen = acquire_weekly_lock(
+        tmp_path / "state",
+        report_week="2026-W38",
+        target_hash=target_hash,
+        basket=with_history,
+        input_hashes={},
+    )
+    frozen_before = frozen.path.read_bytes()
+    with_current = preview()
+    assert with_current["positions"][0]["name"] == "FROZEN NAME"
+    assert frozen.path.read_bytes() == frozen_before
+    assert not (frozen.path.parent.parent / "2").exists()

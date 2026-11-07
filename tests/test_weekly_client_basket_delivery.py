@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -16,7 +17,9 @@ from a_share_daily.weekly_client_basket_delivery import (
 
 
 def _ok() -> subprocess.CompletedProcess[str]:
-    return subprocess.CompletedProcess(["lark-cli"], 0, stdout="{}", stderr="")
+    return subprocess.CompletedProcess(
+        ["lark-cli"], 0, stdout='{"ok":true,"data":{"message_id":"om_test"}}', stderr=""
+    )
 
 
 def test_no_send_does_not_invoke_lark_cli(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -36,7 +39,7 @@ def test_no_send_does_not_invoke_lark_cli(tmp_path: Path, monkeypatch: pytest.Mo
     )
 
     assert receipt.status == "dry_run"
-    assert json.loads((tmp_path / "receipt.json").read_text())["identity"] == "app"
+    assert not (tmp_path / "receipt.json").exists()
 
 
 def test_missing_personal_target_fails_closed(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -69,6 +72,9 @@ def test_send_uses_app_identity_and_stable_idempotency_key(
         chat_id="ou_owner",
         lark_cli="/bin/lark-cli",
         receipt_path=tmp_path / "receipt.json",
+        sender_scope="test-app",
+        delivery_state_root=tmp_path / "state",
+        legacy_receipt_root=tmp_path / "legacy",
     )
 
     assert receipt.status == "sent"
@@ -101,6 +107,10 @@ def test_send_can_follow_text_with_app_image(
         lark_cli="/bin/lark-cli",
         receipt_path=tmp_path / "receipt.json",
         image_path=image,
+        sender_scope="test-app",
+        delivery_state_root=tmp_path / "state",
+        legacy_receipt_root=tmp_path / "legacy",
+        render_manifest_path=_manifest(tmp_path, image, "# test"),
     )
 
     assert receipt.image_status == "sent"
@@ -110,7 +120,7 @@ def test_send_can_follow_text_with_app_image(
     assert calls[1][calls[1].index("--image") + 1] == "report.png"
 
 
-def test_recovery_retries_only_failed_image(
+def test_legacy_recovery_holds_failed_image(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     calls: list[list[str]] = []
@@ -124,7 +134,7 @@ def test_recovery_retries_only_failed_image(
                 "report_date": "20260914",
                 "chat_id": "ou_owner",
                 "idempotency_key": idempotency_key("ou_owner", "20260914", "old"),
-                "markdown_sha256": "a" * 64,
+                "markdown_sha256": hashlib.sha256(b"# changed").hexdigest(),
                 "identity": "app",
                 "returncode": 0,
                 "stderr": "",
@@ -145,12 +155,16 @@ def test_recovery_retries_only_failed_image(
         lark_cli="/bin/lark-cli",
         receipt_path=receipt_path,
         image_path=image,
+        sender_scope="test-app",
+        delivery_state_root=tmp_path / "state",
+        legacy_receipt_root=tmp_path / "legacy",
+        render_manifest_path=_manifest(tmp_path, image, "# changed"),
     )
 
-    assert receipt.status == "sent"
-    assert receipt.image_status == "sent"
-    assert len(calls) == 1
-    assert "--image" in calls[0]
+    assert receipt.status == "failed"
+    assert receipt.verification_level == "legacy_unverified"
+    assert receipt.hold_reason == "hold_no_send"
+    assert calls == []
 
 
 def test_group_send_uses_chat_id_and_independent_receipt(
@@ -170,6 +184,9 @@ def test_group_send_uses_chat_id_and_independent_receipt(
         target_kind="group",
         lark_cli="/bin/lark-cli",
         receipt_path=tmp_path / "group.json",
+        sender_scope="test-app",
+        delivery_state_root=tmp_path / "state",
+        legacy_receipt_root=tmp_path / "legacy",
     )
 
     assert receipt.status == "sent"
@@ -189,3 +206,27 @@ def test_target_kind_and_id_must_match(tmp_path: Path) -> None:
             receipt_path=tmp_path / "receipt.json",
             dry_run=True,
         )
+
+
+def _manifest(root: Path, image: Path, markdown: str) -> Path:
+    path = root / "manifest.json"
+    path.write_text(
+        json.dumps(
+            {
+                "schema_version": "weekly_basket.render.v1",
+                "report_date": "20260914",
+                "artifact_sha256": "a" * 64,
+                "files": {
+                    "markdown": {
+                        "sha256": hashlib.sha256(markdown.encode()).hexdigest(),
+                        "size": len(markdown.encode()),
+                    },
+                    "png": {
+                        "sha256": hashlib.sha256(image.read_bytes()).hexdigest(),
+                        "size": image.stat().st_size,
+                    },
+                },
+            }
+        )
+    )
+    return path

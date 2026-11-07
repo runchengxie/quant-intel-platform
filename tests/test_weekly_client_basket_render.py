@@ -1,7 +1,12 @@
 from __future__ import annotations
 
+import hashlib
+import json
+import multiprocessing
+import stat
 from pathlib import Path
 
+import pytest
 from PIL import Image
 
 from a_share_daily.weekly_client_basket import SourcePosition, compose_weekly_basket
@@ -153,3 +158,85 @@ def test_markdown_and_png_accept_provider_performance_artifact(tmp_path: Path) -
         width, height = image.size
     assert 0.75 <= width / height <= 1.0
     assert height < 2_500
+
+
+def test_render_bundle_binds_bytes_and_keeps_previous_render_immutable(tmp_path: Path) -> None:
+    first = write_rendered_outputs(_artifact(), tmp_path)
+    first_bytes = {key: first[key].read_bytes() for key in ("markdown", "csv", "png")}
+    manifest = json.loads(first["manifest"].read_text())
+    assert manifest["schema_version"] == "weekly_basket.render.v1"
+    assert manifest["report_date"] == "20260914"
+    assert len(manifest["artifact_sha256"]) == 64
+    for key, payload in first_bytes.items():
+        entry = manifest["files"][key]
+        assert first["manifest"].parent / entry["path"] == first[key]
+        assert entry["sha256"] == hashlib.sha256(payload).hexdigest()
+        assert entry["size"] == len(payload)
+        assert stat.S_IMODE(first[key].stat().st_mode) == 0o400
+    assert stat.S_IMODE(first["manifest"].parent.stat().st_mode) == 0o700
+    lock_inode = (tmp_path / ".render.lock").stat().st_ino
+    second = write_rendered_outputs(_artifact(), tmp_path, theme="dark_terminal")
+    assert first["png"] != second["png"]
+    assert {key: first[key].read_bytes() for key in first_bytes} == first_bytes
+    assert (tmp_path / ".render.lock").stat().st_ino == lock_inode
+    for key, name in (("markdown", "report.md"), ("csv", "basket.csv"), ("png", "report.png")):
+        assert (tmp_path / name).read_bytes() == second[key].read_bytes()
+
+
+def test_failed_png_render_never_publishes_partial_bundle_or_changes_aliases(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    first = write_rendered_outputs(_artifact(), tmp_path)
+    before = {
+        name: (tmp_path / name).read_bytes() for name in ("report.md", "basket.csv", "report.png")
+    }
+    bundles = set(first["manifest"].parent.parent.iterdir())
+
+    def fail_render(_artifact, path, **_kwargs):
+        path.write_bytes(b"partial")
+        raise OSError("renderer interrupted")
+
+    monkeypatch.setattr("a_share_daily.weekly_client_basket_png.render_basket_png", fail_render)
+    with pytest.raises(OSError, match="renderer interrupted"):
+        write_rendered_outputs(_artifact(), tmp_path)
+    assert set(first["manifest"].parent.parent.iterdir()) == bundles
+    assert {name: (tmp_path / name).read_bytes() for name in before} == before
+
+
+def test_render_lock_serializes_processes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    if "fork" not in multiprocessing.get_all_start_methods():
+        pytest.skip("process inheritance test requires POSIX fork")
+    context = multiprocessing.get_context("fork")
+    first_entered = context.Event()
+    second_entered = context.Event()
+    release = context.Event()
+
+    def render_png(_artifact, path, **_kwargs):
+        if multiprocessing.current_process().name == "first-render":
+            first_entered.set()
+            assert release.wait(5)
+        else:
+            second_entered.set()
+        path.write_bytes(b"fixture PNG bytes")
+
+    monkeypatch.setattr("a_share_daily.weekly_client_basket_png.render_basket_png", render_png)
+    first = context.Process(
+        target=write_rendered_outputs, args=(_artifact(), tmp_path), name="first-render"
+    )
+    second = context.Process(
+        target=write_rendered_outputs, args=(_artifact(), tmp_path), name="second-render"
+    )
+    first.start()
+    try:
+        assert first_entered.wait(5)
+        second.start()
+        assert not second_entered.wait(0.2)
+    finally:
+        release.set()
+        first.join(5)
+        if second.pid is not None:
+            second.join(5)
+    assert first.exitcode == 0
+    assert second.exitcode == 0
+    assert second_entered.is_set()
+    assert len(list((tmp_path / ".render-bundles").iterdir())) == 2

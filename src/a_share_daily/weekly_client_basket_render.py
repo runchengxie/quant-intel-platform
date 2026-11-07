@@ -2,11 +2,24 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
+import os
+import shutil
+import tempfile
+from dataclasses import asdict
 from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
 from .report_theme import ReportTheme, get_report_theme
-from .weekly_client_basket import BasketArtifact, _atomic_write, _csv_payload
+from .weekly_basket_delivery_store import (
+    durable_write,
+    exclusive_lock,
+    fsync_directory,
+    private_directory,
+)
+from .weekly_client_basket import BasketArtifact, _csv_payload
 
 SLEEVE_LABELS = {
     "dailywatch_family": "日内观察",
@@ -144,19 +157,87 @@ def write_rendered_outputs(
     theme: str | ReportTheme = "research_editorial",
     performance: dict[str, Any] | None = None,
 ) -> dict[str, Path]:
-    output_dir.mkdir(parents=True, exist_ok=True)
-    markdown_path = output_dir / "report.md"
-    csv_path = output_dir / "basket.csv"
-    png_path = output_dir / "report.png"
-    _atomic_write(
-        markdown_path,
-        render_basket_markdown(artifact, theme=theme, performance=performance).encode("utf-8"),
-    )
-    _atomic_write(csv_path, render_basket_csv(artifact).encode("utf-8"))
+    """Publish a complete immutable render bundle, then update compatibility aliases."""
+    private_directory(output_dir)
+    with exclusive_lock(output_dir / ".render.lock"):
+        return _publish_render_bundle(artifact, output_dir, theme=theme, performance=performance)
+
+
+def _publish_render_bundle(
+    artifact: BasketArtifact,
+    output_dir: Path,
+    *,
+    theme: str | ReportTheme,
+    performance: dict[str, Any] | None,
+) -> dict[str, Path]:
+    bundles = output_dir / ".render-bundles"
+    private_directory(bundles)
+    staging = Path(tempfile.mkdtemp(prefix=".render-", dir=output_dir))
+    try:
+        paths = _render_bundle_files(artifact, staging, theme=theme, performance=performance)
+        manifest = _render_manifest(artifact, paths)
+        durable_write(
+            staging / "manifest.json", json.dumps(manifest, sort_keys=True).encode(), mode=0o400
+        )
+        published = bundles / uuid4().hex
+        os.replace(staging, published)
+        fsync_directory(bundles)
+    finally:
+        if staging.exists():
+            shutil.rmtree(staging)
+    result = {key: published / path.name for key, path in paths.items()}
+    result["manifest"] = published / "manifest.json"
+    for key in ("markdown", "csv", "png"):
+        durable_write(output_dir / result[key].name, result[key].read_bytes())
+    return result
+
+
+def _render_bundle_files(
+    artifact: BasketArtifact,
+    staging: Path,
+    *,
+    theme: str | ReportTheme,
+    performance: dict[str, Any] | None,
+) -> dict[str, Path]:
     from .weekly_client_basket_png import render_basket_png
 
-    render_basket_png(artifact, png_path, theme=theme, performance=performance)
-    return {"markdown": markdown_path, "csv": csv_path, "png": png_path}
+    paths = {
+        "markdown": staging / "report.md",
+        "csv": staging / "basket.csv",
+        "png": staging / "report.png",
+    }
+    durable_write(
+        paths["markdown"],
+        render_basket_markdown(artifact, theme=theme, performance=performance).encode(),
+        mode=0o400,
+    )
+    durable_write(paths["csv"], render_basket_csv(artifact).encode(), mode=0o400)
+    render_basket_png(artifact, paths["png"], theme=theme, performance=performance)
+    with paths["png"].open("rb") as handle:
+        os.fchmod(handle.fileno(), 0o400)
+        os.fsync(handle.fileno())
+    fsync_directory(staging)
+    return paths
+
+
+def _render_manifest(artifact: BasketArtifact, paths: dict[str, Path]) -> dict[str, Any]:
+    artifact_bytes = json.dumps(
+        asdict(artifact), sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
+    ).encode()
+    files = {}
+    for key, path in paths.items():
+        payload = path.read_bytes()
+        files[key] = {
+            "path": path.name,
+            "sha256": hashlib.sha256(payload).hexdigest(),
+            "size": len(payload),
+        }
+    return {
+        "schema_version": "weekly_basket.render.v1",
+        "report_date": artifact.report_date,
+        "artifact_sha256": hashlib.sha256(artifact_bytes).hexdigest(),
+        "files": files,
+    }
 
 
 __all__ = ["render_basket_csv", "render_basket_markdown", "write_rendered_outputs"]

@@ -55,6 +55,24 @@ def _current(root: Path) -> Path | None:
     return path
 
 
+def load_weekly_lock(
+    state_root: Path, *, report_week: str, target_hash: str
+) -> WeeklyBasketLock | None:
+    """Read an existing freeze without creating directories or changing pointers."""
+    existing = _current(Path(state_root) / report_week / target_hash)
+    if existing is None:
+        return None
+    payload = _read(existing)
+    return WeeklyBasketLock(
+        existing,
+        dict(payload["basket"]),
+        report_week,
+        target_hash,
+        int(payload["revision"]),
+        True,
+    )
+
+
 def acquire_weekly_lock(
     state_root: Path,
     *,
@@ -67,17 +85,10 @@ def acquire_weekly_lock(
 ) -> WeeklyBasketLock:
     """Freeze the first valid basket for one report week and personal target."""
     root = Path(state_root) / report_week / target_hash
-    existing = _current(root)
-    if existing is not None and not override:
-        payload = _read(existing)
-        return WeeklyBasketLock(
-            existing,
-            dict(payload["basket"]),
-            report_week,
-            target_hash,
-            int(payload["revision"]),
-            True,
-        )
+    current = load_weekly_lock(state_root, report_week=report_week, target_hash=target_hash)
+    if current is not None and not override:
+        return current
+    existing = current.path if current else None
     if override and not str(override_reason or "").strip():
         raise WeeklyBasketStateError("manual weekly lock override requires a reason")
     revision = int(_read(existing)["revision"]) + 1 if existing else 1
@@ -131,4 +142,5 @@ __all__ = [
     "WeeklyBasketStateError",
     "acquire_weekly_lock",
     "load_previous_successful_basket",
+    "load_weekly_lock",
 ]
