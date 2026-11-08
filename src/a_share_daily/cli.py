@@ -262,6 +262,11 @@ def _add_weekly_basket_command(sub: argparse._SubParsersAction) -> None:
         help="Explicit Feishu group chat ID (oc_...) required for --send unless --personal-only",
     )
     basket.add_argument(
+        "--sender-scope",
+        default=os.environ.get("WEEKLY_BASKET_SENDER_SCOPE"),
+        help="Declared sending account scope; required for --send (not principal attestation)",
+    )
+    basket.add_argument(
         "--lark-cli",
         default=os.environ.get("LARK_CLI", str(Path.home() / ".local" / "bin" / "lark-cli")),
     )

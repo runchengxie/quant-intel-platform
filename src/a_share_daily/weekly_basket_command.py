@@ -6,6 +6,7 @@ import argparse
 import hashlib
 import json
 import sys
+import uuid
 from dataclasses import asdict
 from datetime import datetime
 from pathlib import Path
@@ -74,7 +75,11 @@ def _update_weekly_basket_receipt(
 
 
 def _prepare_weekly_basket(args: argparse.Namespace):
-    from .weekly_basket_state import acquire_weekly_lock, load_previous_successful_basket
+    from .weekly_basket_state import (
+        acquire_weekly_lock,
+        load_previous_successful_basket,
+        load_weekly_lock,
+    )
     from .weekly_client_basket import basket_artifact_from_payload, compose_weekly_basket
     from .weekly_client_basket_delivery import personal_chat_id
 
@@ -82,8 +87,9 @@ def _prepare_weekly_basket(args: argparse.Namespace):
     target_hash = hashlib.sha256(target.encode()).hexdigest()[:16]
     report_week = datetime.strptime(args.as_of_date, "%Y%m%d").strftime("%G-W%V")
     state_root = Path(args.state_root).expanduser().resolve()
+    source_state_root = Path(getattr(args, "source_state_root", state_root)).expanduser().resolve()
     previous_payload = load_previous_successful_basket(
-        state_root, report_week=report_week, target_hash=target_hash
+        source_state_root, report_week=report_week, target_hash=target_hash
     )
     previous = basket_artifact_from_payload(previous_payload) if previous_payload else None
     source_positions, config = _load_weekly_basket_inputs(args)
@@ -131,6 +137,12 @@ def _prepare_weekly_basket(args: argparse.Namespace):
         input_hashes["performance"] = hashlib.sha256(
             Path(args.performance).expanduser().resolve().read_bytes()
         ).hexdigest()
+    if args.dry_run and not args.override_weekly_lock:
+        frozen = load_weekly_lock(
+            source_state_root, report_week=report_week, target_hash=target_hash
+        )
+        if frozen is not None:
+            return frozen
     return acquire_weekly_lock(
         state_root,
         report_week=preflight.report_week,
@@ -144,7 +156,7 @@ def _prepare_weekly_basket(args: argparse.Namespace):
 
 def _write_weekly_basket_outputs(args, lock, performance):
     from .weekly_client_basket import basket_artifact_from_payload, write_basket_artifacts
-    from .weekly_client_basket_render import render_basket_markdown, write_rendered_outputs
+    from .weekly_client_basket_render import write_rendered_outputs
 
     artifact = basket_artifact_from_payload(lock.basket)
     output_root = Path(args.output_root).expanduser().resolve()
@@ -155,7 +167,7 @@ def _write_weekly_basket_outputs(args, lock, performance):
         theme=args.theme,
         performance=performance,
     )
-    markdown = render_basket_markdown(artifact, theme=args.theme, performance=performance)
+    markdown = rendered["markdown"].read_bytes().decode("utf-8")
     if args.dry_run:
         _update_weekly_basket_receipt(paths["receipt"], None, "dry_run")
     return artifact, paths, rendered, markdown
@@ -182,26 +194,54 @@ def _deliver_weekly_basket(args, paths, rendered, markdown):
                 lark_cli=args.lark_cli,
                 receipt_path=delivery_dir / f"{target_kind}.json",
                 image_path=rendered.get("png"),
+                render_manifest_path=rendered.get("manifest"),
+                sender_scope=args.sender_scope,
+                delivery_state_root=Path(args.state_root).expanduser().resolve() / "delivery",
+                legacy_receipt_root=Path(args.output_root).expanduser().resolve(),
             )
         )
     overall_status = (
         "sent"
-        if all(row.status == "sent" and row.image_status == "sent" for row in deliveries)
+        if deliveries
+        and all(
+            row.status == "sent"
+            and row.image_status == ("sent" if rendered.get("png") else "not_requested")
+            for row in deliveries
+        )
         else "failed"
     )
-    _update_weekly_basket_receipt(paths["receipt"], delivery_dir, overall_status)
+    _update_weekly_basket_receipt(
+        paths["receipt"],
+        Path(args.state_root).expanduser().resolve() / "delivery",
+        overall_status,
+    )
     if overall_status != "sent":
         print(
             json.dumps(
                 {
                     "paths": {key: str(value) for key, value in paths.items()},
-                    "deliveries": [row.__dict__ for row in deliveries],
+                    "deliveries": [row.public_projection() for row in deliveries],
                 },
                 ensure_ascii=False,
                 indent=2,
             )
         )
     return deliveries, overall_status == "sent"
+
+
+def _require_sender_scope(args: argparse.Namespace) -> None:
+    if args.send and not (args.sender_scope or "").strip():
+        raise ValueError("--sender-scope is required for --send")
+
+
+def _preview_args(args: argparse.Namespace) -> argparse.Namespace:
+    """Keep preview artifacts and freeze records outside canonical namespaces."""
+    preview = argparse.Namespace(**vars(args))
+    preview.source_state_root = args.state_root
+    task_id = uuid.uuid4().hex
+    preview.output_root = str(Path(args.output_root).expanduser().resolve() / "previews" / task_id)
+    preview.state_root = str(Path(args.state_root).expanduser().resolve() / "previews" / task_id)
+    return preview
 
 
 def _cmd_weekly_basket(args: argparse.Namespace) -> int:
@@ -227,6 +267,9 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
             print("[FAIL] weekly basket: --group-chat-id is required for --send", file=sys.stderr)
             return 1
 
+        _require_sender_scope(args)
+        if args.dry_run:
+            args = _preview_args(args)
         lock = _prepare_weekly_basket(args)
         artifact, paths, rendered, markdown = _write_weekly_basket_outputs(args, lock, performance)
         deliveries, sent = _deliver_weekly_basket(args, paths, rendered, markdown)
@@ -237,6 +280,7 @@ def _cmd_weekly_basket(args: argparse.Namespace) -> int:
                 {
                     "report_date": artifact.report_date,
                     "positions": len(artifact.positions),
+                    "deliveries": [row.public_projection() for row in deliveries],
                     "paths": {
                         **{key: str(value) for key, value in paths.items()},
                         **{key: str(value) for key, value in rendered.items()},
