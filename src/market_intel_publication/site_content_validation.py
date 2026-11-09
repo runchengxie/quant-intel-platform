@@ -256,17 +256,22 @@ def _bind_insight_aggregate(note: dict, reports: list[dict]) -> None:
         raise ValueError("insight aggregate source hash mismatch")
 
 
+def validate_public_summary(row: object) -> None:
+    summary = fields(
+        row,
+        "date text morning_report_id evening_report_id generated_at model provider prompt_version fingerprint source_hash insight_source_hash",
+        "date text morning_report_id evening_report_id source_hash",
+    )
+    for value in summary.values():
+        public_string(value)
+
+
 def _commentary(public: Path, reports: list[dict], allowed: set[str], *, strict: bool) -> None:
     _, summaries = _index(
         public, "data/daily_summaries.json", "summaries", "market_intel_pages.daily_summaries.v1"
     )
     for row in summaries:
-        flat(
-            fields(
-                row,
-                "date text morning_report_id evening_report_id generated_at model provider prompt_version fingerprint source_hash insight_source_hash",
-            )
-        )
+        validate_public_summary(row)
     _validate(reports, summaries)
     if strict and current_summaries(reports, summaries) != summaries:
         raise ValueError("summary source binding mismatch")

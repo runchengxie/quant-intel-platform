@@ -194,6 +194,28 @@ def installed_fixture(tmp_path, monkeypatch, *, raw=b"reviewed"):
     return contract, module
 
 
+SUMMARY_FIELDS = (
+    "date",
+    "morning_report_id",
+    "evening_report_id",
+    "source_hash",
+    "generated_at",
+    "model",
+    "provider",
+    "prompt_version",
+    "fingerprint",
+    "insight_source_hash",
+)
+
+
+def mutate_summary(record, field, value):
+    key = field.removeprefix("summary.")
+    if value == "__missing__":
+        record["summaries"][0].pop(key)
+    else:
+        record["summaries"][0][key] = value
+
+
 def review_candidate(tmp_path, codec, mutation, operation):
     """Build a real valid package, then change only the reviewed public contract."""
     from market_intel_publication import site_content_cli as cli
@@ -201,7 +223,7 @@ def review_candidate(tmp_path, codec, mutation, operation):
 
     root = all_families(tmp_path)
     public = root / "artifacts/public"
-    if mutation[0] != "source_hash":
+    if mutation[0] != "source_hash" and not mutation[0].startswith("summary."):
         for name, key in (("daily_summaries", "summaries"), ("insights", "insights")):
             path = public / f"data/{name}.json"
             value = json.loads(path.read_text())
@@ -216,8 +238,12 @@ def review_candidate(tmp_path, codec, mutation, operation):
         }
     field, value = mutation
     name = "data/insights.json" if field == "source_hash" else "data/reports.json"
+    if field.startswith("summary."):
+        name = "data/daily_summaries.json"
     record = json.loads(payload[name])
-    if field == "source_hash":
+    if field.startswith("summary."):
+        mutate_summary(record, field, value)
+    elif field == "source_hash":
         record["insights"][0]["source_hash"] = value
     elif field.startswith("section."):
         section = {"title": "Additional public section", "paragraphs": ["Public text."]}
@@ -292,5 +318,28 @@ def historical_source(tmp_path, hash_map):
             "insights": [note],
             "outcomes": [],
         },
+    )
+    from market_intel_commentary.generate_daily_summary import summary_source_hash
+
+    summary = {
+        "date": reports[1]["date"],
+        "text": "" if hash_map == "empty" else "Historical public summary.",
+        "morning_report_id": reports[1]["id"],
+        "evening_report_id": reports[0]["id"],
+        "source_hash": summary_source_hash(reports[1], reports[0]),
+    }
+    if hash_map != "absent":
+        metadata = {
+            "generated_at": "2026-10-23T08:30:00+08:00",
+            "model": "historical-model",
+            "provider": "codex",
+            "prompt_version": "historical-v1",
+            "fingerprint": "a" * 64,
+            "insight_source_hash": context["source_hash"],
+        }
+        summary.update(dict.fromkeys(metadata, "") if hash_map == "empty" else metadata)
+    write(
+        public / "data/daily_summaries.json",
+        {"schema_version": "market_intel_pages.daily_summaries.v1", "summaries": [summary]},
     )
     return root, context["source_hash"]

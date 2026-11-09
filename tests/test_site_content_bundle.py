@@ -16,6 +16,7 @@ from market_intel_publication.weekly_recap_bundle import import_bundle
 from tests._site_content_test_utils import (
     CREATED,
     REVISION,
+    SUMMARY_FIELDS,
     all_families,
     api,
     historical_source,
@@ -728,6 +729,10 @@ codec.pack_site_content(Path(sys.argv[1]), Path(sys.argv[2]),
         ("generation_mode", ["backfill"]),
         ("generated_at", False),
         ("source_hash", "f" * 64),
+        ("summary.text", "__missing__"),
+        ("summary.text", None),
+        ("summary.text", ["Wrong shape"]),
+        *[(f"summary.{key}", False) for key in SUMMARY_FIELDS],
     ],
 )
 def test_reviewed_public_contract_rejects_wrong_shapes_and_aggregate_hash(
@@ -741,6 +746,8 @@ def test_reviewed_public_contract_rejects_wrong_shapes_and_aggregate_hash(
     assert not output.exists()
     assert not receipt.exists()
     expected = "aggregate" if mutation[0] == "source_hash" else "string"
+    if mutation == ("summary.text", "__missing__"):
+        expected = "missing"
     assert expected in capsys.readouterr().err
 
 
@@ -753,6 +760,10 @@ def test_historical_asia_shapes_and_insight_source_forms_roundtrip(tmp_path, mon
     output = tmp_path / "verified"
     verify(codec, archive, output)
     public = output / "artifacts/public"
+    name = "data/daily_summaries.json"
+    assert json.loads((public / name).read_bytes()) == json.loads(
+        (root / "artifacts/public" / name).read_bytes()
+    )
     rows = json.loads((public / "data/reports.json").read_bytes())["reports"]
     assert {row["kind"] for row in rows} == {"morning", "evening"}
     assert rows[0]["sections"][-1] == {"title": "", "paragraphs": []}
