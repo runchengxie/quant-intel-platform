@@ -58,7 +58,11 @@ def test_deterministic_bundle_roundtrip_all_families(tmp_path, monkeypatch):
         == 1
     )
     for record in receipt.files:
-        if record.path != "data/health.json":
+        if record.path.startswith("data/asia_news/"):
+            assert json.loads((tmp_path / "reexport" / record.path).read_bytes()) == json.loads(
+                (public / record.path).read_bytes()
+            )
+        elif record.path != "data/health.json":
             assert (tmp_path / "reexport" / record.path).read_bytes() == (
                 public / record.path
             ).read_bytes()
@@ -747,3 +751,34 @@ def test_published_json_schema_matches_real_manifest(tmp_path, monkeypatch):
     manifest["unknown"] = "private"
     with pytest.raises(jsonschema.ValidationError):
         jsonschema.validate(manifest, schema)
+
+
+def test_pack_is_deterministic_across_hash_seed_processes(tmp_path):
+    """Synthetic provenance stub isolates serialization; VCS CLI proof is external."""
+    import os
+    import subprocess
+    import sys
+
+    root = all_families(tmp_path)
+    script = """
+import sys
+from pathlib import Path
+from market_intel_publication import site_content_codec as codec
+codec.installed_producer = lambda revision: {
+    "owner": "quant-intel-platform", "distribution": "market-intel",
+    "source_revision": revision, "source_sha256": "b" * 64,
+}
+codec.pack_site_content(Path(sys.argv[1]), Path(sys.argv[2]),
+    created_at_utc="2026-11-01T00:00:00Z", producer_revision="a" * 40)
+"""
+    outputs = []
+    for seed in ("1", "2"):
+        output = tmp_path / f"seed-{seed}.zip"
+        subprocess.run(
+            [sys.executable, "-c", script, str(root), str(output)],
+            check=True,
+            env={**os.environ, "PYTHONHASHSEED": seed},
+            cwd=tmp_path,
+        )
+        outputs.append(output.read_bytes())
+    assert outputs[0] == outputs[1]

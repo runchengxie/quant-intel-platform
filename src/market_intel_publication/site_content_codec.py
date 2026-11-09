@@ -94,6 +94,11 @@ def pack_site_content(
         (snapshot / "data/health.json").write_bytes(
             contract.canonical(health_report(report_index, now=created))
         )
+        # The owner Asia projection enumerates frozenset fields. Stabilize only
+        # this generated JSON; its canonical content/source hashes are unchanged.
+        for path in (snapshot / "data/asia_news").glob("*.json"):
+            news = contract.read_json(contract.source_file(path, snapshot))
+            path.write_bytes(contract.canonical(news) + b"\n")
         names = validate_public_snapshot(snapshot, created_at_utc=created_at_utc)
         payload = {name: contract.source_file(snapshot / name, snapshot) for name in names}
         manifest = _manifest(payload, created_at_utc, producer)

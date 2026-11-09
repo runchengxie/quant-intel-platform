@@ -57,7 +57,7 @@ finite numbers, no extra whitespace) of the manifest without bundle_id. The
 archive_sha256 hashes the exact ZIP bytes separately. Neither is a Git revision.
 The supplied UTC time is fixed once for a candidate, including its generated health
 sidecar. Ordinary exporter health timestamps retain their existing behavior; a
-later re-export therefore has its own output hashes.
+later re-export therefore has its own output hashes. The packer also serializes only owner-generated Asia news JSON with canonical key ordering, because the legacy projection enumerates unordered field sets. Its existing content/source/Markdown hash fields and values remain unchanged; re-exported Asia news may have different JSON ordering but must retain identical parsed content.
 
 The installed distribution must have real Git direct_url metadata for the expected
 immutable commit. The provider verifies installed package files against RECORD and
