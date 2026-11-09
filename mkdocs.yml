@@ -116,6 +116,7 @@ nav:
       - Hotspot composite: hotspot-composite.en.md
       - ETL/report refactor record: refactor-plan-etl-report.en.md
       - Platform publication: platform-publication.en.md
+      - Public content bundles: publication/site-content-bundles.md
       - U.S. market briefing: us-market-briefing.en.md
       - Hermes workflow: hermes-agent-workflow.en.md
       - Cashflow shadow delivery: cashflow-feishu-shadow.en.md
@@ -166,6 +167,7 @@ nav:
           - 热点复合指标: hotspot-composite.md
           - ETL 与投递重构记录: refactor-plan-etl-report.md
           - 平台发布记录: platform-publication.md
+          - 公开内容包: publication/site-content-bundles.zh-CN.md
           - 美股收盘简报: us-market-briefing.md
           - Hermes 工作流: hermes-agent-workflow.md
           - 现金流影子投递: cashflow-feishu-shadow.md

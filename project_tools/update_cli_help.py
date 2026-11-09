@@ -54,6 +54,26 @@ def _build_help_block() -> str:
     sections.append(("dm --help", _collect_help([])))
     for command in CLI_SUBCOMMANDS:
         sections.append((f"dm {command} --help", _collect_help([command])))
+    for command, function in (
+        ("market-pack-site-content", "pack_main"),
+        ("market-verify-site-content", "verify_main"),
+    ):
+        result = subprocess.run(
+            [
+                sys.executable,
+                "-c",
+                f"import sys; from market_intel_publication.site_content_cli import {function}; sys.argv=[{command!r}, '--help']; {function}()",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+        body = re.sub(
+            r"(?m)^(usage: [^\n]*(?:\n[ \t]+[^\n]*)*)",
+            lambda match: " ".join(match.group(0).split()),
+            result.stdout.strip(),
+        )
+        sections.append((f"{command} --help", body))
     return "```text\n" + _render_sections(sections) + "\n```"
 
 

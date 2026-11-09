@@ -2,6 +2,8 @@
 
 The repository was formerly named `market-intel`. Current documentation uses `quant-intel-platform`; the Python distribution name, publication consumer ID `market-intel`, module names, and existing configuration/environment identifiers remain compatibility interfaces.
 
+[Public content bundle CLI](docs/publication/site-content-bundles.md) — package and verify indexed public snapshots.
+
 `quant-intel-platform` provides automated market reports, publication contracts, and information delivery. It collects market and news information, consumes versioned research artifacts from owner projects, then validates, organizes, and delivers the reviewed results. The separate `quant-intel-pages` repository renders and hosts public reports.
 
 [中文 README](README.zh-CN.md) · [English language policy](docs/LANGUAGE_POLICY.md) · [中文语言政策](docs/LANGUAGE_POLICY.zh-CN.md)

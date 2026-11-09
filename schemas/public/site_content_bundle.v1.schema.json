@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://runchengxie.github.io/quant-intel-platform/schemas/public/site_content_bundle.v1.schema.json",
+  "title": "Platform public site content bundle v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "publication",
+    "bundle_id",
+    "created_at_utc",
+    "producer",
+    "files"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "market_intel.site_content_bundle.v1"
+    },
+    "publication": {
+      "const": "public"
+    },
+    "bundle_id": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "created_at_utc": {
+      "type": "string",
+      "format": "date-time",
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(?:\\.\\d{1,6})?(?:Z|\\+00:00)$"
+    },
+    "producer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "owner",
+        "distribution",
+        "source_revision",
+        "source_sha256"
+      ],
+      "properties": {
+        "owner": {
+          "const": "quant-intel-platform"
+        },
+        "distribution": {
+          "const": "market-intel"
+        },
+        "source_revision": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{40}$"
+        },
+        "source_sha256": {
+          "type": "string",
+          "pattern": "^[0-9a-f]{64}$"
+        }
+      }
+    },
+    "files": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 4096,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "path",
+          "sha256",
+          "bytes"
+        ],
+        "properties": {
+          "path": {
+            "type": "string",
+            "maxLength": 240,
+            "pattern": "^(data|reports)/[A-Za-z0-9][A-Za-z0-9_./-]*$"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "bytes": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 16777216
+          }
+        }
+      }
+    }
+  },
+  "$comment": "Owner CLI additionally enforces canonical UTF-8 JSON, duplicate rejection, exact logical identity, measured installed producer closure, portable indexed paths, sorted unique records, total bounds, exact ZIP bytes and public family eligibility. JSON Schema alone is not publication authorization."
+}

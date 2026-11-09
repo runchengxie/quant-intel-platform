@@ -58,6 +58,8 @@ include = ["daily_messenger*", "tushare_jobs*", "ops_common*", "a_share_daily*",
 "market_intel_commentary" = ["prompts/*.md"]
 
 [project.scripts]
+market-pack-site-content = "market_intel_publication.site_content_cli:pack_main"
+market-verify-site-content = "market_intel_publication.site_content_cli:verify_main"
 dm = "daily_messenger.cli:main"
 marketops = "tushare_jobs.cli:main"
 a-share-daily = "a_share_daily.cli:main"

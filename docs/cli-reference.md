@@ -2,7 +2,7 @@
 
 [English page](cli-reference.en.md)
 
-本文件由 `project_tools/update_cli_help.py` 自动生成，只覆盖 `dm` 命令。完整 CI 门禁会校验本文件是否与 `dm --help` 的输出保持一致。`marketops` 与 `a-share-daily` 的子命令结构请以各自 `--help` 为准（例如 `marketops tushare --help`、`a-share-daily --help`）。
+本文件由 `project_tools/update_cli_help.py` 自动生成，覆盖 `dm` 命令和公开内容包传输命令。完整 CI 门禁会校验本文件是否与 `dm --help` 的输出保持一致。`marketops` 与 `a-share-daily` 的子命令结构请以各自 `--help` 为准（例如 `marketops tushare --help`、`a-share-daily --help`）。
 
 <!-- cli-help:start -->
 ```text
@@ -126,6 +126,35 @@ options:
   --dry-run             Print instead of sending
   --internal-only       Acknowledge that this legacy report may only go to the
                         internal allowlist
+
+$ market-pack-site-content --help
+usage: market-pack-site-content [-h] --root ROOT --created-at CREATED_AT --producer-revision PRODUCER_REVISION --output OUTPUT --receipt RECEIPT
+
+Pack indexed public reports with measured installed VCS provenance.
+
+options:
+  -h, --help            show this help message and exit
+  --root ROOT           Input root containing artifacts/public
+  --created-at CREATED_AT
+                        Fixed UTC timestamp reused for retries
+  --producer-revision PRODUCER_REVISION
+                        Installed immutable 40-character Git revision
+  --output OUTPUT       New external destination; never replaced
+  --receipt RECEIPT     New external JSON receipt path
+
+$ market-verify-site-content --help
+usage: market-verify-site-content [-h] --bundle BUNDLE --sha256 SHA256 --expected-producer-revision EXPECTED_PRODUCER_REVISION --output OUTPUT --receipt RECEIPT
+
+Verify exact public bundle bytes and materialize a new artifacts/public root.
+
+options:
+  -h, --help            show this help message and exit
+  --bundle BUNDLE
+  --sha256 SHA256       Expected exact archive byte digest
+  --expected-producer-revision EXPECTED_PRODUCER_REVISION
+                        Expected and installed immutable Git revision
+  --output OUTPUT       New external destination; never replaced
+  --receipt RECEIPT     New external JSON receipt path
 ```
 <!-- cli-help:end -->
 
@@ -137,3 +166,5 @@ options:
 
 `quant-research-review --help` 提供两份日报的只读比较入口。
 详见[比较规则](agent-research-review.md)。
+
+公开快照传输：market-pack-site-content --help 与 market-verify-site-content --help。参阅[内容包文档](publication/site-content-bundles.zh-CN.md)。

@@ -2,6 +2,8 @@
 
 本仓库前身为 `market-intel`。当前项目统一称为 `quant-intel-platform`，Python 分发包名、发布清单消费者标识 `market-intel`、模块名及现有配置与环境变量标识仍作为兼容接口保留。
 
+[公开内容包 CLI](docs/publication/site-content-bundles.zh-CN.md)：打包并校验索引内的公开快照。
+
 [English README](README.md)
 
 [市场日报](https://runchengxie.github.io/quant-intel-pages/) · [在线文档](https://runchengxie.github.io/quant-intel-platform/docs/)
