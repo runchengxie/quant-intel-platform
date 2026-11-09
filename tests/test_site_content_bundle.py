@@ -18,7 +18,10 @@ from tests._site_content_test_utils import (
     REVISION,
     all_families,
     api,
+    historical_source,
+    installed_fixture,
     pack,
+    review_candidate,
     rewrite,
     verify,
     write,
@@ -596,25 +599,7 @@ def test_same_date_asia_revision_filters_stale_commentary_without_losing_other_f
 
 
 def test_installed_producer_rejects_tampered_record_bytes(tmp_path, monkeypatch):
-    from market_intel_publication import site_content_contract as contract
-
-    entry = contract.metadata.PackagePath("producer.py")
-    entry.hash = contract.metadata.FileHash("sha256=" + "a" * 43)
-    entry.size = 8
-    (tmp_path / "producer.py").write_bytes(b"tampered")
-
-    class Distribution:
-        files = [entry]
-
-        def read_text(self, name):
-            return json.dumps(
-                {"url": "file:///synthetic", "vcs_info": {"vcs": "git", "commit_id": REVISION}}
-            )
-
-        def locate_file(self, name):
-            return tmp_path / name
-
-    monkeypatch.setattr(contract.metadata, "distribution", lambda name: Distribution())
+    contract, _ = installed_fixture(tmp_path, monkeypatch, raw=b"tampered")
     with pytest.raises(ValueError, match="RECORD hash"):
         contract.installed_producer(REVISION)
 
@@ -637,36 +622,8 @@ def test_candidate_clock_is_bound_even_with_valid_archive_hash(tmp_path, monkeyp
 
 
 def test_producer_rejects_unrecorded_package_files(tmp_path, monkeypatch):
-    """Metadata stubs isolate integrity checks; they are not VCS acceptance evidence."""
-    from market_intel_publication import site_content_contract as contract
-
-    package = tmp_path / "synthetic_package"
-    package.mkdir()
-    module = package / "producer.py"
-    module.write_bytes(b"reviewed")
-    (package / "injected.py").write_bytes(b"unrecorded")
-    entry = contract.metadata.PackagePath("synthetic_package/producer.py")
-    entry.hash = contract.metadata.FileHash(
-        "sha256="
-        + contract.base64.urlsafe_b64encode(hashlib.sha256(b"reviewed").digest())
-        .rstrip(b"=")
-        .decode()
-    )
-    entry.size = 8
-
-    class Distribution:
-        files = [entry]
-
-        def read_text(self, name):
-            return json.dumps(
-                {"url": "file:///synthetic", "vcs_info": {"vcs": "git", "commit_id": REVISION}}
-            )
-
-        def locate_file(self, name):
-            return tmp_path / name
-
-    monkeypatch.setattr(contract, "__file__", str(module))
-    monkeypatch.setattr(contract.metadata, "distribution", lambda name: Distribution())
+    contract, module = installed_fixture(tmp_path, monkeypatch)
+    (module.parent / "injected.py").write_bytes(b"unrecorded")
     with pytest.raises(ValueError, match="unrecorded"):
         contract.installed_producer(REVISION)
 
@@ -694,39 +651,11 @@ def test_creation_time_requires_explicit_rfc3339_utc(tmp_path, monkeypatch, stam
 def test_installed_cache_hardlinks_are_measured_but_payload_hardlinks_are_rejected(
     tmp_path, monkeypatch
 ):
-    """Package-manager cache links are distinct from untrusted payload link inputs."""
-    from market_intel_publication import site_content_contract as contract
-
-    package = tmp_path / "synthetic_package"
-    package.mkdir()
-    module = package / "producer.py"
-    module.write_bytes(b"reviewed")
+    contract, module = installed_fixture(tmp_path, monkeypatch)
     (tmp_path / "cache.py").hardlink_to(module)
-    entry = contract.metadata.PackagePath("synthetic_package/producer.py")
-    entry.hash = contract.metadata.FileHash(
-        "sha256="
-        + contract.base64.urlsafe_b64encode(hashlib.sha256(b"reviewed").digest())
-        .rstrip(b"=")
-        .decode()
-    )
-    entry.size = 8
-
-    class Distribution:
-        files = [entry]
-
-        def read_text(self, name):
-            return json.dumps(
-                {"url": "file:///synthetic", "vcs_info": {"vcs": "git", "commit_id": REVISION}}
-            )
-
-        def locate_file(self, name):
-            return tmp_path / name
-
-    monkeypatch.setattr(contract, "__file__", str(module))
-    monkeypatch.setattr(contract.metadata, "distribution", lambda name: Distribution())
     assert contract.installed_producer(REVISION)["source_revision"] == REVISION
     with pytest.raises(ValueError, match="regular file"):
-        contract.source_file(module, package)
+        contract.source_file(module, module.parent)
 
 
 def test_published_json_schema_matches_real_manifest(tmp_path, monkeypatch):
@@ -782,3 +711,73 @@ codec.pack_site_content(Path(sys.argv[1]), Path(sys.argv[2]),
         )
         outputs.append(output.read_bytes())
     assert outputs[0] == outputs[1]
+
+
+@pytest.mark.parametrize("operation", ["pack", "verify"])
+@pytest.mark.parametrize(
+    "mutation",
+    [
+        ("section.paragraphs", "Malformed paragraphs scalar"),
+        ("section.paragraphs", ["Valid text", 7]),
+        ("section.paragraphs", ["Valid text", None]),
+        ("section.title", 7),
+        ("section.title", ["Wrong list"]),
+        ("title", 7),
+        ("title", ["Wrong list"]),
+        ("summary", False),
+        ("generation_mode", ["backfill"]),
+        ("generated_at", False),
+        ("source_hash", "f" * 64),
+    ],
+)
+def test_reviewed_public_contract_rejects_wrong_shapes_and_aggregate_hash(
+    tmp_path, monkeypatch, capsys, mutation, operation
+):
+    codec = api(monkeypatch)
+    command, args, output, receipt = review_candidate(tmp_path, codec, mutation, operation)
+    with pytest.raises(SystemExit) as error:
+        command(args)
+    assert error.value.code == 2
+    assert not output.exists()
+    assert not receipt.exists()
+    expected = "aggregate" if mutation[0] == "source_hash" else "string"
+    assert expected in capsys.readouterr().err
+
+
+@pytest.mark.parametrize("hash_map", ["present", "empty", "absent"])
+def test_historical_asia_shapes_and_insight_source_forms_roundtrip(tmp_path, monkeypatch, hash_map):
+    codec = api(monkeypatch)
+    root, expected = historical_source(tmp_path, hash_map)
+    archive = tmp_path / "historical.zip"
+    pack(codec, root, archive)
+    output = tmp_path / "verified"
+    verify(codec, archive, output)
+    public = output / "artifacts/public"
+    rows = json.loads((public / "data/reports.json").read_bytes())["reports"]
+    assert {row["kind"] for row in rows} == {"morning", "evening"}
+    assert rows[0]["sections"][-1] == {"title": "", "paragraphs": []}
+    assert rows[0]["generation_mode"] == "backfill"
+    assert (
+        json.loads((public / "data/insights.json").read_bytes())["insights"][0]["source_hash"]
+        == expected
+    )
+
+
+def test_stale_insight_is_filtered_before_new_aggregate_binding(tmp_path, monkeypatch):
+    codec = api(monkeypatch)
+    root = all_families(tmp_path)
+    path = root / "artifacts/public/data/insights.json"
+    payload = json.loads(path.read_bytes())
+    note = payload["insights"][0]
+    note["source_hash"] = "f" * 64
+    note["source_hashes"][note["morning_report_id"]] = "e" * 64
+    write(path, payload)
+    archive = tmp_path / "stale.zip"
+    pack(codec, root, archive)
+    verify(codec, archive, tmp_path / "verified")
+    assert (
+        json.loads((tmp_path / "verified/artifacts/public/data/insights.json").read_bytes())[
+            "insights"
+        ]
+        == []
+    )

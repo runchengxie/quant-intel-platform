@@ -13,7 +13,7 @@ from pathlib import Path
 
 from market_intel_commentary.generate_daily_summary import current_summaries
 from market_intel_commentary.generate_insights import _valid_history
-from market_intel_commentary.insight_contract import evaluate_watchpoints
+from market_intel_commentary.insight_contract import build_context, evaluate_watchpoints
 from market_intel_publication import site_content_contract as contract
 from market_intel_publication.asia_news_contract import validate_public_asia_news
 from market_intel_publication.chart_contract import validate_public_chart
@@ -39,6 +39,34 @@ def fields(value: object, allowed: str, required: str = "") -> dict:
     ):
         raise ValueError("unknown or missing public fields")
     return value
+
+
+def public_string(value: object) -> None:
+    if not isinstance(value, str):
+        raise ValueError("public text field must be a string")
+
+
+def validate_public_asia_report(row: object) -> dict:
+    """Check the retained owner report shape without inferring prose semantics."""
+    report = fields(
+        row,
+        "id date kind title summary sections source_url generation_mode asia_news_sha256",
+        "id date kind title summary sections source_url",
+    )
+    for name, value in report.items():
+        if name != "sections":
+            public_string(value)
+    if not isinstance(report["sections"], list):
+        raise ValueError("Asia sections must be a list")
+    for section in report["sections"]:
+        contract.exact(section, "title paragraphs")
+        public_string(section["title"])
+        paragraphs = section["paragraphs"]
+        if not isinstance(paragraphs, list) or any(
+            not isinstance(value, str) for value in paragraphs
+        ):
+            raise ValueError("Asia paragraphs must be a list of strings")
+    return report
 
 
 def scalar(value: object) -> None:
@@ -72,7 +100,7 @@ def _index(
     if payload["schema_version"] != schema or not isinstance(payload[key], list):
         raise ValueError("unsupported public index")
     if "generated_at" in payload:
-        scalar(payload["generated_at"])
+        public_string(payload["generated_at"])
     return payload, payload[key]
 
 
@@ -82,22 +110,12 @@ def _asia(public: Path, allowed: set[str]) -> list[dict]:
     )
     identities = []
     for row in reports:
-        fields(
-            row,
-            "id date kind title summary sections source_url generation_mode asia_news_sha256",
-            "id date kind title summary sections source_url",
-        )
-        flat({key: value for key, value in row.items() if key != "sections"})
+        validate_public_asia_report(row)
         if row["id"] != f"{row['date']}-{row['kind']}" or row["kind"] not in {"morning", "evening"}:
             raise ValueError("invalid Asia report identity")
         if row["source_url"] != f"reports/{row['id']}.md":
             raise ValueError("invalid Asia report path")
         identities.append(row["id"])
-        if not isinstance(row["sections"], list):
-            raise ValueError("invalid Asia sections")
-        for section in row["sections"]:
-            contract.exact(section, "title paragraphs")
-            flat(section)
         markdown = contract.source_file(public / contract.safe_path(row["source_url"]), public)
         allowed.add(row["source_url"])
         news = f"data/asia_news/{row['id']}.json"
@@ -226,6 +244,18 @@ def _us(public: Path, allowed: set[str], *, strict: bool) -> None:
         allowed.add(status)
 
 
+def _bind_insight_aggregate(note: dict, reports: list[dict]) -> None:
+    """Bind surviving commentary to the same selected context as the owner."""
+    by_id = {row["id"]: row for row in reports}
+    hashes = note.get("source_hashes", {})
+    selected = [row for row in reports if row["id"] in hashes] if hashes else reports
+    context = build_context(
+        selected, by_id[note["morning_report_id"]], by_id[note["evening_report_id"]]
+    )
+    if note.get("source_hash") != context["source_hash"]:
+        raise ValueError("insight aggregate source hash mismatch")
+
+
 def _commentary(public: Path, reports: list[dict], allowed: set[str], *, strict: bool) -> None:
     _, summaries = _index(
         public, "data/daily_summaries.json", "summaries", "market_intel_pages.daily_summaries.v1"
@@ -285,6 +315,8 @@ def _commentary(public: Path, reports: list[dict], allowed: set[str], *, strict:
     )
     if surviving != candidates:
         raise ValueError("insight public evidence mismatch")
+    for note in surviving:
+        _bind_insight_aggregate(note, reports)
     if strict and evaluate_watchpoints(payload["insights"], reports) != payload["outcomes"]:
         raise ValueError("insight outcomes mismatch")
     allowed.add(name)

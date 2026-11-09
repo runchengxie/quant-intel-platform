@@ -159,3 +159,138 @@ def rewrite(source, target, change):
     with zipfile.ZipFile(target, "w") as archive:
         for info, data in entries:
             archive.writestr(info, data)
+
+
+def installed_fixture(tmp_path, monkeypatch, *, raw=b"reviewed"):
+    """Unit-only metadata fixture; not formal installed VCS acceptance."""
+    from market_intel_publication import site_content_contract as contract
+
+    package = tmp_path / "synthetic_package"
+    package.mkdir()
+    module = package / "producer.py"
+    module.write_bytes(raw)
+    entry = contract.metadata.PackagePath("synthetic_package/producer.py")
+    entry.hash = contract.metadata.FileHash(
+        "sha256="
+        + contract.base64.urlsafe_b64encode(hashlib.sha256(b"reviewed").digest())
+        .rstrip(b"=")
+        .decode()
+    )
+    entry.size = len(b"reviewed")
+
+    class Distribution:
+        files = [entry]
+
+        def read_text(self, name):
+            return json.dumps(
+                {"url": "file:///synthetic", "vcs_info": {"vcs": "git", "commit_id": REVISION}}
+            )
+
+        def locate_file(self, name):
+            return tmp_path / name
+
+    monkeypatch.setattr(contract, "__file__", str(module))
+    monkeypatch.setattr(contract.metadata, "distribution", lambda name: Distribution())
+    return contract, module
+
+
+def review_candidate(tmp_path, codec, mutation, operation):
+    """Build a real valid package, then change only the reviewed public contract."""
+    from market_intel_publication import site_content_cli as cli
+    from market_intel_publication import site_content_contract as contract
+
+    root = all_families(tmp_path)
+    public = root / "artifacts/public"
+    if mutation[0] != "source_hash":
+        for name, key in (("daily_summaries", "summaries"), ("insights", "insights")):
+            path = public / f"data/{name}.json"
+            value = json.loads(path.read_text())
+            value[key] = []
+            write(path, value)
+    archive = tmp_path / "good.zip"
+    pack(codec, root, archive)
+    with zipfile.ZipFile(archive) as bundle_file:
+        manifest = json.loads(bundle_file.read("manifest.json"))
+        payload = {
+            row["path"]: bundle_file.read("payload/" + row["path"]) for row in manifest["files"]
+        }
+    field, value = mutation
+    name = "data/insights.json" if field == "source_hash" else "data/reports.json"
+    record = json.loads(payload[name])
+    if field == "source_hash":
+        record["insights"][0]["source_hash"] = value
+    elif field.startswith("section."):
+        section = {"title": "Additional public section", "paragraphs": ["Public text."]}
+        section[field.removeprefix("section.")] = value
+        record["reports"][0]["sections"].append(section)
+    elif field == "generated_at":
+        record[field] = value
+        health = json.loads(payload["data/health.json"])
+        health["index_generated_at"] = value
+        payload["data/health.json"] = contract.canonical(health)
+    else:
+        record["reports"][0][field] = value
+    payload[name] = contract.canonical(record)
+    output, receipt = tmp_path / "rejected-output", tmp_path / "rejected-receipt.json"
+    common = ["--output", str(output), "--receipt", str(receipt)]
+    if operation == "pack":
+        write(public / name, record)
+        command = cli.pack_main
+        args = ["--root", str(root), "--created-at", CREATED, "--producer-revision", REVISION]
+    else:
+        archive = tmp_path / "malformed.zip"
+        archive.write_bytes(
+            codec._archive(codec._manifest(payload, CREATED, manifest["producer"]), payload)
+        )
+        command = cli.verify_main
+        args = [
+            "--bundle",
+            str(archive),
+            "--sha256",
+            hashlib.sha256(archive.read_bytes()).hexdigest(),
+            "--expected-producer-revision",
+            REVISION,
+        ]
+    return command, args + common, output, receipt
+
+
+def historical_source(tmp_path, hash_map):
+    from market_intel_commentary.insight_contract import build_context
+
+    root = tmp_path / "historical"
+    public = daily_root(root)
+    reports = []
+    for day, kind, hour in (("2026-10-22", "evening", "20"), ("2026-10-23", "morning", "08")):
+        markdown = (
+            f"# Historical public report\n\n## Session\n生成时间：{day} {hour}:00\nPublic facts.\n"
+        )
+        row = parse_markdown(markdown, day, kind)
+        row["generation_mode"] = "backfill"
+        row["sections"].append({"title": "", "paragraphs": []})
+        (public / row["source_url"]).write_text(markdown)
+        reports.append(row)
+    write(
+        public / "data/reports.json",
+        {"schema_version": "market_intel_pages.reports.v1", "generated_at": "", "reports": reports},
+    )
+    context = build_context(reports, reports[1], reports[0])
+    claim = {"text": "Historical interpretation.", "evidence_ids": [context["evidence"][0]["id"]]}
+    note = {
+        **context,
+        "id": "historical-insight",
+        "analysis": {"overview": claim, "changes": [claim], "tensions": [claim], "watchpoints": []},
+    }
+    if hash_map == "absent":
+        note.pop("source_hashes")
+    elif hash_map == "empty":
+        note["source_hashes"] = {}
+    write(
+        public / "data/insights.json",
+        {
+            "schema_version": "market_intel_pages.insights.v1",
+            "generation": {"status": "cached"},
+            "insights": [note],
+            "outcomes": [],
+        },
+    )
+    return root, context["source_hash"]
