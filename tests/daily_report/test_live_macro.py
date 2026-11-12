@@ -364,3 +364,43 @@ def test_holiday_fred_cannot_use_nonadjacent_sessions_as_daily_change(monkeypatc
     )
     facts, _status = _rate_facts(datetime(2026, 10, 13, 1, tzinfo=UTC))
     assert not facts
+
+
+def test_cpi_yoy_falls_back_when_latest_base_month_was_never_released(monkeypatch):
+    observations = {
+        "CPIAUCNS": [
+            FredObservation(date="2025-09-01", value=320.0),
+            FredObservation(date="2025-11-01", value=324.0),
+            FredObservation(date="2026-09-01", value=336.94),
+            FredObservation(date="2026-10-01", value=337.511),
+        ],
+        "PCEPI": [
+            FredObservation(date="2025-09-01", value=125.0),
+            FredObservation(date="2026-09-01", value=127.5),
+        ],
+        "UNRATE": [
+            FredObservation(date="2026-08-01", value=4.1),
+            FredObservation(date="2026-09-01", value=4.2),
+        ],
+        "PAYEMS": [
+            FredObservation(date="2026-08-01", value=159000.0),
+            FredObservation(date="2026-09-01", value=159150.0),
+        ],
+    }
+
+    def fetch(series_id, **_kwargs):
+        if series_id not in observations:
+            raise FredFetchError("not available")
+        return observations[series_id]
+
+    monkeypatch.setattr("daily_messenger.daily_report.macro.fetch_observations", fetch)
+    facts, status = fetch_us_macro_facts(datetime(2026, 11, 12, 2, tzinfo=UTC))
+    cpi = next(fact for fact in facts if fact.id == "macro.cpi_yoy")
+
+    assert cpi.value == 5.29
+    assert cpi.observation_date == "2026-09-01"
+    assert cpi.quality == "ok"
+    assert status["CPIAUCNS"]["reason"] == "october_yoy_unavailable_missing_2025_base"
+    assert status["CPIAUCNS"]["unavailable_month"] == "2026-10"
+    assert status["CPIAUCNS"]["observation_date"] == "2026-09-01"
+    assert status["macro"]["quality"] == "ok"

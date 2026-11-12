@@ -36,14 +36,26 @@ def _available_observations(
     return available
 
 
-def _year_ago_value(rows: list[FredObservation], current: FredObservation) -> float:
-    year_ago = next(
-        (row for row in rows if row.date[:7] == f"{int(current.date[:4]) - 1}{current.date[4:7]}"),
-        None,
-    )
-    if year_ago is None or year_ago.value == 0:
-        raise FredFetchError("prior-year observation unavailable")
-    return year_ago.value
+def _year_ago_pair(rows: list[FredObservation]) -> tuple[FredObservation, FredObservation]:
+    """Return the newest observation that still has a usable prior-year base.
+
+    A published base month can be structurally absent (for example when the
+    reference month was never released). Retrying cannot fill that gap, so the
+    newest *computable* year-over-year pair is used and the caller records why
+    the newest observation was skipped.
+    """
+
+    by_month = {row.date[:7]: row for row in rows if row.value}
+    for current in reversed(rows):
+        year_ago = by_month.get(f"{int(current.date[:4]) - 1}{current.date[4:7]}")
+        if year_ago is not None:
+            return current, year_ago
+    raise FredFetchError("prior-year observation unavailable")
+
+
+def _missing_base_reason(unavailable_month: str) -> str:
+    month = date.fromisoformat(f"{unavailable_month}-01").strftime("%B").lower()
+    return f"{month}_yoy_unavailable_missing_{int(unavailable_month[:4]) - 1}_base"
 
 
 def _fact(
@@ -213,9 +225,19 @@ def fetch_us_macro_facts(as_of: datetime) -> tuple[list[MarketFact], dict[str, d
             rows = _available_observations(series_id, as_of, days=550, max_age_days=100)
             current = rows[-1]
             if name in {"cpi_yoy", "pce_yoy"}:
-                value = (current.value / _year_ago_value(rows, current) - 1) * 100
+                current, year_ago = _year_ago_pair(rows)
+                value = (current.value / year_ago.value - 1) * 100
                 previous = None
                 unit = "percent_yoy"
+                if current.date != rows[-1].date:
+                    unavailable_month = rows[-1].date[:7]
+                    status[series_id] = {
+                        "quality": "ok",
+                        "reason": _missing_base_reason(unavailable_month),
+                        "observation_date": current.date,
+                        "unavailable_month": unavailable_month,
+                        "source_url": f"https://fred.stlouisfed.org/series/{series_id}",
+                    }
             elif name == "payroll_change_thousands":
                 value = current.value - rows[-2].value
                 previous = None
