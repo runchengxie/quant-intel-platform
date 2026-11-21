@@ -373,6 +373,17 @@ def _add_chart_summary(
         )
 
 
+def _break_long_chart_gaps(frame: pd.DataFrame) -> pd.DataFrame:
+    """Leave long historical gaps blank when the artifact has no calendar."""
+    dates = frame.index
+    breaks = [
+        before + (after - before) / 2
+        for before, after in zip(dates[:-1], dates[1:], strict=True)
+        if after - before > pd.Timedelta(days=14)
+    ]
+    return frame.reindex(dates.union(pd.DatetimeIndex(breaks)))
+
+
 def _plot_crowding_panel(
     ax: Any,
     recent: pd.DataFrame,
@@ -382,6 +393,7 @@ def _plot_crowding_panel(
     font: Any,
     heavy_font: Any,
 ) -> None:
+    recent = _break_long_chart_gaps(recent)
     ax.axhspan(CROWDING_THRESHOLDS["small_high"], 1, color=theme.UP, alpha=0.07, linewidth=0)
     ax.plot(recent.index, recent["small"], color=theme.UP, linewidth=1.9, label="小盘拥挤度")
     ax.plot(
@@ -449,12 +461,15 @@ def _plot_strength_panel(
     font: Any,
     heavy_font: Any,
 ) -> None:
+    strength = _break_long_chart_gaps(strength)
     ax.plot(
         strength.index,
         strength["relative_strength"],
         color=theme.FLAT,
         linewidth=1.1,
         alpha=0.8,
+        marker=".",
+        markevery=[-1],
         label="沪深300 / 中证1000",
     )
     ax.plot(
