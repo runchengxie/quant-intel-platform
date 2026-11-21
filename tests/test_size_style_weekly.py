@@ -318,3 +318,15 @@ def test_render_markdown_contains_key_fields():
     assert "拥挤程度只影响均线周期" in md
     assert "**" not in md
     assert not any(mark in md for mark in ("“", "”", "；", "——", "(", ")"))
+
+
+def test_plot_gap_keeps_endpoints_and_breaks_long_missing_interval():
+    from a_share_analysis.size_style_weekly import _break_long_chart_gaps
+
+    frame = pd.DataFrame(
+        {"value": [1.0, 2.0, 3.0]},
+        index=pd.to_datetime(["2026-08-27", "2026-08-28", "2026-11-20"]),
+    )
+    plotted = _break_long_chart_gaps(frame)
+    assert plotted["value"].isna().tolist() == [False, False, True, False]
+    pd.testing.assert_frame_equal(plotted.dropna(), frame)
