@@ -48,3 +48,18 @@ A separate `BTC/USD` spot series is also available. It prefers FMP `BTCUSD` end-
 Reject a source if the cutoff is missing or duplicated, its value is invalid, or the current time has not reached the cutoff. If all sources fail, keep the field missing instead of substituting a stale value. If network access blocks CoinGecko Pro, Kraken may be tried automatically, but Kraken observations must never be labelled as CoinGecko.
 
 The output records source, code, and original observation date. FMP provides its continuous-futures daily series; the report does not claim these values equal official exchange settlement prices. FMP documentation links identify the API source, but access to individual raw records requires provider authorization. Public-display permission is based on the user's confirmation on 2026-09-26; the remote environment did not contain an authorization document. Operators must retain the authorization record and verify its exact scope.
+
+## Closed US equity sessions
+
+Index and stock facts use the packaged XNYS session artifact
+`daily_messenger.daily_report/data/equity_sessions_v1.json` (2025–2027), derived
+from exchange-calendars 4.13.2. On a closed report date, facts retain the exact
+previous session date and its return, with `quality=lagged`. The `quotes` and
+`equities` source statuses identify the closed session, expected observation date,
+calendar version and source. Public validators independently check this metadata;
+older data on an open equity date remains invalid. Bond holidays, futures and
+continuous BTC pricing use their own contracts. Alpaca historical stock bars use
+the actual XNYS session close, including early closes, plus the provider delay.
+
+Markdown and text displays round decimal values half away from zero to two decimal
+places and normalize negative zero. JSON evidence retains its original precision.

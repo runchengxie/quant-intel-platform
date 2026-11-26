@@ -11,6 +11,10 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+from daily_messenger.daily_report.equity_calendar import (
+    expected_observation_date as equity_observation_date,
+)
+from daily_messenger.daily_report.equity_calendar import valid_reference
 from daily_messenger.daily_report.treasury_calendar import expected_observation_date
 
 from .us_news_contract import REVISION_FIELDS, validate_news_payload
@@ -242,12 +246,27 @@ def _unique_evidence_ids(payload: dict[str, Any]) -> bool:
 
 
 def _valid_market_fact(  # noqa: PLR0911 - preserve audited validation branches
-    fact: dict[str, Any], report_date: str, *, allow_legacy_commodity: bool = False
+    fact: dict[str, Any],
+    report_date: str,
+    *,
+    allow_legacy_commodity: bool = False,
+    equity_status: dict[str, Any] | None = None,
 ) -> bool:
     fact_id = str(fact.get("id") or "")
     observed = fact.get("observation_date")
     source_url = str(fact.get("source_url") or "")
     unit = fact.get("unit")
+    if fact_id.startswith(("equity.", "index.")):
+        try:
+            expected = equity_observation_date(date.fromisoformat(report_date)).isoformat()
+        except (ValueError, TypeError):
+            return False
+        if expected != report_date:
+            return valid_reference(fact, report_date, equity_status or {}) and _valid_market_fact(
+                fact | {"quality": "ok"},
+                expected,
+                allow_legacy_commodity=allow_legacy_commodity,
+            )
     equity_match = EQUITY_ID.fullmatch(fact_id)
     if equity_match:
         symbol, field = equity_match.groups()
@@ -495,7 +514,16 @@ def _valid_sourced_fact_date(  # noqa: PLR0911 - preserve audited validation bra
         for fact in payload["facts"]
         if fact.get("id") in FACT_LABELS or EQUITY_ID.fullmatch(str(fact.get("id")))
     ]
-    if not all(_valid_market_fact(fact, report_date) for fact in known_facts):
+    if not all(
+        _valid_market_fact(
+            fact,
+            report_date,
+            equity_status=payload.get("source_status", {}).get(
+                "equities" if str(fact.get("id", "")).startswith("equity.") else "quotes", {}
+            ),
+        )
+        for fact in known_facts
+    ):
         return False
     facts_by_id = {fact["id"]: fact for fact in known_facts}
     if not _valid_equity_pairs(facts_by_id, payload):
@@ -505,7 +533,7 @@ def _valid_sourced_fact_date(  # noqa: PLR0911 - preserve audited validation bra
         for fact in known_facts
         if fact["id"].startswith("index.")
         and fact["id"].endswith(".change_percent")
-        and fact.get("quality") == "ok"
+        and fact.get("quality") in {"ok", "lagged"}
     ]
     if yahoo_indices and {fact["id"] for fact in yahoo_indices} != {
         f"index.{key}.change_percent" for key in YAHOO_INDEX_URLS
@@ -660,9 +688,7 @@ def _public_payload(payload: dict[str, Any], manifest: dict[str, Any]) -> dict[s
         "source_status": {
             key: _select(
                 payload.get("source_status", {}).get(key, {}),
-                ("quality", "reason", "reviewed_movers")
-                if key == "equities"
-                else (
+                (
                     "quality",
                     "reason",
                     "session",
@@ -671,8 +697,9 @@ def _public_payload(payload: dict[str, Any], manifest: dict[str, Any]) -> dict[s
                     "calendar_version",
                     "calendar_source",
                     "reference_rechecked_at",
+                    "reviewed_movers",
                 )
-                if key == "rates"
+                if key in {"rates", "quotes", "equities"}
                 else ("quality", "reason"),
             )
             for key in (

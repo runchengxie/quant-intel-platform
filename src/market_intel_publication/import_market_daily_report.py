@@ -11,6 +11,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from daily_messenger.daily_report.display import format_decimal
+
 from .us_daily_contract import (
     ASSET_GAP_LABELS,
     EQUITY_ID,
@@ -122,10 +124,13 @@ def _market_table(facts: list[dict[str, Any]], include_references: bool = True) 
         label = FACT_LABELS[fact["id"]][0].removesuffix("日涨跌").strip()
         close = by_id.get(fact["id"].removesuffix(".change_percent") + ".close")
         close_cell = (
-            (f" {float(close['value']):,.2f} |" if close else " 缺项 |") if has_closes else ""
+            (f" {format_decimal(close['value'], grouped=True)} |" if close else " 缺项 |")
+            if has_closes
+            else ""
         )
         lines.append(
-            f"| {label} |{close_cell} {float(fact['value']):+.2f}% | {fact['observation_date']} |"
+            f"| {label} |{close_cell} {format_decimal(fact['value'], signed=True)}% | "
+            f"{fact['observation_date']} |"
             + (f" {_markdown_source(fact)} |" if include_references else "")
         )
         if close and include_references and close["source_url"] != fact["source_url"]:
@@ -146,8 +151,8 @@ def _equities_table(facts: list[dict[str, Any]], include_references: bool = True
             continue
         change = by_id[f"equity.{match.group(1)}.change_percent"]
         lines.append(
-            f"| {fact['instrument']} | {float(fact['value']):,.2f} 美元 | "
-            f"{float(change['value']):+.2f}% | {fact['observation_date']} |"
+            f"| {fact['instrument']} | {format_decimal(fact['value'], grouped=True)} 美元 | "
+            f"{format_decimal(change['value'], signed=True)}% | {fact['observation_date']} |"
             + (f" {_markdown_source(fact)} |" if include_references else "")
         )
     return lines
@@ -166,8 +171,8 @@ def _rates_table(facts: list[dict[str, Any]], include_references: bool = True) -
         change = by_id.get(f"treasury.{tenor}.change_bp")
         if not level and not change:
             continue
-        level_text = f"{float(level['value']):.2f}%" if level else "—"
-        change_text = f"{float(change['value']):+.2f} bp" if change else "—"
+        level_text = f"{format_decimal(level['value'])}%" if level else "—"
+        change_text = f"{format_decimal(change['value'], signed=True)} bp" if change else "—"
         fact = change if change is not None else level
         if fact is None:
             continue
@@ -197,7 +202,8 @@ def _cross_asset_table(facts: list[dict[str, Any]], include_references: bool = T
         label = FACT_LABELS[fact["id"]][0].removesuffix("收盘")
         unit = FACT_LABELS[fact["id"]][1]
         lines.append(
-            f"| {label} | {float(fact['value']):,.2f} {unit} | {float(change['value']):+.2f}% | "
+            f"| {label} | {format_decimal(fact['value'], grouped=True)} {unit} | "
+            f"{format_decimal(change['value'], signed=True)}% | "
             f"{fact['observation_date']} |"
             + (f" {_markdown_source(fact)} |" if include_references else "")
         )
@@ -215,7 +221,7 @@ def _macro_table(facts: list[dict[str, Any]], include_references: bool = True) -
         if fact["id"].startswith("treasury.") and fact.get("quality") == "lagged":
             label = label.replace("收益率日变动", "收益率最近交易日变动")
         lines.append(
-            f"| {label} | {float(fact['value']):.2f}{unit} | {fact['observation_date']} |"
+            f"| {label} | {format_decimal(fact['value'])}{unit} | {fact['observation_date']} |"
             + (f" {_markdown_source(fact)} |" if include_references else "")
         )
     return lines
@@ -243,7 +249,12 @@ def _markdown_fact_lines(
             and math.isfinite(value)
             and re.fullmatch(r"\d{4}-\d{2}-\d{2}", observed)
             and _valid_market_fact(
-                fact, _date(payload), allow_legacy_commodity=allow_legacy_commodity
+                fact,
+                _date(payload),
+                allow_legacy_commodity=allow_legacy_commodity,
+                equity_status=payload.get("source_status", {}).get(
+                    "equities" if fact_id.startswith("equity.") else "quotes", {}
+                ),
             )
         )
         if not is_valid:
@@ -258,7 +269,15 @@ def _markdown_fact_lines(
         "cross_asset": _cross_asset_table,
         "macro": _macro_table,
     }
-    return renderers[section](grouped, include_references)
+    result = renderers[section](grouped, include_references)
+    if section in {"market", "equities"} and any(f.get("quality") == "lagged" for f in grouped):
+        result = [
+            line.replace("收盘涨跌", "日涨跌").replace("日涨跌", "最近交易日涨跌")
+            if "最近交易日涨跌" not in line
+            else line
+            for line in result
+        ]
+    return result
 
 
 def _source_status_lines(statuses: dict[str, Any], include_references: bool = True) -> list[str]:
@@ -271,7 +290,8 @@ def _source_status_lines(statuses: dict[str, Any], include_references: bool = Tr
             continue
         quality = SOURCE_QUALITY_LABELS.get(status.get("quality"), "未确认")
         reason = SOURCE_REASON_LABELS.get(status.get("reason"), "详见逐项观测日与来源")
-        if key == "rates" and status.get("reason") == "holiday_reference":
+        if key in {"rates", "quotes", "equities"} and status.get("reason") == "holiday_reference":
+            reason = "美股休市；展示最近交易日参考值及该交易日变动" if key != "rates" else reason
             reason += f"；参考观测日 {status['expected_observation_date']}"
         lines.append(f"| {label} | {quality} | {reason} |")
     return (
@@ -407,8 +427,10 @@ def _text_fact_lines(payload: dict[str, Any], prefix: str) -> list[str]:
             continue
         fact = facts[fact_id]
         signed = fact_id.endswith((".change_bp", ".change_percent"))
-        value = f"{fact['value']:+.2f}" if signed else f"{fact['value']:.2f}"
+        value = format_decimal(fact["value"], signed=signed)
         suffix = unit if unit == "%" else f" {unit}"
+        if fact.get("quality") == "lagged" and fact_id.startswith("index."):
+            label = label.replace("日涨跌", "最近交易日涨跌")
         lines.extend(
             [
                 f"- {label}：{value}{suffix}（观测日 {fact['observation_date']}）",
@@ -450,17 +472,27 @@ def _text_claim_lines(claims: list[dict[str, Any]]) -> list[str]:
     return lines
 
 
+def _text_equity_lines(payload: dict[str, Any]) -> list[str]:
+    facts = {fact["id"]: fact for fact in payload["facts"]}
+    lines = []
+    for fact_id, fact in facts.items():
+        if not EQUITY_ID.fullmatch(fact_id) or not fact_id.endswith(".close"):
+            continue
+        change = facts[fact_id.removesuffix(".close") + ".change_percent"]
+        label = "最近交易日涨跌 " if fact.get("quality") == "lagged" else ""
+        lines.append(
+            f"- {fact['instrument']}：{format_decimal(fact['value'], grouped=True)} 美元，"
+            f"{label}{format_decimal(change['value'], signed=True)}%"
+            f"（观测日 {fact['observation_date']}）\n  来源：{fact['source_url']}"
+        )
+    return lines
+
+
 def _text_report(payload: dict[str, Any]) -> str:
     report_date = _date(payload)
     grouped = _group_claims(payload)
     market_facts = _text_fact_lines(payload, "index.")
-    equity_facts = [
-        f"- {fact['instrument']}：{float(fact['value']):,.2f} 美元，"
-        f"{float(next(row for row in payload['facts'] if row['id'] == fact['id'].removesuffix('.close') + '.change_percent')['value']):+.2f}%"
-        f"（观测日 {fact['observation_date']}）\n  来源：{fact['source_url']}"
-        for fact in payload["facts"]
-        if EQUITY_ID.fullmatch(str(fact.get("id"))) and fact["id"].endswith(".close")
-    ]
+    equity_facts = _text_equity_lines(payload)
     treasury_facts = _text_fact_lines(payload, "treasury.")
     macro_facts = _text_fact_lines(payload, "macro.")
     cross_asset_facts = _text_fact_lines(payload, "cross_asset.")

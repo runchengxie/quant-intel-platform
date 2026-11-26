@@ -5,6 +5,12 @@ from __future__ import annotations
 import math
 from datetime import date
 
+from daily_messenger.daily_report.equity_calendar import (
+    expected_observation_date as equity_observation_date,
+)
+from daily_messenger.daily_report.equity_calendar import valid_reference
+from daily_messenger.daily_report.treasury_calendar import session_metadata as treasury_session
+
 SCHEMA = "market_intel_pages.us_daily_status.v1"
 REQUIRED_MARKET_FACTS = frozenset(
     [f"index.{key}.change_percent" for key in ("spx", "dow", "nasdaq", "russell2000")]
@@ -43,6 +49,42 @@ def _research_status(report: dict) -> str:
     return "unknown"
 
 
+def _available_observation(row: dict, day: str, statuses: dict) -> bool:
+    if row["id"].startswith(("equity.", "index.")):
+        try:
+            expected = equity_observation_date(date.fromisoformat(day)).isoformat()
+        except (ValueError, TypeError):
+            return False
+        if expected != day:
+            key = "equities" if row["id"].startswith("equity.") else "quotes"
+            return valid_reference(row, day, statuses.get(key, {}))
+    if row.get("observation_date") == day and row.get("quality") in {"ok", "reviewed"}:
+        return True
+    if not row["id"].startswith("treasury."):
+        return False
+    try:
+        expected = treasury_session(date.fromisoformat(day))
+    except ValueError:
+        return False
+    status = statuses.get("rates", {})
+    return (
+        expected["session"] == "closed"
+        and all(
+            status.get(key) == expected[key]
+            for key in (
+                "session",
+                "expected_observation_date",
+                "calendar_version",
+                "calendar_source",
+            )
+        )
+        and status.get("reason") == "holiday_reference"
+        and status.get("observation_date") == expected["expected_observation_date"]
+        and row.get("observation_date") == expected["expected_observation_date"]
+        and row.get("quality") == "lagged"
+    )
+
+
 def report_status(report: dict) -> dict:
     """Describe a public projection without mutating its signed source payload."""
     run_id = report["run_id"]
@@ -62,8 +104,7 @@ def report_status(report: dict) -> dict:
         for row in report.get("facts", [])
         if isinstance(row, dict)
         and isinstance(row.get("id"), str)
-        and row.get("observation_date") == day
-        and row.get("quality") in {"ok", "reviewed"}
+        and _available_observation(row, day, report.get("source_status", {}))
         and isinstance(row.get("value"), (int, float))
         and not isinstance(row["value"], bool)
         and math.isfinite(row["value"])

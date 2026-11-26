@@ -13,7 +13,7 @@ AS_OF = datetime(2026, 9, 19, 1, tzinfo=UTC)
 def _stub_equity_daily_quotes(monkeypatch):
     monkeypatch.setattr(
         "daily_messenger.daily_report.equity_quotes.fetch_yahoo_daily_snapshot",
-        lambda _symbol, *, target_date: QuoteSnapshot(
+        lambda _symbol, *, target_date, expected_previous_date=None: QuoteSnapshot(
             target_date.isoformat(), 200.0, -1.1, "yahoo:test"
         ),
     )
@@ -55,7 +55,7 @@ def test_pipeline_records_cross_asset_coverage(monkeypatch, tmp_path, missing, e
     )
     monkeypatch.setattr(
         "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
-        lambda _symbol, *, target_date: QuoteSnapshot(
+        lambda _symbol, *, target_date, expected_previous_date=None: QuoteSnapshot(
             target_date.isoformat(), 100.0, 0.2, "yahoo:test"
         ),
     )
@@ -83,7 +83,7 @@ def test_live_pipeline_publishes_complete_same_day_index_set(monkeypatch, tmp_pa
     )
     monkeypatch.setattr(
         "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
-        lambda _symbol, *, target_date: QuoteSnapshot(
+        lambda _symbol, *, target_date, expected_previous_date=None: QuoteSnapshot(
             target_date.isoformat(), 100.0, 0.2, "yahoo:test"
         ),
     )
@@ -121,13 +121,13 @@ def test_live_pipeline_keeps_equity_quotes_in_their_own_section(monkeypatch, tmp
     )
     monkeypatch.setattr(
         "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
-        lambda _symbol, *, target_date: QuoteSnapshot(
+        lambda _symbol, *, target_date, expected_previous_date=None: QuoteSnapshot(
             target_date.isoformat(), 100.0, 0.2, "yahoo:test"
         ),
     )
     monkeypatch.setattr(
         "daily_messenger.daily_report.equity_quotes.fetch_yahoo_daily_snapshot",
-        lambda _symbol, *, target_date: QuoteSnapshot(
+        lambda _symbol, *, target_date, expected_previous_date=None: QuoteSnapshot(
             target_date.isoformat(), 200.0, -1.1, "yahoo:test"
         ),
     )
@@ -169,7 +169,7 @@ def test_live_pipeline_keeps_btc_spot_separate_from_futures(monkeypatch, tmp_pat
     )
     monkeypatch.setattr(
         "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
-        lambda _symbol, *, target_date: QuoteSnapshot(
+        lambda _symbol, *, target_date, expected_previous_date=None: QuoteSnapshot(
             target_date.isoformat(), 100.0, 0.2, "yahoo:test"
         ),
     )

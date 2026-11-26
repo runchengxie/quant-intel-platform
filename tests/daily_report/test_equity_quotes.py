@@ -11,7 +11,7 @@ def test_equity_quotes_include_core_and_reviewed_movers_with_matching_pairs(monk
     monkeypatch.setattr(
         equity_quotes,
         "fetch_yahoo_daily_snapshot",
-        lambda symbol, *, target_date: QuoteSnapshot(
+        lambda symbol, *, target_date, expected_previous_date=None: QuoteSnapshot(
             target_date.isoformat(), 100.0, 1.25, f"yahoo:{symbol}"
         ),
     )
@@ -29,7 +29,7 @@ def test_equity_quotes_include_core_and_reviewed_movers_with_matching_pairs(monk
 def test_equity_quotes_use_alpaca_sip_only_when_yahoo_unavailable(monkeypatch):
     from daily_messenger.daily_report import equity_quotes
 
-    def yahoo(symbol, *, target_date):
+    def yahoo(symbol, *, target_date, expected_previous_date=None):
         if symbol == "MSFT":
             raise RuntimeError("Yahoo unavailable")
         return QuoteSnapshot(target_date.isoformat(), 100.0, 1.25, f"yahoo:{symbol}")
@@ -58,7 +58,7 @@ def test_equity_quotes_do_not_publish_stale_or_partial_symbol(monkeypatch):
     monkeypatch.setattr(
         equity_quotes,
         "fetch_yahoo_daily_snapshot",
-        lambda symbol, *, target_date: QuoteSnapshot(
+        lambda symbol, *, target_date, expected_previous_date=None: QuoteSnapshot(
             "2026-09-24" if symbol == "MSFT" else target_date.isoformat(),
             100.0,
             1.25,
@@ -77,7 +77,7 @@ def test_invalid_yahoo_numbers_fall_back_to_alpaca_sip(monkeypatch):
     monkeypatch.setattr(
         equity_quotes,
         "fetch_yahoo_daily_snapshot",
-        lambda symbol, *, target_date: QuoteSnapshot(
+        lambda symbol, *, target_date, expected_previous_date=None: QuoteSnapshot(
             target_date.isoformat(), float("nan") if symbol == "MSFT" else 100.0, 1.0, "yahoo:test"
         ),
     )
