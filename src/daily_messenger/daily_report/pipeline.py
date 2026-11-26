@@ -10,6 +10,7 @@ from zoneinfo import ZoneInfo
 
 from .btc_spot import fetch_btc_spot_facts
 from .cross_asset import fetch_cross_asset_facts
+from .equity_calendar import session_metadata
 from .equity_quotes import CORE_SYMBOLS, fetch_equity_facts
 from .facts import build_market_facts
 from .index_quotes import fetch_index_facts
@@ -131,6 +132,13 @@ def _live_inputs(as_of: datetime, run_date: str, config: dict[str, Any]) -> Live
             },
         }
     )
+    equity_session = session_metadata(datetime.fromisoformat(run_date).date())
+    for key in ("quotes", "equities"):
+        source_status[key].update(equity_session)
+        if equity_session["session"] == "closed":
+            source_status[key]["reason"] = "holiday_reference"
+            if source_status[key]["quality"] != "degraded":
+                source_status[key]["quality"] = "lagged"
     missing = [
         name for name in ("quotes", "research") if source_status[name]["quality"] == "degraded"
     ]

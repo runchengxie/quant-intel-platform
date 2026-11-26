@@ -6,6 +6,7 @@ import re
 
 from ops_common.locale import normalize_locale
 
+from .display import format_decimal
 from .models import DailyReport, MarketEvent, ReportSection
 
 _SECTION_TITLES = {
@@ -89,6 +90,12 @@ def _revision_times(report: DailyReport, copy: dict[str, str]) -> list[str]:
     ]
 
 
+def _reference_note(fact, locale: str) -> str:
+    if fact.quality != "lagged" or not fact.id.startswith(("index.", "equity.")):
+        return ""
+    return "; last-session reference" if locale == "en-US" else "；最近交易日参考值及该交易日变动"
+
+
 def render_markdown(report: DailyReport, *, locale: str | None = None) -> str:
     normalized_locale = normalize_locale(locale)
     copy = _COPY[normalized_locale]
@@ -141,14 +148,20 @@ def render_markdown(report: DailyReport, *, locale: str | None = None) -> str:
                     if fact.source_url and fact.source_url.startswith("https://")
                     else ""
                 )
+                value = (
+                    format_decimal(fact.value)
+                    if isinstance(fact.value, (int, float))
+                    else fact.value
+                )
+                observation += _reference_note(fact, normalized_locale)
                 if normalized_locale == "en-US":
                     lines.append(
-                        f"- {fact.instrument or fact.metric}: {fact.value} {fact.unit or ''} "
+                        f"- {fact.instrument or fact.metric}: {value} {fact.unit or ''} "
                         f"({fact.source}{observation}{source})"
                     )
                 else:
                     lines.append(
-                        f"- {fact.instrument or fact.metric}：{fact.value} {fact.unit or ''}"
+                        f"- {fact.instrument or fact.metric}：{value} {fact.unit or ''}"
                         f"（{fact.source}{observation}{source}）"
                     )
         if section.claims:

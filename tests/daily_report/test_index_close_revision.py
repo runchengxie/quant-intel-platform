@@ -16,7 +16,9 @@ from market_intel_publication.us_daily_contract import _read
 def _input(tmp_path, monkeypatch):
     monkeypatch.setattr(
         "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
-        lambda symbol, *, target_date: QuoteSnapshot("2026-10-07", 1000.12, 0.25, symbol),
+        lambda symbol, *, target_date, expected_previous_date=None: QuoteSnapshot(
+            "2026-10-07", 1000.12, 0.25, symbol
+        ),
     )
 
     def timely_fetch(day):
@@ -118,7 +120,7 @@ def test_enrichment_fails_before_staging_on_unverified_parent_or_provider(
     else:
         monkeypatch.setattr(
             "daily_messenger.daily_report.index_quotes.fetch_yahoo_daily_snapshot",
-            lambda symbol, *, target_date: QuoteSnapshot(
+            lambda symbol, *, target_date, expected_previous_date=None: QuoteSnapshot(
                 "2026-10-06" if case == "provider_failure" else "2026-10-07", 1000.12, 0.35, symbol
             ),
         )

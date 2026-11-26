@@ -9,6 +9,7 @@ from urllib.parse import quote
 
 from daily_messenger.etl.fetchers.quotes import fetch_yahoo_daily_snapshot
 
+from .equity_calendar import expected_observation_date, previous_session_date
 from .models import MarketFact
 from .provider_diagnostics import failure_reason
 
@@ -24,12 +25,17 @@ INDICES = (
 
 def fetch_index_facts(report_date: date) -> tuple[list[MarketFact], tuple[str, ...]]:
     """Return an atomic four-index close set or identify unavailable symbols."""
+    target_date = expected_observation_date(report_date)
     snapshots = []
     missing = []
     for symbol, key, instrument in INDICES:
         try:
-            snapshot = fetch_yahoo_daily_snapshot(symbol, target_date=report_date)
-            if snapshot.day != report_date.isoformat():
+            snapshot = fetch_yahoo_daily_snapshot(
+                symbol,
+                target_date=target_date,
+                expected_previous_date=previous_session_date(target_date),
+            )
+            if snapshot.day != target_date.isoformat():
                 missing.append(symbol)
                 continue
             snapshots.append((symbol, key, instrument, snapshot))
@@ -54,7 +60,7 @@ def fetch_index_facts(report_date: date) -> tuple[list[MarketFact], tuple[str, .
             source_url=f"https://finance.yahoo.com/quote/{quote(symbol, safe='')}/history/",
             source_time=retrieved,
             retrieved_at=retrieved,
-            quality="ok",
+            quality="lagged" if target_date != report_date else "ok",
             observation_date=snapshot.day,
         )
         for symbol, key, instrument, snapshot in snapshots

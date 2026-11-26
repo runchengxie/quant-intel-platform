@@ -183,6 +183,7 @@ def fetch_yahoo_daily_snapshot(
     *,
     target_date: date | None = None,
     completed_after: daytime | None = None,
+    expected_previous_date: date | None = None,
 ) -> _QuoteSnapshot:
     """Return a completed Yahoo daily close, optionally for a specified market day."""
     chart = _fetch_yahoo_chart(symbol)
@@ -222,6 +223,11 @@ def fetch_yahoo_daily_snapshot(
     else:
         previous_timestamp, previous_close = pairs[-2]
         latest_timestamp, latest_close = pairs[-1]
+    if expected_previous_date is not None and (
+        datetime.fromtimestamp(previous_timestamp, exchange_timezone).date()
+        != expected_previous_date
+    ):
+        raise RuntimeError("Yahoo Finance expected previous session bar missing")
     if previous_close is None or latest_close is None or previous_close <= 0 or latest_close <= 0:
         raise RuntimeError("Yahoo Finance 日线收盘价无效")
     close_change = (latest_close - previous_close) / previous_close * 100
